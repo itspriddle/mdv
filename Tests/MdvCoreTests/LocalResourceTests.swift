@@ -113,6 +113,26 @@ struct DocumentURLSchemeTests {
         #expect(DocumentURLScheme.filePath(from: url, token: Self.sharedToken) == nil)
     }
 
+    @Test("link targets: files, and folders named with one trailing slash")
+    func linkTargets() throws {
+        let document = try #require(DocumentURLScheme.url(token: token, filePath: "/repo/docs/README.md"))
+        func target(_ relative: String) throws -> URL? {
+            let url = try #require(URL(string: relative, relativeTo: document)).absoluteURL
+            return DocumentURLScheme.fileURL(from: url, token: token)
+        }
+        let file = try #require(try target("other.md#setup"))
+        #expect(file.path(percentEncoded: false) == "/repo/docs/other.md")
+        #expect(!file.hasDirectoryPath)
+        let folder = try #require(try target("../sub%20dir/"))
+        #expect(folder.path(percentEncoded: false) == "/repo/sub dir/")
+        #expect(folder.hasDirectoryPath)
+        #expect(try target("sub//") == nil)
+        #expect(try target("../%2e%2e/") == nil)
+        let otherToken = try #require(URL(string: "mdv-doc://another-token/repo/sub/"))
+        #expect(DocumentURLScheme.fileURL(from: otherToken, token: token) == nil)
+        #expect(DocumentURLScheme.fileURL(from: try #require(URL(string: "mdv-doc://\(token)/")), token: token) == nil)
+    }
+
     @Test("tokens are random lowercase UUIDs")
     func tokens() {
         let token = DocumentURLScheme.makeToken()

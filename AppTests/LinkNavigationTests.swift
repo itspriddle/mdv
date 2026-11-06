@@ -124,6 +124,19 @@ final class LinkNavigationTests {
         #expect(coordinator.webView.url == pageURL)
     }
 
+    @Test("a folder link goes to the handler as revealInFinder")
+    func folderLink() async throws {
+        try await load("[Docs](docs/)")
+        try await click(href: "docs/")
+        let target = folder.appending(path: "docs", directoryHint: .isDirectory)
+        #expect(actions.first?.0 == .revealInFinder(target))
+        guard case .revealInFinder(let url) = actions.first?.0 else {
+            Issue.record("expected revealInFinder, got \(actions)")
+            return
+        }
+        #expect(url.hasDirectoryPath)
+    }
+
     @Test("an external link goes to the handler and doesn't navigate the view")
     func externalLink() async throws {
         try await load("[Site](https://example.com/page)")

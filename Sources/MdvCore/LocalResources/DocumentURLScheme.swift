@@ -80,6 +80,26 @@ public enum DocumentURLScheme {
         return "/" + decoded.joined(separator: "/")
     }
 
+    /// The local file or folder a link's `mdv-doc` URL names, for the navigation policy: the
+    /// same lexical rules as `filePath(from:token:)`, except that one trailing `/` is accepted
+    /// and names a folder (`hasDirectoryPath`), as a link to `sub/` resolves. Image reads use
+    /// `filePath(from:token:)`, which refuses folders.
+    public static func fileURL(from url: URL, token: String) -> URL? {
+        if let path = filePath(from: url, token: token) {
+            return URL(filePath: path, directoryHint: .notDirectory)
+        }
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+            components.percentEncodedPath.count > 1, components.percentEncodedPath.hasSuffix("/")
+        else {
+            return nil
+        }
+        components.percentEncodedPath.removeLast()
+        guard let folderURL = components.url, let path = filePath(from: folderURL, token: token) else {
+            return nil
+        }
+        return URL(filePath: path, directoryHint: .isDirectory)
+    }
+
     // MARK: Private
 
     /// RFC 3986 `pchar` minus `%`: unreserved, sub-delims, `:` and `@`. Everything else
