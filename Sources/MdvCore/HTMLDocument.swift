@@ -1,17 +1,22 @@
 /// Wraps a rendered HTML fragment in a complete, locked-down HTML document.
 public struct HTMLDocument: Sendable {
-    /// Restrictive by default: no scripts, no remote loads. Styles are inline, images are local only.
-    public static let contentSecurityPolicy =
-        "default-src 'none'; style-src 'unsafe-inline'; img-src file: data:;"
-
     public var title: String
     public var body: String
     public var stylesheet: String
+    /// Restrictive by default: no scripts, no remote loads, inline styles, local images only.
+    /// The app passes `.viewer`; `mdv --html` keeps `.standalone`.
+    public var contentSecurityPolicy: ContentSecurityPolicy
 
-    public init(title: String, body: String, stylesheet: String = DefaultTheme.css) {
+    public init(
+        title: String,
+        body: String,
+        stylesheet: String = DefaultTheme.css,
+        contentSecurityPolicy: ContentSecurityPolicy = .standalone
+    ) {
         self.title = title
         self.body = body
         self.stylesheet = stylesheet
+        self.contentSecurityPolicy = contentSecurityPolicy
     }
 
     public var html: String {
@@ -20,7 +25,7 @@ public struct HTMLDocument: Sendable {
         <html>
         <head>
         <meta charset="utf-8">
-        <meta http-equiv="Content-Security-Policy" content="\(Self.contentSecurityPolicy)">
+        <meta http-equiv="Content-Security-Policy" content="\(contentSecurityPolicy.header)">
         <meta name="color-scheme" content="light dark">
         <title>\(Self.escape(title))</title>
         <style>

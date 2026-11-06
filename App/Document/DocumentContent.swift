@@ -39,7 +39,7 @@ struct DocumentContent: Equatable, Sendable {
 struct RenderedPage: Equatable, Sendable {
     /// Shown as the window title and the page `<title>`.
     let title: String
-    /// The complete HTML page (`HTMLDocument`: CSP, theme, body).
+    /// The complete HTML page (`HTMLDocument`: the viewer CSP, theme, body).
     let html: String
     /// The rendered body fragment alone (the `<article class="markdown-body">` contents), for
     /// swapping content into an already loaded page.
@@ -50,7 +50,7 @@ struct RenderedPage: Equatable, Sendable {
     init(rendered: RenderedDocument, fallbackTitle: String) {
         let title = rendered.title ?? fallbackTitle
         self.title = title
-        self.html = HTMLDocument(title: title, body: rendered.html).html
+        self.html = HTMLDocument(title: title, body: rendered.html, contentSecurityPolicy: .viewer).html
         self.body = rendered.html
         self.headings = rendered.headings
     }

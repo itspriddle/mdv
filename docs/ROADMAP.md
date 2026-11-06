@@ -81,8 +81,8 @@ A pleasant, Mac-native document viewer.
 - Open via Finder, Open dialog, drag and drop, recents, Dock; tabs; window restoration
 - Offer to become the default `.md` handler
 - Live reload on file change (FSEvents/`DispatchSource`), preserving scroll position
-- Relative images and links resolve against the file (`loadFileURL` with read access scoped
-  to the document's folder)
+- Relative images and links resolve against the file (a `mdv-doc:` scheme handler serving only
+  images under the document's git repository or folder; see VISION's security model)
 - Link handling: local `.md` opens in mdv, anchors scroll, external URLs open in the browser
   - In-page links (`#heading`, `#fn-…`) scroll in place; `#foo` falls back to
     `#user-content-foo` (raw HTML ids are prefixed); raw HTML `<h1>`–`<h6>` get anchors as on

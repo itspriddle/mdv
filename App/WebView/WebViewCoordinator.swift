@@ -1,4 +1,5 @@
 import AppKit
+import MdvCore
 import WebKit
 
 /// Owns one window's `WKWebView`: loads pages, swaps content in place, and talks to the page
@@ -10,6 +11,9 @@ import WebKit
 @MainActor
 final class WebViewCoordinator: NSObject {
     let webView: WKWebView
+
+    /// Serves this window's `mdv-doc` URLs (scoped local images).
+    let localResources: LocalResourceSchemeHandler
 
     /// Whether a page has finished loading. Bridge calls need a loaded page.
     private(set) var hasLoadedPage = false
@@ -23,7 +27,12 @@ final class WebViewCoordinator: NSObject {
 
     private var pendingLoads: [ObjectIdentifier: CheckedContinuation<Void, any Error>] = [:]
 
+    /// - Parameter configuration: a fresh configuration (`WebViewConfiguration.make()`); this
+    ///   coordinator installs its own `mdv-doc` scheme handler on it, so it can't be reused.
     init(configuration: WKWebViewConfiguration = WebViewConfiguration.make()) {
+        let localResources = LocalResourceSchemeHandler()
+        configuration.setURLSchemeHandler(localResources, forURLScheme: DocumentURLScheme.name)
+        self.localResources = localResources
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init()
         webView.navigationDelegate = self
@@ -38,10 +47,18 @@ final class WebViewCoordinator: NSObject {
         webView.setAccessibilityIdentifier("document-web-view")
     }
 
+    /// Scopes local image access to the document at `fileURL` (its `LocalResourceRoot`) and
+    /// returns the `mdv-doc` URL to load its page at (the `baseURL` for `load`), so relative
+    /// images resolve against the document. Nil, and no local images, when there is no file.
+    func documentURL(forFileAt fileURL: URL?) -> URL? {
+        localResources.scope(toDocumentAt: fileURL)
+    }
+
     /// Loads a full page and waits for it to finish. Replaces whatever was loaded, including the
     /// scroll position; use `replaceContent(with:)` to keep it.
     ///
-    /// - Parameter baseURL: resolves relative URLs in the page (the document's folder).
+    /// - Parameter baseURL: resolves relative URLs in the page: the document's
+    ///   `documentURL(forFileAt:)`.
     func load(_ page: RenderedPage, baseURL: URL?) async throws {
         try await load(html: page.html, baseURL: baseURL)
     }

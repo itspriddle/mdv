@@ -15,8 +15,7 @@ enum WebViewConfiguration {
         for script in AppScripts.userScripts {
             configuration.userContentController.addUserScript(script)
         }
-        // TODO(#18): install the local-resource WKURLSchemeHandler here
-        // (`configuration.setURLSchemeHandler(_:forURLScheme:)`).
+        // The `mdv-doc` scheme handler is per window: `WebViewCoordinator.init` installs it.
         return configuration
     }
 }
