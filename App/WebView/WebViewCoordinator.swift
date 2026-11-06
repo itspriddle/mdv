@@ -22,6 +22,9 @@ final class WebViewCoordinator: NSObject {
     /// The navigation policy allows exactly that one `.other` navigation per load.
     var expectedLoadURL: URL?
 
+    /// Called after the web content process exits; the owner loads the page again.
+    var webContentProcessDidTerminate: (@MainActor () -> Void)?
+
     private var pendingLoads: [ObjectIdentifier: CheckedContinuation<Void, any Error>] = [:]
 
     // MARK: Links (#19, `WebViewCoordinator+Navigation.swift`)
@@ -128,12 +131,12 @@ extension WebViewCoordinator: WKNavigationDelegate {
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        // TODO(#21): reload the current content (and position) after a web content crash.
         for continuation in pendingLoads.values {
             continuation.resume(throwing: LoadError.webContentProcessTerminated)
         }
         pendingLoads.removeAll()
         hasLoadedPage = false
+        webContentProcessDidTerminate?()
     }
 }
 

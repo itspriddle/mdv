@@ -71,10 +71,26 @@ editor or a browser.
   `WebViewCoordinator` owns the `WKWebView` (loading, in-place content swaps, navigation policy,
   and the scroll/position bridge). The main menu is built in code from per-feature
   contributions. Chosen over SwiftUI `DocumentGroup` (#16) because `NSDocument` gives us, as
-  public API, what a viewer needs and `DocumentGroup` hides: `NSFilePresenter` change
-  notifications and revert for live reload, per-window state restoration, tabs, recents, the
+  public API, what a viewer needs and `DocumentGroup` hides: a document object that owns
+  its file (live reload hangs off it, below), per-window state restoration, tabs, recents, the
   responder chain for menu commands, and a window controller to own the web view. SwiftUI stays
   for window content (sidebar, find bar, banners).
+- **Live reload:** each open document watches its file by path with kqueue
+  (`DispatchSource` on the file and its folder; `FileWatcher`), debounced 50 ms (capped at
+  150 ms for a steady stream). It handles in-place writes, atomic saves (rename over, swap,
+  Vim's rename-to-backup), delete and recreate, and renames (followed, except into the Trash,
+  which counts as a deletion). Chosen over `NSFilePresenter` (#21), which `NSDocument` already
+  is: measured, it reported edits from other processes about a second late and went silent for
+  good after a delete. Reloads bypass `NSDocument.revert` because NSDocument reads on the main
+  thread: the file is read and rendered off the main actor (a 1 MB document renders in about
+  0.5 s), stale renders are dropped, and the window swaps the new body into the loaded page in
+  place with an app script that keeps the reading position (the top source line, or the bottom
+  if the reader was there) in the same script run. Measured on 1 MB: the swap takes about
+  210 ms in WebKit against 230 ms for reloading the page and restoring the position, the main
+  thread never stalls more than a few milliseconds either way, and a reload can paint the top
+  of the page before the position is restored; so in-place swap, with reload-and-restore only when the base URL
+  changes (the file moved). A Vim `:w` of a 20 KB file shows in about 100 ms. Unreadable or
+  non-UTF-8 content, and deletion, keep the last render under a banner.
 - **Default handler:** mdv declares Markdown with `LSHandlerRank: Alternate` and asks, never
   grabs (#23). `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
