@@ -28,9 +28,14 @@ struct FindBar: View {
                 .labelStyle(.iconOnly)
                 .fixedSize()
                 .disabled(find.matchCount == 0)
-                Toggle("Match Case", isOn: Binding(get: { find.isCaseSensitive }, set: find.setCaseSensitive))
-                    .toggleStyle(.checkbox)
-                    .accessibilityIdentifier("find-case-sensitive")
+                // A closure, not `set: find.setCaseSensitive`: converting the main-actor method
+                // reference crashes the Swift 6.3 compiler (Xcode 26) in IRGen.
+                Toggle(
+                    "Match Case",
+                    isOn: Binding(get: { find.isCaseSensitive }, set: { find.setCaseSensitive($0) })
+                )
+                .toggleStyle(.checkbox)
+                .accessibilityIdentifier("find-case-sensitive")
                 Spacer(minLength: 0)
                 Button("Done", action: find.hide)
                     .accessibilityIdentifier("find-done")
