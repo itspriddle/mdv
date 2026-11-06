@@ -10,5 +10,6 @@ struct DocumentView: View {
     var body: some View {
         MarkdownWebView(coordinator: coordinator)
             .frame(minWidth: 480, minHeight: 360)
+            .overlay(alignment: .bottomLeading) { LinkStatusView(status: coordinator.linkStatus) }
     }
 }

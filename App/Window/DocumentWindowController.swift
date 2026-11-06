@@ -15,6 +15,8 @@ final class DocumentWindowController: NSWindowController {
     var markdownDocument: MarkdownDocument? { document as? MarkdownDocument }
 
     private var displayTask: Task<Void, Never>?
+    /// A fragment to scroll to once the page loads (a link opened this document with `#…`).
+    var pendingFragment: String?
 
     init(coordinator: WebViewCoordinator = WebViewCoordinator()) {
         self.coordinator = coordinator
@@ -25,6 +27,7 @@ final class DocumentWindowController: NSWindowController {
         window.minSize = NSSize(width: 480, height: 360)
         window.center()
         super.init(window: window)
+        installLinkHandling()
     }
 
     @available(*, unavailable)
@@ -57,12 +60,14 @@ final class DocumentWindowController: NSWindowController {
             return
         }
         synchronizeWindowTitleWithDocumentName()
+        coordinator.documentFileURL = markdownDocument.fileURL
         let baseURL = markdownDocument.fileURL?.deletingLastPathComponent()
         let isFirstLoad = !coordinator.hasLoadedPage
         displayTask?.cancel()
         displayTask = Task { [coordinator, weak self] in
             do {
                 try await coordinator.load(page, baseURL: baseURL)
+                await self?.scrollToPendingFragment()
                 if isFirstLoad {
                     // Arrow keys, space, and Page Down scroll the document right away.
                     self?.window?.makeFirstResponder(coordinator.webView)
