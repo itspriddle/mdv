@@ -4,8 +4,7 @@ extension HTMLRenderer {
     func renderExtensionEnter(_ node: MarkdownNode, _ context: Context, into output: inout HTMLOutput) {
         switch node.kind {
         case .table:
-            output.newlineIfNeeded()
-            output.raw("<table>")
+            openBlock("table", node, into: &output)
         case .tableRow(let isHeader):
             output.newlineIfNeeded()
             if isHeader {
@@ -13,7 +12,7 @@ extension HTMLRenderer {
             } else if context.opensTableBody {
                 output.raw("<tbody>\n")
             }
-            output.raw("<tr>")
+            openBlock("tr", node, into: &output)
         case .tableCell(let alignment, let isHeader):
             output.newlineIfNeeded()
             output.raw(isHeader ? "<th" : "<td")
@@ -31,7 +30,8 @@ extension HTMLRenderer {
         case .footnoteReference(let label, let number, let referenceIndex):
             renderFootnoteReference(label: label, number: number, referenceIndex: referenceIndex, into: &output)
         case .footnoteDefinition(let label, _, _):
-            renderFootnoteDefinitionStart(label: label, opensSection: context.opensFootnoteSection, into: &output)
+            renderFootnoteDefinitionStart(
+                node, label: label, opensSection: context.opensFootnoteSection, into: &output)
         default:
             break
         }
@@ -72,13 +72,15 @@ extension HTMLRenderer {
         output.newlineIfNeeded()
         switch options.gfmMarkup {
         case .github:
-            output.raw("<li class=\"task-list-item\">")
+            output.raw("<li class=\"task-list-item\"")
+            writeSourceLine(of: node, into: &output)
+            output.raw(">")
             // A leading paragraph writes the checkbox itself (`Context.taskCheckbox`).
             if node.children.first?.kind != .paragraph {
                 writeTaskCheckbox(isChecked: isChecked, into: &output)
             }
         case .cmark:
-            output.raw("<li>")
+            openBlock("li", node, into: &output)
             output.raw(
                 isChecked
                     ? "<input type=\"checkbox\" checked=\"\" disabled=\"\" /> "
@@ -116,7 +118,9 @@ extension HTMLRenderer {
 
     /// Footnote definitions are the document's last children, in number order. The first opens
     /// the section; the document closes it.
-    private func renderFootnoteDefinitionStart(label: String, opensSection: Bool, into output: inout HTMLOutput) {
+    private func renderFootnoteDefinitionStart(
+        _ node: MarkdownNode, label: String, opensSection: Bool, into output: inout HTMLOutput
+    ) {
         output.newlineIfNeeded()
         if opensSection {
             output.raw(
@@ -127,7 +131,9 @@ extension HTMLRenderer {
         }
         output.raw("<li id=\"fn-")
         output.url(label)
-        output.raw("\">\n")
+        output.raw("\"")
+        writeSourceLine(of: node, into: &output)
+        output.raw(">\n")
     }
 
     /// One back-link per reference to the footnote; the second and later are suffixed `-2`, ...

@@ -156,23 +156,21 @@ extension HTMLRenderer {
         case .document, .attribute:
             break
         case .blockQuote:
-            output.newlineIfNeeded()
-            output.raw("<blockquote>\n")
+            openBlock("blockquote", node, into: &output)
+            output.raw("\n")
         case .list(let info):
             renderListStart(node, info, into: &output)
         case .item:
-            output.newlineIfNeeded()
-            output.raw("<li>")
+            openBlock("li", node, into: &output)
         case .paragraph:
             if !context.inTightListItem {
-                output.newlineIfNeeded()
-                output.raw("<p>")
+                openBlock("p", node, into: &output)
             }
             if let isChecked = context.taskCheckbox {
                 writeTaskCheckbox(isChecked: isChecked, into: &output)
             }
         case .heading(let level):
-            renderHeadingStart(level: level, anchor: anchor, into: &output)
+            renderHeadingStart(node, level: level, anchor: anchor, into: &output)
         case .emphasis:
             output.raw("<em>")
         case .strong:
@@ -191,7 +189,7 @@ extension HTMLRenderer {
             renderImage(node, source: source, title: title, into: &output)
             return false
         case .codeBlock, .htmlBlock, .thematicBreak, .text, .softBreak, .lineBreak, .code, .htmlInline:
-            renderLeaf(node.kind, into: &output)
+            renderLeaf(node, into: &output)
             return false
         case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition:
             renderExtensionEnter(node, context, into: &output)
@@ -246,19 +244,20 @@ extension HTMLRenderer {
         if options.gfmMarkup == .github, node.children.contains(where: \.kind.isTaskItem) {
             output.raw(" class=\"contains-task-list\"")
         }
+        writeSourceLine(of: node, into: &output)
         output.raw(">\n")
     }
 
-    private func renderLeaf(_ kind: MarkdownNode.Kind, into output: inout HTMLOutput) {
-        switch kind {
+    private func renderLeaf(_ node: MarkdownNode, into output: inout HTMLOutput) {
+        switch node.kind {
         case .codeBlock(let block):
-            output.newlineIfNeeded()
+            openBlock("pre", node, into: &output)
             if let language = block.language {
-                output.raw("<pre><code class=\"language-")
+                output.raw("<code class=\"language-")
                 output.text(language)
                 output.raw("\">")
             } else {
-                output.raw("<pre><code>")
+                output.raw("<code>")
             }
             output.text(block.literal)
             output.raw("</code></pre>\n")
@@ -272,7 +271,9 @@ extension HTMLRenderer {
             output.raw(html)
         case .thematicBreak:
             output.newlineIfNeeded()
-            output.raw("<hr />\n")
+            output.raw("<hr")
+            writeSourceLine(of: node, into: &output)
+            output.raw(" />\n")
         case .text(let text):
             output.text(text)
         case .softBreak:
@@ -290,15 +291,19 @@ extension HTMLRenderer {
 
     /// `<hN>`, or with an anchor `<hN id="slug"><a class="anchor" aria-hidden="true"
     /// href="#slug"></a>`; the theme draws the link's hover glyph.
-    private func renderHeadingStart(level: Int, anchor: String?, into output: inout HTMLOutput) {
-        output.newlineIfNeeded()
+    private func renderHeadingStart(
+        _ node: MarkdownNode, level: Int, anchor: String?, into output: inout HTMLOutput
+    ) {
         guard let anchor else {
-            output.raw("<h\(level)>")
+            openBlock("h\(level)", node, into: &output)
             return
         }
+        output.newlineIfNeeded()
         output.raw("<h\(level) id=\"")
         output.text(anchor)
-        output.raw("\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#")
+        output.raw("\"")
+        writeSourceLine(of: node, into: &output)
+        output.raw("><a class=\"anchor\" aria-hidden=\"true\" href=\"#")
         output.text(anchor)
         output.raw("\"></a>")
     }
