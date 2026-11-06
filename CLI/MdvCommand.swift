@@ -35,7 +35,7 @@ struct MdvCommand: ParsableCommand {
     }
 
     private func printHTML() throws {
-        let renderer = SwiftMarkdownRenderer()
+        let renderer = HTMLRenderer()
         let sources: [(title: String, markdown: String)] =
             files.isEmpty
             ? [("stdin", try readStandardInput())]
@@ -44,7 +44,8 @@ struct MdvCommand: ParsableCommand {
                 return (url.lastPathComponent, try String(contentsOf: url, encoding: .utf8))
             }
         for source in sources {
-            let document = HTMLDocument(title: source.title, body: renderer.renderBody(source.markdown))
+            let rendered = renderer.render(source.markdown)
+            let document = HTMLDocument(title: rendered.title ?? source.title, body: rendered.html)
             print(document.html)
         }
     }

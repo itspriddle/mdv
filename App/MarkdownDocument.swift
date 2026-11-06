@@ -31,7 +31,8 @@ struct MarkdownDocument: FileDocument {
         throw CocoaError(.fileWriteNoPermission)
     }
 
-    func renderedHTML(title: String, renderer: some MarkdownRenderer = SwiftMarkdownRenderer()) -> String {
-        HTMLDocument(title: title, body: renderer.renderBody(source)).html
+    func renderedHTML(title: String, renderer: some MarkdownRenderer = HTMLRenderer()) -> String {
+        let rendered = renderer.render(source)
+        return HTMLDocument(title: rendered.title ?? title, body: rendered.html).html
     }
 }

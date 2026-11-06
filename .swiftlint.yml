@@ -14,6 +14,8 @@ excluded:
 disabled_rules:
   - trailing_comma
   - opening_brace
+  # TODOs are allowed only as `TODO(#N)`, pointing at the issue that resolves them.
+  - todo
 
 opt_in_rules:
   - closure_spacing
@@ -43,3 +45,7 @@ line_length:
   error: 160
   ignores_comments: true
   ignores_urls: true
+
+# Exhaustive switches over AST node kinds are the clearest form for the parser and renderer.
+cyclomatic_complexity:
+  ignores_case_statements: true
