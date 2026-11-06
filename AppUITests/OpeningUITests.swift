@@ -30,6 +30,17 @@ final class OpeningUITests: XCTestCase {
         XCTAssertTrue(panel.waitForNonExistence(timeout: MdvUITestApp.defaultTimeout), "Open panel dismissed")
     }
 
+    func testFileMenuHasOneOpenRecent() throws {
+        let mdv = try MdvUITestApp.launch(openingFixture: "smoke.md")
+        self.mdv = mdv
+        mdv.waitForWindow(titled: "Smoke Test Fixture")
+
+        let file = mdv.app.menuBars.menuBarItems["File"]
+        file.click()
+        XCTAssertEqual(file.menuItems.matching(NSPredicate(format: "title == 'Open Recent'")).count, 1)
+        mdv.app.typeKey(.escape, modifierFlags: [])
+    }
+
     func testOpeningAnOpenFileAgainKeepsOneWindow() throws {
         let mdv = try MdvUITestApp.launch(openingFixtures: ["smoke.md", "smoke.md"])
         self.mdv = mdv
