@@ -24,7 +24,9 @@
 ///   sanitizer tracks open raw elements across the siblings of each container: an end tag
 ///   without a matching start tag in the same container is dropped, and elements still open
 ///   when the container ends are closed there. Raw HTML therefore can't close or escape the
-///   paragraph, list item, block quote, or table cell it appears in.
+///   paragraph, list item, block quote, or table cell it appears in. The footnote definitions
+///   cmark moves to the end of the document count as a new container: the body's open
+///   elements are closed before them, so they are never wrapped or dropped.
 public struct HTMLSanitizer: Sendable {
     public init() {}
 
@@ -67,12 +69,7 @@ public struct HTMLSanitizer: Sendable {
         while let top = stack.indices.last {
             guard stack[top].nextChild < stack[top].node.children.count else {
                 var frame = stack.removeLast()
-                let closers = frame.sanitizer.finish()
-                if !closers.isEmpty {
-                    let kind: MarkdownNode.Kind =
-                        Self.holdsBlocks(frame.node.kind) ? .htmlBlock(closers + "\n") : .htmlInline(closers)
-                    frame.children.append(MarkdownNode(kind))
-                }
+                Self.closeOpenElements(in: &frame)
                 var node = frame.node
                 node.children = frame.children
                 guard !stack.isEmpty else {
@@ -84,6 +81,12 @@ public struct HTMLSanitizer: Sendable {
             let child = stack[top].node.children[stack[top].nextChild]
             stack[top].nextChild += 1
             switch child.kind {
+            case .footnoteDefinition where stack[top].node.kind == .document:
+                // cmark moves footnote definitions to the end of the document. Raw HTML in the
+                // body must not wrap or hide them (and leave references dangling), so the body's
+                // open elements are closed, and any dropping ends, before the first one.
+                Self.closeOpenElements(in: &stack[top])
+                stack.append(Frame(child))
             case .htmlBlock(let html):
                 let clean = stack[top].sanitizer.sanitize(html)
                 if clean.contains(where: { !$0.isWhitespace }) {
@@ -111,6 +114,17 @@ public struct HTMLSanitizer: Sendable {
             }
         }
         return root
+    }
+
+    /// Appends end tags for the raw elements still open in `frame` and resets its sanitizer.
+    private static func closeOpenElements(in frame: inout Frame) {
+        let closers = frame.sanitizer.finish()
+        frame.sanitizer = RawHTMLSanitizer()
+        if !closers.isEmpty {
+            let kind: MarkdownNode.Kind =
+                holdsBlocks(frame.node.kind) ? .htmlBlock(closers + "\n") : .htmlInline(closers)
+            frame.children.append(MarkdownNode(kind))
+        }
     }
 
     /// Whether a node's children are blocks (so closing tags go in an HTML block).

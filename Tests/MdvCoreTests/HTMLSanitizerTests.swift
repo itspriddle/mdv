@@ -191,6 +191,17 @@ struct HTMLSanitizerBalanceTests {
         #expect(rendered("<form>\n\n# heading\n\n</form>\n\nafter") == "<p>after</p>\n")
     }
 
+    @Test("raw HTML left open in the body can't wrap or hide the footnotes")
+    func footnotesAfterOpenHTML() {
+        let wrapped = rendered("x[^1]\n\n<details>\n\n[^1]: note")
+        #expect(wrapped.contains("</details>\n<section data-footnotes"))
+        #expect(wrapped.hasSuffix("</li>\n</ol>\n</section>\n"))
+
+        let hidden = rendered("x[^1]\n\n<svg>\n\nhidden\n\n[^1]: note")
+        #expect(!hidden.contains("hidden"))
+        #expect(hidden.contains("<li id=\"fn-1\">\n<p>note "))
+    }
+
     @Test("sanitizing a tree leaves non-HTML nodes alone and skips image alt text")
     func tree() {
         let tree = MarkdownNode(
