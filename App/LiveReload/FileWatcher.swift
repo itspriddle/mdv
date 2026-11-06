@@ -32,7 +32,7 @@ final class FileWatcher: @unchecked Sendable {
         /// The file is gone. The watcher keeps watching for it to reappear.
         case deleted
         /// The file was renamed or moved; the watcher now watches the new location.
-        case moved(to: URL)
+        case moved(URL)
     }
 
     struct Timing: Sendable {
@@ -118,7 +118,8 @@ final class FileWatcher: @unchecked Sendable {
 
     private func watchFile() {
         file?.source.cancel()
-        file = makeSource(path: url.path(percentEncoded: false), events: [.write, .extend, .attrib, .delete, .rename, .link, .revoke])
+        file = makeSource(
+            path: url.path(percentEncoded: false), events: [.write, .extend, .attrib, .delete, .rename, .link, .revoke])
     }
 
     private func watchDirectory() {
@@ -137,7 +138,8 @@ final class FileWatcher: @unchecked Sendable {
             close(descriptor)
             return nil
         }
-        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: events, queue: queue)
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: descriptor, eventMask: events, queue: queue)
         source.setEventHandler { [weak self] in
             self?.kernelEventDidArrive()
         }
@@ -202,7 +204,7 @@ final class FileWatcher: @unchecked Sendable {
             missingSince = nil
             reported = Fingerprint(path: newURL.path(percentEncoded: false))
             watchDirectory()
-            handler(.moved(to: newURL))
+            handler(.moved(newURL))
             return
         }
         if !isMissing {
@@ -229,7 +231,10 @@ final class FileWatcher: @unchecked Sendable {
         guard fcntl(descriptor, F_GETPATH, &buffer) != -1 else {
             return nil
         }
-        let path = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+        guard let path = String(bytes: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, encoding: .utf8)
+        else {
+            return nil
+        }
         let newURL = URL(filePath: path).standardizedFileURL
         guard newURL != url, Fingerprint(path: path)?.identity == file.identity,
             !newURL.pathComponents.contains(where: { $0 == ".Trash" || $0 == ".Trashes" })
