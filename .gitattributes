@@ -1,0 +1,2 @@
+# Spec fixtures are byte-exact test inputs (regression.txt depends on CR bytes).
+Tests/MdvCoreTests/Fixtures/spec/*.txt -text
