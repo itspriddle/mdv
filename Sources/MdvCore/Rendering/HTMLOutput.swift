@@ -66,7 +66,7 @@ struct HTMLOutput {
     private static let hexDigits = Array("0123456789ABCDEF".utf8)
     private static let hrefSafePunctuation = Set("-_.+!*(),%#@?=;:/$~".utf8)
 
-    private static func isHrefSafe(_ byte: UInt8) -> Bool {
+    static func isHrefSafe(_ byte: UInt8) -> Bool {
         switch byte {
         case UInt8(ascii: "a")...UInt8(ascii: "z"), UInt8(ascii: "A")...UInt8(ascii: "Z"),
             UInt8(ascii: "0")...UInt8(ascii: "9"):

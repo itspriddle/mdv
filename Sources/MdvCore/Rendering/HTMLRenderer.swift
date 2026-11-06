@@ -9,6 +9,8 @@ public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
     /// Highlights fenced code blocks when `options.highlighting` is on; `nil` renders them plain.
     public var highlighter: (any SyntaxHighlighter)?
+    /// Per-render state: the footnote ids of the tree being rendered (set in `render(_:headings:into:)`).
+    private(set) var footnoteIDs = FootnoteIDs()
 
     public init(
         options: RenderOptions = RenderOptions(),
@@ -61,12 +63,19 @@ public struct HTMLRenderer: MarkdownRenderer {
     /// `headings` are `root`'s headings in document order (`Heading.collect(in:)`); their slugs
     /// become heading ids when `options.headingAnchors` is on.
     private func render(_ root: MarkdownNode, headings: [Heading], into output: inout HTMLOutput) {
-        var anchors = (options.headingAnchors ? headings : []).makeIterator()
+        let anchors = options.headingAnchors ? headings : []
         var root = options.sanitize ? HTMLSanitizer().sanitize(root) : root
         if options.highlighting, let highlighter {
             var highlighting = CodeHighlighting(highlighter: highlighter)
             root = highlighting.apply(to: root)
         }
+        var renderer = self
+        renderer.footnoteIDs = FootnoteIDs(for: root, reserving: Set(anchors.map(\.slug)))
+        renderer.walk(root, anchors: anchors, into: &output)
+    }
+
+    private func walk(_ root: MarkdownNode, anchors: [Heading], into output: inout HTMLOutput) {
+        var anchors = anchors.makeIterator()
         // Walk with an explicit stack rather than recursion so deep trees cannot overflow it.
         var stack: [Step] = [.enter(root, Context())]
         while let step = stack.popLast() {

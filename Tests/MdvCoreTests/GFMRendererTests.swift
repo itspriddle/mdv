@@ -245,6 +245,50 @@ struct GFMFootnoteTests {
         #expect(Set(attributes.map { $0.replacing(/^#?fn(ref)?-/, with: "") }).count == 1)
     }
 
+    @Test(
+        "generated ids never collide with heading slugs or each other",
+        arguments: [
+            // A heading slug equal to a footnote id: the footnote yields, the heading keeps its slug.
+            "# fn 1\n\nx[^1]\n\n[^1]: one",
+            "# fnref 1\n\nx[^1]\n\n[^1]: one",
+            "# Footnote label\n\nx[^1]\n\n[^1]: one",
+            "x[^1]\n\n# fn 1\n\n# fn 1 1\n\n[^1]: one",
+            // A repeated reference's `fnref-a-2` against footnote `a-2`'s first reference.
+            "x[^a] y[^a] z[^a-2]\n\n[^a]: A\n\n[^a-2]: B",
+            // Labels that percent-encode to the same key.
+            "x[^ü] y[^%C3%BC]\n\n[^ü]: A\n\n[^%C3%BC]: B",
+        ]
+    )
+    func uniqueIDs(markdown: String) {
+        let output = html(markdown)
+        let ids = output.matches(of: /\sid="([^"]*)"/).map { String($0.1) }
+        #expect(Set(ids).count == ids.count, "\(ids)")
+        // Every in-page link and aria reference points at an id that exists.
+        let targets = output.matches(of: /href="#([^"]*)"|aria-describedby="([^"]*)"/).map {
+            String($0.1 ?? $0.2 ?? "")
+        }
+        for target in targets {
+            #expect(ids.contains(target), "\(target) in \(output)")
+        }
+    }
+
+    @Test("a colliding footnote is renamed; the heading keeps its GitHub slug")
+    func collisionRenamesFootnote() {
+        let output = html("# fn 1\n\nx[^1]\n\n[^1]: one")
+        #expect(output.hasPrefix(anchoredHeading(1, "fn-1", "fn 1")))
+        #expect(output.contains("<a href=\"#fn-1-1\" id=\"fnref-1-1\""))
+        #expect(output.contains("<li id=\"fn-1-1\">"))
+        #expect(output.contains("<a href=\"#fnref-1-1\" data-footnote-backref"))
+    }
+
+    @Test("the footnotes heading moves off a heading slugged footnote-label")
+    func sectionLabelCollision() {
+        let output = html("# Footnote label\n\nx[^1]\n\n[^1]: one")
+        #expect(output.hasPrefix(anchoredHeading(1, "footnote-label", "Footnote label")))
+        #expect(output.contains("aria-describedby=\"footnote-label-1\""))
+        #expect(output.contains("<h2 id=\"footnote-label-1\" class=\"sr-only\">Footnotes</h2>"))
+    }
+
     @Test("cmark markup (spec mode) for references and back-links")
     func cmarkMarkup() {
         #expect(

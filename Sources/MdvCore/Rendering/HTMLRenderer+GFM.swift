@@ -29,9 +29,10 @@ extension HTMLRenderer {
             renderTaskItemStart(node, isChecked: isChecked, into: &output)
         case .footnoteReference(let label, let number, let referenceIndex):
             renderFootnoteReference(label: label, number: number, referenceIndex: referenceIndex, into: &output)
-        case .footnoteDefinition(let label, _, _):
+        case .footnoteDefinition(let label, let number, _):
             renderFootnoteDefinitionStart(
-                node, label: label, opensSection: context.opensFootnoteSection, into: &output)
+                node, key: footnoteIDs.key(number: number, label: label), opensSection: context.opensFootnoteSection,
+                into: &output)
         default:
             break
         }
@@ -99,38 +100,41 @@ extension HTMLRenderer {
                     + "aria-label=\"Incomplete task\"> ")
     }
 
-    /// A footnote reference. Labels are user text: ids and hrefs percent-encode them like cmark
-    /// (`houdini_escape_href`), so they can't break out of the attribute.
+    /// A footnote reference. Labels are user text: ids and hrefs use their percent-encoded key
+    /// (`FootnoteIDs`), so they can't break out of the attribute.
     private func renderFootnoteReference(label: String, number: Int, referenceIndex: Int, into output: inout HTMLOutput)
     {
+        let key = footnoteIDs.key(number: number, label: label)
         output.raw(options.gfmMarkup == .github ? "<sup><a href=\"#fn-" : "<sup class=\"footnote-ref\"><a href=\"#fn-")
-        output.url(label)
+        output.url(key)
         output.raw("\" id=\"fnref-")
-        output.url(label)
+        output.url(key)
         if referenceIndex > 1 {
             output.raw("-\(referenceIndex)")
         }
-        output.raw(
-            options.gfmMarkup == .github
-                ? "\" data-footnote-ref=\"\" aria-describedby=\"footnote-label\">" : "\" data-footnote-ref>")
+        if options.gfmMarkup == .github {
+            output.raw("\" data-footnote-ref=\"\" aria-describedby=\"\(footnoteIDs.sectionLabel)\">")
+        } else {
+            output.raw("\" data-footnote-ref>")
+        }
         output.raw("\(number)</a></sup>")
     }
 
     /// Footnote definitions are the document's last children, in number order. The first opens
     /// the section; the document closes it.
     private func renderFootnoteDefinitionStart(
-        _ node: MarkdownNode, label: String, opensSection: Bool, into output: inout HTMLOutput
+        _ node: MarkdownNode, key: String, opensSection: Bool, into output: inout HTMLOutput
     ) {
         output.newlineIfNeeded()
         if opensSection {
             output.raw(
                 options.gfmMarkup == .github
                     ? "<section data-footnotes=\"\" class=\"footnotes\">"
-                        + "<h2 id=\"footnote-label\" class=\"sr-only\">Footnotes</h2>\n<ol>\n"
+                        + "<h2 id=\"\(footnoteIDs.sectionLabel)\" class=\"sr-only\">Footnotes</h2>\n<ol>\n"
                     : "<section class=\"footnotes\" data-footnotes>\n<ol>\n")
         }
         output.raw("<li id=\"fn-")
-        output.url(label)
+        output.url(key)
         output.raw("\"")
         writeSourceLine(of: node, into: &output)
         output.raw(">\n")
@@ -138,13 +142,14 @@ extension HTMLRenderer {
 
     /// One back-link per reference to the footnote; the second and later are suffixed `-2`, ...
     func writeFootnoteBackrefs(_ backrefs: FootnoteBackrefs, into output: inout HTMLOutput) {
+        let key = footnoteIDs.key(number: backrefs.number, label: backrefs.label)
         for index in 1...max(backrefs.referenceCount, 1) {
             let suffix = index > 1 ? "-\(index)" : ""
             if index > 1 {
                 output.raw(" ")
             }
             output.raw("<a href=\"#fnref-")
-            output.url(backrefs.label)
+            output.url(key)
             output.raw(suffix)
             switch options.gfmMarkup {
             case .github:
