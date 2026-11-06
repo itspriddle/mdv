@@ -44,9 +44,8 @@ Make the rendered output correct and complete.
   values (e.g. `title`) to the app
 - Emoji shortcodes (`:tada:`) using the GitHub emoji set
 - Raw HTML policy: allowlist sanitizer; dangerous tags and attributes removed
-- Syntax highlighting for fenced code blocks. **Decision needed:** bundled highlight.js run in
-  the webview (JS from the bundle only) vs. a native Swift highlighter at render time (works for
-  `--html` output with no JS)
+- Syntax highlighting for fenced code blocks. **Decided:** native, at render time: bundled
+  highlight.js in JavaScriptCore inside `MdvCore` (works for `--html` output, no JS in the viewer)
 - Source line annotations (`data-source-line`) to enable scroll sync later
 - Golden/snapshot test corpus (CommonMark spec, GFM spec samples, real-world READMEs)
 
