@@ -26,9 +26,10 @@ extension MdvUITestApp {
         .firstMatch
     }
 
-    /// The Open panel, wherever AppKit shows it (a dialog window or a sheet).
+    /// The Open panel. AppKit shows it as a standalone window with the identifier `open-panel`
+    /// (not a dialog or a sheet), titled "Open".
     var openPanel: XCUIElement {
-        app.dialogs.firstMatch.exists ? app.dialogs.firstMatch : app.sheets.firstMatch
+        app.windows["open-panel"]
     }
 
     /// Waits until mdv has exactly `count` windows.

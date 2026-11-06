@@ -6,7 +6,8 @@ extension MdvUITestApp {
         (window ?? frontWindow).searchFields["find-field"].firstMatch
     }
 
-    /// The find bar's match count ("2 of 3", "Not found").
+    /// The find bar's match count ("2 of 3", "Not found"). SwiftUI exposes the text as the
+    /// element's value.
     func findStatus(in window: XCUIElement? = nil) -> XCUIElement {
         (window ?? frontWindow).staticTexts["find-status"].firstMatch
     }
@@ -19,7 +20,8 @@ extension MdvUITestApp {
         let predicate = NSPredicate(format: "label == %@ OR value == %@", text, text)
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: status)
         if XCTWaiter.wait(for: [expectation], timeout: Self.defaultTimeout) != .completed {
-            XCTFail("find status is \"\(status.label)\", expected \"\(text)\"", file: file, line: line)
+            let shown = status.exists ? status.displayedText : "(none)"
+            XCTFail("find status is \"\(shown)\", expected \"\(text)\"", file: file, line: line)
         }
     }
 }

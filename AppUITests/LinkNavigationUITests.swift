@@ -54,7 +54,8 @@ final class LinkNavigationUITests: XCTestCase {
 
         let status = mdv.linkStatus(in: window)
         XCTAssertTrue(status.waitForExistence(timeout: MdvUITestApp.defaultTimeout))
-        XCTAssertTrue(status.label.contains("https://example.com/mdv-ui-test"), "status: \(status.label)")
+        let shown = status.displayedText
+        XCTAssertTrue(shown.contains("https://example.com/mdv-ui-test"), "status: \(shown)")
         // Still showing the document.
         XCTAssertTrue(mdv.window(titled: "Links Fixture").exists)
         XCTAssertTrue(mdv.renderedText("Jump to", in: window).exists)

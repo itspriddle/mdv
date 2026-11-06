@@ -158,7 +158,11 @@ struct LiveReloadTests {
         try shell("mv notes.md renamed.md")
         try await until("the window title follows") { controller.window?.title == "renamed.md" }
         #expect(document.fileURL?.lastPathComponent == "renamed.md")
-        #expect(controller.coordinator.webView.url?.lastPathComponent == "renamed.md")
+        // The title changes as soon as the rename is noticed; the page reloads at the new
+        // document URL (new scope for local images) asynchronously after that.
+        try await until("the page reloads at the new URL") {
+            controller.coordinator.webView.url?.lastPathComponent == "renamed.md"
+        }
 
         try shell("echo '\n# Still watched' >> renamed.md")
         try await waitForPageTitle("Still watched", in: controller)

@@ -329,6 +329,22 @@ struct FindInPageLogicTests {
         #expect(standard.responds(to: selector))
     }
 
+    @Test("a focus request made before the field is in a window focuses it once it is")
+    func focusWaitsForWindow() {
+        // SwiftUI calls `updateNSView` (which requests focus) before adding a new field to the
+        // window, as when Cmd-F first opens the bar.
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 100), styleMask: [.titled], backing: .buffered,
+            defer: false)
+        window.isReleasedWhenClosed = false
+        let field = FindSearchField(frame: NSRect(x: 0, y: 0, width: 200, height: 22))
+        field.requestFocus()
+        #expect(field.currentEditor() == nil)
+        window.contentView?.addSubview(field)
+        #expect(field.currentEditor() != nil)
+        #expect(window.firstResponder === field.currentEditor())
+    }
+
     @Test("menu commands drive the window's find")
     func commands() {
         let controller = DocumentWindowController()

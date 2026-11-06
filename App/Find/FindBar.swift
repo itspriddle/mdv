@@ -68,11 +68,7 @@ struct FindField: NSViewRepresentable {
         }
         if context.coordinator.focusRequest != find.focusRequest {
             context.coordinator.focusRequest = find.focusRequest
-            // After this update, once the field is in its window.
-            DispatchQueue.main.async {
-                field.window?.makeFirstResponder(field)
-                field.currentEditor()?.selectAll(nil)
-            }
+            field.requestFocus()
         }
     }
 
@@ -119,6 +115,35 @@ final class FindSearchField: NSSearchField {
     override static var cellClass: AnyClass? {
         get { FindSearchFieldCell.self }
         set {}
+    }
+
+    /// A focus request not yet fulfilled because the field wasn't in a window.
+    private var wantsFocus = false
+
+    /// Focuses the field and selects its text, now if it is in a window, else once SwiftUI
+    /// puts it in one. When the bar first opens, SwiftUI creates the field and calls
+    /// `updateNSView` before adding it to the window, so focusing right away (or on the next
+    /// main-queue turn) would do nothing and keys would keep going to the page.
+    func requestFocus() {
+        wantsFocus = true
+        // After this SwiftUI update, which may still move the field.
+        DispatchQueue.main.async { [weak self] in
+            self?.focusIfPending()
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        focusIfPending()
+    }
+
+    private func focusIfPending() {
+        guard wantsFocus, let window else {
+            return
+        }
+        wantsFocus = false
+        window.makeFirstResponder(self)
+        currentEditor()?.selectAll(nil)
     }
 }
 

@@ -38,7 +38,9 @@ final class LocalImagesUITests: XCTestCase {
             guard let frame = (object as? XCUIElement)?.frame else {
                 return false
             }
-            return abs(frame.width - size.width) < 1 && abs(frame.height - size.height) < 1
+            // Accessibility frames are whole points, rounded outward from the image's
+            // fractional position in the line box, so allow a point either way.
+            return abs(frame.width - size.width) <= 1 && abs(frame.height - size.height) <= 1
         }
         let loaded = XCTNSPredicateExpectation(predicate: predicate, object: image)
         XCTAssertEqual(

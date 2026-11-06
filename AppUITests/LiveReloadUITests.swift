@@ -48,8 +48,8 @@ final class LiveReloadUITests: XCTestCase {
         for _ in 0..<4 {
             webView.typeKey(.pageDown, modifierFlags: [])
         }
-        let anchor = try XCTUnwrap(firstVisibleParagraph(in: webView), "a paragraph at the top of the view")
-        let label = anchor.label
+        let anchor = try XCTUnwrap(firstVisibleParagraph(in: window), "a paragraph at the top of the view")
+        let label = anchor.displayedText
         let before = anchor.frame.minY
         XCTAssertNotEqual(label, "Paragraph 1.", "the view scrolled")
 
@@ -83,9 +83,16 @@ final class LiveReloadUITests: XCTestCase {
     }
 
     /// The topmost "Paragraph N." text whose top is inside the web view.
-    private func firstVisibleParagraph(in webView: XCUIElement) -> XCUIElement? {
-        let top = webView.frame.minY
-        let paragraphs = webView.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Paragraph '"))
+    ///
+    /// The web area's frame is the whole scrollable page, so "inside" means below the top of the
+    /// `WKWebView`'s visible bounds. WebKit puts a text run's string in its value.
+    private func firstVisibleParagraph(in window: XCUIElement) -> XCUIElement? {
+        guard let mdv else {
+            return nil
+        }
+        let top = mdv.webViewContainer(in: window).frame.minY
+        let paragraphs = mdv.webView(in: window).staticTexts.matching(
+            NSPredicate(format: "value BEGINSWITH 'Paragraph ' OR label BEGINSWITH 'Paragraph '"))
         return paragraphs.allElementsBoundByIndex.first { $0.frame.minY >= top }
     }
 }
