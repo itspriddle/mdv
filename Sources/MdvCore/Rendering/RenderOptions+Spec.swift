@@ -13,6 +13,7 @@ extension RenderOptions {
         var options = RenderOptions(extensions: Set(MarkdownExtension.allCases))
         // Features: add `options.<toggle> = <off>` lines here.
         options.detectsFrontmatter = false
+        options.emoji = false
         options.gfmMarkup = .cmark
         options.headingAnchors = false
         options.sanitize = false

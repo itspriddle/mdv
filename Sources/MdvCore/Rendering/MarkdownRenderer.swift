@@ -18,6 +18,8 @@ public struct RenderOptions: Sendable, Equatable {
     /// Give headings GitHub-compatible `id`s and a hover anchor link (#6). `headings` and the
     /// first-`h1` title are filled in either way.
     public var headingAnchors = true
+    /// Replace GitHub emoji shortcodes such as `:tada:` in text with their emoji (#10).
+    public var emoji = true
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
     /// for trusted input (the spec suites expect raw HTML to pass through).

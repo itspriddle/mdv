@@ -94,7 +94,8 @@ extension Heading {
 ///
 /// Text and code spans count; raw HTML tags and image alt text do not. Breaks are newlines in the
 /// slug source (so they vanish from the slug, as on GitHub) and spaces in the display text.
-/// Footnote references contribute their number to the slug only.
+/// Footnote references contribute their number to the slug only. Emoji shortcodes show their
+/// character but slug as the shortcode text.
 private struct HeadingText {
     var display = ""
     var slugSource = ""
@@ -106,6 +107,10 @@ private struct HeadingText {
             case .text(let literal), .code(let literal):
                 display += literal
                 slugSource += literal
+            case .emoji(let shortcode, let character):
+                // GitHub slugs the shortcode as written (`:tada: Release` -> `tada-release`).
+                display += character
+                slugSource += ":\(shortcode):"
             case .softBreak, .lineBreak:
                 display += " "
                 slugSource += "\n"
