@@ -17,11 +17,17 @@ enum LinkOpening: Equatable {
 }
 
 extension WebViewCoordinator {
-    /// Where the shown document lives, for `LinkPolicy`. The page URL is the web view's
-    /// current URL, so it follows however the page was loaded.
+    /// Where the shown document lives, for `LinkPolicy`. The page is served at
+    /// `mdv-doc://<token>/<absolute path>` (#18), so links resolve to `mdv-doc` URLs; this
+    /// window's token maps them back to files (`DocumentURLScheme.filePath(from:token:)`). Any
+    /// other `mdv-doc` URL (another token, an unclean path) names no file and is blocked, and so
+    /// are `file:` URLs, which a document can't produce (cmark's safe mode and the sanitizer drop
+    /// them).
     var linkContext: LinkContext {
-        LinkContext(
-            pageURL: webView.url?.withoutFragment, documentFileURL: documentFileURL, localFile: localFileResolver)
+        let token = localResources.token
+        return LinkContext(pageURL: webView.url?.withoutFragment, documentFileURL: documentFileURL) { url in
+            DocumentURLScheme.filePath(from: url, token: token).map { URL(filePath: $0) }
+        }
     }
 
     /// Decides every navigation in the document web view. The main frame never leaves the

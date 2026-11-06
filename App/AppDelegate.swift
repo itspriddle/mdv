@@ -5,7 +5,9 @@ import MdvCore
 /// `MarkdownDocument`s, each shown in a `DocumentWindowController`, and `MainMenu` builds the
 /// menu bar. SwiftUI draws window content only.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
+    let defaultViewerOffer = DefaultViewerOfferController()
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         MainMenu.install()
         // Load highlight.js into its JavaScriptCore context off the main thread, so the first
@@ -16,6 +18,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if !Self.isHostingUnitTests {
+            defaultViewerOffer.start()
+        }
         if let url = UITestHooks.documentToOpen {
             NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
                 if let error {
@@ -44,6 +49,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// App menu: "Make mdv the Default Markdown Viewer" (`DefaultViewerMenu`).
+    @objc func makeDefaultMarkdownViewer(_ sender: Any?) {
+        defaultViewerOffer.makeDefaultMarkdownViewer(sender)
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        defaultViewerOffer.validateMenuItem(menuItem)
     }
 
     /// Whether the app is the host for `AppTests`, where a modal Open panel would block the run.
