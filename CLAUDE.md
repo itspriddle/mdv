@@ -32,6 +32,9 @@ lock the build database.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
+- `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
+  `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
+  a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
 - `project.yml`: XcodeGen spec. Never commit `mdv.xcodeproj`; edit `project.yml` instead.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.

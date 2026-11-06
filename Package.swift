@@ -36,7 +36,8 @@ let package = Package(
             dependencies: [
                 "MdvCore",
                 .product(name: "cmark-gfm", package: "swift-cmark"),
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         ),
     ]
 )
