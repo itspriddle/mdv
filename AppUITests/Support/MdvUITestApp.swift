@@ -1,0 +1,123 @@
+import XCTest
+
+/// Drives mdv in UI tests: launches it in UI-test mode (see `UITestHooks` in the app) and finds
+/// the document UI.
+///
+/// Features extend this type with their own finders and actions in
+/// `AppUITests/Support/MdvUITestApp+<Feature>.swift`.
+@MainActor
+struct MdvUITestApp {
+    /// How long to wait for a window or rendered content to appear.
+    static let defaultTimeout: TimeInterval = 10
+
+    /// The web view's accessibility identifier (set by the app's `WebViewCoordinator`).
+    static let webViewIdentifier = "document-web-view"
+
+    let app: XCUIApplication
+
+    /// Launches a fresh mdv, optionally opening `document`.
+    ///
+    /// Every launch sets `-MdvUITesting YES` (no Open panel at launch, no first-run prompts) and
+    /// `-ApplePersistenceIgnoreState YES` (no restored windows from earlier runs).
+    @discardableResult
+    static func launch(
+        opening document: URL? = nil,
+        arguments: [String] = [],
+        environment: [String: String] = [:]
+    ) -> MdvUITestApp {
+        let app = XCUIApplication()
+        app.launchArguments = ["-MdvUITesting", "YES", "-ApplePersistenceIgnoreState", "YES"]
+        if let document {
+            app.launchArguments += ["-MdvUITestOpen", document.path(percentEncoded: false)]
+        }
+        app.launchArguments += arguments
+        app.launchEnvironment.merge(environment) { _, new in new }
+        app.launch()
+        return MdvUITestApp(app: app)
+    }
+
+    /// Launches mdv opening the named fixture from `AppUITests/Fixtures`.
+    @discardableResult
+    static func launch(openingFixture name: String, arguments: [String] = []) throws -> MdvUITestApp {
+        launch(opening: try Fixtures.url(named: name), arguments: arguments)
+    }
+
+    /// The window with the given title.
+    func window(titled title: String) -> XCUIElement {
+        app.windows[title]
+    }
+
+    /// The frontmost window.
+    var frontWindow: XCUIElement {
+        app.windows.firstMatch
+    }
+
+    /// The document web view in `window` (default: the frontmost window).
+    func webView(in window: XCUIElement? = nil) -> XCUIElement {
+        (window ?? frontWindow).webViews[Self.webViewIdentifier].firstMatch
+    }
+
+    /// Waits for a window with `title` and returns it, failing the test if it never appears.
+    @discardableResult
+    func waitForWindow(
+        titled title: String,
+        timeout: TimeInterval = defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> XCUIElement {
+        let window = window(titled: title)
+        if !window.waitForExistence(timeout: timeout) {
+            let titles = app.windows.allElementsBoundByIndex.map(\.title)
+            XCTFail("No window titled \"\(title)\"; windows: \(titles)", file: file, line: line)
+        }
+        return window
+    }
+
+    /// Waits for rendered text containing `text` in the web view of `window`, failing the test
+    /// if it never appears.
+    ///
+    /// Matching is on the accessibility label or value, so `text` must lie within one text run
+    /// (inline markup like `**bold**` splits a paragraph into several elements).
+    @discardableResult
+    func waitForRenderedText(
+        _ text: String,
+        in window: XCUIElement? = nil,
+        timeout: TimeInterval = defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> XCUIElement {
+        let element = renderedText(text, in: window)
+        if !element.waitForExistence(timeout: timeout) {
+            XCTFail("Rendered text \"\(text)\" not found in the web view", file: file, line: line)
+        }
+        return element
+    }
+
+    /// The first element in the web view whose label or value contains `text`.
+    func renderedText(_ text: String, in window: XCUIElement? = nil) -> XCUIElement {
+        let predicate = NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", text, text)
+        return webView(in: window).descendants(matching: .any).matching(predicate).firstMatch
+    }
+
+    func terminate() {
+        app.terminate()
+    }
+}
+
+/// Fixture documents bundled from `AppUITests/Fixtures` (a folder reference in project.yml).
+enum Fixtures {
+    enum MissingFixture: Error {
+        case notFound(String)
+    }
+
+    private final class BundleToken {}
+
+    /// The URL of `name` (e.g. `"smoke.md"`) in the test bundle's `Fixtures` folder.
+    static func url(named name: String) throws -> URL {
+        let bundle = Bundle(for: BundleToken.self)
+        guard let url = bundle.url(forResource: name, withExtension: nil, subdirectory: "Fixtures") else {
+            throw MissingFixture.notFound(name)
+        }
+        return url
+    }
+}
