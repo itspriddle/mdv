@@ -265,6 +265,6 @@ struct WebViewCoordinatorTests {
         try await load("text")
         let csp = try await evaluate(
             "return document.querySelector('meta[http-equiv=\"Content-Security-Policy\"]').content;")
-        #expect(csp as? String == HTMLDocument.contentSecurityPolicy)
+        #expect(csp as? String == ContentSecurityPolicy.viewer.header)
     }
 }

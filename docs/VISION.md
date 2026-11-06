@@ -89,7 +89,23 @@ editor or a browser.
 ## Security model
 
 - The rendered page has a strict Content-Security-Policy: no remote loads, inline styles only,
-  local/`data:` images only. Remote images become an explicit, per-document opt-in.
+  local/`data:` images only. Remote images become an explicit, per-document opt-in. In the app
+  it is `default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;`; `mdv --html`
+  output keeps `img-src file: data:` so a saved page still shows the images beside it.
+- The web view never gets `file:` access. The app loads each document at
+  `mdv-doc://<window token>/<absolute path>` (a `WKURLSchemeHandler`, chosen over
+  `loadFileURL` plus a temp file in #18), so relative URLs resolve against the document, and
+  every local read is a decision by `LocalImagePolicy` (MdvCore, unit tested). It serves a file
+  only if, after resolving `..`, percent-encoding, and every symlink (`realpath`, then
+  `F_GETPATH` on the opened descriptor), it is a regular file inside the allowed root, no larger
+  than 32 MB, with a PNG, JPEG, GIF, WebP, or SVG extension whose content sniffs as that same
+  format. Anything else gets an empty 404: no listings, paths, or reasons; the page shows a
+  broken image. SVG is only ever an `<img>`, where WebKit runs no scripts and loads no
+  subresources (tested).
+- The allowed root is **the enclosing git work tree's root, else the document's folder**: the
+  nearest folder at or above the document containing `.git`, unless that is the home folder or
+  `/`. Docs in a repository use `../images/x.png` the way GitHub resolves them, the repository
+  is the document's own trust domain, and only images are served from it.
 - Page JavaScript is disabled (`allowsContentJavaScript = false`): document `<script>`s,
   inline event handlers, and `javascript:` URLs never run, with or without the CSP. The viewer's
   own behavior (scrolling, position tracking, anchor fallback, in-place content swaps) is done by
