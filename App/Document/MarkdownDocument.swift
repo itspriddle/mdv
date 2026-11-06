@@ -12,10 +12,23 @@ final class MarkdownDocument: NSDocument {
     /// The source and rendered page from the last successful read; `nil` before the first one.
     private(set) var content: DocumentContent?
 
+    /// Whether the window shows the file's current contents; set by live reload.
+    var fileStatus: FileStatus = .current
+
+    /// Watches the file while the document has windows (live reload).
+    @ObservationIgnored private var liveReloader: LiveReloader?
+
     override static var autosavesInPlace: Bool { false }
 
     override func makeWindowControllers() {
         addWindowController(DocumentWindowController())
+        startLiveReload()
+    }
+
+    override func close() {
+        liveReloader?.stop()
+        liveReloader = nil
+        super.close()
     }
 
     // MARK: Reading
@@ -35,8 +48,53 @@ final class MarkdownDocument: NSDocument {
     /// goes through.
     func setContent(_ content: DocumentContent) {
         self.content = content
+        fileStatus = .current
         for case let controller as DocumentWindowController in windowControllers {
             controller.documentContentDidChange()
+        }
+    }
+
+    // MARK: Live reload
+
+    /// Starts reloading the document when its file changes. `makeWindowControllers()` calls
+    /// this; `close()` stops it.
+    func startLiveReload(timing: FileWatcher.Timing = FileWatcher.Timing()) {
+        guard liveReloader == nil else {
+            return
+        }
+        let reloader = LiveReloader(document: self, timing: timing)
+        reloader.start()
+        liveReloader = reloader
+    }
+
+    /// The reload in flight, if any (for tests).
+    var pendingReload: Task<Void, Never>? { liveReloader?.pendingReload }
+
+    // `LiveReloader`'s `FileWatcher` owns change detection and file location. NSFilePresenter
+    // callbacks arrive about a second late for edits by other processes and stop after a
+    // delete (measured in #21), so they only ask the watcher to check. They don't call super:
+    // NSDocument would follow a move to wherever the file went, including Vim's backup name
+    // or the Trash, and the watcher decides that instead.
+
+    override nonisolated func presentedItemDidChange() {
+        Task { @MainActor in
+            self.liveReloader?.checkForChanges()
+        }
+    }
+
+    override nonisolated func presentedItemDidMove(to newURL: URL) {
+        Task { @MainActor in
+            self.liveReloader?.checkForChanges()
+        }
+    }
+
+    override nonisolated func accommodatePresentedItemDeletion(
+        completionHandler: @escaping @Sendable ((any Error)?) -> Void
+    ) {
+        // Keep the window and its last render; the watcher reports the deletion.
+        completionHandler(nil)
+        Task { @MainActor in
+            self.liveReloader?.checkForChanges()
         }
     }
 

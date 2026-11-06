@@ -51,6 +51,39 @@ extension WebViewCoordinator {
         try await load(page, baseURL: baseURL)
     }
 
+    /// Live reload: swaps in `page` and keeps the reading position (`ReadingPosition`): the
+    /// closest block at or before the top source line plus the offset into it, or the bottom if
+    /// the view was at the bottom. One script run, so nothing paints in between. Falls back to a
+    /// full `load` when there is no page to swap into.
+    func updateContent(with page: RenderedPage, baseURL: URL?) async throws {
+        if hasLoadedPage {
+            let result = try await callBridge(
+                "return mdv.updateContent(html, title);", arguments: ["html": page.body, "title": page.title])
+            if (result as? NSNumber)?.boolValue == true {
+                return
+            }
+        }
+        try await load(page, baseURL: baseURL)
+    }
+
+    /// The reading position to keep across a reload.
+    func readingPosition() async throws -> ReadingPosition {
+        let result = try await callBridge("return mdv.readingPosition();")
+        guard let object = result as? [String: Any], let line = (object["line"] as? NSNumber)?.doubleValue,
+            let atBottom = (object["atBottom"] as? NSNumber)?.boolValue
+        else {
+            throw BridgeError.unexpectedResult
+        }
+        return ReadingPosition(line: line, atBottom: atBottom)
+    }
+
+    /// Scrolls back to a position from `readingPosition()`.
+    func restore(_ position: ReadingPosition) async throws {
+        _ = try await callBridge(
+            "return mdv.restorePosition({ line, atBottom });",
+            arguments: ["line": position.line, "atBottom": position.atBottom])
+    }
+
     /// Runs a fixed bridge function body in the app world. `body` must be a literal; pass every
     /// value through `arguments`.
     func callBridge(_ body: StaticString, arguments: [String: Any] = [:]) async throws -> Any? {
@@ -59,6 +92,14 @@ extension WebViewCoordinator {
         }
         return try await webView.callAsyncJavaScript(
             body.description, arguments: arguments, in: nil, contentWorld: AppScripts.world)
+    }
+
+    /// Where the reader is in the document, in source terms, so it survives a content change.
+    struct ReadingPosition: Equatable, Sendable {
+        /// The source line at the top of the viewport (`currentSourceLine()`).
+        var line: Double
+        /// Whether the view was scrolled to the bottom of a page taller than the viewport.
+        var atBottom: Bool
     }
 
     enum BridgeError: Error, Equatable {

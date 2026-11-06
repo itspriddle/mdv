@@ -113,10 +113,72 @@
     return true;
   }
 
+  // How close to the bottom (in CSS pixels) still counts as "at the bottom".
+  const BOTTOM_TOLERANCE = 4;
+
+  function maximumScrollY() {
+    return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  }
+
+  // The reading position to keep across a content change: the source line at the top of the
+  // viewport, and whether the view is scrolled to the bottom of a page taller than the window.
+  // A page that fits the window is never "at the bottom", so a short document that grows
+  // stays at its top until the reader scrolls down.
+  function readingPosition() {
+    const maximum = maximumScrollY();
+    const atBottom = maximum > 0 && window.scrollY >= maximum - BOTTOM_TOLERANCE;
+    return { line: currentSourceLine(), atBottom };
+  }
+
+  // Restores a `readingPosition()`: the bottom stays the bottom (log-tail behavior while
+  // writing); otherwise the closest block at or before the line, plus the offset into it.
+  function restorePosition(position) {
+    if (position.atBottom) {
+      window.scrollTo(0, maximumScrollY());
+    } else {
+      scrollToSourceLine(position.line);
+    }
+  }
+
+  // Restores again once images that hadn't loaded at swap time have their size, unless the
+  // reader has scrolled since. Images above the viewport would otherwise push it down.
+  function restoreAfterImagesLoad(position) {
+    const pending = [...document.images].filter((image) => !image.complete);
+    if (pending.length === 0) {
+      return;
+    }
+    let expectedY = window.scrollY;
+    const onSettled = () => {
+      if (Math.abs(window.scrollY - expectedY) < 1) {
+        restorePosition(position);
+        expectedY = window.scrollY;
+      }
+    };
+    for (const image of pending) {
+      image.addEventListener("load", onSettled, { once: true });
+      image.addEventListener("error", onSettled, { once: true });
+    }
+  }
+
+  // Live reload: swaps in new content and keeps the reading position, all in one script run,
+  // so nothing is painted between the swap and the scroll.
+  function updateContent(html, title) {
+    const position = readingPosition();
+    if (!replaceContent(html, title)) {
+      return false;
+    }
+    restorePosition(position);
+    restoreAfterImagesLoad(position);
+    return true;
+  }
+
   globalThis.mdv = Object.freeze({
     currentSourceLine,
     scrollToSourceLine,
     scrollToFirstID,
     replaceContent,
+    readingPosition,
+    restorePosition,
+    updateContent,
   });
 })();
