@@ -10,7 +10,7 @@ struct MdvUITestApp {
     /// How long to wait for a window or rendered content to appear.
     static let defaultTimeout: TimeInterval = 10
 
-    /// The web view's accessibility identifier (set by the app's `WebViewCoordinator`).
+    /// The `WKWebView`'s accessibility identifier (set by the app's `WebViewCoordinator`).
     static let webViewIdentifier = "document-web-view"
 
     let app: XCUIApplication
@@ -59,9 +59,21 @@ struct MdvUITestApp {
         app.windows.firstMatch
     }
 
-    /// The document web view in `window` (default: the frontmost window).
+    /// The document web view in `window` (default: the frontmost window): the web area holding
+    /// the rendered page.
+    ///
+    /// The app's identifier lands on the `WKWebView` itself, which the accessibility tree shows
+    /// as a group (`webViewContainer(in:)`); WebKit nests the page's web area (type `.webView`)
+    /// inside it, under a scroll area. The web area's frame is the whole scrollable page, not the
+    /// visible part.
     func webView(in window: XCUIElement? = nil) -> XCUIElement {
-        (window ?? frontWindow).webViews[Self.webViewIdentifier].firstMatch
+        webViewContainer(in: window).descendants(matching: .webView).firstMatch
+    }
+
+    /// The `WKWebView` in `window` (identifier `document-web-view`). Its frame is the visible
+    /// area of the page.
+    func webViewContainer(in window: XCUIElement? = nil) -> XCUIElement {
+        (window ?? frontWindow).descendants(matching: .any)[Self.webViewIdentifier].firstMatch
     }
 
     /// Waits for a window with `title` and returns it, failing the test if it never appears.
@@ -108,6 +120,18 @@ struct MdvUITestApp {
 
     func terminate() {
         app.terminate()
+    }
+}
+
+extension XCUIElement {
+    /// The text the element shows: its value when that is a non-empty string, else its label.
+    /// Static text (SwiftUI `Text`, WebKit text runs) exposes its string as the value, even when
+    /// it has an accessibility label; buttons and images use the label.
+    var displayedText: String {
+        if let value = value as? String, !value.isEmpty {
+            return value
+        }
+        return label
     }
 }
 

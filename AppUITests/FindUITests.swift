@@ -36,8 +36,10 @@ final class FindUITests: XCTestCase {
         window.typeKey("g", modifierFlags: [.command, .shift])
         mdv.waitForFindStatus("3 of 3", in: window)
 
+        // Match Case drops "Lantern" and searches from the current match (the third lantern,
+        // still a match), so it stays current: now the second of two.
         window.checkBoxes["find-case-sensitive"].firstMatch.click()
-        mdv.waitForFindStatus("1 of 2", in: window)
+        mdv.waitForFindStatus("2 of 2", in: window)
 
         field.typeKey(.delete, modifierFlags: [])
         field.typeText("x")
