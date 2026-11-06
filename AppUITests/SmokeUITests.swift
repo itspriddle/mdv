@@ -19,7 +19,7 @@ final class SmokeUITests: XCTestCase {
 
         // The window title is the document's first h1.
         let window = mdv.waitForWindow(titled: "Smoke Test Fixture")
-        XCTAssertTrue(mdv.webView(in: window).exists, "document web view")
+        mdv.waitForWebView(in: window)
         mdv.waitForRenderedText("The quick brown fox renders in mdv.", in: window)
         mdv.waitForRenderedText("Second list item", in: window)
     }

@@ -92,9 +92,28 @@ struct MdvUITestApp {
         let window = window(titled: title)
         if !window.waitForExistence(timeout: timeout) {
             let titles = app.windows.allElementsBoundByIndex.map(\.title)
+            attachAccessibilityTree()
             XCTFail("No window titled \"\(title)\"; windows: \(titles)", file: file, line: line)
         }
         return window
+    }
+
+    /// Waits for the document web view (`webView(in:)`) in `window` and returns it, failing the
+    /// test if it never appears. The app keeps the web view hidden, and out of the accessibility
+    /// tree, until its first page load finishes.
+    @discardableResult
+    func waitForWebView(
+        in window: XCUIElement? = nil,
+        timeout: TimeInterval = defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> XCUIElement {
+        let webView = webView(in: window)
+        if !webView.waitForExistence(timeout: timeout) {
+            attachAccessibilityTree()
+            XCTFail("No document web view", file: file, line: line)
+        }
+        return webView
     }
 
     /// Waits for rendered text containing `text` in the web view of `window`, failing the test
@@ -112,15 +131,34 @@ struct MdvUITestApp {
     ) -> XCUIElement {
         let element = renderedText(text, in: window)
         if !element.waitForExistence(timeout: timeout) {
+            attachAccessibilityTree()
             XCTFail("Rendered text \"\(text)\" not found in the web view", file: file, line: line)
         }
         return element
     }
 
-    /// The first element in the web view whose label or value contains `text`.
+    /// The first element in the web view whose label contains `text`, or the first static text
+    /// whose value does.
+    ///
+    /// Only static text's value is matched: other elements can have a non-string value (a
+    /// heading's is its level, a checkbox's its state), and `CONTAINS` on a number throws an
+    /// `NSInvalidArgumentException` (macOS 26) instead of failing to match.
     func renderedText(_ text: String, in window: XCUIElement? = nil) -> XCUIElement {
-        let predicate = NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", text, text)
+        let predicate = NSPredicate(
+            format: "label CONTAINS %@ OR (elementType == %d AND value CONTAINS %@)", text,
+            XCUIElement.ElementType.staticText.rawValue, text)
         return webView(in: window).descendants(matching: .any).matching(predicate).firstMatch
+    }
+
+    /// Attaches the app's accessibility tree (`debugDescription`) to the running test, so a
+    /// failed lookup shows what the tree looked like (it differs between macOS versions).
+    func attachAccessibilityTree(named name: String = "Accessibility tree") {
+        let attachment = XCTAttachment(string: app.debugDescription)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        XCTContext.runActivity(named: name) { activity in
+            activity.add(attachment)
+        }
     }
 
     func terminate() {
