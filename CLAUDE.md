@@ -13,6 +13,8 @@ make test             # core + app tests
 make build            # app + embedded CLI (signed via Config/Local.xcconfig); SIGN=0 for unsigned
 make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
 make format           # auto-format; run before committing
+make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
+make vendor-highlightjs  # re-vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
 swift run mdv --html FILE   # render to stdout without Xcode
 ```
 
@@ -27,7 +29,15 @@ lock the build database.
     `cmark_gfm`); `MarkdownExtension` lists GFM extensions toggled via `RenderOptions`.
   - `AST/`: `MarkdownNode`, our `Sendable` syntax tree (CommonMark + GFM kinds, source ranges).
   - `Rendering/`: `HTMLRenderer` walks the AST to HTML; `MarkdownRenderer`, `RenderOptions`, and
-    `RenderedDocument` are the public API.
+    `RenderedDocument` are the public API. `RenderOptions.spec` turns every mdv addition off; a
+    new toggle adds one line there. Heading slugs, footnote ids, and `data-source-line` live here.
+  - `Sanitizing/`: `HTMLSanitizer` allowlist for raw-HTML nodes only (renderer output is trusted,
+    so everything the renderer emits must be escaped by construction).
+  - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
+  - `Transforms/`: AST passes (emoji shortcodes).
+  - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
+  - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
+    never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
 - `App/`: SwiftUI app (module `MdvApp`), kept thin.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
@@ -35,6 +45,9 @@ lock the build database.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
   `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
   a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
+- `Tests/MdvCoreTests/Fixtures/github`, `.../corpus`: GitHub reference output (refresh with
+  `scripts/update-github-fixtures`, manual, needs auth) and mdv snapshots
+  (`MDV_RECORD_SNAPSHOTS=1`). Corpus exceptions live in `corpus.json`.
 - `project.yml`: XcodeGen spec. Never commit `mdv.xcodeproj`; edit `project.yml` instead.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.
@@ -56,5 +69,8 @@ lock the build database.
 - GitHub: `itspriddle/mdv` (private until 1.0). Each roadmap milestone is a GitHub milestone with
   issues.
 - One branch per issue (Conventional Branch, e.g. `feature/gfm-tables`), Conventional Commits
-  (see `.claude/skills`). PRs must pass CI.
+  (see `.claude/skills`). Issue branches merge into a milestone integration branch
+  (e.g. `feature/m1-core-rendering`), which goes to `main` as one PR that must pass CI.
+- After an issue lands, post a handoff comment (API changes, gotchas, deviations, deferred items)
+  on the next issue or the milestone's tracking issue.
 - When a milestone closes, update its status in `docs/ROADMAP.md`.
