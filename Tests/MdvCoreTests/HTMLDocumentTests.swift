@@ -34,4 +34,20 @@ struct DefaultThemeTests {
         #expect(DefaultTheme.css.contains("background: \(DefaultTheme.background.light.hex);"))
         #expect(DefaultTheme.css.contains("background: \(DefaultTheme.background.dark.hex); }"))
     }
+
+    @Test("dark colors are screen only, and print rules unclip code and tables and hide anchors")
+    func print() throws {
+        let css = DefaultTheme.css
+        #expect(css.contains("@media screen and (prefers-color-scheme: dark)"))
+        #expect(!css.contains("@media (prefers-color-scheme: dark)"))
+        let start = try #require(css.range(of: "@media print {"))
+        let printRules = String(css[start.upperBound...])
+        for rule in [
+            ".anchor { display: none; }", "pre { overflow: visible; white-space: pre-wrap;",
+            "table { display: table; width: 100%; overflow: visible; }", ":root { color-scheme: light; }",
+            #"a[href^="https:"]::after"#,
+        ] {
+            #expect(printRules.contains(rule), "missing \(rule)")
+        }
+    }
 }
