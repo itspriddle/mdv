@@ -65,7 +65,16 @@ editor or a browser.
   auto-detection, like GitHub).
 - **Display:** `WKWebView`. HTML + CSS is what makes CSS themes, print styles, and PDF export
   possible; SwiftUI-native renderers (e.g. Textual, MarkdownView) can't use stylesheets.
-- **App:** SwiftUI `DocumentGroup` in viewer mode, AppKit where SwiftUI falls short.
+- **App:** AppKit document architecture hosting SwiftUI views. `MarkdownDocument` is an
+  `NSDocument` subclass, opened by `NSDocumentController`; each window is a
+  `DocumentWindowController` hosting a SwiftUI `DocumentView`, and a per-window
+  `WebViewCoordinator` owns the `WKWebView` (loading, in-place content swaps, navigation policy,
+  and the scroll/position bridge). The main menu is built in code from per-feature
+  contributions. Chosen over SwiftUI `DocumentGroup` (#16) because `NSDocument` gives us, as
+  public API, what a viewer needs and `DocumentGroup` hides: `NSFilePresenter` change
+  notifications and revert for live reload, per-window state restoration, tabs, recents, the
+  responder chain for menu commands, and a window controller to own the web view. SwiftUI stays
+  for window content (sidebar, find bar, banners).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, GitHub Actions.
@@ -75,8 +84,14 @@ editor or a browser.
 
 - The rendered page has a strict Content-Security-Policy: no remote loads, inline styles only,
   local/`data:` images only. Remote images become an explicit, per-document opt-in.
-- JavaScript is disabled in the viewer until a feature needs it; when enabled, only scripts
-  shipped in the app bundle may run, never script from the document.
+- Page JavaScript is disabled (`allowsContentJavaScript = false`): document `<script>`s,
+  inline event handlers, and `javascript:` URLs never run, with or without the CSP. The viewer's
+  own behavior (scrolling, position tracking, anchor fallback, in-place content swaps) is done by
+  app scripts that ship in the bundle (`App/Scripts/`) and run only in an isolated
+  `WKContentWorld`, which shares the DOM with the page but not its globals. Swift calls them
+  with `callAsyncJavaScript` using fixed function bodies; every value (lines, fragments, HTML)
+  is passed as an argument, never spliced into script source. Tests prove page scripts stay
+  blocked while app scripts run.
 - Raw HTML in Markdown is sanitized per a defined policy rather than passed through blindly.
 - Syntax highlighting runs only the vendored highlight.js, in a private JavaScriptCore context
   with no access to the page, files, or network; code and language names are passed as values,

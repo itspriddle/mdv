@@ -38,7 +38,20 @@ lock the build database.
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
     never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
-- `App/`: SwiftUI app (module `MdvApp`), kept thin.
+- `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
+  `AppDelegate`), SwiftUI for window content only.
+  - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
+    plus `RenderedPage`). Every load and revert goes through `setContent(_:)`, which tells each
+    `DocumentWindowController`.
+  - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
+    actions go in `DocumentWindowController+<Feature>.swift`), `DocumentView` (SwiftUI root).
+  - `WebView/`: `WebViewCoordinator` owns the `WKWebView`: `load`, `replaceContent`, and the
+    async bridge (`scroll(toSourceLine:)`, `scroll(toFragment:)`, `currentSourceLine()`).
+    `WebViewConfiguration` is where scheme handlers go; `+Navigation.swift` holds the policy.
+  - `Scripts/`: bundled JS run only in `AppScripts.world`; pass values as arguments, never
+    splice them into source.
+  - `Menus/`: `MainMenu` builds the menu bar in code. A feature adds a `MenuContribution` type
+    in its own file plus one line in `MainMenu.contributions`.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
