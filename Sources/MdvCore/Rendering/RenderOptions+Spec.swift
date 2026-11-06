@@ -16,6 +16,7 @@ extension RenderOptions {
         options.gfmMarkup = .cmark
         options.headingAnchors = false
         options.sanitize = false
+        options.sourceLines = false
         return options
     }
 }

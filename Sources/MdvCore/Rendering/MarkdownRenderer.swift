@@ -18,6 +18,11 @@ public struct RenderOptions: Sendable, Equatable {
     /// Give headings GitHub-compatible `id`s and a hover anchor link (#6). `headings` and the
     /// first-`h1` title are filled in either way.
     public var headingAnchors = true
+    /// Annotate block elements with the line they start on in the original file (#9), for
+    /// scroll sync and position-preserving reload in the app (M2). Off by default, so headless
+    /// output (`mdv --html`) and the spec suites stay clean; the app turns it on. See
+    /// `HTMLRenderer.writeSourceLine(of:into:)` for the attribute contract.
+    public var sourceLines = false
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
     /// for trusted input (the spec suites expect raw HTML to pass through).

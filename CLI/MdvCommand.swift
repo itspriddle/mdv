@@ -35,6 +35,8 @@ struct MdvCommand: ParsableCommand {
     }
 
     private func printHTML() throws {
+        // Default options: no `data-source-line` annotations, which only the app uses (a flag
+        // for them can come with M5's output options if needed).
         let renderer = HTMLRenderer()
         let sources: [(title: String, markdown: String)] =
             files.isEmpty
