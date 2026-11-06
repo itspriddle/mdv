@@ -74,6 +74,12 @@ private struct TreeBuilder {
     private var rowIsHeader = false
     private var column = 0
 
+    // Explicit so the init stays reachable from `MarkdownParser`: the synthesized memberwise init
+    // takes the most restrictive access of the stored properties (`private`) on some toolchains.
+    init(lineOffset: Int) {
+        self.lineOffset = lineOffset
+    }
+
     mutating func build(_ root: CmarkNode) -> MarkdownNode {
         // Nodes still collecting children, innermost last. Index 0 is the document.
         var open = [MarkdownNode(.document, sourceRange: sourceRange(of: root))]
