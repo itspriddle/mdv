@@ -12,6 +12,10 @@ public enum MarkdownExtension: String, CaseIterable, Sendable {
     case taskList
     case footnotes
 
+    /// GitHub Flavored Markdown as github.com renders it: every extension above. `RenderOptions`
+    /// uses this by default.
+    public static let gfm: Set<MarkdownExtension> = [.table, .strikethrough, .autolink, .taskList, .footnotes]
+
     /// The name registered by `cmark_gfm_core_extensions_ensure_registered()`, if any.
     var syntaxExtensionName: String? {
         switch self {

@@ -198,8 +198,16 @@ struct HTMLRendererAPITests {
     }
 
     @Test("GFM syntax is literal text when its extension is off")
-    func extensionsOffByDefault() {
-        #expect(html("~~x~~") == "<p>~~x~~</p>\n")
+    func extensionsOff() {
+        #expect(HTMLRenderer(options: RenderOptions(extensions: [])).render("~~x~~").html == "<p>~~x~~</p>\n")
+    }
+
+    @Test("default options render GFM with GitHub markup")
+    func defaults() {
+        #expect(RenderOptions().extensions == MarkdownExtension.gfm)
+        #expect(MarkdownExtension.gfm == Set(MarkdownExtension.allCases))
+        #expect(RenderOptions().gfmMarkup == .github)
+        #expect(RenderOptions.spec.gfmMarkup == .cmark)
     }
 
     @Test("deeply nested input renders without crashing")

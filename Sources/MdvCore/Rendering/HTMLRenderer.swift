@@ -1,7 +1,8 @@
 /// mdv's HTML renderer: parses with `MarkdownParser` and walks the resulting `MarkdownNode` tree.
 ///
 /// Output for CommonMark nodes matches cmark's `cmark_render_html` byte for byte (safe mode for
-/// URLs, raw HTML passed through), so the CommonMark/GFM spec suites can check it directly. Later
+/// URLs, raw HTML passed through), so the CommonMark/GFM spec suites can check it directly. GFM
+/// tables and strikethrough match cmark too; task lists and footnotes follow `RenderOptions.gfmMarkup`. Later
 /// M1 features (anchors, emoji, sanitizing, highlighting, source lines) hook in here.
 public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
@@ -53,7 +54,9 @@ public struct HTMLRenderer: MarkdownRenderer {
                 }
                 stack.append(.exit(node, context))
                 let childContext = context.forChildren(of: node.kind)
-                stack.append(contentsOf: node.children.reversed().map { .enter($0, childContext) })
+                for (index, child) in node.children.enumerated().reversed() {
+                    stack.append(.enter(child, childContext.forChild(child, at: index, of: node, options)))
+                }
             case .exit(let node, let context):
                 renderExit(node, context, into: &output)
             }
@@ -70,14 +73,24 @@ extension HTMLRenderer {
     }
 
     /// What a node needs to know about its ancestors.
-    private struct Context {
+    struct Context {
         /// The parent is `strong`; cmark collapses `****x****` into a single `<strong>`.
         var parentIsStrong = false
         /// The parent is a tight list, so this node is one of its items.
         var parentIsTightList = false
         /// The parent is an item of a tight list; paragraphs here render without `<p>`.
         var inTightListItem = false
+        /// This table row is the first body row, so it opens `<tbody>`.
+        var opensTableBody = false
+        /// This paragraph starts a task item: GitHub markup puts the checkbox (checked or not)
+        /// inside it rather than directly after `<li>`.
+        var taskCheckbox: Bool?
+        /// This node is the first footnote definition, so it opens the footnotes section.
+        var opensFootnoteSection = false
+        /// This paragraph ends a footnote definition, so the back-references go inside it.
+        var footnoteBackrefs: FootnoteBackrefs?
 
+        /// The context shared by all children of a node of `kind`.
         func forChildren(of kind: MarkdownNode.Kind) -> Context {
             var child = Context()
             switch kind {
@@ -91,6 +104,31 @@ extension HTMLRenderer {
                 break
             }
             return child
+        }
+
+        /// Refines the shared children's context for the child at `index` of `parent`.
+        func forChild(_ child: MarkdownNode, at index: Int, of parent: MarkdownNode, _ options: RenderOptions)
+            -> Context
+        {
+            // Body rows follow the header row, and footnote definitions end the document, so the
+            // first of each is the one whose previous sibling is something else.
+            let previous = index > 0 ? parent.children[index - 1].kind : nil
+            var context = self
+            switch (parent.kind, child.kind) {
+            case (.table, .tableRow(isHeader: false)):
+                context.opensTableBody = previous?.isTableBodyRow != true
+            case (.taskItem(let isChecked), .paragraph) where index == 0 && options.gfmMarkup == .github:
+                context.taskCheckbox = isChecked
+            case (_, .footnoteDefinition):
+                context.opensFootnoteSection = previous?.isFootnoteDefinition != true
+            case (.footnoteDefinition(let label, let number, let referenceCount), .paragraph)
+            where index == parent.children.count - 1:
+                context.footnoteBackrefs = FootnoteBackrefs(
+                    label: label, number: number, referenceCount: referenceCount)
+            default:
+                break
+            }
+            return context
         }
     }
 }
@@ -108,14 +146,7 @@ extension HTMLRenderer {
             output.newlineIfNeeded()
             output.raw("<blockquote>\n")
         case .list(let info):
-            output.newlineIfNeeded()
-            if !info.isOrdered {
-                output.raw("<ul>\n")
-            } else if info.start == 1 {
-                output.raw("<ol>\n")
-            } else {
-                output.raw("<ol start=\"\(info.start)\">\n")
-            }
+            renderListStart(node, info, into: &output)
         case .item:
             output.newlineIfNeeded()
             output.raw("<li>")
@@ -123,6 +154,9 @@ extension HTMLRenderer {
             if !context.inTightListItem {
                 output.newlineIfNeeded()
                 output.raw("<p>")
+            }
+            if let isChecked = context.taskCheckbox {
+                writeTaskCheckbox(isChecked: isChecked, into: &output)
             }
         case .heading(let level):
             output.newlineIfNeeded()
@@ -148,13 +182,17 @@ extension HTMLRenderer {
             renderLeaf(node.kind, into: &output)
             return false
         case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition:
-            renderExtensionEnter(node.kind, into: &output)
+            renderExtensionEnter(node, context, into: &output)
         }
         return true
     }
 
     private func renderExit(_ node: MarkdownNode, _ context: Context, into output: inout HTMLOutput) {
         switch node.kind {
+        case .document:
+            if node.children.last?.kind.isFootnoteDefinition == true {
+                output.raw("</ol>\n</section>\n")
+            }
         case .blockQuote:
             output.newlineIfNeeded()
             output.raw("</blockquote>\n")
@@ -164,6 +202,10 @@ extension HTMLRenderer {
             output.raw("</li>\n")
         case .paragraph:
             if !context.inTightListItem {
+                if let backrefs = context.footnoteBackrefs {
+                    output.raw(" ")
+                    writeFootnoteBackrefs(backrefs, into: &output)
+                }
                 output.raw("</p>\n")
             }
         case .heading(let level):
@@ -177,10 +219,22 @@ extension HTMLRenderer {
         case .link:
             output.raw("</a>")
         case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition:
-            renderExtensionExit(node.kind, into: &output)
+            renderExtensionExit(node, context, into: &output)
         default:
             break
         }
+    }
+
+    private func renderListStart(_ node: MarkdownNode, _ info: ListInfo, into output: inout HTMLOutput) {
+        output.newlineIfNeeded()
+        output.raw(info.isOrdered ? "<ol" : "<ul")
+        if info.isOrdered, info.start != 1 {
+            output.raw(" start=\"\(info.start)\"")
+        }
+        if options.gfmMarkup == .github, node.children.contains(where: \.kind.isTaskItem) {
+            output.raw(" class=\"contains-task-list\"")
+        }
+        output.raw(">\n")
     }
 
     private func renderLeaf(_ kind: MarkdownNode.Kind, into output: inout HTMLOutput) {
@@ -257,25 +311,5 @@ extension HTMLRenderer {
             }
         }
         return text
-    }
-}
-
-// MARK: - GFM extensions
-
-extension HTMLRenderer {
-    // TODO(#4): render tables, strikethrough, and task list items. Until then their content
-    // renders without the extension's markup (task items as plain list items).
-    // TODO(#5): render footnote references and the footnotes section.
-    private func renderExtensionEnter(_ kind: MarkdownNode.Kind, into output: inout HTMLOutput) {
-        if case .taskItem = kind {
-            output.newlineIfNeeded()
-            output.raw("<li>")
-        }
-    }
-
-    private func renderExtensionExit(_ kind: MarkdownNode.Kind, into output: inout HTMLOutput) {
-        if case .taskItem = kind {
-            output.raw("</li>\n")
-        }
     }
 }

@@ -1,50 +1,9 @@
 {
   "spec.txt": {
-    "198": "pending #4: tables",
-    "199": "pending #4: tables",
-    "200": "pending #4: tables",
-    "201": "pending #4: tables",
-    "202": "pending #4: tables",
-    "204": "pending #4: tables",
-    "205": "pending #4: tables",
-    "491": "pending #4: strikethrough",
     "652": "permanent: tagfilter is not implemented; mdv's raw HTML sanitizer (#7) covers disallowed tags and is off in spec mode"
   },
   "extensions.txt": {
-    "1": "pending #4: tables",
-    "2": "pending #4: tables",
-    "3": "pending #4: tables",
-    "4": "pending #4: tables",
-    "5": "pending #4: tables",
-    "6": "pending #4: tables",
-    "8": "pending #4: tables",
-    "9": "pending #4: tables",
-    "10": "pending #4: tables",
-    "11": "pending #4: tables",
-    "12": "pending #4: tables",
-    "13": "pending #4: tables",
-    "14": "pending #4: tables",
-    "15": "pending #4: tables",
-    "16": "pending #4: tables",
-    "17": "pending #4: strikethrough",
-    "18": "pending #4: strikethrough",
-    "22": "permanent: tagfilter is not implemented; mdv's raw HTML sanitizer (#7) covers disallowed tags and is off in spec mode",
-    "23": "pending #5: footnotes",
-    "24": "pending #5: footnotes",
-    "25": "pending #5: footnotes",
-    "26": "pending #4: strikethrough (wrapping autolinks)",
-    "27": "pending #4: tables",
-    "28": "pending #4: task lists",
-    "29": "pending #4: task lists",
-    "30": "pending #4: task lists"
+    "22": "permanent: tagfilter is not implemented; mdv's raw HTML sanitizer (#7) covers disallowed tags and is off in spec mode"
   },
-  "regression.txt": {
-    "8": "pending #4: strikethrough",
-    "10": "pending #4: strikethrough",
-    "11": "pending #4: strikethrough",
-    "13": "pending #4, #5: tables containing footnote references",
-    "20": "pending #5: footnotes",
-    "21": "pending #5: footnotes",
-    "22": "pending #5: footnotes (with autolink)"
-  }
+  "regression.txt": {}
 }

@@ -69,8 +69,7 @@ private typealias CmarkNode = UnsafeMutablePointer<cmark_node>
 private struct TreeBuilder {
     /// Added to every source line (lines of stripped frontmatter).
     let lineOffset: Int
-    private var footnoteNumbers: [String: Int] = [:]
-    private var footnoteReferenceCounts: [String: Int] = [:]
+    private var footnoteDefinitionCount = 0
     private var tableAlignments: [TableAlignment] = []
     private var rowIsHeader = false
     private var column = 0
@@ -224,27 +223,28 @@ private struct TreeBuilder {
         }
     }
 
-    /// cmark sets a resolved reference's literal to the footnote's display number and links it
-    /// to its definition, whose literal is the label. References always precede definitions in
-    /// document order, so the counts are complete by the time definitions are converted.
-    private mutating func footnoteReference(_ node: CmarkNode) -> MarkdownNode.Kind {
+    /// cmark (`process_footnotes`) numbers footnotes by first reference in source order, sets a
+    /// resolved reference's literal to that number, links it to its definition (whose literal is
+    /// the label), and records its index among references to the same definition. Unresolved
+    /// references are already plain text.
+    private func footnoteReference(_ node: CmarkNode) -> MarkdownNode.Kind {
         let label = cmark_node_parent_footnote_def(node).map(literal) ?? literal(node)
-        let number = Int(literal(node)) ?? 0
-        footnoteNumbers[label] = number
-        footnoteReferenceCounts[label, default: 0] += 1
         return .footnoteReference(
             label: label,
-            number: number,
-            referenceIndex: footnoteReferenceCounts[label, default: 1]
+            number: Int(literal(node)) ?? 0,
+            referenceIndex: Int(node.pointee.footnote.ref_ix)
         )
     }
 
-    private func footnoteDefinition(_ node: CmarkNode) -> MarkdownNode.Kind {
-        let label = literal(node)
+    /// cmark drops unreferenced definitions and appends the rest to the document in number
+    /// order, so a definition's number is its position among them. `def_count` is how many
+    /// references point at it.
+    private mutating func footnoteDefinition(_ node: CmarkNode) -> MarkdownNode.Kind {
+        footnoteDefinitionCount += 1
         return .footnoteDefinition(
-            label: label,
-            number: footnoteNumbers[label, default: 0],
-            referenceCount: footnoteReferenceCounts[label, default: 0]
+            label: literal(node),
+            number: footnoteDefinitionCount,
+            referenceCount: Int(node.pointee.footnote.def_count)
         )
     }
 
