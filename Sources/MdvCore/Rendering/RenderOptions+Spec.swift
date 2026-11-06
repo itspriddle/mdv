@@ -15,6 +15,7 @@ extension RenderOptions {
         options.detectsFrontmatter = false
         options.gfmMarkup = .cmark
         options.headingAnchors = false
+        options.highlighting = false
         options.sanitize = false
         return options
     }

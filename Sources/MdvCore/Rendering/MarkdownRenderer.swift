@@ -18,6 +18,9 @@ public struct RenderOptions: Sendable, Equatable {
     /// Give headings GitHub-compatible `id`s and a hover anchor link (#6). `headings` and the
     /// first-`h1` title are filled in either way.
     public var headingAnchors = true
+    /// Syntax-highlight fenced code blocks that name a language, at render time (#11). Needs
+    /// `HTMLRenderer.highlighter`; blocks render as plain escaped code without one.
+    public var highlighting = true
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
     /// for trusted input (the spec suites expect raw HTML to pass through).

@@ -2,10 +2,11 @@ import Testing
 
 @testable import MdvCore
 
-/// Renders with heading anchors off, so heading markup matches cmark's.
+/// Renders with heading anchors and highlighting off, so heading and code markup match cmark's.
 private func html(_ markdown: String) -> String {
     var options = RenderOptions()
     options.headingAnchors = false
+    options.highlighting = false
     return HTMLRenderer(options: options).render(markdown).html
 }
 
