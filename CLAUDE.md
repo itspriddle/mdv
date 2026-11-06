@@ -46,6 +46,10 @@ lock the build database.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`). Every load and revert goes through `setContent(_:)`, which tells each
     `DocumentWindowController`.
+  - `LiveReload/`: `FileWatcher` (kqueue by path, debounced) and `LiveReloader` (reads and
+    renders off the main actor, drops stale renders, sets `MarkdownDocument.fileStatus`). Live
+    reload bypasses `NSDocument.revert`; the window swaps content in place with
+    `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
   - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
     actions go in `DocumentWindowController+<Feature>.swift`), `DocumentView` (SwiftUI root).
   - `WebView/`: `WebViewCoordinator` owns the `WKWebView`: `load`, `replaceContent`, and the

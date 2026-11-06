@@ -80,7 +80,8 @@ A pleasant, Mac-native document viewer.
 
 - Open via Finder, Open dialog, drag and drop, recents, Dock; tabs; window restoration
 - Offer to become the default `.md` handler
-- Live reload on file change (FSEvents/`DispatchSource`), preserving scroll position
+- Live reload on file change (kqueue `DispatchSource` by path; `NSFilePresenter` is too slow and
+  misses deletes), swapping content in place and preserving the reading position
 - Relative images and links resolve against the file (a `mdv-doc:` scheme handler serving only
   images under the document's git repository or folder; see VISION's security model)
 - Link handling: local `.md` opens in mdv, anchors scroll, external URLs open in the browser
