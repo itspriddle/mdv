@@ -24,6 +24,15 @@ final class WebViewCoordinator: NSObject {
 
     private var pendingLoads: [ObjectIdentifier: CheckedContinuation<Void, any Error>] = [:]
 
+    // MARK: Links (#19, `WebViewCoordinator+Navigation.swift`)
+
+    /// What the window's link status overlay shows (hovered link, link messages).
+    let linkStatus = LinkStatus()
+    /// The shown document's file, so links to it stay in-page. Set by the window controller.
+    var documentFileURL: URL?
+    /// Performs every link action except in-page scrolling (opening documents and URLs).
+    var linkHandler: ((LinkAction, LinkOpening) -> Void)?
+
     /// - Parameter configuration: a fresh configuration (`WebViewConfiguration.make()`); this
     ///   coordinator installs its own `mdv-doc` scheme handler on it, so it can't be reused.
     init(configuration: WKWebViewConfiguration = WebViewConfiguration.make()) {
@@ -42,6 +51,10 @@ final class WebViewCoordinator: NSObject {
         // so the window's theme-colored background shows instead (no white flash in dark mode).
         webView.isHidden = true
         webView.setAccessibilityIdentifier("document-web-view")
+        // Hover reports from `LinkHover.js`, accepted from the app's content world only.
+        webView.configuration.userContentController.add(
+            LinkHoverMessageHandler(coordinator: self), contentWorld: AppScripts.world,
+            name: LinkHoverMessageHandler.name)
     }
 
     /// Scopes local image access to the document at `fileURL` (its `LocalResourceRoot`) and
@@ -125,11 +138,16 @@ extension WebViewCoordinator: WKNavigationDelegate {
 }
 
 extension WebViewCoordinator: WKUIDelegate {
-    /// The viewer never opens new windows (`target="_blank"`, `window.open`).
+    /// The viewer never opens web view windows (`target="_blank"`, `window.open`). The context
+    /// menu's "Open Link in New Window" lands here: it follows the link through the navigation
+    /// policy, as a new-tab open.
     func webView(
         _ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
         for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
-        nil
+        if let url = navigationAction.request.url {
+            followLink(url, opening: .newTab)
+        }
+        return nil
     }
 }

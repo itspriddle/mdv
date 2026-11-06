@@ -65,38 +65,13 @@ struct HeadingSlugger {
     }
 }
 
-extension Heading {
-    /// Every heading under `root` in document order, with unique slugs.
-    static func collect(in root: MarkdownNode) -> [Heading] {
-        var headings: [Heading] = []
-        var slugger = HeadingSlugger()
-        var stack = [root]
-        while let node = stack.popLast() {
-            guard case .heading(let level) = node.kind else {
-                stack.append(contentsOf: node.children.reversed())
-                continue
-            }
-            let text = HeadingText(node)
-            headings.append(
-                Heading(
-                    level: level,
-                    text: text.display.trimmingCharacters(in: .whitespacesAndNewlines),
-                    slug: slugger.uniqueSlug(for: text.slugSource),
-                    sourceLine: node.sourceRange?.start.line
-                )
-            )
-        }
-        return headings
-    }
-}
-
 /// A heading's text, gathered like the DOM `textContent` GitHub slugs.
 ///
 /// Text and code spans count; raw HTML tags and image alt text do not. Breaks are newlines in the
 /// slug source (so they vanish from the slug, as on GitHub) and spaces in the display text.
 /// Footnote references contribute their number to the slug only. Emoji shortcodes show their
 /// character but slug as the shortcode text.
-private struct HeadingText {
+struct HeadingText {
     var display = ""
     var slugSource = ""
 

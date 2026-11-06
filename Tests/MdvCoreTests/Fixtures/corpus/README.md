@@ -72,8 +72,6 @@ What remains is listed per file in `corpus.json`: a snippet of GitHub's normaliz
 must occur exactly once) and what mdv renders instead. A stale exception fails the test. The
 kinds, all deliberate or deferred:
 
-- **Raw HTML headings** (`awesome`, `httpie`, `jekyll-front-matter`, `next-js`): github.com gives
-  `<h1>`–`<h6>` written in raw HTML an anchor id too; mdv anchors Markdown headings only.
 - **HTML tree construction** (`awesome`, `jekyll-front-matter`): GitHub re-parses its output with
   an HTML5 parser, which closes an open `<p>` before a block and moves misnested tags. mdv keeps
   the raw HTML's structure; a browser builds the same DOM from it.

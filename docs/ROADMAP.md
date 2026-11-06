@@ -88,6 +88,8 @@ A pleasant, Mac-native document viewer.
     `#user-content-foo` (raw HTML ids are prefixed); raw HTML `<h1>`–`<h6>` get anchors as on
     GitHub
   - A navigation policy for links cmark's safe mode blanks (`file:`) and for other schemes
+    (#19: blocked, reason shown in the link status overlay; other local files revealed in
+    Finder; link hover shows the destination)
 - **Open decision (M2 or M4):** remote `http(s)` images pass the sanitizer and only the CSP
   blocks them, while VISION says "no remote content"; decide on the per-document opt-in and
   whether to drop them in `MdvCore`

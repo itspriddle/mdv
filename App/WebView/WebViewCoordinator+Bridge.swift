@@ -1,3 +1,4 @@
+import MdvCore
 import WebKit
 
 /// The Swift side of `App/Scripts/DocumentBridge.js`. Each call runs a fixed function body in
@@ -19,12 +20,22 @@ extension WebViewCoordinator {
         _ = try await callBridge("return mdv.scrollToSourceLine(line);", arguments: ["line": line])
     }
 
-    /// Scrolls to the element whose id is `fragment` (percent-decoded, without `#`), or to
-    /// `user-content-<fragment>`. Returns `false` when neither exists.
+    /// Scrolls to the element a URL fragment names (without `#`; raw percent-encoded or already
+    /// decoded): the first match of `LinkPolicy.fragmentIDCandidates`, so `foo` falls back to
+    /// `user-content-foo`. An empty fragment or `top` with no match scrolls to the top. Returns
+    /// `false` when nothing matches.
     @discardableResult
     func scroll(toFragment fragment: String) async throws -> Bool {
-        let result = try await callBridge("return mdv.scrollToFragment(fragment);", arguments: ["fragment": fragment])
-        return (result as? NSNumber)?.boolValue ?? false
+        let ids = LinkPolicy.fragmentIDCandidates(fragment)
+        let result = try await callBridge("return mdv.scrollToFirstID(ids);", arguments: ["ids": ids])
+        if (result as? NSNumber)?.boolValue == true {
+            return true
+        }
+        if LinkPolicy.fragmentMeansTop(fragment) {
+            try await scroll(toSourceLine: 1)
+            return true
+        }
+        return false
     }
 
     /// Swaps the loaded page's body and title for `page`'s, keeping the stylesheet and scroll

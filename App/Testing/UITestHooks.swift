@@ -9,6 +9,8 @@ import Foundation
 /// - `-MdvUITesting YES`: the app is driven by a UI test. It skips the Open panel at launch and
 ///   suppresses first-run prompts. Features that show a first-run prompt (e.g. #23's offer to
 ///   become the default Markdown viewer) must check `suppressesFirstRunPrompts` before showing it.
+///   Links that would leave the app (browser, Finder) are shown in the link status overlay
+///   instead (`opensLinksOutsideApp`).
 /// - `-MdvUITestOpen <path>`: open the document at an absolute path once launched, without the
 ///   Open panel.
 enum UITestHooks {
@@ -31,6 +33,12 @@ enum UITestHooks {
     /// Whether first-run prompts (default-handler offer, onboarding) must stay hidden.
     static var suppressesFirstRunPrompts: Bool {
         isUITesting
+    }
+
+    /// Whether links may leave mdv: open in the browser or other apps, or reveal in Finder.
+    /// UI tests turn this off; the window shows what would have opened instead (#19).
+    static var opensLinksOutsideApp: Bool {
+        !isUITesting
     }
 
     /// The document a UI test asked to open at launch, if any. Always `nil` in Release builds.
