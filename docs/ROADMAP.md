@@ -96,6 +96,9 @@ A pleasant, Mac-native document viewer.
 - Remote images blocked by default (labeled placeholders in `MdvCore` plus the CSP), with a
   per-window, unsaved opt-in that loads `https:` images only (see VISION's security model)
 - Find in page, zoom (Cmd +/-/0), print, copy as HTML / Markdown source
+  - Zoom (#26): one app-wide, persisted level for Cmd +/-/0; pinch is a per-window
+    magnification override (see VISION). Print through the print panel, including Save as PDF,
+    with basic print CSS; print themes and PDF export are M3/M7
 - Outline / table-of-contents sidebar from headings (#24: View > Show Outline, Cmd-Ctrl-S, and a
   toolbar button; highlights the current section; see VISION)
 - Light/dark appearance following the system

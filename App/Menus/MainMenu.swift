@@ -6,7 +6,7 @@ import AppKit
 final class MainMenu {
     /// Features that add menu items, in order. Each feature adds one line here.
     static let contributions: [any MenuContribution.Type] = [
-        DefaultViewerMenu.self, OutlineMenu.self, FindMenu.self,
+        DefaultViewerMenu.self, OutlineMenu.self, ZoomMenu.self, PrintMenu.self, CopyMenu.self, FindMenu.self,
     ]
 
     /// The top-level menus features can add to.

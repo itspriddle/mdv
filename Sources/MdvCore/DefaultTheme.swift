@@ -62,10 +62,14 @@ public enum DefaultTheme {
         .hljs-strong { color: #24292e; font-weight: bold; }
         .hljs-addition { color: #22863a; background-color: #f0fff4; }
         .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
-        /* Find in page (the app's find bar): every match, and the current one. */
+        /* Find in page (the app's find bar): every match, and the current one. Never printed. */
         ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.4); }
         ::highlight(mdv-find-current) { background-color: #ff9632; color: #1f2328; }
-        @media (prefers-color-scheme: dark) {
+        @media print {
+          ::highlight(mdv-find), ::highlight(mdv-find-current) { background-color: transparent; color: inherit; }
+        }
+        /* Dark colors are for the screen only: paper is always printed with the light colors. */
+        @media screen and (prefers-color-scheme: dark) {
           ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.3); }
           ::highlight(mdv-find-current) { background-color: #ffb454; color: #0d1117; }
           body { color: #e6edf3; background: \(background.dark.hex); }
@@ -87,6 +91,27 @@ public enum DefaultTheme {
           .hljs-bullet { color: #f2cc60; }
           .hljs-addition { color: #aff5b4; background-color: #033a16; }
           .hljs-deletion { color: #ffdcd7; background-color: #67060c; }
+        }
+        /* Print (#26): full width, nothing clipped, no hover-only anchor icons, link targets
+           written out after external links. Pages break around code, rows, and images where
+           they fit, and never right after a heading. */
+        @media print {
+          :root { color-scheme: light; }
+          body { background: none; }
+          .markdown-body { max-width: none; padding: 0; }
+          .anchor { display: none; }
+          a { color: inherit; text-decoration: underline; }
+          a[href^="http:"]::after, a[href^="https:"]::after {
+            content: " (" attr(href) ")"; font-size: 0.8em; overflow-wrap: anywhere;
+          }
+          pre { overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; }
+          code { overflow-wrap: anywhere; }
+          table { display: table; width: 100%; overflow: visible; }
+          thead { display: table-header-group; }
+          th, td { overflow-wrap: anywhere; }
+          tr, img, .remote-image { break-inside: avoid; }
+          img { max-width: 100%; }
+          h1, h2, h3, h4, h5, h6 { break-after: avoid; }
         }
         """
 }
