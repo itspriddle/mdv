@@ -57,7 +57,9 @@ final class DocumentWindowController: NSWindowController {
             return
         }
         synchronizeWindowTitleWithDocumentName()
-        let baseURL = markdownDocument.fileURL?.deletingLastPathComponent()
+        // mdv-doc://<window>/<path>: relative images resolve against the document and are
+        // served only from its allowed root (`LocalResourceSchemeHandler`).
+        let baseURL = coordinator.documentURL(forFileAt: markdownDocument.fileURL)
         let isFirstLoad = !coordinator.hasLoadedPage
         displayTask?.cancel()
         displayTask = Task { [coordinator, weak self] in

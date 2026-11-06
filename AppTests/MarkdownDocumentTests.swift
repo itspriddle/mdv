@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import MdvCore
 import Testing
 
 @testable import MdvApp
@@ -84,7 +85,12 @@ struct MarkdownDocumentTests {
         #expect(controller.window?.title == "First")
         #expect(controller.window?.contentViewController != nil)
         #expect(try await pageTitle(in: controller, becoming: "First") == "First")
-        #expect(controller.coordinator.webView.url == url.deletingLastPathComponent())
+        // The page is at the document's mdv-doc URL, so relative images resolve against it.
+        let pageURL = try #require(controller.coordinator.webView.url)
+        #expect(pageURL.scheme == DocumentURLScheme.name)
+        #expect(pageURL.lastPathComponent == url.lastPathComponent)
+        #expect(
+            DocumentURLScheme.filePath(from: pageURL, token: controller.coordinator.localResources.token) != nil)
 
         // A revert is how a reload reaches the window (#21 triggers it on file changes).
         try Data("# Second".utf8).write(to: url)
