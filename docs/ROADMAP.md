@@ -35,7 +35,7 @@ Get a buildable, tested, linted walking skeleton and a shared plan.
 
 Make the rendered output correct and complete.
 
-- Custom `MarkupVisitor` HTML renderer replacing `HTMLFormatter`
+- Parse with swift-cmark into our own AST and render HTML from it, replacing swift-markdown
 - CommonMark + GFM: tables (with alignment), strikethrough, autolinks, task list checkboxes,
   footnotes
 - Heading anchors (GitHub-compatible slugs) and duplicate handling

@@ -41,17 +41,22 @@ editor or a browser.
 
 ```
  file / stdin ──► Preprocessors ──► MdvCore renderer ──► HTMLDocument ──► WKWebView
-                  (frontmatter,      (swift-markdown       (theme CSS,      (app window,
-                   built-in, user     AST → HTML via        CSP, base URL)   print/PDF)
-                   script)            MarkupVisitor)
+                  (frontmatter,      (swift-cmark →        (theme CSS,      (app window,
+                   built-in, user     MarkdownNode AST →    CSP, base URL)   print/PDF)
+                   script)            HTMLRenderer)
                                                 └──────► stdout (mdv --html)
 ```
 
 - **MdvCore** (Swift package): parsing, AST transforms, HTML rendering, frontmatter, themes,
   preprocessors. No UI dependencies; tested with `swift test`.
-- **Parsing:** [`swiftlang/swift-markdown`](https://github.com/swiftlang/swift-markdown), backed by
-  Apple's `swift-cmark` GFM fork. We own the HTML output via a custom `MarkupVisitor` so we control
-  heading anchors, task lists, emoji, raw HTML handling, and source-line mapping.
+- **Parsing:** [`swiftlang/swift-cmark`](https://github.com/swiftlang/swift-cmark) (cmark-gfm, the
+  engine GitHub uses), called directly through its C API. `MarkdownParser` enables GFM extensions
+  and footnotes per `RenderOptions`, never enables smart punctuation, and copies cmark's tree into
+  our own `Sendable` `MarkdownNode` AST; no C pointers outlive a parse.
+- **Rendering:** `HTMLRenderer` walks the `MarkdownNode` AST and emits HTML (cmark-compatible for
+  CommonMark). Owning the AST and the output is what lets us control heading anchors, task lists,
+  emoji, raw HTML sanitizing, syntax highlighting, and source-line mapping, and gives M4
+  transforms one tree to operate on.
 - **Display:** `WKWebView`. HTML + CSS is what makes CSS themes, print styles, and PDF export
   possible; SwiftUI-native renderers (e.g. Textual, MarkdownView) can't use stylesheets.
 - **App:** SwiftUI `DocumentGroup` in viewer mode, AppKit where SwiftUI falls short.
