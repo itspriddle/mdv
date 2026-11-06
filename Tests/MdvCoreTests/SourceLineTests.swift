@@ -59,6 +59,18 @@ struct SourceLineTests {
                 + "<hr data-source-line=\"10\" />\n")
     }
 
+    @Test("highlighted code blocks keep the line on pre")
+    func highlightedCode() {
+        var options = RenderOptions()
+        options.sourceLines = true
+        options.headingAnchors = false
+        let html = HTMLRenderer(options: options).render("Text\n\n```swift\nlet x = 1\n```").html
+        #expect(
+            html.hasPrefix(
+                "<p data-source-line=\"1\">Text</p>\n<pre data-source-line=\"3\"><code class=\"language-swift\">"))
+        #expect(html.contains("<span class=\"hljs-keyword\">let</span>"))
+    }
+
     @Test("nested tight and loose lists")
     func nestedLists() {
         let markdown = """
