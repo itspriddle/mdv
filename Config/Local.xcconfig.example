@@ -1,0 +1,3 @@
+// Copy to Config/Local.xcconfig (gitignored) for signed local builds.
+// Find your Team ID at https://developer.apple.com/account -> Membership details.
+DEVELOPMENT_TEAM = XXXXXXXXXX

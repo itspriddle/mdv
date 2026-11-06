@@ -1,0 +1,20 @@
+// Shared build settings for all targets and configurations.
+
+// Placeholder identity until the final app name is chosen (see docs/ROADMAP.md).
+PRODUCT_BUNDLE_IDENTIFIER_BASE = com.itspriddle.mdv
+
+// Keep MARKETING_VERSION in sync with MdvInfo.version (automated in M6).
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+
+MACOSX_DEPLOYMENT_TARGET = 15.0
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+
+// Distributed outside the Mac App Store: hardened runtime, no sandbox.
+ENABLE_HARDENED_RUNTIME = YES
+ENABLE_APP_SANDBOX = NO
+CODE_SIGN_STYLE = Automatic
+
+// Optional, gitignored overrides (e.g. DEVELOPMENT_TEAM). See Local.xcconfig.example.
+#include? "Local.xcconfig"
