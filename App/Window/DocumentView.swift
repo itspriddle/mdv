@@ -11,5 +11,6 @@ struct DocumentView: View {
         MarkdownWebView(coordinator: coordinator)
             .frame(minWidth: 480, minHeight: 360)
             .safeAreaInset(edge: .top, spacing: 0) { FileStatusBanner(status: document.fileStatus) }
+            .overlay(alignment: .bottomLeading) { LinkStatusView(status: coordinator.linkStatus) }
     }
 }

@@ -138,8 +138,17 @@ editor or a browser.
   and is re-serialized before insertion; anything else falls back to plain escaped code.
   JavaScriptCore has no execution time limit, so blocks over 128 KB and code beyond a 256 KB
   per-document budget are left unhighlighted.
-- Links open in the default browser; local Markdown links open in mdv; nothing navigates the
-  viewer away from the document.
+- Links go through one tested navigation policy (`LinkPolicy` in `MdvCore`, #19), and nothing
+  navigates the viewer away from the document: the only main-frame navigations allowed are the
+  page loads the app starts. In-page fragments scroll via the app-script bridge (raw id, then
+  percent-decoded, then `user-content-`). `http`, `https`, and `mailto` open in the default app.
+  Local Markdown files (`mdv-doc` URLs mapped back to files with the window's token) open in
+  mdv; Cmd-click or middle-click opens them in a new tab. Other local files and folders are
+  **revealed in Finder, never opened**, so a document can't launch an app or script by link.
+  Every other scheme, unmappable `mdv-doc` URL, and blank safe-mode link is blocked silently,
+  with the reason shown in the window's link status overlay. Link hover is reported by an app
+  script whose message handler exists only in the app's content world; its message is display
+  text and never acted on.
 - Custom preprocessor scripts run only when the user configures them, with a timeout, no shell
   interpolation, and the document passed via stdin.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.

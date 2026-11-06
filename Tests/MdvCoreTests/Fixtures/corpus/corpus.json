@@ -6,11 +6,6 @@
       "license": "CC0-1.0",
       "exceptions": [
         {
-          "github": "<h2 id=\"superchargeelevate-your-mac-experience\">",
-          "mdv": "<h2>",
-          "reason": "Raw HTML heading: github.com gives it an anchor id like a Markdown heading; mdv only anchors Markdown headings (deferred to M2 with in-page anchor handling)."
-        },
-        {
           "github": "<sup>Special thanks to:</sup> <br> <br> <br> <a href=\"https://depot.dev?utm_source=github&amp;utm_medium=sindresorhus\"> </a></p>",
           "mdv": "<sup>Special thanks to:</sup> <br> <br> <br> <a href=\"https://depot.dev?utm_source=github&amp;utm_medium=sindresorhus\">",
           "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; mdv's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
@@ -83,29 +78,13 @@
       "source": "https://github.com/httpie/cli/blob/5b604c37c6c67e18e7c3e9aee6c88a8c22b98345/README.md",
       "commit": "5b604c37c6c67e18e7c3e9aee6c88a8c22b98345",
       "license": "BSD-3-Clause",
-      "exceptions": [
-        {
-          "github": "<h2 align=\"center\" id=\"------------------------httpie-cli-human-friendly-http-client-for-the-api-era\">",
-          "mdv": "<h2 align=\"center\">",
-          "reason": "Raw HTML heading: github.com gives it an anchor id like a Markdown heading; mdv only anchors Markdown headings (deferred to M2 with in-page anchor handling)."
-        }
-      ]
+      "exceptions": []
     },
     "jekyll-front-matter": {
       "source": "https://github.com/jekyll/jekyll/blob/97c3bdc822df9d5bea4c269b29a28de5a5e29d70/docs/_docs/front-matter.md",
       "commit": "97c3bdc822df9d5bea4c269b29a28de5a5e29d70",
       "license": "MIT",
       "exceptions": [
-        {
-          "github": "<h5 id=\"utf-8-character-encoding-warning\">UTF-8 Character Encoding Warning</h5>",
-          "mdv": "<h5>UTF-8 Character Encoding Warning</h5>",
-          "reason": "Raw HTML heading: github.com gives it an anchor id like a Markdown heading; mdv only anchors Markdown headings (deferred to M2 with in-page anchor handling)."
-        },
-        {
-          "github": "<h5 id=\"front-matter-variables-are-optional\">Front Matter Variables Are Optional</h5>",
-          "mdv": "<h5>Front Matter Variables Are Optional</h5>",
-          "reason": "Raw HTML heading: github.com gives it an anchor id like a Markdown heading; mdv only anchors Markdown headings (deferred to M2 with in-page anchor handling)."
-        },
         {
           "github": "<code>layout</code></p></td><td><p></p>",
           "mdv": "<code>layout</code></p></td><td><p>",
@@ -117,11 +96,6 @@
           "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; mdv's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
         },
         {
-          "github": "<h5 id=\"render-posts-marked-as-unpublished\">Render Posts Marked As Unpublished</h5>",
-          "mdv": "<h5>Render Posts Marked As Unpublished</h5>",
-          "reason": "Raw HTML heading: github.com gives it an anchor id like a Markdown heading; mdv only anchors Markdown headings (deferred to M2 with in-page anchor handling)."
-        },
-        {
           "github": "<code>categories</code></p></td><td><p></p>",
           "mdv": "<code>categories</code></p></td><td><p>",
           "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; mdv's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
@@ -130,11 +104,6 @@
           "github": "\n\n    &lt;/p&gt;\n  &lt;/td&gt;\n&lt;/tr&gt;</code></pre>",
           "mdv": "\n\n    &lt;/p&gt;\n  &lt;/td&gt;\n&lt;/tr&gt;</code></pre></p>",
           "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; mdv's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
-        },
-        {
-          "github": "<h5 id=\"dont-repeat-yourself\">Don't repeat yourself</h5>",
-          "mdv": "<h5>Don't repeat yourself</h5>",
-          "reason": "Raw HTML heading: github.com gives it an anchor id like a Markdown heading; mdv only anchors Markdown headings (deferred to M2 with in-page anchor handling)."
         }
       ]
     },
@@ -148,13 +117,7 @@
       "source": "https://github.com/vercel/next.js/blob/5e94558853f41fb45949af61646c01872d7c6bef/readme.md",
       "commit": "5e94558853f41fb45949af61646c01872d7c6bef",
       "license": "MIT",
-      "exceptions": [
-        {
-          "github": "<h1 id=\"nextjs\">Next.js</h1>",
-          "mdv": "<h1>Next.js</h1>",
-          "reason": "Raw HTML heading: github.com gives it an anchor id like a Markdown heading; mdv only anchors Markdown headings (deferred to M2 with in-page anchor handling)."
-        }
-      ]
+      "exceptions": []
     },
     "node": {
       "source": "https://github.com/nodejs/node/blob/9d8a9adfe837255ef9e69e19e672f7cce4391fdb/README.md",

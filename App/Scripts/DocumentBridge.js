@@ -83,16 +83,21 @@
     return true;
   }
 
-  // Scrolls to the element with id `fragment` (already percent-decoded, no "#"), falling back
-  // to the `user-content-` id raw HTML elements get. Returns whether one was found.
-  function scrollToFragment(fragment) {
-    const target =
-      document.getElementById(fragment) ?? document.getElementById(`user-content-${fragment}`);
-    if (target === null) {
+  // Scrolls to the first element whose id is in `ids`, tried in order (Swift builds the list
+  // from a link's fragment: raw, percent-decoded, and with the `user-content-` prefix raw HTML
+  // ids get). Returns whether one was found.
+  function scrollToFirstID(ids) {
+    if (!Array.isArray(ids)) {
       return false;
     }
-    target.scrollIntoView({ block: "start" });
-    return true;
+    for (const id of ids) {
+      const target = typeof id === "string" ? document.getElementById(id) : null;
+      if (target !== null) {
+        target.scrollIntoView({ block: "start" });
+        return true;
+      }
+    }
+    return false;
   }
 
   // Replaces the rendered body and title of the loaded page in place, keeping the stylesheet
@@ -170,7 +175,7 @@
   globalThis.mdv = Object.freeze({
     currentSourceLine,
     scrollToSourceLine,
-    scrollToFragment,
+    scrollToFirstID,
     replaceContent,
     readingPosition,
     restorePosition,

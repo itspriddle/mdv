@@ -19,6 +19,8 @@ final class DocumentWindowController: NSWindowController {
     private var loadedBaseURL: URL?
     private var hasShownPage = false
     private var canRecoverFromCrash = true
+    /// A fragment to scroll to once the page loads (a link opened this document with `#…`).
+    var pendingFragment: String?
 
     init(coordinator: WebViewCoordinator = WebViewCoordinator()) {
         self.coordinator = coordinator
@@ -32,6 +34,7 @@ final class DocumentWindowController: NSWindowController {
         coordinator.webContentProcessDidTerminate = { [weak self] in
             self?.webContentProcessDidTerminate()
         }
+        installLinkHandling()
     }
 
     @available(*, unavailable)
@@ -72,6 +75,7 @@ final class DocumentWindowController: NSWindowController {
             return
         }
         synchronizeWindowTitleWithDocumentName()
+        coordinator.documentFileURL = markdownDocument.fileURL
         // mdv-doc://<window>/<path>: relative images resolve against the document and are
         // served only from its allowed root (`LocalResourceSchemeHandler`). A moved file gets a
         // new base URL (and root), so the page is loaded again rather than swapped in place.
@@ -96,6 +100,7 @@ final class DocumentWindowController: NSWindowController {
                     try await coordinator.load(page, baseURL: baseURL)
                 }
                 loadedBaseURL = baseURL
+                await scrollToPendingFragment()
                 if !hasShownPage {
                     hasShownPage = true
                     // Arrow keys, space, and Page Down scroll the document right away.
