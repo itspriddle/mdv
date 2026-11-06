@@ -4,6 +4,7 @@ SCHEME      := mdv
 PROJECT     := mdv.xcodeproj
 DESTINATION := platform=macOS
 DERIVED     := build/DerivedData
+HLJS_VERSION ?= 11.12.0
 XCODEBUILD  := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DESTINATION)' -derivedDataPath $(DERIVED)
 # github/gemoji commit the emoji table is generated from (`make emoji`).
 GEMOJI_COMMIT := fadaeaf1f1a9be82b321316a6c5502e43138b2f6
@@ -16,7 +17,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: help bootstrap generate build test test-core test-app lint format emoji clean
+.PHONY: help bootstrap generate build test test-core test-app lint format emoji vendor-highlightjs clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -50,6 +51,9 @@ emoji: ## Regenerate the emoji shortcode table from github/gemoji at GEMOJI_COMM
 	mkdir -p $(dir $(GEMOJI_JSON)) $(dir $(EMOJI_TABLE))
 	curl -fsSL "https://raw.githubusercontent.com/github/gemoji/$(GEMOJI_COMMIT)/db/emoji.json" -o $(GEMOJI_JSON)
 	swift scripts/generate-emoji.swift $(GEMOJI_JSON) $(GEMOJI_COMMIT) $(EMOJI_TABLE)
+
+vendor-highlightjs: ## Vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
+	scripts/vendor-highlightjs.sh $(HLJS_VERSION)
 
 clean: ## Remove build artifacts
 	rm -rf .build build $(PROJECT)

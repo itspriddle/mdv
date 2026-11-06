@@ -25,6 +25,9 @@ public struct RenderOptions: Sendable, Equatable {
     public var sourceLines = false
     /// Replace GitHub emoji shortcodes such as `:tada:` in text with their emoji (#10).
     public var emoji = true
+    /// Syntax-highlight fenced code blocks that name a language, at render time (#11). Needs
+    /// `HTMLRenderer.highlighter`; blocks render as plain escaped code without one.
+    public var highlighting = true
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
     /// for trusted input (the spec suites expect raw HTML to pass through).

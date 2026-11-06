@@ -16,6 +16,7 @@ extension RenderOptions {
         options.emoji = false
         options.gfmMarkup = .cmark
         options.headingAnchors = false
+        options.highlighting = false
         options.sanitize = false
         options.sourceLines = false
         return options

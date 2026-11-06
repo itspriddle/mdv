@@ -13,7 +13,8 @@ gh api markdown -f mode=gfm -f text="$(cat NAME.md)" > NAME.html
 
 `$(...)` drops trailing newlines from the input, which doesn't change the rendering. Re-capture
 a fixture when its Markdown changes, and keep inputs to features mdv renders like GitHub (no
-fenced code with a language, headings, or raw HTML until their issues land).
+headings or raw HTML until their issues land, and no fenced code with a language: mdv writes
+highlight.js `hljs-` spans where GitHub writes `<div class="highlight …">` with `pl-` classes).
 
 `mode=gfm` is GitHub's comment rendering, which turns soft line breaks into `<br>`; files
 render without that. Keep each paragraph on one line. (`mode=markdown` is an older pipeline that

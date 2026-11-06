@@ -7,6 +7,7 @@ private func annotated(_ markdown: String, markup: GFMMarkup = .github) -> Strin
     var options = RenderOptions()
     options.sourceLines = true
     options.headingAnchors = false
+    options.highlighting = false
     options.gfmMarkup = markup
     return HTMLRenderer(options: options).render(markdown).html
 }

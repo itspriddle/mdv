@@ -57,6 +57,12 @@ editor or a browser.
   CommonMark). Owning the AST and the output is what lets us control heading anchors, task lists,
   emoji, raw HTML sanitizing, syntax highlighting, and source-line mapping, and gives M4
   transforms one tree to operate on.
+- **Syntax highlighting:** at render time, in `MdvCore`, so the app and `mdv --html` get the same
+  static `<span class="hljs-…">` markup and the viewer needs no JavaScript. A pinned
+  [highlight.js](https://highlightjs.org) build (BSD-3, vendored as generated Swift source by
+  `make vendor-highlightjs`) runs in an in-process JavaScriptCore context behind the
+  `SyntaxHighlighter` protocol. The language comes only from the info string's first word (no
+  auto-detection, like GitHub).
 - **Display:** `WKWebView`. HTML + CSS is what makes CSS themes, print styles, and PDF export
   possible; SwiftUI-native renderers (e.g. Textual, MarkdownView) can't use stylesheets.
 - **App:** SwiftUI `DocumentGroup` in viewer mode, AppKit where SwiftUI falls short.
@@ -72,6 +78,13 @@ editor or a browser.
 - JavaScript is disabled in the viewer until a feature needs it; when enabled, only scripts
   shipped in the app bundle may run, never script from the document.
 - Raw HTML in Markdown is sanitized per a defined policy rather than passed through blindly.
+- Syntax highlighting runs only the vendored highlight.js, in a private JavaScriptCore context
+  with no access to the page, files, or network; code and language names are passed as values,
+  never spliced into script. Its output is treated as untrusted: it must be nothing but
+  `<span class="hljs-…">`, `</span>`, and entity-escaped text whose text equals the original code,
+  and is re-serialized before insertion; anything else falls back to plain escaped code.
+  JavaScriptCore has no execution time limit, so blocks over 128 KB and code beyond a 256 KB
+  per-document budget are left unhighlighted.
 - Links open in the default browser; local Markdown links open in mdv; nothing navigates the
   viewer away from the document.
 - Custom preprocessor scripts run only when the user configures them, with a timeout, no shell

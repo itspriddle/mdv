@@ -7,9 +7,15 @@
 /// `RenderOptions.gfmMarkup`. Later M1 features (emoji, highlighting, source lines) hook in here.
 public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
+    /// Highlights fenced code blocks when `options.highlighting` is on; `nil` renders them plain.
+    public var highlighter: (any SyntaxHighlighter)?
 
-    public init(options: RenderOptions = RenderOptions()) {
+    public init(
+        options: RenderOptions = RenderOptions(),
+        highlighter: (any SyntaxHighlighter)? = HighlightJSHighlighter.shared
+    ) {
         self.options = options
+        self.highlighter = highlighter
     }
 
     public func render(_ markdown: String) -> RenderedDocument {
@@ -56,7 +62,11 @@ public struct HTMLRenderer: MarkdownRenderer {
     /// become heading ids when `options.headingAnchors` is on.
     private func render(_ root: MarkdownNode, headings: [Heading], into output: inout HTMLOutput) {
         var anchors = (options.headingAnchors ? headings : []).makeIterator()
-        let root = options.sanitize ? HTMLSanitizer().sanitize(root) : root
+        var root = options.sanitize ? HTMLSanitizer().sanitize(root) : root
+        if options.highlighting, let highlighter {
+            var highlighting = CodeHighlighting(highlighter: highlighter)
+            root = highlighting.apply(to: root)
+        }
         // Walk with an explicit stack rather than recursion so deep trees cannot overflow it.
         var stack: [Step] = [.enter(root, Context())]
         while let step = stack.popLast() {
@@ -266,7 +276,11 @@ extension HTMLRenderer {
             } else {
                 output.raw("<code>")
             }
-            output.text(block.literal)
+            if let highlighted = block.highlightedHTML {
+                output.raw(highlighted)
+            } else {
+                output.text(block.literal)
+            }
             output.raw("</code></pre>\n")
         case .htmlBlock(let html):
             // Already sanitized by `HTMLSanitizer` unless `options.sanitize` is off.

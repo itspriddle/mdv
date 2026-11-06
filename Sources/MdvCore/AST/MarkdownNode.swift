@@ -129,6 +129,10 @@ public struct CodeBlock: Sendable, Equatable {
     public var info: String
     public var literal: String
     public var isFenced: Bool
+    /// Syntax-highlighted markup for `literal`, set by the render-time highlighting pass
+    /// (`CodeHighlighting`) and written verbatim by `HTMLRenderer`. Internal, so only output that
+    /// passed `HighlightValidator` can get here.
+    var highlightedHTML: String?
 
     public init(info: String = "", literal: String, isFenced: Bool) {
         self.info = info

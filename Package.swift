@@ -23,7 +23,9 @@ let package = Package(
                 .product(name: "cmark-gfm", package: "swift-cmark"),
                 .product(name: "cmark-gfm-extensions", package: "swift-cmark"),
                 .product(name: "Yams", package: "Yams"),
-            ]
+            ],
+            // Syntax highlighting runs highlight.js in-process (system framework).
+            linkerSettings: [.linkedFramework("JavaScriptCore")]
         ),
         .executableTarget(
             name: "MdvCLI",

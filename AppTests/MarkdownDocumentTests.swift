@@ -29,4 +29,11 @@ struct MarkdownDocumentTests {
         #expect(!page.html.contains("title: Notes"))
         #expect(page.html.contains("<h1 id=\"heading\" data-source-line=\"4\">"))
     }
+
+    @Test("highlights fenced code at render time, without scripts")
+    func highlightsCode() {
+        let page = MarkdownDocument(source: "```swift\nlet x = 1\n```").renderedPage(fallbackTitle: "README.md")
+        #expect(page.html.contains("<span class=\"hljs-keyword\">let</span>"))
+        #expect(!page.html.contains("<script"))
+    }
 }
