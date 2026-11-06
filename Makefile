@@ -4,6 +4,7 @@ SCHEME      := mdv
 PROJECT     := mdv.xcodeproj
 DESTINATION := platform=macOS
 DERIVED     := build/DerivedData
+HLJS_VERSION ?= 11.12.0
 XCODEBUILD  := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DESTINATION)' -derivedDataPath $(DERIVED)
 # CI and unsigned local builds: make build SIGN=0
 ifeq ($(SIGN),0)
@@ -12,7 +13,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: help bootstrap generate build test test-core test-app lint format clean
+.PHONY: help bootstrap generate build test test-core test-app lint format vendor-highlightjs clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -41,6 +42,9 @@ lint: ## Lint with SwiftLint and swift-format
 format: ## Auto-format sources
 	swift format --in-place --recursive App AppTests CLI Sources Tests Package.swift
 	swiftlint lint --fix
+
+vendor-highlightjs: ## Vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
+	scripts/vendor-highlightjs.sh $(HLJS_VERSION)
 
 clean: ## Remove build artifacts
 	rm -rf .build build $(PROJECT)
