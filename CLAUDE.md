@@ -9,7 +9,8 @@ process) before planning work.
 ```sh
 make generate         # regenerate mdv.xcodeproj from project.yml (run after adding/removing files)
 make test-core        # swift test (MdvCore), fast, no Xcode project needed
-make test             # core + app tests
+make test             # core + app unit tests (not UI tests)
+make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
 make build            # app + embedded CLI (signed via Config/Local.xcconfig); SIGN=0 for unsigned
 make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
 make format           # auto-format; run before committing
@@ -55,6 +56,8 @@ lock the build database.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
+- `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
+  the Debug-only launch hooks they use.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
   `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
   a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
@@ -76,6 +79,33 @@ lock the build database.
   `MdvCommand.appBundleIdentifier`; keep them in sync. Same for `MARKETING_VERSION` and
   `MdvInfo.version`.
 - Verify a dependency exists (and its latest version) before adding it.
+
+## UI tests
+
+- `AppUITests` (XCTest; Swift Testing has no UI API) drives the built app. Every M2+ feature with
+  a user-facing flow adds a test here. Fixtures live in `AppUITests/Fixtures/` (a folder
+  reference; `Fixtures.url(named:)`).
+- Use `MdvUITestApp` (`AppUITests/Support/`): `launch(openingFixture:)`, `waitForWindow(titled:)`,
+  `webView(in:)`, `waitForRenderedText(_:in:)`. Add feature helpers in
+  `Support/MdvUITestApp+<Feature>.swift`. Classes are `@MainActor final class ...: XCTestCase`.
+- Launch hooks (`UITestHooks`, `#if DEBUG` only, compiled out of Release): `-MdvUITesting YES`
+  skips the launch Open panel and suppresses first-run prompts (features with a first-run prompt
+  must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` opens a
+  document at launch. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES`.
+- The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team
+  in `Config/Local.xcconfig`, else ad hoc. Never run UI tests unsigned (Gatekeeper pops a
+  "can't run" dialog for every attempt).
+- Local setup: the app that runs `make test-ui` (Terminal, iTerm, Claude Code's host) needs
+  System Settings > Privacy & Security > Developer Tools, or Gatekeeper kills the runner
+  ("Test crashed with signal kill before establishing connection"; log shows "Gatekeeper policy
+  blocked execution"). The first run asks to allow `AppUITests-Runner` Accessibility access.
+- Debugging: failures leave `build/AppUITests.xcresult` (screenshots, logs, UI hierarchy);
+  `open build/AppUITests.xcresult`. Run one test with
+  `xcodebuild ... test -only-testing:AppUITests/SmokeUITests/testOpensFixtureWithTitleAndRenderedText`
+  or from Xcode (`make generate`, open `mdv.xcodeproj`, scheme `mdv`). `app.debugDescription`
+  prints the accessibility tree. CI uploads the result bundle on failure.
+- The Xcode app target is `MdvApp` (product `mdv.app`): a target named `mdv` collides with the
+  SwiftPM `mdv` executable, and the UI test runner then launches the CLI.
 
 ## Workflow
 
