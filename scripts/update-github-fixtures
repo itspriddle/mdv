@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Captures github.com's rendering of each README corpus file
+# (Tests/MdvCoreTests/Fixtures/corpus) as NAME.github.html, the reference `GitHubCorpusTests`
+# compares mdv's output with.
+#
+#   scripts/update-github-fixtures            # every document in corpus.json
+#   scripts/update-github-fixtures fzf node   # just these
+#
+# Run manually: it needs network access and an authenticated `gh`. It is not part of CI.
+#
+# Each document is rendered from its source repository at the pinned commit recorded in
+# corpus.json, with the repository contents API and `Accept: application/vnd.github.html`. That
+# is github.com's file view, the rendering a README reader sees. The `POST /markdown` modes each
+# differ from it: mode=gfm (comments) turns soft line breaks into <br> and writes no heading ids;
+# mode=markdown writes no task lists and older footnote markup. The script first checks that
+# NAME.md is byte-for-byte the file at that commit.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CORPUS="$ROOT/Tests/MdvCoreTests/Fixtures/corpus"
+MANIFEST="$CORPUS/corpus.json"
+
+if ! command -v gh > /dev/null; then
+  echo "error: gh (GitHub CLI) is required" >&2
+  exit 69
+fi
+
+if [[ $# -eq 0 ]]; then
+  set -- $(cd "$CORPUS" && ls *.md | grep -v '^README\.md$' | sed 's/\.md$//')
+fi
+
+SOURCE_COPY="$(mktemp)"
+trap 'rm -f "$SOURCE_COPY"' EXIT
+
+for name in "$@"; do
+  # plutil ships with macOS and reads JSON, so no jq is needed.
+  source="$(plutil -extract "documents.$name.source" raw -o - "$MANIFEST")"
+  # https://github.com/OWNER/REPO/blob/COMMIT/PATH
+  if [[ ! "$source" =~ ^https://github\.com/([^/]+/[^/]+)/blob/([0-9a-f]{40})/(.+)$ ]]; then
+    echo "error: $name: unexpected source URL: $source" >&2
+    exit 65
+  fi
+  repo="${BASH_REMATCH[1]}"
+  commit="${BASH_REMATCH[2]}"
+  path="${BASH_REMATCH[3]}"
+  endpoint="repos/$repo/contents/$path?ref=$commit"
+
+  gh api -H "Accept: application/vnd.github.raw" "$endpoint" > "$SOURCE_COPY"
+  if ! cmp -s "$SOURCE_COPY" "$CORPUS/$name.md"; then
+    echo "error: $name.md differs from $source" >&2
+    exit 65
+  fi
+  gh api -H "Accept: application/vnd.github.html" "$endpoint" > "$CORPUS/$name.github.html"
+  echo "updated $name.github.html"
+done

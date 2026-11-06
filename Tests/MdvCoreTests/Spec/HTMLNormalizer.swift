@@ -124,7 +124,7 @@ extension HTMLNormalizer {
                 inPre = true
             }
             if blockTags.contains(tag.name) {
-                output = output.trimmedTrailing
+                output.trimTrailingWhitespace()
             }
             output += "<" + tag.name
             for (name, value) in tag.attributes.sorted(by: { $0.name < $1.name }) {
@@ -142,7 +142,7 @@ extension HTMLNormalizer {
             if name == "pre" {
                 inPre = false
             } else if blockTags.contains(name) {
-                output = output.trimmedTrailing
+                output.trimTrailingWhitespace()
             }
             output += "</" + name + ">"
             lastTag = name
@@ -328,7 +328,10 @@ extension HTMLNormalizer {
 extension String {
     fileprivate var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    fileprivate var trimmedTrailing: String {
-        String(reversed().drop(while: \.isWhitespace).reversed())
+    /// In place, so trimming before every block tag stays linear on large documents.
+    fileprivate mutating func trimTrailingWhitespace() {
+        while last?.isWhitespace == true {
+            removeLast()
+        }
     }
 }

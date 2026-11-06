@@ -1,0 +1,426 @@
+<div id="file" class="md" data-path="content/Rust-1.82.0.md"><article class="markdown-body entry-content container-lg" itemprop="text"><p dir="auto">+++
+path = "2024/10/17/Rust-1.82.0"
+title = "Announcing Rust 1.82.0"
+authors = ["The Rust Release Team"]
+aliases = [
+"2024/10/17/Rust-1.82.0.html",
+"releases/1.82.0",
+]</p>
+<p dir="auto">[taxonomies]
+tags = ["release"]
++++</p>
+<p dir="auto">The Rust team is happy to announce a new version of Rust, 1.82.0. Rust is a programming language empowering everyone to build reliable and efficient software.</p>
+<p dir="auto">If you have a previous version of Rust installed via <code>rustup</code>, you can get 1.82.0 with:</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="$ rustup update stable"><pre class="notranslate"><code>$ rustup update stable
+</code></pre></div>
+<p dir="auto">If you don't have it already, you can <a href="https://www.rust-lang.org/install.html" rel="nofollow">get <code>rustup</code></a> from the appropriate page on our website, and check out the <a href="https://doc.rust-lang.org/stable/releases.html#version-1820-2024-10-17" rel="nofollow">detailed release notes for 1.82.0</a>.</p>
+<p dir="auto">If you'd like to help us out by testing future releases, you might consider updating locally to use the beta channel (<code>rustup default beta</code>) or the nightly channel (<code>rustup default nightly</code>). Please <a href="https://github.com/rust-lang/rust/issues/new/choose">report</a> any bugs you might come across!</p>
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">What's in 1.82.0 stable</h2><a id="user-content-whats-in-1820-stable" class="anchor" aria-label="Permalink: What's in 1.82.0 stable" href="#whats-in-1820-stable"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto"><code>cargo info</code></h3><a id="user-content-cargo-info" class="anchor" aria-label="Permalink: cargo info" href="#cargo-info"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Cargo now has an <a href="https://doc.rust-lang.org/stable/cargo/commands/cargo-info.html" rel="nofollow"><code>info</code> subcommand</a> to display information about a package in the registry, fulfilling a <a href="https://github.com/rust-lang/cargo/issues/948" data-hovercard-type="issue" data-hovercard-url="/rust-lang/cargo/issues/948/hovercard">long standing request</a> just shy of its tenth anniversary! Several third-party extensions like this have been written over the years, and this implementation was developed as <a href="https://crates.io/crates/cargo-information" rel="nofollow">cargo-information</a> before merging into Cargo itself.</p>
+<p dir="auto">For example, here's what you could see for <code>cargo info cc</code>:</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="cc #build-dependencies
+A build-time dependency for Cargo build scripts to assist in invoking the native
+C compiler to compile native C code into a static archive to be linked into Rust
+code.
+version: 1.1.23 (latest 1.1.30)
+license: MIT OR Apache-2.0
+rust-version: 1.63
+documentation: https://docs.rs/cc
+homepage: https://github.com/rust-lang/cc-rs
+repository: https://github.com/rust-lang/cc-rs
+crates.io: https://crates.io/crates/cc/1.1.23
+features:
+  jobserver = []
+  parallel  = [dep:libc, dep:jobserver]
+note: to see how you depend on cc, run `cargo tree --invert --package cc@1.1.23`"><pre class="notranslate"><code><b><span>cc</span></b> <b><span>#build-dependencies</span></b>
+A build-time dependency for Cargo build scripts to assist in invoking the native
+C compiler to compile native C code into a static archive to be linked into Rust
+code.
+<b><span>version:</span></b> 1.1.23 <b><span>(latest 1.1.30)</span></b>
+<b><span>license:</span></b> MIT OR Apache-2.0
+<b><span>rust-version:</span></b> 1.63
+<b><span>documentation:</span></b> https://docs.rs/cc
+<b><span>homepage:</span></b> https://github.com/rust-lang/cc-rs
+<b><span>repository:</span></b> https://github.com/rust-lang/cc-rs
+<b><span>crates.io:</span></b> https://crates.io/crates/cc/1.1.23
+<b><span>features:</span></b>
+  jobserver = []
+  parallel  = [dep:libc, dep:jobserver]
+<b><span>note</span></b><b>:</b> to see how you depend on cc, run `<b><span>cargo tree --invert --package cc@1.1.23</span></b>`
+</code></pre></div>
+<p dir="auto">By default, <code>cargo info</code> describes the package version in the local <code>Cargo.lock</code>, if any. As you can see, it will indicate when there's a newer version too, and <code>cargo info cc@1.1.30</code> would report on that.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Apple target promotions</h3><a id="user-content-apple-target-promotions" class="anchor" aria-label="Permalink: Apple target promotions" href="#apple-target-promotions"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<div class="markdown-heading" dir="auto"><h4 class="heading-element" dir="auto">macOS on 64-bit ARM is now Tier 1</h4><a id="user-content-macos-on-64-bit-arm-is-now-tier-1" class="anchor" aria-label="Permalink: macOS on 64-bit ARM is now Tier 1" href="#macos-on-64-bit-arm-is-now-tier-1"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">The Rust target <code>aarch64-apple-darwin</code> for macOS on 64-bit ARM (M1-family or later Apple Silicon CPUs) is now a tier 1 target, indicating our highest guarantee of working properly. As the <a href="https://doc.rust-lang.org/stable/rustc/platform-support.html" rel="nofollow">platform support</a> page describes, every change in the Rust repository must pass full tests on every tier 1 target before it can be merged. This target was introduced as tier 2 back in Rust 1.49, making it available in <code>rustup</code>. This new milestone puts the <code>aarch64-apple-darwin</code> target on par with the 64-bit ARM Linux and the X86 macOS, Linux, and Windows targets.</p>
+<div class="markdown-heading" dir="auto"><h4 class="heading-element" dir="auto">Mac Catalyst targets are now Tier 2</h4><a id="user-content-mac-catalyst-targets-are-now-tier-2" class="anchor" aria-label="Permalink: Mac Catalyst targets are now Tier 2" href="#mac-catalyst-targets-are-now-tier-2"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto"><a href="https://developer.apple.com/mac-catalyst/" rel="nofollow">Mac Catalyst</a> is a technology by Apple that allows running iOS applications natively on the Mac. This is especially useful when testing iOS-specific code, as <code>cargo test --target=aarch64-apple-ios-macabi --target=x86_64-apple-ios-macabi</code> mostly just works (in contrast to the usual iOS targets, which need to be bundled using external tooling before they can be run on a native device or in the simulator).</p>
+<p dir="auto"><a href="https://doc.rust-lang.org/stable/rustc/platform-support/apple-ios-macabi.html" rel="nofollow">The targets</a> are now tier 2, and can be downloaded with <code>rustup target add aarch64-apple-ios-macabi x86_64-apple-ios-macabi</code>, so now is an excellent time to update your CI pipeline to test that your code also runs in iOS-like environments.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Precise capturing <code>use&lt;..&gt;</code> syntax</h3><a id="user-content-precise-capturing-use-syntax" class="anchor" aria-label="Permalink: Precise capturing use&lt;..&gt; syntax" href="#precise-capturing-use-syntax"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Rust now supports <code>use&lt;..&gt;</code> syntax within certain <code>impl Trait</code> bounds to control which generic lifetime parameters are captured.</p>
+<p dir="auto">Return-position <code>impl Trait</code> (RPIT) types in Rust <em>capture</em> certain generic parameters.  Capturing a generic parameter allows that parameter to be used in the hidden type.  That in turn affects borrow checking.</p>
+<p dir="auto">In Rust 2021 and earlier editions, lifetime parameters are not captured in opaque types on bare functions and on functions and methods of inherent impls unless those lifetime parameters are mentioned syntactically in the opaque type.  E.g., this is an error:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="//@ edition: 2021
+fn f(x: &amp;()) -&gt; impl Sized { x }"><pre><span class="pl-c">//@ edition: 2021</span>
+<span class="pl-k">fn</span> <span class="pl-en">f</span><span class="pl-kos">(</span><span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span> -&gt; <span class="pl-k">impl</span> <span class="pl-smi">Sized</span> <span class="pl-kos">{</span> x <span class="pl-kos">}</span></pre></div>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="error[E0700]: hidden type for `impl Sized` captures lifetime that does not appear in bounds
+ --&gt; src/main.rs:1:30
+  |
+1 | fn f(x: &amp;()) -&gt; impl Sized { x }
+  |         ---     ----------   ^
+  |         |       |
+  |         |       opaque type defined here
+  |         hidden type `&amp;()` captures the anonymous lifetime defined here
+  |
+help: add a `use&lt;...&gt;` bound to explicitly capture `'_`
+  |
+1 | fn f(x: &amp;()) -&gt; impl Sized + use&lt;'_&gt; { x }
+  |                            +++++++++"><pre class="notranslate"><code>error[E0700]: hidden type for `impl Sized` captures lifetime that does not appear in bounds
+ --&gt; src/main.rs:1:30
+  |
+1 | fn f(x: &amp;()) -&gt; impl Sized { x }
+  |         ---     ----------   ^
+  |         |       |
+  |         |       opaque type defined here
+  |         hidden type `&amp;()` captures the anonymous lifetime defined here
+  |
+help: add a `use&lt;...&gt;` bound to explicitly capture `'_`
+  |
+1 | fn f(x: &amp;()) -&gt; impl Sized + use&lt;'_&gt; { x }
+  |                            +++++++++
+</code></pre></div>
+<p dir="auto">With the new <code>use&lt;..&gt;</code> syntax, we can fix this, as suggested in the error, by writing:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="fn f(x: &amp;()) -&gt; impl Sized + use&lt;'_&gt; { x }"><pre><span class="pl-k">fn</span> <span class="pl-en">f</span><span class="pl-kos">(</span><span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span> -&gt; <span class="pl-k">impl</span> <span class="pl-smi">Sized</span> + <span class="pl-k">use</span>&lt;<span class="pl-c1">'</span><span class="pl-ent">_</span>&gt; <span class="pl-kos">{</span> x <span class="pl-kos">}</span></pre></div>
+<p dir="auto">Previously, correctly fixing this class of error required defining a dummy trait, conventionally called <code>Captures</code>, and using it as follows:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="trait Captures&lt;T: ?Sized&gt; {}
+impl&lt;T: ?Sized, U: ?Sized&gt; Captures&lt;T&gt; for U {}
+
+fn f(x: &amp;()) -&gt; impl Sized + Captures&lt;&amp;'_ ()&gt; { x }"><pre><span class="pl-k">trait</span> <span class="pl-smi">Captures</span><span class="pl-kos">&lt;</span><span class="pl-smi">T</span><span class="pl-kos">:</span> ?<span class="pl-smi">Sized</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span><span class="pl-kos">}</span>
+<span class="pl-k">impl</span><span class="pl-kos">&lt;</span><span class="pl-smi">T</span><span class="pl-kos">:</span> ?<span class="pl-smi">Sized</span><span class="pl-kos">,</span> <span class="pl-smi">U</span><span class="pl-kos">:</span> ?<span class="pl-smi">Sized</span><span class="pl-kos">&gt;</span> <span class="pl-smi">Captures</span><span class="pl-kos">&lt;</span><span class="pl-smi">T</span><span class="pl-kos">&gt;</span> <span class="pl-k">for</span> <span class="pl-smi">U</span> <span class="pl-kos">{</span><span class="pl-kos">}</span>
+
+<span class="pl-k">fn</span> <span class="pl-en">f</span><span class="pl-kos">(</span><span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span> -&gt; <span class="pl-k">impl</span> <span class="pl-smi">Sized</span> + <span class="pl-smi">Captures</span><span class="pl-kos">&lt;</span><span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">_</span> <span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span> x <span class="pl-kos">}</span></pre></div>
+<p dir="auto">That was called <a href="https://github.com/rust-lang/rfcs/blob/master/text/3498-lifetime-capture-rules-2024.md#the-captures-trick">"the <code>Captures</code> trick"</a>, and it was a bit baroque and subtle.  It's no longer needed.</p>
+<p dir="auto">There was a less correct but more convenient way to fix this that was often used called <a href="https://github.com/rust-lang/rfcs/blob/master/text/3498-lifetime-capture-rules-2024.md#the-outlives-trick">"the outlives trick"</a>.  The compiler even previously suggested doing this.  That trick looked like this:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="fn f(x: &amp;()) -&gt; impl Sized + '_ { x }"><pre><span class="pl-k">fn</span> <span class="pl-en">f</span><span class="pl-kos">(</span><span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span> -&gt; <span class="pl-k">impl</span> <span class="pl-smi">Sized</span> + <span class="pl-c1">'</span><span class="pl-ent">_</span> <span class="pl-kos">{</span> x <span class="pl-kos">}</span></pre></div>
+<p dir="auto">In this simple case, the trick is exactly equivalent to <code>+ use&lt;'_&gt;</code> for subtle reasons explained in <a href="https://github.com/rust-lang/rfcs/blob/master/text/3498-lifetime-capture-rules-2024.md">RFC 3498</a>.  However, in real life cases, this overconstrains the bounds on the returned opaque type, leading to problems.  For example, consider this code, which is inspired by a real case in the Rust compiler:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="struct Ctx&lt;'cx&gt;(&amp;'cx u8);
+
+fn f&lt;'cx, 'a&gt;(
+    cx: Ctx&lt;'cx&gt;,
+    x: &amp;'a u8,
+) -&gt; impl Iterator&lt;Item = &amp;'a u8&gt; + 'cx {
+    core::iter::once_with(move || {
+        eprintln!(&quot;LOG: {}&quot;, cx.0);
+        x
+    })
+//~^ ERROR lifetime may not live long enough
+}"><pre><span class="pl-k">struct</span> <span class="pl-smi">Ctx</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">cx</span><span class="pl-kos">&gt;</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">cx</span> <span class="pl-smi">u8</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+<span class="pl-k">fn</span> <span class="pl-en">f</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">cx</span><span class="pl-kos">,</span> <span class="pl-c1">'</span><span class="pl-ent">a</span><span class="pl-kos">&gt;</span><span class="pl-kos">(</span>
+    <span class="pl-s1">cx</span><span class="pl-kos">:</span> <span class="pl-smi">Ctx</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">cx</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">a</span> <span class="pl-smi">u8</span><span class="pl-kos">,</span>
+<span class="pl-kos">)</span> -&gt; <span class="pl-k">impl</span> <span class="pl-smi">Iterator</span><span class="pl-kos">&lt;</span><span class="pl-smi">Item</span> = <span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">a</span> <span class="pl-smi">u8</span><span class="pl-kos">&gt;</span> + <span class="pl-c1">'</span><span class="pl-ent">cx</span> <span class="pl-kos">{</span>
+    core<span class="pl-kos">::</span>iter<span class="pl-kos">::</span><span class="pl-en">once_with</span><span class="pl-kos">(</span><span class="pl-k">move</span> || <span class="pl-kos">{</span>
+        <span class="pl-en">eprintln</span><span class="pl-en">!</span><span class="pl-kos">(</span><span class="pl-s">"LOG: {}"</span><span class="pl-kos">,</span> cx<span class="pl-kos">.</span><span class="pl-c1">0</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        x
+    <span class="pl-kos">}</span><span class="pl-kos">)</span>
+<span class="pl-c">//~^ ERROR lifetime may not live long enough</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">We can't remove the <code>+ 'cx</code>, since the lifetime is used in the hidden type and so must be captured.  Neither can we add a bound of <code>'a: 'cx</code>, since these lifetimes are not actually related and it won't in general be true that <code>'a</code> outlives <code>'cx</code>.  If we write <code>+ use&lt;'cx, 'a&gt;</code> instead, however, this will work and have the correct bounds.</p>
+<p dir="auto">There are some limitations to what we're stabilizing today.  The <code>use&lt;..&gt;</code> syntax cannot currently appear within traits or within trait impls (but note that there, in-scope lifetime parameters are already captured by default), and it must list all in-scope generic type and const parameters.  We hope to lift these restrictions over time.</p>
+<p dir="auto">Note that in Rust 2024, the examples above will "just work" without needing <code>use&lt;..&gt;</code> syntax (or any tricks).  This is because in the new edition, opaque types will automatically capture all lifetime parameters in scope.  This is a better default, and we've seen a lot of evidence about how this cleans up code.  In Rust 2024, <code>use&lt;..&gt;</code> syntax will serve as an important way of opting-out of that default.</p>
+<p dir="auto">For more details about <code>use&lt;..&gt;</code> syntax, capturing, and how this applies to Rust 2024, see the <a href="https://doc.rust-lang.org/stable/edition-guide/rust-2024/rpit-lifetime-capture.html" rel="nofollow">"RPIT lifetime capture rules"</a> chapter of the edition guide.  For details about the overall direction, see our recent blog post, <a href="https://blog.rust-lang.org/2024/09/05/impl-trait-capture-rules.html" rel="nofollow">"Changes to <code>impl Trait</code> in Rust 2024"</a>.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Native syntax for creating a raw pointer</h3><a id="user-content-native-syntax-for-creating-a-raw-pointer" class="anchor" aria-label="Permalink: Native syntax for creating a raw pointer" href="#native-syntax-for-creating-a-raw-pointer"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Unsafe code sometimes has to deal with pointers that may dangle, may be misaligned, or may not point to valid data. A common case where this comes up are <code>repr(packed)</code> structs. In such a case, it is important to avoid creating a reference, as that would cause undefined behavior. This means the usual <code>&amp;</code> and <code>&amp;mut</code> operators cannot be used, as those create a reference -- even if the reference is immediately cast to a raw pointer, it's too late to avoid the undefined behavior.</p>
+<p dir="auto">For several years, the macros <code>std::ptr::addr_of!</code> and <code>std::ptr::addr_of_mut!</code> have served this purpose. Now the time has come to provide a proper native syntax for this operation: <code>addr_of!(expr)</code> becomes <code>&amp;raw const expr</code>, and <code>addr_of_mut!(expr)</code> becomes <code>&amp;raw mut expr</code>. For example:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="#[repr(packed)]
+struct Packed {
+    not_aligned_field: i32,
+}
+
+fn main() {
+    let p = Packed { not_aligned_field: 1_82 };
+
+    // This would be undefined behavior!
+    // It is rejected by the compiler.
+    //let ptr = &amp;p.not_aligned_field as *const i32;
+
+    // This is the old way of creating a pointer.
+    let ptr = std::ptr::addr_of!(p.not_aligned_field);
+
+    // This is the new way.
+    let ptr = &amp;raw const p.not_aligned_field;
+
+    // Accessing the pointer has not changed.
+    // Note that `val = *ptr` would be undefined behavior because
+    // the pointer is not aligned!
+    let val = unsafe { ptr.read_unaligned() };
+}"><pre><span class="pl-c1">#<span class="pl-kos">[</span>repr<span class="pl-kos">(</span>packed<span class="pl-kos">)</span><span class="pl-kos">]</span></span>
+<span class="pl-k">struct</span> <span class="pl-smi">Packed</span> <span class="pl-kos">{</span>
+    <span class="pl-c1">not_aligned_field</span><span class="pl-kos">:</span> <span class="pl-smi">i32</span><span class="pl-kos">,</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">fn</span> <span class="pl-en">main</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-k">let</span> p = <span class="pl-smi">Packed</span> <span class="pl-kos">{</span> <span class="pl-c1">not_aligned_field</span><span class="pl-kos">:</span> <span class="pl-c1">1_82</span> <span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// This would be undefined behavior!</span>
+    <span class="pl-c">// It is rejected by the compiler.</span>
+    <span class="pl-c">//let ptr = &amp;p.not_aligned_field as *const i32;</span>
+
+    <span class="pl-c">// This is the old way of creating a pointer.</span>
+    <span class="pl-k">let</span> ptr = std<span class="pl-kos">::</span>ptr<span class="pl-kos">::</span>addr_of!<span class="pl-kos">(</span>p<span class="pl-kos">.</span>not_aligned_field<span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// This is the new way.</span>
+    <span class="pl-k">let</span> ptr = <span class="pl-c1">&amp;</span><span class="pl-k">raw</span> <span class="pl-k">const</span> p<span class="pl-kos">.</span><span class="pl-c1">not_aligned_field</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// Accessing the pointer has not changed.</span>
+    <span class="pl-c">// Note that `val = *ptr` would be undefined behavior because</span>
+    <span class="pl-c">// the pointer is not aligned!</span>
+    <span class="pl-k">let</span> val = <span class="pl-k">unsafe</span> <span class="pl-kos">{</span> ptr<span class="pl-kos">.</span><span class="pl-en">read_unaligned</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">}</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">The native syntax makes it more clear that the operand expression of these operators is interpreted as a <a href="https://www.ralfj.de/blog/2024/08/14/places.html" rel="nofollow">place expression</a>. It also avoids the term "address-of" when referring to the action of creating a pointer. A pointer is <a href="https://rust-lang.github.io/rfcs/3559-rust-has-provenance.html" rel="nofollow">more than just an address</a>, so Rust is moving away from terms like "address-of" that reaffirm a false equivalence of pointers and addresses.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Safe items with <code>unsafe extern</code></h3><a id="user-content-safe-items-with-unsafe-extern" class="anchor" aria-label="Permalink: Safe items with unsafe extern" href="#safe-items-with-unsafe-extern"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Rust code can use functions and statics from foreign code.  The type signatures of these foreign items are provided in <code>extern</code> blocks.  Historically, all items within <code>extern</code> blocks have been unsafe to use, but we didn't have to write <code>unsafe</code> anywhere on the <code>extern</code> block itself.</p>
+<p dir="auto">However, if a signature within the <code>extern</code> block is incorrect, then using that item will result in undefined behavior.  Would that be the fault of the person who wrote the <code>extern</code> block, or the person who used that item?</p>
+<p dir="auto">We've decided that it's the responsibility of the person writing the <code>extern</code> block to ensure that all signatures contained within it are correct, and so we now allow writing <code>unsafe extern</code>:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="unsafe extern {
+    pub safe static TAU: f64;
+    pub safe fn sqrt(x: f64) -&gt; f64;
+    pub unsafe fn strlen(p: *const u8) -&gt; usize;
+}"><pre><span class="pl-k">unsafe</span> <span class="pl-k">extern</span> <span class="pl-kos">{</span>
+    <span class="pl-k">pub</span> safe <span class="pl-k">static</span> <span class="pl-v">TAU</span><span class="pl-kos">:</span> <span class="pl-smi">f64</span><span class="pl-kos">;</span>
+    <span class="pl-k">pub</span> safe <span class="pl-k">fn</span> <span class="pl-en">sqrt</span><span class="pl-kos">(</span><span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-smi">f64</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">f64</span><span class="pl-kos">;</span>
+    <span class="pl-k">pub</span> <span class="pl-k">unsafe</span> <span class="pl-k">fn</span> <span class="pl-en">strlen</span><span class="pl-kos">(</span><span class="pl-s1">p</span><span class="pl-kos">:</span> <span class="pl-c1">*</span><span class="pl-k">const</span> <span class="pl-smi">u8</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">usize</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">One benefit of this is that items within an <code>unsafe extern</code> block can be marked as safe to use.  In the above example, we can call <code>sqrt</code> or read <code>TAU</code> without using <code>unsafe</code>.  Items that aren't marked with either <code>safe</code> or <code>unsafe</code> are conservatively assumed to be <code>unsafe</code>.</p>
+<p dir="auto">In future releases, we'll be encouraging the use of <code>unsafe extern</code> with lints.  Starting in Rust 2024, using <code>unsafe extern</code> will be required.</p>
+<p dir="auto">For further details, see <a href="https://github.com/rust-lang/rfcs/blob/master/text/3484-unsafe-extern-blocks.md">RFC 3484</a> and the <a href="https://doc.rust-lang.org/stable/edition-guide/rust-2024/unsafe-extern.html" rel="nofollow">"Unsafe extern blocks"</a> chapter of the edition guide.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Unsafe attributes</h3><a id="user-content-unsafe-attributes" class="anchor" aria-label="Permalink: Unsafe attributes" href="#unsafe-attributes"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Some Rust attributes, such as <a href="https://doc.rust-lang.org/reference/abi.html#the-no_mangle-attribute" rel="nofollow"><code>no_mangle</code></a>, can be used to <a href="https://github.com/rust-lang/rust/issues/28179" data-hovercard-type="issue" data-hovercard-url="/rust-lang/rust/issues/28179/hovercard">cause undefined behavior without any <code>unsafe</code> block</a>. If this were regular code we would require them to be placed in an <code>unsafe {}</code> block, but so far attributes have not had comparable syntax. To reflect the fact that these attributes can undermine Rust's safety guarantees, they are now considered "unsafe" and should be written as follows:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="#[unsafe(no_mangle)]
+pub fn my_global_function() { }"><pre><span class="pl-c1">#<span class="pl-kos">[</span>unsafe<span class="pl-kos">(</span>no_mangle<span class="pl-kos">)</span><span class="pl-kos">]</span></span>
+<span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">my_global_function</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span> <span class="pl-kos">}</span></pre></div>
+<p dir="auto">The old form of the attribute (without <code>unsafe</code>) is currently still accepted, but might be linted against at some point in the future, and will be a hard error in Rust 2024.</p>
+<p dir="auto">This affects the following attributes:</p>
+<ul dir="auto">
+<li><code>no_mangle</code></li>
+<li><code>link_section</code></li>
+<li><code>export_name</code></li>
+</ul>
+<p dir="auto">For further details, see the <a href="https://doc.rust-lang.org/stable/edition-guide/rust-2024/unsafe-attributes.html" rel="nofollow">"Unsafe attributes"</a> chapter of the edition guide.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Omitting empty types in pattern matching</h3><a id="user-content-omitting-empty-types-in-pattern-matching" class="anchor" aria-label="Permalink: Omitting empty types in pattern matching" href="#omitting-empty-types-in-pattern-matching"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Patterns which match empty (a.k.a. uninhabited) types by value can now be omitted:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="use std::convert::Infallible;
+pub fn unwrap_without_panic&lt;T&gt;(x: Result&lt;T, Infallible&gt;) -&gt; T {
+    let Ok(x) = x; // the `Err` case does not need to appear
+    x
+}"><pre><span class="pl-k">use</span> std<span class="pl-kos">::</span>convert<span class="pl-kos">::</span><span class="pl-v">Infallible</span><span class="pl-kos">;</span>
+<span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">unwrap_without_panic</span><span class="pl-kos">&lt;</span><span class="pl-smi">T</span><span class="pl-kos">&gt;</span><span class="pl-kos">(</span><span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">T</span><span class="pl-kos">,</span> <span class="pl-smi">Infallible</span><span class="pl-kos">&gt;</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">T</span> <span class="pl-kos">{</span>
+    <span class="pl-k">let</span> <span class="pl-v">Ok</span><span class="pl-kos">(</span>x<span class="pl-kos">)</span> = x<span class="pl-kos">;</span> <span class="pl-c">// the `Err` case does not need to appear</span>
+    x
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">This works with empty types such as a variant-less <code>enum Void {}</code>, or structs and enums with a visible empty field and no <code>#[non_exhaustive]</code> attribute. It will also be particularly useful in combination with the never type <code>!</code>, although that type is still unstable at this time.</p>
+<p dir="auto">There are some cases where empty patterns must still be written. For reasons related to uninitialized values and unsafe code, omitting patterns is not allowed if the empty type is accessed through a reference, pointer, or union field:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="pub fn unwrap_ref_without_panic&lt;T&gt;(x: &amp;Result&lt;T, Infallible&gt;) -&gt; &amp;T {
+    match x {
+        Ok(x) =&gt; x,
+        // this arm cannot be omitted because of the reference
+        Err(infallible) =&gt; match *infallible {},
+    }
+}"><pre><span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">unwrap_ref_without_panic</span><span class="pl-kos">&lt;</span><span class="pl-smi">T</span><span class="pl-kos">&gt;</span><span class="pl-kos">(</span><span class="pl-s1">x</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">T</span><span class="pl-kos">,</span> <span class="pl-smi">Infallible</span><span class="pl-kos">&gt;</span><span class="pl-kos">)</span> -&gt; <span class="pl-c1">&amp;</span><span class="pl-smi">T</span> <span class="pl-kos">{</span>
+    <span class="pl-k">match</span> x <span class="pl-kos">{</span>
+        <span class="pl-v">Ok</span><span class="pl-kos">(</span>x<span class="pl-kos">)</span> =&gt; x<span class="pl-kos">,</span>
+        <span class="pl-c">// this arm cannot be omitted because of the reference</span>
+        <span class="pl-v">Err</span><span class="pl-kos">(</span>infallible<span class="pl-kos">)</span> =&gt; <span class="pl-k">match</span> <span class="pl-c1">*</span>infallible <span class="pl-kos">{</span><span class="pl-kos">}</span><span class="pl-kos">,</span>
+    <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">To avoid interfering with crates that wish to support several Rust versions, <code>match</code> arms with empty patterns are not yet reported as “unreachable code” warnings, despite the fact that they can be removed.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Floating-point NaN semantics and <code>const</code></h3><a id="user-content-floating-point-nan-semantics-and-const" class="anchor" aria-label="Permalink: Floating-point NaN semantics and const" href="#floating-point-nan-semantics-and-const"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Operations on floating-point values (of type <code>f32</code> and <code>f64</code>) are famously subtle. One of the reasons for this is the existence of NaN ("not a number") values which are used to represent e.g. the result of <code>0.0 / 0.0</code>. What makes NaN values subtle is that more than one possible NaN value exists. A NaN value has a sign (that can be checked with <code>f.is_sign_positive()</code>) and a payload (that can be extracted with <code>f.to_bits()</code>). However, both the sign and payload of NaN values are entirely ignored by <code>==</code> (which always returns <code>false</code>). Despite very successful efforts to standardize the behavior of floating-point operations across hardware architectures, the details of when a NaN is positive or negative and what its exact payload is differ across architectures. To make matters even more complicated, Rust and its LLVM backend apply optimizations to floating-point operations when the exact numeric result is guaranteed not to change, but those optimizations can change which NaN value is produced. For instance, <code>f * 1.0</code> may be optimized to just <code>f</code>. However, if <code>f</code> is a NaN, this can change the exact bit pattern of the result!</p>
+<p dir="auto">With this release, Rust standardizes on a set of rules for how NaN values behave. This set of rules is <em>not</em> fully deterministic, which means that the result of operations like <code>(0.0 / 0.0).is_sign_positive()</code> can differ depending on the hardware architecture, optimization levels, and the surrounding code. Code that aims to be fully portable should avoid using <code>to_bits</code> and should use <code>f.signum() == 1.0</code> instead of <code>f.is_sign_positive()</code>. However, the rules are carefully chosen to still allow advanced data representation techniques such as NaN boxing to be implemented in Rust code. For more details on what the exact rules are, check out our <a href="https://doc.rust-lang.org/std/primitive.f32.html#nan-bit-patterns" rel="nofollow">documentation</a>.</p>
+<p dir="auto">With the semantics for NaN values settled, this release also permits the use of floating-point operations in <code>const fn</code>. Due to the reasons described above, operations like <code>(0.0 / 0.0).is_sign_positive()</code> (which will be const-stable in Rust 1.83) can produce a different result when executed at compile-time vs at run-time. This is not a bug, and code must not rely on a <code>const fn</code> always producing the exact same result.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Constants as assembly immediates</h3><a id="user-content-constants-as-assembly-immediates" class="anchor" aria-label="Permalink: Constants as assembly immediates" href="#constants-as-assembly-immediates"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">The <code>const</code> assembly operand now provides a way to use integers as immediates
+without first storing them in a register. As an example, we implement a syscall to
+<a href="https://man7.org/linux/man-pages/man2/write.2.html" rel="nofollow"><code>write</code></a> by hand:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="const WRITE_SYSCALL: c_int = 0x01; // syscall 1 is `write`
+const STDOUT_HANDLE: c_int = 0x01; // `stdout` has file handle 1
+const MSG: &amp;str = &quot;Hello, world!\n&quot;;
+
+let written: usize;
+
+// Signature: `ssize_t write(int fd, const void buf[], size_t count)`
+unsafe {
+    core::arch::asm!(
+        &quot;mov rax, {SYSCALL} // rax holds the syscall number&quot;,
+        &quot;mov rdi, {OUTPUT}  // rdi is `fd` (first argument)&quot;,
+        &quot;mov rdx, {LEN}     // rdx is `count` (third argument)&quot;,
+        &quot;syscall            // invoke the syscall&quot;,
+        &quot;mov {written}, rax // save the return value&quot;,
+        SYSCALL = const WRITE_SYSCALL,
+        OUTPUT = const STDOUT_HANDLE,
+        LEN = const MSG.len(),
+        in(&quot;rsi&quot;) MSG.as_ptr(), // rsi is `buf *` (second argument)
+        written = out(reg) written,
+    );
+}
+
+assert_eq!(written, MSG.len());"><pre><span class="pl-k">const</span> <span class="pl-v">WRITE_SYSCALL</span><span class="pl-kos">:</span> <span class="pl-smi">c_int</span> = <span class="pl-c1">0x01</span><span class="pl-kos">;</span> <span class="pl-c">// syscall 1 is `write`</span>
+<span class="pl-k">const</span> <span class="pl-v">STDOUT_HANDLE</span><span class="pl-kos">:</span> <span class="pl-smi">c_int</span> = <span class="pl-c1">0x01</span><span class="pl-kos">;</span> <span class="pl-c">// `stdout` has file handle 1</span>
+<span class="pl-k">const</span> <span class="pl-v">MSG</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">str</span> = <span class="pl-s">"Hello, world!<span class="pl-cce">\n</span>"</span><span class="pl-kos">;</span>
+
+<span class="pl-k">let</span> written<span class="pl-kos">:</span> <span class="pl-smi">usize</span><span class="pl-kos">;</span>
+
+<span class="pl-c">// Signature: `ssize_t write(int fd, const void buf[], size_t count)`</span>
+<span class="pl-k">unsafe</span> <span class="pl-kos">{</span>
+    core<span class="pl-kos">::</span>arch<span class="pl-kos">::</span>asm!<span class="pl-kos">(</span>
+        <span class="pl-s">"mov rax, {SYSCALL} // rax holds the syscall number"</span><span class="pl-kos">,</span>
+        <span class="pl-s">"mov rdi, {OUTPUT}  // rdi is `fd` (first argument)"</span><span class="pl-kos">,</span>
+        <span class="pl-s">"mov rdx, {LEN}     // rdx is `count` (third argument)"</span><span class="pl-kos">,</span>
+        <span class="pl-s">"syscall            // invoke the syscall"</span><span class="pl-kos">,</span>
+        <span class="pl-s">"mov {written}, rax // save the return value"</span><span class="pl-kos">,</span>
+        <span class="pl-v">SYSCALL</span> = <span class="pl-k">const</span> <span class="pl-v">WRITE_SYSCALL</span><span class="pl-kos">,</span>
+        <span class="pl-v">OUTPUT</span> = <span class="pl-k">const</span> <span class="pl-v">STDOUT_HANDLE</span><span class="pl-kos">,</span>
+        <span class="pl-v">LEN</span> = <span class="pl-k">const</span> <span class="pl-v">MSG</span><span class="pl-kos">.</span>len<span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+        in<span class="pl-kos">(</span><span class="pl-s">"rsi"</span><span class="pl-kos">)</span> <span class="pl-v">MSG</span><span class="pl-kos">.</span>as_ptr<span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span> <span class="pl-c">// rsi is `buf *` (second argument)</span>
+        written = out<span class="pl-kos">(</span>reg<span class="pl-kos">)</span> written<span class="pl-kos">,</span>
+    <span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-en">assert_eq</span><span class="pl-en">!</span><span class="pl-kos">(</span>written<span class="pl-kos">,</span> <span class="pl-v">MSG</span><span class="pl-kos">.</span>len<span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span></pre></div>
+<p dir="auto">Output:</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="Hello, world!"><pre class="notranslate"><code>Hello, world!
+</code></pre></div>
+<p dir="auto"><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=0cf8e21335b38011b49156c6c65929bc" rel="nofollow">Playground link</a>.</p>
+<p dir="auto">In the above, a statement such as <code>LEN = const MSG.len()</code> populates the format
+specifier <code>LEN</code> with an immediate that takes the value of <code>MSG.len()</code>. This can be seen
+in the generated assembly (the value is <code>14</code>):</p>
+<div class="highlight highlight-source-assembly notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="lea     rsi, [rip + .L__unnamed_3]
+mov     rax, 1    # rax holds the syscall number
+mov     rdi, 1    # rdi is `fd` (first argument)
+mov     rdx, 14   # rdx is `count` (third argument)
+syscall # invoke the syscall
+mov     rax, rax  # save the return value"><pre><span class="pl-k">lea</span><span class="pl-en">     </span><span class="pl-v">rsi</span><span class="pl-s1">,</span><span class="pl-en"> </span><span class="pl-s1">[</span><span class="pl-v">rip</span><span class="pl-en"> </span><span class="pl-s1">+</span><span class="pl-en"> .L__unnamed_3</span><span class="pl-s1">]</span>
+<span class="pl-k">mov</span><span class="pl-en">     </span><span class="pl-v">rax</span><span class="pl-s1">,</span><span class="pl-en"> </span><span class="pl-c1">1</span><span class="pl-en">    # </span><span class="pl-v">rax</span><span class="pl-en"> holds the </span><span class="pl-k">syscall</span><span class="pl-en"> number</span>
+<span class="pl-k">mov</span><span class="pl-en">     </span><span class="pl-v">rdi</span><span class="pl-s1">,</span><span class="pl-en"> </span><span class="pl-c1">1</span><span class="pl-en">    # </span><span class="pl-v">rdi</span><span class="pl-en"> is `fd` (first argument)</span>
+<span class="pl-k">mov</span><span class="pl-en">     </span><span class="pl-v">rdx</span><span class="pl-s1">,</span><span class="pl-en"> </span><span class="pl-c1">14</span><span class="pl-en">   # </span><span class="pl-v">rdx</span><span class="pl-en"> is `count` (third argument)</span>
+<span class="pl-k">syscall</span><span class="pl-en"> # invoke the </span><span class="pl-k">syscall</span>
+<span class="pl-k">mov</span><span class="pl-en">     </span><span class="pl-v">rax</span><span class="pl-s1">,</span><span class="pl-en"> </span><span class="pl-v">rax</span><span class="pl-en">  # save the return value</span></pre></div>
+<p dir="auto">See <a href="https://doc.rust-lang.org/reference/inline-assembly.html" rel="nofollow">the reference</a>
+for more details.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Safely addressing unsafe <code>static</code>s</h3><a id="user-content-safely-addressing-unsafe-statics" class="anchor" aria-label="Permalink: Safely addressing unsafe statics" href="#safely-addressing-unsafe-statics"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">This code is now allowed:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content="static mut STATIC_MUT: Type = Type::new();
+extern &quot;C&quot; {
+    static EXTERN_STATIC: Type;
+}
+fn main() {
+     let static_mut_ptr = &amp;raw mut STATIC_MUT;
+     let extern_static_ptr = &amp;raw const EXTERN_STATIC;
+}"><pre><span class="pl-k">static</span> <span class="pl-k">mut</span> <span class="pl-v">STATIC_MUT</span><span class="pl-kos">:</span> <span class="pl-smi">Type</span> = <span class="pl-smi">Type</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-k">extern</span> <span class="pl-s">"C"</span> <span class="pl-kos">{</span>
+    <span class="pl-k">static</span> <span class="pl-v">EXTERN_STATIC</span><span class="pl-kos">:</span> <span class="pl-smi">Type</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span>
+<span class="pl-k">fn</span> <span class="pl-en">main</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+     <span class="pl-k">let</span> static_mut_ptr = <span class="pl-c1">&amp;</span><span class="pl-k">raw</span> <span class="pl-k">mut</span> <span class="pl-v">STATIC_MUT</span><span class="pl-kos">;</span>
+     <span class="pl-k">let</span> extern_static_ptr = <span class="pl-c1">&amp;</span><span class="pl-k">raw</span> <span class="pl-k">const</span> <span class="pl-v">EXTERN_STATIC</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">In an expression context, <code>STATIC_MUT</code> and <code>EXTERN_STATIC</code> are <a href="https://doc.rust-lang.org/reference/expressions.html#place-expressions-and-value-expressions" rel="nofollow">place expressions</a>. Previously, the compiler's safety checks were not aware that the raw ref operator did not actually affect the operand's place, treating it as a possible read or write to a pointer. No unsafety is actually present, however, as it just creates a pointer.</p>
+<p dir="auto">Relaxing this may cause problems where some unsafe blocks are now reported as unused if you deny the <code>unused_unsafe</code> lint, but they are now only useful on older versions. Annotate these unsafe blocks with <code>#[allow(unused_unsafe)]</code> if you wish to support multiple versions of Rust, as in this example diff:</p>
+<div class="highlight highlight-source-diff notranslate position-relative overflow-auto" dir="auto" data-snippet-clipboard-copy-content=" static mut STATIC_MUT: Type = Type::new();
+ fn main() {
++    #[allow(unused_unsafe)]
+     let static_mut_ptr = unsafe { std::ptr::addr_of_mut!(STATIC_MUT) };
+ }"><pre> static mut STATIC_MUT: Type = Type::new();
+ fn main() {
+<span class="pl-mi1"><span class="pl-mi1">+</span>    #[allow(unused_unsafe)]</span>
+     let static_mut_ptr = unsafe { std::ptr::addr_of_mut!(STATIC_MUT) };
+ }</pre></div>
+<p dir="auto">A future version of Rust is expected to generalize this to other expressions which would be safe in this position, not just statics.</p>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Stabilized APIs</h3><a id="user-content-stabilized-apis" class="anchor" aria-label="Permalink: Stabilized APIs" href="#stabilized-apis"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<ul dir="auto">
+<li><a href="https://doc.rust-lang.org/stable/std/thread/struct.Builder.html#method.spawn_unchecked" rel="nofollow"><code>std::thread::Builder::spawn_unchecked</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/str/struct.CharIndices.html#method.offset" rel="nofollow"><code>std::str::CharIndices::offset</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/option/enum.Option.html#method.is_none_or" rel="nofollow"><code>std::option::Option::is_none_or</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/primitive.slice.html#method.is_sorted" rel="nofollow"><code>[T]::is_sorted</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/primitive.slice.html#method.is_sorted_by" rel="nofollow"><code>[T]::is_sorted_by</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/primitive.slice.html#method.is_sorted_by_key" rel="nofollow"><code>[T]::is_sorted_by_key</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html#method.is_sorted" rel="nofollow"><code>Iterator::is_sorted</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html#method.is_sorted_by" rel="nofollow"><code>Iterator::is_sorted_by</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html#method.is_sorted_by_key" rel="nofollow"><code>Iterator::is_sorted_by_key</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/future/struct.Ready.html#method.into_inner" rel="nofollow"><code>std::future::Ready::into_inner</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/iter/fn.repeat_n.html" rel="nofollow"><code>std::iter::repeat_n</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/iter/struct.Take.html#impl-DoubleEndedIterator-for-Take%3CRepeat%3CT%3E%3E" rel="nofollow"><code>impl&lt;T: Clone&gt; DoubleEndedIterator for Take&lt;Repeat&lt;T&gt;&gt;</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/iter/struct.Take.html#impl-ExactSizeIterator-for-Take%3CRepeat%3CT%3E%3E" rel="nofollow"><code>impl&lt;T: Clone&gt; ExactSizeIterator for Take&lt;Repeat&lt;T&gt;&gt;</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/iter/struct.Take.html#impl-ExactSizeIterator-for-Take%3CRepeatWith%3CF%3E%3E" rel="nofollow"><code>impl&lt;T: Clone&gt; ExactSizeIterator for Take&lt;RepeatWith&lt;T&gt;&gt;</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/collections/binary_heap/struct.Iter.html#impl-Default-for-Iter%3C'_,+T%3E" rel="nofollow"><code>impl Default for std::collections::binary_heap::Iter</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/collections/btree_map/struct.RangeMut.html#impl-Default-for-RangeMut%3C'_,+K,+V%3E" rel="nofollow"><code>impl Default for std::collections::btree_map::RangeMut</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/collections/btree_map/struct.ValuesMut.html#impl-Default-for-ValuesMut%3C'_,+K,+V%3E" rel="nofollow"><code>impl Default for std::collections::btree_map::ValuesMut</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/collections/vec_deque/struct.Iter.html#impl-Default-for-Iter%3C'_,+T%3E" rel="nofollow"><code>impl Default for std::collections::vec_deque::Iter</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/collections/vec_deque/struct.IterMut.html#impl-Default-for-IterMut%3C'_,+T%3E" rel="nofollow"><code>impl Default for std::collections::vec_deque::IterMut</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/rc/struct.Rc.html#method.new_uninit" rel="nofollow"><code>Rc&lt;T&gt;::new_uninit</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/rc/struct.Rc.html#method.assume_init" rel="nofollow"><code>Rc&lt;MaybeUninit&lt;T&gt;&gt;::assume_init</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/rc/struct.Rc.html#method.new_uninit_slice" rel="nofollow"><code>Rc&lt;[T]&gt;::new_uninit_slice</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/rc/struct.Rc.html#method.assume_init-1" rel="nofollow"><code>Rc&lt;[MaybeUninit&lt;T&gt;]&gt;::assume_init</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/sync/struct.Arc.html#method.new_uninit" rel="nofollow"><code>Arc&lt;T&gt;::new_uninit</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/sync/struct.Arc.html#method.assume_init" rel="nofollow"><code>Arc&lt;MaybeUninit&lt;T&gt;&gt;::assume_init</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/sync/struct.Arc.html#method.new_uninit_slice" rel="nofollow"><code>Arc&lt;[T]&gt;::new_uninit_slice</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/sync/struct.Arc.html#method.assume_init-1" rel="nofollow"><code>Arc&lt;[MaybeUninit&lt;T&gt;]&gt;::assume_init</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/boxed/struct.Box.html#method.new_uninit" rel="nofollow"><code>Box&lt;T&gt;::new_uninit</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/boxed/struct.Box.html#method.assume_init" rel="nofollow"><code>Box&lt;MaybeUninit&lt;T&gt;&gt;::assume_init</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/boxed/struct.Box.html#method.new_uninit_slice" rel="nofollow"><code>Box&lt;[T]&gt;::new_uninit_slice</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/boxed/struct.Box.html#method.assume_init-1" rel="nofollow"><code>Box&lt;[MaybeUninit&lt;T&gt;]&gt;::assume_init</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86_64/fn._bextri_u64.html" rel="nofollow"><code>core::arch::x86_64::_bextri_u64</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86_64/fn._bextri_u32.html" rel="nofollow"><code>core::arch::x86_64::_bextri_u32</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_broadcastsi128_si256.html" rel="nofollow"><code>core::arch::x86::_mm_broadcastsi128_si256</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm256_stream_load_si256.html" rel="nofollow"><code>core::arch::x86::_mm256_stream_load_si256</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._tzcnt_u16.html" rel="nofollow"><code>core::arch::x86::_tzcnt_u16</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_extracti_si64.html" rel="nofollow"><code>core::arch::x86::_mm_extracti_si64</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_inserti_si64.html" rel="nofollow"><code>core::arch::x86::_mm_inserti_si64</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_storeu_si16.html" rel="nofollow"><code>core::arch::x86::_mm_storeu_si16</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_storeu_si32.html" rel="nofollow"><code>core::arch::x86::_mm_storeu_si32</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_storeu_si64.html" rel="nofollow"><code>core::arch::x86::_mm_storeu_si64</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_loadu_si16.html" rel="nofollow"><code>core::arch::x86::_mm_loadu_si16</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/x86/fn._mm_loadu_si32.html" rel="nofollow"><code>core::arch::x86::_mm_loadu_si32</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u8x16_relaxed_swizzle.html" rel="nofollow"><code>core::arch::wasm32::u8x16_relaxed_swizzle</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i8x16_relaxed_swizzle.html" rel="nofollow"><code>core::arch::wasm32::i8x16_relaxed_swizzle</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i32x4_relaxed_trunc_f32x4.html" rel="nofollow"><code>core::arch::wasm32::i32x4_relaxed_trunc_f32x4</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u32x4_relaxed_trunc_f32x4.html" rel="nofollow"><code>core::arch::wasm32::u32x4_relaxed_trunc_f32x4</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i32x4_relaxed_trunc_f64x2_zero.html" rel="nofollow"><code>core::arch::wasm32::i32x4_relaxed_trunc_f64x2_zero</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u32x4_relaxed_trunc_f64x2_zero.html" rel="nofollow"><code>core::arch::wasm32::u32x4_relaxed_trunc_f64x2_zero</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f32x4_relaxed_madd.html" rel="nofollow"><code>core::arch::wasm32::f32x4_relaxed_madd</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f32x4_relaxed_nmadd.html" rel="nofollow"><code>core::arch::wasm32::f32x4_relaxed_nmadd</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f64x2_relaxed_madd.html" rel="nofollow"><code>core::arch::wasm32::f64x2_relaxed_madd</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f64x2_relaxed_nmadd.html" rel="nofollow"><code>core::arch::wasm32::f64x2_relaxed_nmadd</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i8x16_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::i8x16_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u8x16_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::u8x16_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i16x8_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::i16x8_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u16x8_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::u16x8_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i32x4_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::i32x4_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u32x4_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::u32x4_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i64x2_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::i64x2_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u64x2_relaxed_laneselect.html" rel="nofollow"><code>core::arch::wasm32::u64x2_relaxed_laneselect</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f32x4_relaxed_min.html" rel="nofollow"><code>core::arch::wasm32::f32x4_relaxed_min</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f32x4_relaxed_max.html" rel="nofollow"><code>core::arch::wasm32::f32x4_relaxed_max</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f64x2_relaxed_min.html" rel="nofollow"><code>core::arch::wasm32::f64x2_relaxed_min</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.f64x2_relaxed_max.html" rel="nofollow"><code>core::arch::wasm32::f64x2_relaxed_max</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i16x8_relaxed_q15mulr.html" rel="nofollow"><code>core::arch::wasm32::i16x8_relaxed_q15mulr</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u16x8_relaxed_q15mulr.html" rel="nofollow"><code>core::arch::wasm32::u16x8_relaxed_q15mulr</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i16x8_relaxed_dot_i8x16_i7x16.html" rel="nofollow"><code>core::arch::wasm32::i16x8_relaxed_dot_i8x16_i7x16</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u16x8_relaxed_dot_i8x16_i7x16.html" rel="nofollow"><code>core::arch::wasm32::u16x8_relaxed_dot_i8x16_i7x16</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.i32x4_relaxed_dot_i8x16_i7x16_add.html" rel="nofollow"><code>core::arch::wasm32::i32x4_relaxed_dot_i8x16_i7x16_add</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/core/arch/wasm32/fn.u32x4_relaxed_dot_i8x16_i7x16_add.html" rel="nofollow"><code>core::arch::wasm32::u32x4_relaxed_dot_i8x16_i7x16_add</code></a></li>
+</ul>
+<p dir="auto">These APIs are now stable in const contexts:</p>
+<ul dir="auto">
+<li><a href="https://doc.rust-lang.org/stable/std/task/struct.Waker.html#method.from_raw" rel="nofollow"><code>std::task::Waker::from_raw</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/task/struct.Context.html#method.from_waker" rel="nofollow"><code>std::task::Context::from_waker</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/task/struct.Context.html#method.waker" rel="nofollow"><code>std::task::Context::waker</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/primitive.u32.html#method.from_str_radix" rel="nofollow"><code>$integer::from_str_radix</code></a></li>
+<li><a href="https://doc.rust-lang.org/stable/std/num/struct.ParseIntError.html#method.kind" rel="nofollow"><code>std::num::ParseIntError::kind</code></a></li>
+</ul>
+<div class="markdown-heading" dir="auto"><h3 class="heading-element" dir="auto">Other changes</h3><a id="user-content-other-changes" class="anchor" aria-label="Permalink: Other changes" href="#other-changes"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Check out everything that changed in <a href="https://github.com/rust-lang/rust/releases/tag/1.82.0">Rust</a>, <a href="https://doc.rust-lang.org/nightly/cargo/CHANGELOG.html#cargo-182-2024-10-17" rel="nofollow">Cargo</a>, and <a href="https://github.com/rust-lang/rust-clippy/blob/master/CHANGELOG.md#rust-182">Clippy</a>.</p>
+<div class="markdown-heading" dir="auto"><h2 class="heading-element" dir="auto">Contributors to 1.82.0</h2><a id="user-content-contributors-to-1820" class="anchor" aria-label="Permalink: Contributors to 1.82.0" href="#contributors-to-1820"><svg data-component="Octicon" class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z"></path></svg></a></div>
+<p dir="auto">Many people came together to create Rust 1.82.0. We couldn't have done it without all of you. <a href="https://thanks.rust-lang.org/rust/1.82.0/" rel="nofollow">Thanks!</a></p>
+</article></div>

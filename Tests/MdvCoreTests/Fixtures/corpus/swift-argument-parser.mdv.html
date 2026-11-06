@@ -1,0 +1,148 @@
+<h1 id="swift-argument-parser"><a class="anchor" aria-hidden="true" href="#swift-argument-parser"></a>Swift Argument Parser</h1>
+<h2 id="usage"><a class="anchor" aria-hidden="true" href="#usage"></a>Usage</h2>
+<p>Begin by declaring a type that defines the information
+that you need to collect from the command line.
+Decorate each stored property with one of <code>ArgumentParser</code>'s property wrappers,
+and then declare conformance to <code>ParsableCommand</code> and add the <code>@main</code> attribute.
+(Note, for <code>async</code> renditions of <code>run</code>, conform to <code>AsyncParsableCommand</code> rather
+than <code>ParsableCommand</code>.)
+Finally, implement your command's logic in the <code>run()</code> method.</p>
+<pre><code class="language-swift"><span class="hljs-keyword">import</span> ArgumentParser
+
+<span class="hljs-keyword">@main</span>
+<span class="hljs-keyword">struct</span> <span class="hljs-title class_">Repeat</span>: <span class="hljs-title class_ inherited__">ParsableCommand</span> {
+    <span class="hljs-meta">@Flag</span>(help: <span class="hljs-string">&quot;Include a counter with each repetition.&quot;</span>)
+    <span class="hljs-keyword">var</span> includeCounter <span class="hljs-operator">=</span> <span class="hljs-literal">false</span>
+
+    <span class="hljs-meta">@Option</span>(name: .shortAndLong, help: <span class="hljs-string">&quot;How many times to repeat 'phrase'.&quot;</span>)
+    <span class="hljs-keyword">var</span> count: <span class="hljs-type">Int</span>? <span class="hljs-operator">=</span> <span class="hljs-literal">nil</span>
+
+    <span class="hljs-meta">@Argument</span>(help: <span class="hljs-string">&quot;The phrase to repeat.&quot;</span>)
+    <span class="hljs-keyword">var</span> phrase: <span class="hljs-type">String</span>
+
+    <span class="hljs-keyword">mutating</span> <span class="hljs-keyword">func</span> <span class="hljs-title function_">run</span>() <span class="hljs-keyword">throws</span> {
+        <span class="hljs-keyword">let</span> repeatCount <span class="hljs-operator">=</span> count <span class="hljs-operator">??</span> <span class="hljs-number">2</span>
+
+        <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-number">1</span><span class="hljs-operator">...</span>repeatCount {
+            <span class="hljs-keyword">if</span> includeCounter {
+                <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;<span class="hljs-subst">\(i)</span>: <span class="hljs-subst">\(phrase)</span>&quot;</span>)
+            } <span class="hljs-keyword">else</span> {
+                <span class="hljs-built_in">print</span>(phrase)
+            }
+        }
+    }
+}
+</code></pre>
+<p>The <code>ArgumentParser</code> library parses the command-line arguments,
+instantiates your command type, and then either executes your <code>run()</code> method
+or exits with a useful message.</p>
+<p><code>ArgumentParser</code> uses your properties' names and type information,
+along with the details you provide using property wrappers,
+to supply useful error messages and detailed help:</p>
+<pre><code>$ repeat hello --count 3
+hello
+hello
+hello
+$ repeat --count 3
+Error: Missing expected argument 'phrase'.
+Help:  &lt;phrase&gt;  The phrase to repeat.
+Usage: repeat [--count &lt;count&gt;] [--include-counter] &lt;phrase&gt;
+  See 'repeat --help' for more information.
+$ repeat --help
+USAGE: repeat [--count &lt;count&gt;] [--include-counter] &lt;phrase&gt;
+
+ARGUMENTS:
+  &lt;phrase&gt;                The phrase to repeat.
+
+OPTIONS:
+  --include-counter       Include a counter with each repetition.
+  -c, --count &lt;count&gt;     The number of times to repeat 'phrase'.
+  -h, --help              Show help for this command.
+</code></pre>
+<h2 id="documentation"><a class="anchor" aria-hidden="true" href="#documentation"></a>Documentation</h2>
+<p>For guides, articles, and API documentation see the
+<a href="https://swiftpackageindex.com/apple/swift-argument-parser/documentation/argumentparser">library's documentation on the Web</a> or in Xcode.</p>
+<ul>
+<li><a href="https://swiftpackageindex.com/apple/swift-argument-parser/documentation/argumentparser">ArgumentParser documentation</a></li>
+<li><a href="https://swiftpackageindex.com/apple/swift-argument-parser/documentation/argumentparser/gettingstarted">Getting Started with ArgumentParser</a></li>
+<li><a href="https://swiftpackageindex.com/apple/swift-argument-parser/documentation/argumentparser/parsablecommand"><code>ParsableCommand</code> documentation</a></li>
+<li><a href="https://swiftpackageindex.com/apple/swift-argument-parser/documentation/argumentparser/asyncparsablecommand"><code>AsyncParsableCommand</code> documentation</a></li>
+</ul>
+<h4 id="examples"><a class="anchor" aria-hidden="true" href="#examples"></a>Examples</h4>
+<p>This repository includes a few examples of using the library:</p>
+<ul>
+<li><a href="Examples/repeat/Repeat.swift"><code>repeat</code></a> is the example shown above.</li>
+<li><a href="Examples/roll/main.swift"><code>roll</code></a> is a simple utility implemented as a straight-line script.</li>
+<li><a href="Examples/math/Math.swift"><code>math</code></a> is an annotated example of using nested commands and subcommands.</li>
+<li><a href="Examples/count-lines/CountLines.swift"><code>count-lines</code></a> uses <code>async</code>/<code>await</code> code in its implementation.</li>
+<li><a href="Examples/default-as-flag/DefaultAsFlag.swift"><code>default-as-flag</code></a> demonstrates hybrid options that can work both as flags and as options with values.</li>
+</ul>
+<p>You can also see examples of <code>ArgumentParser</code> adoption among Swift project tools:</p>
+<ul>
+<li><a href="https://github.com/apple/swift-format/"><code>swift-format</code></a> uses some advanced features, like custom option values and hidden flags.</li>
+<li><a href="https://github.com/apple/swift-package-manager/"><code>swift-package-manager</code></a> includes a deep command hierarchy and extensive use of option groups.</li>
+</ul>
+<h2 id="project-status"><a class="anchor" aria-hidden="true" href="#project-status"></a>Project Status</h2>
+<p>The Swift Argument Parser package is source-stable;
+version numbers follow semantic versioning.
+Source-breaking changes to public API can only land in a new major version.</p>
+<p>The public API of version 1.0.0 of the <code>swift-argument-parser</code> package
+consists of non-underscored declarations that are marked public in the <code>ArgumentParser</code> module.
+Interfaces that aren't part of the public API may continue to change in any release,
+including the exact wording and formatting of the autogenerated help and error messages,
+as well as the package’s examples, tests, utilities, and documentation.</p>
+<p>Future minor versions of the package may introduce changes to these rules as needed.</p>
+<p>We want this package to quickly embrace Swift language and toolchain improvements that are relevant to its mandate.
+Accordingly, from time to time,
+we expect that new versions of this package will require clients to upgrade to a more recent Swift toolchain release.
+Requiring a new Swift release will only require a minor version bump.</p>
+<h2 id="adding-argumentparser-as-a-dependency"><a class="anchor" aria-hidden="true" href="#adding-argumentparser-as-a-dependency"></a>Adding <code>ArgumentParser</code> as a Dependency</h2>
+<p>To use the <code>ArgumentParser</code> library in a SwiftPM project,
+add it to the dependencies for your package and your command-line executable target:</p>
+<pre><code class="language-swift"><span class="hljs-keyword">let</span> <span class="hljs-keyword">package</span> <span class="hljs-operator">=</span> <span class="hljs-type">Package</span>(
+    <span class="hljs-comment">// name, platforms, products, etc.</span>
+    dependencies: [
+        <span class="hljs-comment">// other dependencies</span>
+        .package(url: <span class="hljs-string">&quot;https://github.com/apple/swift-argument-parser&quot;</span>, from: <span class="hljs-string">&quot;1.7.0&quot;</span>),
+    ],
+    targets: [
+        .executableTarget(name: <span class="hljs-string">&quot;&lt;command-line-tool&gt;&quot;</span>, dependencies: [
+            <span class="hljs-comment">// other dependencies</span>
+            .product(name: <span class="hljs-string">&quot;ArgumentParser&quot;</span>, package: <span class="hljs-string">&quot;swift-argument-parser&quot;</span>),
+        ]),
+        <span class="hljs-comment">// other targets</span>
+    ]
+)
+</code></pre>
+<h3 id="supported-versions"><a class="anchor" aria-hidden="true" href="#supported-versions"></a>Supported Versions</h3>
+<p>The minimum Swift version supported by swift-argument-parser releases are detailed below:</p>
+<table>
+<thead>
+<tr>
+<th>swift-argument-parser</th>
+<th>Minimum Swift Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0.0.1 ..&lt; 0.2.0</code></td>
+<td>5.1</td>
+</tr>
+<tr>
+<td><code>0.2.0 ..&lt; 1.1.0</code></td>
+<td>5.2</td>
+</tr>
+<tr>
+<td><code>1.1.0 ..&lt; 1.3.0</code></td>
+<td>5.5</td>
+</tr>
+<tr>
+<td><code>1.3.0 ..&lt; 1.7.1</code></td>
+<td>5.7</td>
+</tr>
+<tr>
+<td><code>1.8.0 ...</code></td>
+<td>6.0</td>
+</tr>
+</tbody>
+</table>

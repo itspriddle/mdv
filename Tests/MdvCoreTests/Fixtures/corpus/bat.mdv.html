@@ -1,0 +1,708 @@
+<p align="center">
+  <img src="doc/logo-header.svg" alt="bat - a cat clone with wings"><br>
+  <a href="https://github.com/sharkdp/bat/actions?query=workflow%3ACICD"><img src="https://github.com/sharkdp/bat/workflows/CICD/badge.svg" alt="Build Status"></a>
+  <img src="https://img.shields.io/crates/l/bat.svg" alt="license">
+  <a href="https://crates.io/crates/bat"><img src="https://img.shields.io/crates/v/bat.svg?colorB=319e8c" alt="Version info"></a><br>
+  A <i>cat(1)</i> clone with syntax highlighting and Git integration.
+</p>
+<p align="center">
+  <a href="#syntax-highlighting">Key Features</a> •
+  <a href="#how-to-use">How To Use</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#customization">Customization</a> •
+  <a href="#project-goals-and-alternatives">Project goals, alternatives</a><br>
+  [English]
+  [<a href="doc/README-zh.md">中文</a>]
+  [<a href="doc/README-ja.md">日本語</a>]
+  [<a href="doc/README-ko.md">한국어</a>]
+  [<a href="doc/README-ru.md">Русский</a>]
+</p>
+<h3 id="syntax-highlighting"><a class="anchor" aria-hidden="true" href="#syntax-highlighting"></a>Syntax highlighting</h3>
+<p><code>bat</code> supports syntax highlighting for a large number of programming and markup
+languages:</p>
+<p><img src="https://imgur.com/rGsdnDe.png" alt="Syntax highlighting example" /></p>
+<h3 id="git-integration"><a class="anchor" aria-hidden="true" href="#git-integration"></a>Git integration</h3>
+<p><code>bat</code> communicates with <code>git</code> to show modifications with respect to the index
+(see left sidebar):</p>
+<p><img src="https://i.imgur.com/2lSW4RE.png" alt="Git integration example" /></p>
+<h3 id="show-non-printable-characters"><a class="anchor" aria-hidden="true" href="#show-non-printable-characters"></a>Show non-printable characters</h3>
+<p>You can use the <code>-A</code>/<code>--show-all</code> option to show and highlight non-printable
+characters:</p>
+<p><img src="https://i.imgur.com/WndGp9H.png" alt="Non-printable character example" /></p>
+<h3 id="automatic-paging"><a class="anchor" aria-hidden="true" href="#automatic-paging"></a>Automatic paging</h3>
+<p>By default, <code>bat</code> pipes its own output to a pager (e.g. <code>less</code>) if the output is too large for one screen.
+If you would rather <code>bat</code> work like <code>cat</code> all the time (never page output), you can set <code>--paging=never</code> as an option, either on the command line or in your configuration file.
+If you intend to alias <code>cat</code> to <code>bat</code> in your shell configuration, you can use <code>alias cat='bat --paging=never'</code> to preserve the default behavior.</p>
+<h4 id="file-concatenation"><a class="anchor" aria-hidden="true" href="#file-concatenation"></a>File concatenation</h4>
+<p>Even with a pager set, you can still use <code>bat</code> to concatenate files 😉.
+Whenever <code>bat</code> detects a non-interactive terminal (i.e. when you pipe into another process or into a file), <code>bat</code> will act as a drop-in replacement for <code>cat</code> and fall back to printing the plain file contents, regardless of the <code>--pager</code> option's value.</p>
+<h2 id="how-to-use"><a class="anchor" aria-hidden="true" href="#how-to-use"></a>How to use</h2>
+<p>Display a single file on the terminal</p>
+<pre><code class="language-bash">bat README.md
+</code></pre>
+<p>Display multiple files at once</p>
+<pre><code class="language-bash">bat src/*.rs
+</code></pre>
+<p>Read from stdin, determine the syntax automatically (note, highlighting will
+only work if the syntax can be determined from the first line of the file,
+usually through a shebang such as <code>#!/bin/sh</code>)</p>
+<pre><code class="language-bash">curl -s https://sh.rustup.rs | bat
+</code></pre>
+<p>Read from stdin, specify the language explicitly</p>
+<pre><code class="language-bash">yaml2json .travis.yml | json_pp | bat -l json
+</code></pre>
+<p>Show and highlight non-printable characters:</p>
+<pre><code class="language-bash">bat -A /etc/hosts
+</code></pre>
+<p>Use it as a <code>cat</code> replacement:</p>
+<pre><code class="language-bash">bat &gt; note.md  <span class="hljs-comment"># quickly create a new file</span>
+
+bat header.md content.md footer.md &gt; document.md
+
+bat -n main.rs  <span class="hljs-comment"># show line numbers (only)</span>
+
+bat f - g  <span class="hljs-comment"># output 'f', then stdin, then 'g'.</span>
+</code></pre>
+<h3 id="integration-with-other-tools"><a class="anchor" aria-hidden="true" href="#integration-with-other-tools"></a>Integration with other tools</h3>
+<h4 id="fzf"><a class="anchor" aria-hidden="true" href="#fzf"></a><code>fzf</code></h4>
+<p>You can use <code>bat</code> as a previewer for <a href="https://github.com/junegunn/fzf"><code>fzf</code></a>. To do this,
+use <code>bat</code>'s <code>--color=always</code> option to force colorized output. You can also use <code>--line-range</code>
+option to restrict the load times for long files:</p>
+<pre><code class="language-bash">fzf --preview <span class="hljs-string">&quot;bat --color=always --style=numbers --line-range=:500 {}&quot;</span>
+</code></pre>
+<p>For more information, see <a href="https://github.com/junegunn/fzf#preview-window"><code>fzf</code>'s <code>README</code></a>.</p>
+<h4 id="find-or-fd"><a class="anchor" aria-hidden="true" href="#find-or-fd"></a><code>find</code> or <code>fd</code></h4>
+<p>You can use the <code>-exec</code> option of <code>find</code> to preview all search results with <code>bat</code>:</p>
+<pre><code class="language-bash">find … -<span class="hljs-built_in">exec</span> bat {} +
+</code></pre>
+<p>If you happen to use <a href="https://github.com/sharkdp/fd"><code>fd</code></a>, you can use the <code>-X</code>/<code>--exec-batch</code> option to do the same:</p>
+<pre><code class="language-bash">fd … -X bat
+</code></pre>
+<h4 id="ripgrep"><a class="anchor" aria-hidden="true" href="#ripgrep"></a><code>ripgrep</code></h4>
+<p>With <a href="https://github.com/eth-p/bat-extras/blob/master/doc/batgrep.md"><code>batgrep</code></a>, <code>bat</code> can be used as the printer for <a href="https://github.com/BurntSushi/ripgrep"><code>ripgrep</code></a> search results.</p>
+<pre><code class="language-bash">batgrep needle src/
+</code></pre>
+<h4 id="tail--f"><a class="anchor" aria-hidden="true" href="#tail--f"></a><code>tail -f</code></h4>
+<p><code>bat</code> can be combined with <code>tail -f</code> to continuously monitor a given file with syntax highlighting.</p>
+<pre><code class="language-bash"><span class="hljs-built_in">tail</span> -f /var/log/pacman.log | bat --paging=never -l <span class="hljs-built_in">log</span>
+</code></pre>
+<p>Note that we have to switch off paging in order for this to work. We have also specified the syntax
+explicitly (<code>-l log</code>), as it can not be auto-detected in this case.</p>
+<h4 id="git"><a class="anchor" aria-hidden="true" href="#git"></a><code>git</code></h4>
+<p>You can combine <code>bat</code> with <code>git show</code> to view an older version of a given file with proper syntax
+highlighting:</p>
+<pre><code class="language-bash">git show v0.6.0:src/main.rs | bat -l rs
+</code></pre>
+<h4 id="git-diff"><a class="anchor" aria-hidden="true" href="#git-diff"></a><code>git diff</code></h4>
+<p>You can combine <code>bat</code> with <code>git diff</code> to view lines around code changes with proper syntax
+highlighting:</p>
+<pre><code class="language-bash"><span class="hljs-function"><span class="hljs-title">batdiff</span></span>() {
+    git diff --name-only --relative --diff-filter=d -z | xargs -0 bat --diff
+}
+</code></pre>
+<p>If you prefer to use this as a separate tool, check out <code>batdiff</code> in <a href="https://github.com/eth-p/bat-extras"><code>bat-extras</code></a>.</p>
+<p>If you are looking for more support for git and diff operations, check out <a href="https://github.com/dandavison/delta"><code>delta</code></a>.</p>
+<h4 id="xclip"><a class="anchor" aria-hidden="true" href="#xclip"></a><code>xclip</code></h4>
+<p>The line numbers and Git modification markers in the output of <code>bat</code> can make it hard to copy
+the contents of a file. To prevent this, you can call <code>bat</code> with the <code>-p</code>/<code>--plain</code> option or
+simply pipe the output into <code>xclip</code>:</p>
+<pre><code class="language-bash">bat main.cpp | xclip
+</code></pre>
+<p><code>bat</code> will detect that the output is being redirected and print the plain file contents.</p>
+<h4 id="man"><a class="anchor" aria-hidden="true" href="#man"></a><code>man</code></h4>
+<p><code>bat</code> can be used as a colorizing pager for <code>man</code>, by setting the
+<code>MANPAGER</code> environment variable:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">export</span> MANPAGER=<span class="hljs-string">&quot;bat -plman&quot;</span>
+man 2 <span class="hljs-keyword">select</span>
+</code></pre>
+<p>(on some older Debian or Ubuntu releases, the executable is named <code>batcat</code> instead of <code>bat</code>)</p>
+<p>If you prefer to have this bundled in a new command, you can also use <a href="https://github.com/eth-p/bat-extras/blob/master/doc/batman.md"><code>batman</code></a>.</p>
+<p>Note that the <a href="assets/syntaxes/02_Extra/Manpage.sublime-syntax">Manpage syntax</a> is developed in this repository and still needs some work.</p>
+<h4 id="prettier--shfmt--rustfmt"><a class="anchor" aria-hidden="true" href="#prettier--shfmt--rustfmt"></a><code>prettier</code> / <code>shfmt</code> / <code>rustfmt</code></h4>
+<p>The <a href="https://github.com/eth-p/bat-extras/blob/master/doc/prettybat.md"><code>prettybat</code></a> script is a wrapper that will format code and print it with <code>bat</code>.</p>
+<h4 id="highlighting---help-messages"><a class="anchor" aria-hidden="true" href="#highlighting---help-messages"></a>Highlighting <code>--help</code> messages</h4>
+<p>You can use <code>bat</code> to colorize help text: <code>$ cp --help | bat -plhelp</code></p>
+<p>You can also use a wrapper around this:</p>
+<pre><code class="language-bash"><span class="hljs-comment"># in your .bashrc/.zshrc/*rc</span>
+<span class="hljs-built_in">alias</span> bathelp=<span class="hljs-string">'bat --plain --language=help'</span>
+<span class="hljs-function"><span class="hljs-title">help</span></span>() {
+    <span class="hljs-string">&quot;<span class="hljs-variable">$@</span>&quot;</span> --<span class="hljs-built_in">help</span> 2&gt;&amp;1 | bathelp
+}
+</code></pre>
+<p>Then you can do <code>$ help cp</code> or <code>$ help git commit</code>.</p>
+<p>When you are using <code>zsh</code>, you can also use global aliases to override <code>-h</code> and <code>--help</code> entirely:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">alias</span> -g -- -h=<span class="hljs-string">'-h 2&gt;&amp;1 | bat --language=help --style=plain'</span>
+<span class="hljs-built_in">alias</span> -g -- --<span class="hljs-built_in">help</span>=<span class="hljs-string">'--help 2&gt;&amp;1 | bat --language=help --style=plain'</span>
+</code></pre>
+<p>For <code>fish</code>, you can use abbreviations:</p>
+<pre><code class="language-fish">abbr -a --position anywhere -- --help '--help | bat -plhelp'
+abbr -a --position anywhere -- -h '-h | bat -plhelp'
+</code></pre>
+<p>This way, you can keep on using <code>cp --help</code>, but get colorized help pages.</p>
+<blockquote>
+<p>[!TIP]
+To remove these abbreviations later, run:</p>
+<pre><code class="language-fish">abbr -e -- --help
+abbr -e -- -h
+</code></pre>
+<p>The <code>--</code> before the abbreviation name is required because <code>--help</code> and <code>-h</code> start with dashes, which would otherwise be interpreted as flags to <code>abbr</code> itself.</p>
+</blockquote>
+<p>Be aware that in some cases, <code>-h</code> may not be a shorthand of <code>--help</code> (for example with <code>ls</code>). In cases where you need to use <code>-h</code>
+as a command argument you can prepend <code>\</code> to the argument (eg. <code>ls \-h</code>) to escape the aliasing defined above.</p>
+<p>Please report any issues with the help syntax in <a href="https://github.com/victor-gp/cmd-help-sublime-syntax">this repository</a>.</p>
+<h2 id="installation"><a class="anchor" aria-hidden="true" href="#installation"></a>Installation</h2>
+<p><a href="https://repology.org/project/bat-cat/versions"><img src="https://repology.org/badge/vertical-allrepos/bat-cat.svg?columns=3&amp;exclude_unsupported=1" alt="Packaging status" /></a></p>
+<h3 id="on-ubuntu-using-apt"><a class="anchor" aria-hidden="true" href="#on-ubuntu-using-apt"></a>On Ubuntu (using <code>apt</code>)</h3>
+<p><em>... and other Debian-based Linux distributions.</em></p>
+<p><code>bat</code> is available on <a href="https://packages.ubuntu.com/search?keywords=bat&amp;exact=1">Ubuntu since 20.04 (&quot;Focal&quot;)</a> and <a href="https://packages.debian.org/bullseye/bat">Debian since August 2021 (Debian 11 - &quot;Bullseye&quot;)</a>.</p>
+<p>If your Ubuntu/Debian installation is new enough you can simply run:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">sudo</span> apt install bat
+</code></pre>
+<p><strong>Important</strong>: On some older Ubuntu/Debian releases, the executable is installed as <code>batcat</code> instead of <code>bat</code> (due to <a href="https://github.com/sharkdp/bat/issues/982">a name
+clash with another package</a>). On newer releases, the executable is available as <code>bat</code>. If <code>bat --version</code> does not work after installation, try <code>batcat --version</code> instead. You can set up a <code>bat -&gt; batcat</code> symlink or alias to prevent any issues that may come up because of this and to be consistent with other distributions:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">mkdir</span> -p ~/.local/bin
+<span class="hljs-built_in">ln</span> -s /usr/bin/batcat ~/.local/bin/bat
+</code></pre>
+<p>an example alias for <code>batcat</code> as <code>bat</code>:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">alias</span> bat=<span class="hljs-string">&quot;batcat&quot;</span>
+</code></pre>
+<h3 id="on-ubuntu-using-most-recent-deb-packages"><a class="anchor" aria-hidden="true" href="#on-ubuntu-using-most-recent-deb-packages"></a>On Ubuntu (using most recent <code>.deb</code> packages)</h3>
+<p><em>... and other Debian-based Linux distributions.</em></p>
+<p>If the package has not yet been promoted to your Ubuntu/Debian installation, or you want
+the most recent release of <code>bat</code>, download the latest <code>.deb</code> package from the
+<a href="https://github.com/sharkdp/bat/releases">release page</a> and install it via:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">sudo</span> dpkg -i bat_0.18.3_amd64.deb  <span class="hljs-comment"># adapt version number and architecture</span>
+</code></pre>
+<h3 id="on-alpine-linux"><a class="anchor" aria-hidden="true" href="#on-alpine-linux"></a>On Alpine Linux</h3>
+<p>You can install <a href="https://pkgs.alpinelinux.org/packages?name=bat">the <code>bat</code> package</a>
+from the official sources, provided you have the appropriate repository enabled:</p>
+<pre><code class="language-bash">apk add bat
+</code></pre>
+<h3 id="on-arch-linux"><a class="anchor" aria-hidden="true" href="#on-arch-linux"></a>On Arch Linux</h3>
+<p>You can install <a href="https://www.archlinux.org/packages/extra/x86_64/bat/">the <code>bat</code> package</a>
+from the official sources:</p>
+<pre><code class="language-bash">pacman -S bat
+</code></pre>
+<h3 id="on-fedora"><a class="anchor" aria-hidden="true" href="#on-fedora"></a>On Fedora</h3>
+<p>You can install <a href="https://packages.fedoraproject.org/pkgs/rust-bat/bat/">the <code>bat</code> package</a> from the official sources:</p>
+<pre><code class="language-bash">dnf install bat
+</code></pre>
+<h3 id="on-gentoo-linux"><a class="anchor" aria-hidden="true" href="#on-gentoo-linux"></a>On Gentoo Linux</h3>
+<p>You can install <a href="https://packages.gentoo.org/packages/sys-apps/bat">the <code>bat</code> package</a>
+from the official sources:</p>
+<pre><code class="language-bash">emerge sys-apps/bat
+</code></pre>
+<h3 id="on-freebsd"><a class="anchor" aria-hidden="true" href="#on-freebsd"></a>On FreeBSD</h3>
+<p>You can install a precompiled <a href="https://www.freshports.org/textproc/bat"><code>bat</code> package</a> with pkg:</p>
+<pre><code class="language-bash">pkg install bat
+</code></pre>
+<p>or build it on your own from the FreeBSD ports:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">cd</span> /usr/ports/textproc/bat
+make install
+</code></pre>
+<h3 id="on-openbsd"><a class="anchor" aria-hidden="true" href="#on-openbsd"></a>On OpenBSD</h3>
+<p>You can install <code>bat</code> package using <a href="https://man.openbsd.org/pkg_add.1"><code>pkg_add(1)</code></a>:</p>
+<pre><code class="language-bash">pkg_add bat
+</code></pre>
+<h3 id="via-nix"><a class="anchor" aria-hidden="true" href="#via-nix"></a>Via nix</h3>
+<p>You can install <code>bat</code> using the <a href="https://nixos.org/nix">nix package manager</a>:</p>
+<pre><code class="language-bash">nix-env -i bat
+</code></pre>
+<h3 id="on-opensuse"><a class="anchor" aria-hidden="true" href="#on-opensuse"></a>On openSUSE</h3>
+<p>You can install <code>bat</code> with zypper:</p>
+<pre><code class="language-bash">zypper install bat
+</code></pre>
+<h3 id="via-snap-package"><a class="anchor" aria-hidden="true" href="#via-snap-package"></a>Via snap package</h3>
+<p>There is currently no recommended snap package available.
+Existing packages may be available, but are not officially supported and may contain <a href="https://github.com/sharkdp/bat/issues/1519">issues</a>.</p>
+<h3 id="on-macos-or-linux-via-homebrew"><a class="anchor" aria-hidden="true" href="#on-macos-or-linux-via-homebrew"></a>On macOS (or Linux) via Homebrew</h3>
+<p>You can install <code>bat</code> with <a href="https://formulae.brew.sh/formula/bat">Homebrew</a>:</p>
+<pre><code class="language-bash">brew install bat
+</code></pre>
+<h3 id="on-macos-via-macports"><a class="anchor" aria-hidden="true" href="#on-macos-via-macports"></a>On macOS via MacPorts</h3>
+<p>Or install <code>bat</code> with <a href="https://ports.macports.org/port/bat/summary">MacPorts</a>:</p>
+<pre><code class="language-bash">port install bat
+</code></pre>
+<h3 id="on-windows"><a class="anchor" aria-hidden="true" href="#on-windows"></a>On Windows</h3>
+<p>There are a few options to install <code>bat</code> on Windows. Once you have installed <code>bat</code>,
+take a look at the <a href="#using-bat-on-windows">&quot;Using <code>bat</code> on Windows&quot;</a> section.</p>
+<h4 id="prerequisites"><a class="anchor" aria-hidden="true" href="#prerequisites"></a>Prerequisites</h4>
+<p>You will need to install the <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist#latest-microsoft-visual-c-redistributable-version">Visual C++ Redistributable</a></p>
+<h4 id="with-winget"><a class="anchor" aria-hidden="true" href="#with-winget"></a>With WinGet</h4>
+<p>You can install <code>bat</code> via <a href="https://learn.microsoft.com/en-us/windows/package-manager/winget">WinGet</a>:</p>
+<pre><code class="language-bash">winget install sharkdp.bat
+</code></pre>
+<h4 id="with-chocolatey"><a class="anchor" aria-hidden="true" href="#with-chocolatey"></a>With Chocolatey</h4>
+<p>You can install <code>bat</code> via <a href="https://chocolatey.org/packages/Bat">Chocolatey</a>:</p>
+<pre><code class="language-bash">choco install bat
+</code></pre>
+<h4 id="with-scoop"><a class="anchor" aria-hidden="true" href="#with-scoop"></a>With Scoop</h4>
+<p>You can install <code>bat</code> via <a href="https://scoop.sh/">scoop</a>:</p>
+<pre><code class="language-bash">scoop install bat
+</code></pre>
+<h4 id="from-prebuilt-binaries"><a class="anchor" aria-hidden="true" href="#from-prebuilt-binaries"></a>From prebuilt binaries:</h4>
+<p>You can download prebuilt binaries from the <a href="https://github.com/sharkdp/bat/releases">Release page</a>,</p>
+<p>You will need to install the <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist">Visual C++ Redistributable</a> package.</p>
+<h3 id="from-binaries"><a class="anchor" aria-hidden="true" href="#from-binaries"></a>From binaries</h3>
+<p>Check out the <a href="https://github.com/sharkdp/bat/releases">Release page</a> for
+prebuilt versions of <code>bat</code> for many different architectures. Statically-linked
+binaries are also available: look for archives with <code>musl</code> in the file name.</p>
+<h3 id="from-source"><a class="anchor" aria-hidden="true" href="#from-source"></a>From source</h3>
+<p>If you want to build <code>bat</code> from source, you need Rust 1.79.0 or
+higher. You can then use <code>cargo</code> to build everything:</p>
+<h4 id="from-local-source"><a class="anchor" aria-hidden="true" href="#from-local-source"></a>From local source</h4>
+<p>The checkout includes prebuilt syntax and theme assets. If you want to regenerate them
+from their sources, first initialize the Git submodules with
+<code>git submodule update --init --recursive</code>, then follow the <a href="#development">Development</a>
+instructions. This includes the <code>help</code> syntax used to highlight command-line help.</p>
+<pre><code class="language-bash">cargo install --path . --locked
+</code></pre>
+<blockquote>
+<p>[!NOTE]
+The <code>--path .</code> above specifies the directory of the source code and NOT where <code>bat</code> will be installed.
+For more information see the docs for <a href="https://doc.rust-lang.org/cargo/commands/cargo-install.html"><code>cargo install</code></a>.</p>
+</blockquote>
+<h4 id="from-cratesio"><a class="anchor" aria-hidden="true" href="#from-cratesio"></a>From <code>crates.io</code></h4>
+<pre><code class="language-bash">cargo install --locked bat
+</code></pre>
+<p>Note that additional files like the man page or shell completion
+files can not be installed automatically in both these ways.
+If installing from a local source, they will be generated by <code>cargo</code>
+and should be available in the cargo target folder under <code>build</code>.</p>
+<p>Furthermore, shell completions are also available by running:</p>
+<pre><code class="language-bash">bat --completion &lt;shell&gt;
+<span class="hljs-comment"># see --help for supported shells</span>
+</code></pre>
+<h2 id="customization"><a class="anchor" aria-hidden="true" href="#customization"></a>Customization</h2>
+<h3 id="highlighting-theme"><a class="anchor" aria-hidden="true" href="#highlighting-theme"></a>Highlighting theme</h3>
+<p>Use <code>bat --list-themes</code> to get a list of all available themes for syntax
+highlighting. By default, <code>bat</code> uses <code>Monokai Extended</code> or <code>Monokai Extended Light</code>
+for dark and light themes respectively. To select the <code>TwoDark</code> theme, call <code>bat</code>
+with the <code>--theme=TwoDark</code> option or set the <code>BAT_THEME</code> environment variable to
+<code>TwoDark</code>. Use <code>export BAT_THEME=&quot;TwoDark&quot;</code> in your shell's startup file to
+make the change permanent. Alternatively, use <code>bat</code>'s
+<a href="#configuration-file">configuration file</a>.</p>
+<p>If you want to preview the different themes on a custom file, you can use
+the following command (you need <a href="https://github.com/junegunn/fzf"><code>fzf</code></a> for this):</p>
+<pre><code class="language-bash">bat --list-themes | fzf --preview=<span class="hljs-string">&quot;bat --theme={} --color=always /path/to/file&quot;</span>
+</code></pre>
+<p><code>bat</code> automatically picks a fitting theme depending on your terminal's background color.
+You can use the <code>--theme-dark</code> / <code>--theme-light</code> options or the <code>BAT_THEME_DARK</code> / <code>BAT_THEME_LIGHT</code> environment variables
+to customize the themes used. This is especially useful if you frequently switch between dark and light mode.</p>
+<p>You can also use a custom theme by following the
+<a href="#adding-new-themes">'Adding new themes' section below</a>.</p>
+<h3 id="8-bit-themes"><a class="anchor" aria-hidden="true" href="#8-bit-themes"></a>8-bit themes</h3>
+<p><code>bat</code> has three themes that always use <a href="https://en.wikipedia.org/wiki/ANSI_escape_code#Colors">8-bit colors</a>,
+even when truecolor support is available:</p>
+<ul>
+<li><code>ansi</code> looks decent on any terminal. It uses 3-bit colors: black, red, green,
+yellow, blue, magenta, cyan, and white.</li>
+<li><code>base16</code> is designed for <a href="https://github.com/tinted-theming/home">base16</a> terminal themes. It uses
+4-bit colors (3-bit colors plus bright variants) in accordance with the
+<a href="https://github.com/tinted-theming/home/blob/main/styling.md">base16 styling guidelines</a>.</li>
+<li><code>base16-256</code> is designed for <a href="https://github.com/tinted-theming/tinted-shell">tinted-shell</a>.
+It replaces certain bright colors with 8-bit colors from 16 to 21. <strong>Do not</strong> use this simply
+because you have a 256-color terminal but are not using tinted-shell.</li>
+</ul>
+<p>Although these themes are more restricted, they have three advantages over truecolor themes. They:</p>
+<ul>
+<li>Enjoy maximum compatibility. Some terminal utilities do not support more than 3-bit colors.</li>
+<li>Adapt to terminal theme changes. Even for already printed output.</li>
+<li>Visually harmonize better with other terminal software.</li>
+</ul>
+<h3 id="output-style"><a class="anchor" aria-hidden="true" href="#output-style"></a>Output style</h3>
+<p>You can use the <code>--style</code> option to control the appearance of <code>bat</code>'s output.
+You can use <code>--style=numbers,changes</code>, for example, to show only Git changes
+and line numbers but no grid and no file header. Set the <code>BAT_STYLE</code> environment
+variable to make these changes permanent or use <code>bat</code>'s
+<a href="#configuration-file">configuration file</a>.</p>
+<p>By default, <code>bat</code> enables <code>changes</code>, <code>grid</code>, <code>header-filename</code>, <code>numbers</code>, and <code>snip</code>.</p>
+<p>The available pre-defined styles are:</p>
+<table>
+<thead>
+<tr>
+<th>Style</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default</code></td>
+<td>Enables the recommended style components listed above.</td>
+</tr>
+<tr>
+<td><code>full</code></td>
+<td>Enables all available components.</td>
+</tr>
+<tr>
+<td><code>auto</code></td>
+<td>Same as <code>default</code>, unless the output is piped.</td>
+</tr>
+<tr>
+<td><code>plain</code></td>
+<td>Disables all available components.</td>
+</tr>
+</tbody>
+</table>
+<p>The available individual components are:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>changes</code></td>
+<td>Show Git modification markers.</td>
+</tr>
+<tr>
+<td><code>header</code></td>
+<td>Alias for <code>header-filename</code>.</td>
+</tr>
+<tr>
+<td><code>header-filename</code></td>
+<td>Show filenames before the content.</td>
+</tr>
+<tr>
+<td><code>header-filesize</code></td>
+<td>Show file sizes before the content.</td>
+</tr>
+<tr>
+<td><code>grid</code></td>
+<td>Vertical/horizontal lines to separate the side bar and header from the content.</td>
+</tr>
+<tr>
+<td><code>rule</code></td>
+<td>Horizontal lines to delimit files.</td>
+</tr>
+<tr>
+<td><code>numbers</code></td>
+<td>Show line numbers in the side bar.</td>
+</tr>
+<tr>
+<td><code>snip</code></td>
+<td>Draw separation lines between distinct line ranges.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!tip]
+If you specify a default style in <code>bat</code>'s config file, you can change which components
+are displayed during a single run of <code>bat</code> using the <code>--style</code> command-line argument.
+By prefixing a component with <code>+</code> or <code>-</code>, it can be added or removed from the current style.</p>
+<p>For example, if your config contains <code>--style=full,-snip</code>, you can run bat with
+<code>--style=-grid,+snip</code> to remove the grid and add back the <code>snip</code> component.
+Or, if you want to override the styles completely, you use <code>--style=numbers</code> to
+only show the line numbers.</p>
+</blockquote>
+<h3 id="decorations"><a class="anchor" aria-hidden="true" href="#decorations"></a>Decorations</h3>
+<p>By default, <code>bat</code> only shows decorations (such as line numbers, file headers, grid borders, etc.) when outputting to an interactive terminal. You can control this behavior with the <code>--decorations</code> option. Use <code>--decorations=always</code> to show decorations even when piping output to another command, or <code>--decorations=never</code> to disable them entirely. Possible values are <code>auto</code> (default), <code>never</code>, and <code>always</code>.</p>
+<p>There is also the <code>--force-colorization</code> option, which is an alias for <code>--decorations=always --color=always</code>. This is useful if you want to keep colorization and decorations when piping <code>bat</code>'s output to another program.</p>
+<h3 id="adding-new-syntaxes--language-definitions"><a class="anchor" aria-hidden="true" href="#adding-new-syntaxes--language-definitions"></a>Adding new syntaxes / language definitions</h3>
+<p>Should you find that a particular syntax is not available within <code>bat</code>, you can follow these
+instructions to easily add new syntaxes to your current <code>bat</code> installation.</p>
+<p><code>bat</code> uses the excellent <a href="https://github.com/trishume/syntect/"><code>syntect</code></a>
+library for syntax highlighting. <code>syntect</code> can read any
+<a href="https://www.sublimetext.com/docs/3/syntax.html">Sublime Text <code>.sublime-syntax</code> file</a>
+and theme.</p>
+<p>A good resource for finding Sublime Syntax packages is <a href="https://packagecontrol.io/">Package Control</a>. Once you found a
+syntax:</p>
+<ol>
+<li>
+<p>Create a folder with syntax definition files:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">mkdir</span> -p <span class="hljs-string">&quot;<span class="hljs-subst">$(bat --config-dir)</span>/syntaxes&quot;</span>
+<span class="hljs-built_in">cd</span> <span class="hljs-string">&quot;<span class="hljs-subst">$(bat --config-dir)</span>/syntaxes&quot;</span>
+
+<span class="hljs-comment"># Put new '.sublime-syntax' language definition files</span>
+<span class="hljs-comment"># in this folder (or its subdirectories), for example:</span>
+git <span class="hljs-built_in">clone</span> https://github.com/tellnobody1/sublime-purescript-syntax
+</code></pre>
+</li>
+<li>
+<p>Now use the following command to parse these files into a binary cache:</p>
+<pre><code class="language-bash">bat cache --build
+</code></pre>
+</li>
+<li>
+<p>Finally, use <code>bat --list-languages</code> to check if the new languages are available.</p>
+<p>If you ever want to go back to the default settings, call:</p>
+<pre><code class="language-bash">bat cache --clear
+</code></pre>
+</li>
+<li>
+<p>If you think that a specific syntax should be included in <code>bat</code> by default, please
+consider opening a &quot;syntax request&quot; ticket after reading the policies and
+instructions <a href="doc/assets.md">here</a>: <a href="https://github.com/sharkdp/bat/issues/new?labels=syntax-request&amp;template=syntax_request.md">Open Syntax Request</a>.</p>
+</li>
+</ol>
+<h3 id="adding-new-themes"><a class="anchor" aria-hidden="true" href="#adding-new-themes"></a>Adding new themes</h3>
+<p>This works very similar to how we add new syntax definitions.</p>
+<blockquote>
+<p>[!NOTE]
+Custom themes must be stored in <a href="https://www.sublimetext.com/docs/color_schemes_tmtheme.html"><code>.tmTheme</code> files</a>.
+Newer <code>.sublime-color-scheme</code> files are currently not supported.</p>
+</blockquote>
+<p>First, create a folder with the new syntax highlighting themes:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">mkdir</span> -p <span class="hljs-string">&quot;<span class="hljs-subst">$(bat --config-dir)</span>/themes&quot;</span>
+<span class="hljs-built_in">cd</span> <span class="hljs-string">&quot;<span class="hljs-subst">$(bat --config-dir)</span>/themes&quot;</span>
+
+<span class="hljs-comment"># Download a theme in '.tmTheme' format, for example:</span>
+git <span class="hljs-built_in">clone</span> https://github.com/greggb/sublime-snazzy
+
+<span class="hljs-comment"># Update the binary cache</span>
+bat cache --build
+</code></pre>
+<p>Finally, use <code>bat --list-themes</code> to check if the new themes are available.</p>
+<blockquote>
+<p>[!NOTE]
+<code>bat</code> uses the name of the <code>.tmTheme</code> file for the theme's name.</p>
+</blockquote>
+<h3 id="adding-or-changing-file-type-associations"><a class="anchor" aria-hidden="true" href="#adding-or-changing-file-type-associations"></a>Adding or changing file type associations</h3>
+<p>You can add new (or change existing) file name patterns using the <code>--map-syntax</code>
+command line option. The option takes an argument of the form <code>pattern:syntax</code> where
+<code>pattern</code> is a glob pattern that is matched against the file name and
+the absolute file path. The <code>syntax</code> part is the full name of a supported language
+(use <code>bat --list-languages</code> for an overview).</p>
+<p><strong>Note:</strong> You probably want to use this option as <a href="#configuration-file">an entry in <code>bat</code>'s configuration file</a>
+for persistence instead of passing it on the command line as a one-off. Generally
+you'd just use <code>-l</code> if you want to manually specify a language for a file.</p>
+<p>Example: To use &quot;INI&quot; syntax highlighting for all files with a <code>.conf</code> file extension, use</p>
+<pre><code class="language-bash">--map-syntax=<span class="hljs-string">'*.conf:INI'</span>
+</code></pre>
+<p>Example: To open all files called <code>.ignore</code> (exact match) with the &quot;Git Ignore&quot; syntax, use:</p>
+<pre><code class="language-bash">--map-syntax=<span class="hljs-string">'.ignore:Git Ignore'</span>
+</code></pre>
+<p>Example: To open all <code>.conf</code> files in subfolders of <code>/etc/apache2</code> with the &quot;Apache Conf&quot;
+syntax, use (this mapping is already built in):</p>
+<pre><code class="language-bash">--map-syntax=<span class="hljs-string">'/etc/apache2/**/*.conf:Apache Conf'</span>
+</code></pre>
+<h3 id="using-a-different-pager"><a class="anchor" aria-hidden="true" href="#using-a-different-pager"></a>Using a different pager</h3>
+<p><code>bat</code> uses the pager that is specified in the <code>PAGER</code> environment variable. If this variable is not
+set, <code>less</code> is used by default. You can also use bat's built-in pager with <code>--pager=builtin</code> or
+by setting the <code>BAT_PAGER</code> environment variable to &quot;builtin&quot;.</p>
+<p>If you want to use a different pager, you can either modify the <code>PAGER</code> variable or set the
+<code>BAT_PAGER</code> environment variable to override what is specified in <code>PAGER</code>.</p>
+<blockquote>
+<p>[!NOTE]
+If <code>PAGER</code> is <code>more</code> or <code>most</code>, <code>bat</code> will silently use <code>less</code> instead to ensure support for colors.</p>
+</blockquote>
+<p>If you want to pass command-line arguments to the pager, you can also set them via the
+<code>PAGER</code>/<code>BAT_PAGER</code> variables:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">export</span> BAT_PAGER=<span class="hljs-string">&quot;less -RFK&quot;</span>
+</code></pre>
+<p>Instead of using environment variables, you can also use <code>bat</code>'s <a href="#configuration-file">configuration file</a> to configure the pager (<code>--pager</code> option).</p>
+<h3 id="using-less-as-a-pager"><a class="anchor" aria-hidden="true" href="#using-less-as-a-pager"></a>Using <code>less</code> as a pager</h3>
+<p>When using <code>less</code> as a pager, <code>bat</code> will automatically pass extra options along to <code>less</code>
+to improve the experience. Specifically, <code>-R</code>/<code>--RAW-CONTROL-CHARS</code>, <code>-F</code>/<code>--quit-if-one-screen</code>,
+<code>-K</code>/<code>--quit-on-intr</code> and under certain conditions, <code>-X</code>/<code>--no-init</code> and/or <code>-S</code>/<code>--chop-long-lines</code>.</p>
+<blockquote>
+<p>[!IMPORTANT]
+These options will not be added if:</p>
+<ul>
+<li>The pager is not named <code>less</code>.</li>
+<li>The <code>--pager</code> argument contains any command-line arguments (e.g. <code>--pager=&quot;less -R&quot;</code>).</li>
+<li>The <code>BAT_PAGER</code> environment variable contains any command-line arguments (e.g. <code>export BAT_PAGER=&quot;less -R&quot;</code>)</li>
+</ul>
+<p>The <code>--quit-if-one-screen</code> option will not be added when:</p>
+<ul>
+<li>The <code>--paging=always</code> argument is used.</li>
+<li>The <code>BAT_PAGING</code> environment is set to <code>always</code>.</li>
+</ul>
+</blockquote>
+<p>The <code>-R</code>/<code>--RAW-CONTROL-CHARS</code> option is needed to interpret ANSI colors correctly.</p>
+<p>The <code>-F</code>/<code>--quit-if-one-screen</code> option instructs <code>less</code> to exit immediately if the output size is smaller than
+the vertical size of the terminal. This is convenient for small files because you do not
+have to press <code>q</code> to quit the pager.</p>
+<p>The <code>-K</code>/<code>--quit-on-intr</code> option instructs <code>less</code> to exit immediately when an interrupt signal is received.
+This is useful to ensure that <code>less</code> quits together with <code>bat</code> on SIGINT.</p>
+<p>The <code>-X</code>/<code>--no-init</code> option is added to versions of <code>less</code> older than version 530 (older than 558 on Windows) to
+fix a bug with the <code>-F</code>/<code>--quit-if-one-screen</code> feature. Unfortunately, it also breaks mouse-wheel support in <code>less</code>.
+If you want to enable mouse-wheel scrolling on older versions of <code>less</code> and do not mind losing
+the quit-if-one-screen feature, you can set the pager (via <code>--pager</code> or <code>BAT_PAGER</code>) to <code>less -R</code>.
+For <code>less</code> 530 or newer, it should work out of the box.</p>
+<p>The <code>-S</code>/<code>--chop-long-lines</code> option is added when <code>bat</code>'s <code>-S</code>/<code>--chop-long-lines</code> option is used. This tells <code>less</code>
+to truncate any lines larger than the terminal width.</p>
+<h3 id="indentation"><a class="anchor" aria-hidden="true" href="#indentation"></a>Indentation</h3>
+<p><code>bat</code> expands tabs to 4 spaces by itself, not relying on the pager. To change this, simply add the
+<code>--tabs</code> argument with the number of spaces you want to be displayed.</p>
+<p><strong>Note</strong>: Defining tab stops for the pager (via the <code>--pager</code> argument by <code>bat</code>, or via the <code>LESS</code>
+environment variable for <code>less</code>) won't be taken into account because the pager will already get
+expanded spaces instead of tabs. This behaviour is added to avoid indentation issues caused by the
+sidebar. Calling <code>bat</code> with <code>--tabs=0</code> will override it and let tabs be consumed by the pager.</p>
+<h3 id="dark-mode"><a class="anchor" aria-hidden="true" href="#dark-mode"></a>Dark mode</h3>
+<p>If you make use of the dark mode feature in <strong>macOS</strong>, you might want to configure <code>bat</code> to use a different
+theme based on the OS theme. The following snippet uses the <code>default</code> theme when in the <em>dark mode</em>
+and the <code>GitHub</code> theme when in the <em>light mode</em>.</p>
+<pre><code class="language-bash"><span class="hljs-built_in">alias</span> <span class="hljs-built_in">cat</span>=<span class="hljs-string">&quot;bat --theme auto:system --theme-dark default --theme-light GitHub&quot;</span>
+</code></pre>
+<p>The same dark mode feature is now available in <strong>GNOME</strong> and affects the <code>org.gnome.desktop.interface color-scheme</code> setting. The following code converts the above to use said setting.</p>
+<pre><code class="language-bash"><span class="hljs-comment"># .bashrc</span>
+<span class="hljs-function"><span class="hljs-title">sys_color_scheme_is_dark</span></span>() {
+    condition=$(gsettings get org.gnome.desktop.interface color-scheme)
+    condition=$(<span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;<span class="hljs-variable">$condition</span>&quot;</span> | <span class="hljs-built_in">tr</span> -d <span class="hljs-string">&quot;[:space:]'&quot;</span>)
+    <span class="hljs-keyword">if</span> [ <span class="hljs-variable">$condition</span> == <span class="hljs-string">&quot;prefer-dark&quot;</span> ]; <span class="hljs-keyword">then</span>
+        <span class="hljs-built_in">return</span> 0
+    <span class="hljs-keyword">else</span>
+        <span class="hljs-built_in">return</span> 1
+    <span class="hljs-keyword">fi</span>
+}
+
+<span class="hljs-function"><span class="hljs-title">bat_alias_wrapper</span></span>() {
+    <span class="hljs-comment">#get color scheme</span>
+    sys_color_scheme_is_dark
+    <span class="hljs-keyword">if</span> [[ $? -eq 0 ]]; <span class="hljs-keyword">then</span>
+        <span class="hljs-comment"># bat command with dark color scheme</span>
+        bat --theme=default <span class="hljs-string">&quot;<span class="hljs-variable">$@</span>&quot;</span>
+    <span class="hljs-keyword">else</span>
+        <span class="hljs-comment"># bat command with light color scheme</span>
+        bat --theme=GitHub <span class="hljs-string">&quot;<span class="hljs-variable">$@</span>&quot;</span>
+    <span class="hljs-keyword">fi</span>
+}
+<span class="hljs-built_in">alias</span> <span class="hljs-built_in">cat</span>=<span class="hljs-string">'bat_alias_wrapper'</span>
+</code></pre>
+<h2 id="configuration-file"><a class="anchor" aria-hidden="true" href="#configuration-file"></a>Configuration file</h2>
+<p><code>bat</code> can also be customized with a configuration file. The location of the file is dependent
+on your operating system. To get the default path for your system, call</p>
+<pre><code class="language-bash">bat --config-file
+</code></pre>
+<p>Alternatively, you can use <code>BAT_CONFIG_PATH</code> or <code>BAT_CONFIG_DIR</code> environment variables to point <code>bat</code>
+to a non-default location of the configuration file or the configuration directory respectively:</p>
+<pre><code class="language-bash"><span class="hljs-built_in">export</span> BAT_CONFIG_PATH=<span class="hljs-string">&quot;/path/to/bat/bat.conf&quot;</span>
+<span class="hljs-built_in">export</span> BAT_CONFIG_DIR=<span class="hljs-string">&quot;/path/to/bat&quot;</span>
+</code></pre>
+<p>A default configuration file can be created with the <code>--generate-config-file</code> option.</p>
+<pre><code class="language-bash">bat --generate-config-file
+</code></pre>
+<p>There is also now a systemwide configuration file, which is located under <code>/etc/bat/config</code> on
+Linux and Mac OS and <code>C:\ProgramData\bat\config</code> on windows. If the system wide configuration
+file is present, the content of the user configuration will simply be appended to it.</p>
+<h3 id="format"><a class="anchor" aria-hidden="true" href="#format"></a>Format</h3>
+<p>The configuration file is a simple list of command line arguments. Use <code>bat --help</code> to see a full list of possible options and values. In addition, you can add comments by prepending a line with the <code>#</code> character.</p>
+<p>Example configuration file:</p>
+<pre><code class="language-bash"><span class="hljs-comment"># Set the theme to &quot;TwoDark&quot;</span>
+--theme=<span class="hljs-string">&quot;TwoDark&quot;</span>
+
+<span class="hljs-comment"># Show line numbers, Git modifications and file header (but no grid)</span>
+--style=<span class="hljs-string">&quot;numbers,changes,header&quot;</span>
+
+<span class="hljs-comment"># Use italic text on the terminal (not supported on all terminals)</span>
+--italic-text=always
+
+<span class="hljs-comment"># Use C++ syntax for Arduino .ino files</span>
+--map-syntax <span class="hljs-string">&quot;*.ino:C++&quot;</span>
+</code></pre>
+<h2 id="using-bat-on-windows"><a class="anchor" aria-hidden="true" href="#using-bat-on-windows"></a>Using <code>bat</code> on Windows</h2>
+<p><code>bat</code> mostly works out-of-the-box on Windows, but a few features may need extra configuration.</p>
+<h3 id="prerequisites-1"><a class="anchor" aria-hidden="true" href="#prerequisites-1"></a>Prerequisites</h3>
+<p>You will need to install the <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist">Visual C++ Redistributable</a> package.</p>
+<h3 id="paging"><a class="anchor" aria-hidden="true" href="#paging"></a>Paging</h3>
+<p>Windows only includes a very limited pager in the form of <code>more</code>. You can download a Windows binary
+for <code>less</code> <a href="http://www.greenwoodsoftware.com/less/download.html">from its homepage</a> or <a href="https://chocolatey.org/packages/Less">through
+Chocolatey</a>. To use it, place the binary in a directory in
+your <code>PATH</code> or <a href="#using-a-different-pager">define an environment variable</a>. The <a href="#on-windows">Chocolatey package</a> installs <code>less</code> automatically.</p>
+<h3 id="colors"><a class="anchor" aria-hidden="true" href="#colors"></a>Colors</h3>
+<p>Windows 10 natively supports colors in both <code>conhost.exe</code> (Command Prompt) and PowerShell since
+<a href="https://en.wikipedia.org/wiki/Windows_10_version_history#Version_1511_(November_Update)">v1511</a>, as
+well as in newer versions of bash. On earlier versions of Windows, you can use
+<a href="http://cmder.app/">Cmder</a>, which includes <a href="https://conemu.github.io/">ConEmu</a>.</p>
+<p><strong>Note:</strong> Old versions of <code>less</code> do not correctly interpret colors on Windows. To fix this, you can add the optional Unix tools to your PATH when installing Git. If you don’t have any other pagers installed, you can disable paging entirely by passing <code>--paging=never</code> or by setting <code>BAT_PAGER</code> to an empty string.</p>
+<h3 id="cygwin"><a class="anchor" aria-hidden="true" href="#cygwin"></a>Cygwin</h3>
+<p><code>bat</code> on Windows does not natively support Cygwin's unix-style paths (<code>/cygdrive/*</code>). When passed an absolute cygwin path as an argument, <code>bat</code> will encounter the following error: <code>The system cannot find the path specified. (os error 3)</code></p>
+<p>This can be solved by creating a wrapper or adding the following function to your <code>.bash_profile</code> file:</p>
+<pre><code class="language-bash"><span class="hljs-function"><span class="hljs-title">bat</span></span>() {
+    <span class="hljs-built_in">local</span> index
+    <span class="hljs-built_in">local</span> args=(<span class="hljs-string">&quot;<span class="hljs-variable">$@</span>&quot;</span>)
+    <span class="hljs-keyword">for</span> index <span class="hljs-keyword">in</span> $(<span class="hljs-built_in">seq</span> 0 <span class="hljs-variable">${#args[@]}</span>) ; <span class="hljs-keyword">do</span>
+        <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;<span class="hljs-variable">${args[index]}</span>&quot;</span> <span class="hljs-keyword">in</span>
+        -*) <span class="hljs-built_in">continue</span>;;
+        *)  [ -e <span class="hljs-string">&quot;<span class="hljs-variable">${args[index]}</span>&quot;</span> ] &amp;&amp; args[index]=<span class="hljs-string">&quot;<span class="hljs-subst">$(cygpath --windows <span class="hljs-string">&quot;<span class="hljs-variable">${args[index]}</span>&quot;</span>)</span>&quot;</span>;;
+        <span class="hljs-keyword">esac</span>
+    <span class="hljs-keyword">done</span>
+    <span class="hljs-built_in">command</span> bat <span class="hljs-string">&quot;<span class="hljs-variable">${args[@]}</span>&quot;</span>
+}
+</code></pre>
+<h2 id="troubleshooting"><a class="anchor" aria-hidden="true" href="#troubleshooting"></a>Troubleshooting</h2>
+<h3 id="garbled-output"><a class="anchor" aria-hidden="true" href="#garbled-output"></a>Garbled output</h3>
+<p>If an input file contains color codes or other ANSI escape sequences or control characters, <code>bat</code> will have problems
+performing syntax highlighting and text wrapping, and thus the output can become garbled.</p>
+<p>If your version of <code>bat</code> supports the <code>--strip-ansi=auto</code> option, it can be used to remove such sequences
+before syntax highlighting. Alternatively, you may disable both syntax highlighting and wrapping by
+passing the <code>--color=never --wrap=never</code> options to <code>bat</code>.</p>
+<p>For untrusted input, the <code>--sanitize=auto|always|never</code> option additionally replaces terminal-active
+control bytes and Unicode bidi / zero-width formatting characters with the Unicode replacement
+character. It implies <code>--strip-ansi</code> at the same value.</p>
+<blockquote>
+<p>[!NOTE]
+The <code>auto</code> option of <code>--strip-ansi</code> avoids removing escape sequences when the syntax is plain text.</p>
+</blockquote>
+<h3 id="terminals--colors"><a class="anchor" aria-hidden="true" href="#terminals--colors"></a>Terminals &amp; colors</h3>
+<p><code>bat</code> handles terminals <em>with</em> and <em>without</em> truecolor support. However, the colors in most syntax
+highlighting themes are not optimized for 8-bit colors. It is therefore strongly recommended
+that you use a terminal with 24-bit truecolor support (<code>terminator</code>, <code>konsole</code>, <code>iTerm2</code>, ...),
+or use one of the basic <a href="#8-bit-themes">8-bit themes</a> designed for a restricted set of colors.
+See <a href="https://gist.github.com/XVilka/8346728">this article</a> for more details and a full list of
+terminals with truecolor support.</p>
+<p>Make sure that your truecolor terminal sets the <code>COLORTERM</code> variable to either <code>truecolor</code> or
+<code>24bit</code>. Otherwise, <code>bat</code> will not be able to determine whether or not 24-bit escape sequences
+are supported (and fall back to 8-bit colors).</p>
+<h3 id="line-numbers-and-grid-are-hardly-visible"><a class="anchor" aria-hidden="true" href="#line-numbers-and-grid-are-hardly-visible"></a>Line numbers and grid are hardly visible</h3>
+<p>Please try a different theme (see <code>bat --list-themes</code> for a list). The <code>OneHalfDark</code> and
+<code>OneHalfLight</code> themes provide grid and line colors that are brighter.</p>
+<h3 id="file-encodings"><a class="anchor" aria-hidden="true" href="#file-encodings"></a>File encodings</h3>
+<p><code>bat</code> natively supports UTF-8 as well as UTF-16. For every other file encoding, you may need to
+convert to UTF-8 first because the encodings can typically not be auto-detected. You can <code>iconv</code>
+to do so.
+Example: if you have a PHP file in Latin-1 (ISO-8859-1) encoding, you can call:</p>
+<pre><code class="language-bash">iconv -f ISO-8859-1 -t UTF-8 my-file.php | bat
+</code></pre>
+<p>Note: you might have to use the <code>-l</code>/<code>--language</code> option if the syntax can not be auto-detected
+by <code>bat</code>.</p>
+<h2 id="development"><a class="anchor" aria-hidden="true" href="#development"></a>Development</h2>
+<pre><code class="language-bash"><span class="hljs-comment"># Recursive clone to retrieve all submodules</span>
+git <span class="hljs-built_in">clone</span> --recursive https://github.com/sharkdp/bat
+
+<span class="hljs-comment"># Build (debug version)</span>
+<span class="hljs-built_in">cd</span> bat
+cargo build --bins
+
+<span class="hljs-comment"># Run unit tests and integration tests</span>
+cargo <span class="hljs-built_in">test</span>
+
+<span class="hljs-comment"># Install (release version)</span>
+cargo install --path . --locked
+
+<span class="hljs-comment"># Build a bat binary with modified syntaxes and themes</span>
+bash assets/create.sh
+cargo install --path . --locked --force
+</code></pre>
+<p>If you want to build an application that uses <code>bat</code>'s pretty-printing
+features as a library, check out the <a href="https://docs.rs/bat/">API documentation</a>.
+Note that you have to use either <code>regex-onig</code> or <code>regex-fancy</code> as a feature
+when you depend on <code>bat</code> as a library.</p>
+<h2 id="contributing"><a class="anchor" aria-hidden="true" href="#contributing"></a>Contributing</h2>
+<p>Take a look at the <a href="CONTRIBUTING.md"><code>CONTRIBUTING.md</code></a> guide.</p>
+<h2 id="maintainers"><a class="anchor" aria-hidden="true" href="#maintainers"></a>Maintainers</h2>
+<ul>
+<li><a href="https://github.com/sharkdp">sharkdp</a></li>
+<li><a href="https://github.com/eth-p">eth-p</a></li>
+<li><a href="https://github.com/keith-hall">keith-hall</a></li>
+<li><a href="https://github.com/Enselic">Enselic</a></li>
+</ul>
+<h2 id="security-vulnerabilities"><a class="anchor" aria-hidden="true" href="#security-vulnerabilities"></a>Security vulnerabilities</h2>
+<p>See <a href="SECURITY.md"><code>SECURITY.md</code></a>.</p>
+<h2 id="project-goals-and-alternatives"><a class="anchor" aria-hidden="true" href="#project-goals-and-alternatives"></a>Project goals and alternatives</h2>
+<p><code>bat</code> tries to achieve the following goals:</p>
+<ul>
+<li>Provide beautiful, advanced syntax highlighting</li>
+<li>Integrate with Git to show file modifications</li>
+<li>Be a drop-in replacement for (POSIX) <code>cat</code></li>
+<li>Offer a user-friendly command-line interface</li>
+</ul>
+<p>There are a lot of alternatives, if you are looking for similar programs. See
+<a href="doc/alternatives.md">this document</a> for a comparison.</p>
+<h2 id="license"><a class="anchor" aria-hidden="true" href="#license"></a>License</h2>
+<p>Copyright (c) 2018-2025 <a href="https://github.com/sharkdp/bat">bat-developers</a>.</p>
+<p><code>bat</code> is made available under the terms of either the MIT License or the Apache License 2.0, at your option.</p>
+<p>See the <a href="LICENSE-APACHE">LICENSE-APACHE</a> and <a href="LICENSE-MIT">LICENSE-MIT</a> files for license details.</p>

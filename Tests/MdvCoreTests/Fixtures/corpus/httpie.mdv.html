@@ -1,0 +1,76 @@
+<h2 align="center">
+    <a href="https://httpie.io">
+        <img height="100" alt="HTTPie" src="https://raw.githubusercontent.com/httpie/cli/master/docs/httpie-logo.svg" />
+    </a>
+    <br>
+    HTTPie CLI: human-friendly HTTP client for the API era
+</h2>
+<div align="center">
+<p><a href="https://httpie.io/product"><img src="https://img.shields.io/static/v1?label=HTTPie&amp;message=Desktop&amp;color=4B78E6" alt="HTTPie for Desktop" /></a>
+<a href="https://httpie.io/app"><img src="https://img.shields.io/static/v1?label=HTTPie&amp;message=Web%20%26%20Mobile&amp;color=73DC8C" alt="" /></a>
+<a href="https://httpie.io/cli"><img src="https://img.shields.io/static/v1?label=HTTPie&amp;message=CLI&amp;color=FA9BFA" alt="" /></a>
+<a href="https://twitter.com/httpie"><img src="https://img.shields.io/twitter/follow/httpie?style=flat&amp;color=%234B78E6&amp;logoColor=%234B78E6" alt="Twitter" /></a>
+<a href="https://httpie.io/discord"><img src="https://img.shields.io/discord/725351238698270761?style=flat&amp;label=Chat%20on%20Discord&amp;color=%23FA9BFA" alt="Chat" /></a></p>
+</div>
+<div align="center">
+<p><a href="https://httpie.org/docs/cli"><img src="https://img.shields.io/badge/stable%20docs-httpie.io%2Fdocs%2Fcli-brightgreen?style=flat&amp;color=%2373DC8C&amp;label=Docs" alt="Docs" /></a>
+<a href="https://pypi.python.org/pypi/httpie"><img src="https://img.shields.io/pypi/v/httpie.svg?style=flat&amp;label=Latest&amp;color=%234B78E6&amp;logo=&amp;logoColor=white" alt="Latest version" /></a>
+<a href="https://github.com/httpie/cli/actions"><img src="https://img.shields.io/github/actions/workflow/status/httpie/cli/tests.yml?branch=master&amp;color=%23FA9BFA&amp;label=Build" alt="Build" /></a>
+<a href="https://codecov.io/gh/httpie/cli"><img src="https://img.shields.io/codecov/c/github/httpie/cli?style=flat&amp;label=Coverage&amp;color=%2373DC8C" alt="Coverage" /></a>
+<a href="https://www.pepy.tech/projects/httpie"><img src="https://img.shields.io/pepy/dt/httpie?style=flat&amp;label=Downloads%20from%20PyPi%20only&amp;color=4B78E6" alt="PyPi downloads" /></a></p>
+</div>
+<p>HTTPie (pronounced <em>aitch-tee-tee-pie</em>) is a command-line HTTP client.
+Its goal is to make CLI interaction with web services as human-friendly as possible.
+HTTPie is designed for testing, debugging, and generally interacting with APIs &amp; HTTP servers.
+The <code>http</code> &amp; <code>https</code> commands allow for creating and sending arbitrary HTTP requests.
+They use simple and natural syntax and provide formatted and colorized output.</p>
+<div align="center">
+<img src="https://raw.githubusercontent.com/httpie/cli/master/docs/httpie-animation.gif" alt="HTTPie in action" width="100%" />
+</div>
+<h2 id="we-lost-54k-github-stars"><a class="anchor" aria-hidden="true" href="#we-lost-54k-github-stars"></a>We lost 54k GitHub stars</h2>
+<p>Please note we recently accidentally made this repo private for a moment, and GitHub deleted our community that took a decade to build. Read the full story here: <a href="https://httpie.io/blog/stardust">https://httpie.io/blog/stardust</a></p>
+<p><img src="docs/stardust.png" alt="" /></p>
+<h2 id="getting-started"><a class="anchor" aria-hidden="true" href="#getting-started"></a>Getting started</h2>
+<ul>
+<li><a href="https://httpie.io/docs#installation">Installation instructions →</a></li>
+<li><a href="https://httpie.io/docs">Full documentation →</a></li>
+</ul>
+<h2 id="features"><a class="anchor" aria-hidden="true" href="#features"></a>Features</h2>
+<ul>
+<li>Expressive and intuitive syntax</li>
+<li>Formatted and colorized terminal output</li>
+<li>Built-in JSON support</li>
+<li>Forms and file uploads</li>
+<li>HTTPS, proxies, and authentication</li>
+<li>Arbitrary request data</li>
+<li>Custom headers</li>
+<li>Persistent sessions</li>
+<li><code>wget</code>-like downloads</li>
+</ul>
+<p><a href="https://httpie.io/docs">See all features →</a></p>
+<h2 id="examples"><a class="anchor" aria-hidden="true" href="#examples"></a>Examples</h2>
+<p>Hello World:</p>
+<pre><code class="language-bash">https httpie.io/hello
+</code></pre>
+<p>Custom <a href="https://httpie.io/docs#http-method">HTTP method</a>, <a href="https://httpie.io/docs#http-headers">HTTP headers</a> and <a href="https://httpie.io/docs#json">JSON</a> data:</p>
+<pre><code class="language-bash">http PUT pie.dev/put X-API-Token:123 name=John
+</code></pre>
+<p>Build and print a request without sending it using <a href="https://httpie.io/docs/cli/offline-mode">offline mode</a>:</p>
+<pre><code class="language-bash">http --offline pie.dev/post hello=offline
+</code></pre>
+<p>Use <a href="https://developer.github.com/v3/issues/comments/#create-a-comment">GitHub API</a> to post a comment on an <a href="https://github.com/httpie/cli/issues/83">Issue</a> with <a href="https://httpie.io/docs#authentication">authentication</a>:</p>
+<pre><code class="language-bash">http -a USERNAME POST https://api.github.com/repos/httpie/cli/issues/83/comments body=<span class="hljs-string">'HTTPie is awesome! :heart:'</span>
+</code></pre>
+<p><a href="https://httpie.io/docs#examples">See more examples →</a></p>
+<h2 id="community--support"><a class="anchor" aria-hidden="true" href="#community--support"></a>Community &amp; support</h2>
+<ul>
+<li>Visit the <a href="https://httpie.io">HTTPie website</a> for full documentation and useful links.</li>
+<li>Join our <a href="https://httpie.io/discord">Discord server</a> is to ask questions, discuss features, and for general API chat.</li>
+<li>Tweet at <a href="https://twitter.com/httpie">@httpie</a> on Twitter.</li>
+<li>Use <a href="https://stackoverflow.com/questions/tagged/httpie">StackOverflow</a> to ask questions and include a <code>httpie</code> tag.</li>
+<li>Create <a href="https://github.com/httpie/cli/issues">GitHub Issues</a> for bug reports and feature requests.</li>
+<li>Subscribe to the <a href="https://httpie.io">HTTPie newsletter</a> for occasional updates.</li>
+</ul>
+<h2 id="contributing"><a class="anchor" aria-hidden="true" href="#contributing"></a>Contributing</h2>
+<p>Have a look through existing <a href="https://github.com/httpie/cli/issues">Issues</a> and <a href="https://github.com/httpie/cli/pulls">Pull Requests</a> that you could help with. If you'd like to request a feature or report a bug, please <a href="https://github.com/httpie/cli/issues">create a GitHub Issue</a> using one of the templates provided.</p>
+<p><a href="https://github.com/httpie/cli/blob/master/CONTRIBUTING.md">See contribution guide →</a></p>
