@@ -5,7 +5,7 @@ import Testing
 // MARK: - Fuzz
 
 /// Deterministic SplitMix64, so failures reproduce.
-private struct SeededGenerator: RandomNumberGenerator {
+struct SeededGenerator: RandomNumberGenerator {
     var state: UInt64
 
     mutating func next() -> UInt64 {

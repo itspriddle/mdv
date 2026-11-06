@@ -19,29 +19,34 @@ enum OutputChecker {
     ]
     static let urlAttributes: Set<String> = ["href", "src", "cite", "longdesc", "srcset"]
 
+    // Scalar semantics: a combining mark or ZWJ after `"` would otherwise merge with it.
     nonisolated(unsafe) static let tagPattern = /^\/?([a-z0-9]+)((?: [a-z-]+(?:="[^"<>]*")?)*)( \/)?$/
-    nonisolated(unsafe) static let attributePattern = /\ ([a-z-]+)(?:="([^"]*)")?/
+        .matchingSemantics(.unicodeScalar)
+    nonisolated(unsafe) static let attributePattern = /\ ([a-z-]+)(?:="([^"]*)")?/.matchingSemantics(.unicodeScalar)
 
     /// Problems found in `html`; empty when it is safe. Markdown links and autolinks may use
     /// any scheme cmark's safe mode allows, so `isMarkdown` checks only for dangerous schemes.
-    static func problems(in html: String, isMarkdown: Bool = false) -> [String] {
+    /// `extraElements` allows elements only the renderer writes (e.g. the footnotes `section`).
+    static func problems(in html: String, isMarkdown: Bool = false, extraElements: Set<String> = []) -> [String] {
         var problems: [String] = []
         if html.lowercased().contains("<script") {
             problems.append("contains <script")
         }
-        var rest = Substring(html)
+        // Scan Unicode scalars, as an HTML tokenizer does: a combining mark after `>` would merge
+        // with it into one `Character`.
+        var rest = Substring(html).unicodeScalars
         while let open = rest.firstIndex(of: "<") {
             guard let close = rest[open...].firstIndex(of: ">") else {
                 problems.append("unterminated tag")
                 break
             }
-            let tag = rest[rest.index(after: open)..<close]
+            let tag = Substring(rest[rest.index(after: open)..<close])
             rest = rest[rest.index(after: close)...]
             guard let match = tag.wholeMatch(of: tagPattern) else {
                 problems.append("malformed tag <\(tag)>")
                 continue
             }
-            if !elements.contains(String(match.1)) {
+            if !elements.contains(String(match.1)), !extraElements.contains(String(match.1)) {
                 problems.append("element <\(match.1)>")
             }
             for attribute in match.2.matches(of: attributePattern) {
