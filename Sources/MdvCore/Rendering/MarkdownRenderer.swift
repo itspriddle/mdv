@@ -7,9 +7,13 @@ public protocol MarkdownRenderer: Sendable {
 public struct RenderOptions: Sendable, Equatable {
     /// Syntax extensions enabled on top of CommonMark.
     public var extensions: Set<MarkdownExtension>
+    /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
+    /// for trusted input (the spec suites expect raw HTML to pass through).
+    public var sanitize: Bool
 
-    public init(extensions: Set<MarkdownExtension> = []) {
+    public init(extensions: Set<MarkdownExtension> = [], sanitize: Bool = true) {
         self.extensions = extensions
+        self.sanitize = sanitize
     }
 }
 
