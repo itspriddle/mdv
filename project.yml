@@ -32,12 +32,23 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHumanReadableCopyright: Copyright © 2026 Joshua Priddle. MIT License.
+        # AppKit app lifecycle (App/main.swift); no main nib.
+        NSPrincipalClass: NSApplication
         CFBundleDocumentTypes:
           - CFBundleTypeName: Markdown Document
             CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - net.daringfireball.markdown
+            NSDocumentClass: $(PRODUCT_MODULE_NAME).MarkdownDocument
+          # Plain text opens from the Open panel and drag and drop, but mdv doesn't register as
+          # a handler for it.
+          - CFBundleTypeName: Plain Text Document
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: None
+            LSItemContentTypes:
+              - public.plain-text
+            NSDocumentClass: $(PRODUCT_MODULE_NAME).MarkdownDocument
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: net.daringfireball.markdown
             UTTypeDescription: Markdown Document

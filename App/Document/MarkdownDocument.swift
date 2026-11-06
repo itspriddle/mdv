@@ -1,58 +1,48 @@
-import MdvCore
-import SwiftUI
-import UniformTypeIdentifiers
+import AppKit
 
-extension UTType {
-    /// Declared as an imported type in Info.plist (via project.yml).
-    static let markdown = UTType(importedAs: "net.daringfireball.markdown")
-}
+/// One open Markdown file. mdv is a viewer: the document reads and re-reads its file but never
+/// writes it.
+///
+/// `NSDocument` gives us file coordination and `NSFilePresenter` change notifications (live
+/// reload), revert, recents, window tabs, and state restoration. The document owns the source
+/// text and the rendered page (`content`); each window's `DocumentWindowController` displays it.
+/// Registered as `NSDocumentClass` for the document types declared in project.yml.
+@Observable
+final class MarkdownDocument: NSDocument {
+    /// The source and rendered page from the last successful read; `nil` before the first one.
+    private(set) var content: DocumentContent?
 
-/// Read-only Markdown document. mdv is a viewer, so writing is unsupported.
-struct MarkdownDocument: FileDocument {
-    static let readableContentTypes: [UTType] = [.markdown, .plainText]
-    static let writableContentTypes: [UTType] = []
+    override static var autosavesInPlace: Bool { false }
 
-    let source: String
-
-    init(source: String) {
-        self.source = source
+    override func makeWindowControllers() {
+        addWindowController(DocumentWindowController())
     }
 
-    init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents,
-            let source = String(bytes: data, encoding: .utf8)
-        else {
-            throw CocoaError(.fileReadInapplicableStringEncoding)
+    // MARK: Reading
+
+    /// Reads and renders the file. NSDocument calls this for the initial open and for every
+    /// revert (`revert(toContentsOf:ofType:)`), so a reload is a revert.
+    override nonisolated func read(from url: URL, ofType typeName: String) throws {
+        let content = try DocumentContent(data: Data(contentsOf: url), fallbackTitle: url.lastPathComponent)
+        // NSDocument reads on the main thread unless `canConcurrentlyReadDocuments(ofType:)`
+        // returns true, which this class does not.
+        MainActor.assumeIsolated {
+            setContent(content)
         }
-        self.source = source
     }
 
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+    /// Replaces the content and tells each window to show it. The single path every (re)load
+    /// goes through.
+    func setContent(_ content: DocumentContent) {
+        self.content = content
+        for case let controller as DocumentWindowController in windowControllers {
+            controller.documentContentDidChange()
+        }
+    }
+
+    // MARK: Viewer only
+
+    override nonisolated func data(ofType typeName: String) throws -> Data {
         throw CocoaError(.fileWriteNoPermission)
     }
-
-    /// The app's render options: the defaults plus `data-source-line` annotations, which M2's
-    /// scroll sync and position-preserving reload read. `mdv --html` leaves them off.
-    static var renderOptions: RenderOptions {
-        var options = RenderOptions()
-        options.sourceLines = true
-        return options
-    }
-
-    /// Renders the source into a full HTML page. The title is the document's own (frontmatter
-    /// `title`, then the first `h1`) or `fallbackTitle` (the file name).
-    func renderedPage(
-        fallbackTitle: String,
-        renderer: some MarkdownRenderer = HTMLRenderer(options: MarkdownDocument.renderOptions)
-    ) -> RenderedPage {
-        let rendered = renderer.render(source)
-        let title = rendered.title ?? fallbackTitle
-        return RenderedPage(title: title, html: HTMLDocument(title: title, body: rendered.html).html)
-    }
-}
-
-struct RenderedPage: Equatable {
-    /// Shown as the window title and the page `<title>`.
-    let title: String
-    let html: String
 }

@@ -1,22 +1,14 @@
 import SwiftUI
 import WebKit
 
-/// Displays rendered Markdown. JavaScript is disabled until a vetted, bundle-only
-/// script policy lands (math in a later milestone). Syntax highlighting needs none: it is
-/// static markup written at render time.
+/// Embeds a window's web view in SwiftUI. Loading and scrolling go through the
+/// `WebViewCoordinator` that owns the view, never through SwiftUI updates.
 struct MarkdownWebView: NSViewRepresentable {
-    let html: String
-    let baseURL: URL?
+    let coordinator: WebViewCoordinator
 
     func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
-        configuration.websiteDataStore = .nonPersistent()
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        return webView
+        coordinator.webView
     }
 
-    func updateNSView(_ webView: WKWebView, context: Context) {
-        webView.loadHTMLString(html, baseURL: baseURL)
-    }
+    func updateNSView(_ webView: WKWebView, context: Context) {}
 }

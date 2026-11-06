@@ -1,12 +1,13 @@
+import Foundation
 import Testing
 
 @testable import MdvApp
 
-@Suite("MarkdownDocument")
-struct MarkdownDocumentTests {
+@Suite("DocumentContent")
+struct DocumentContentTests {
     @Test("renders source into a full HTML document")
     func rendersHTML() {
-        let page = MarkdownDocument(source: "Some *text*").renderedPage(fallbackTitle: "README.md")
+        let page = DocumentContent(source: "Some *text*", fallbackTitle: "README.md").page
         #expect(page.html.contains("<p data-source-line=\"1\">Some <em>text</em></p>"))
         #expect(page.html.contains("<title>README.md</title>"))
         #expect(page.title == "README.md")
@@ -14,7 +15,7 @@ struct MarkdownDocumentTests {
 
     @Test("uses the first h1 for the window and the page")
     func headingTitle() {
-        let page = MarkdownDocument(source: "intro\n\n# Title").renderedPage(fallbackTitle: "README.md")
+        let page = DocumentContent(source: "intro\n\n# Title", fallbackTitle: "README.md").page
         #expect(page.html.contains("<h1 id=\"title\" data-source-line=\"3\">"))
         #expect(page.html.contains("<title>Title</title>"))
         #expect(page.title == "Title")
@@ -22,8 +23,8 @@ struct MarkdownDocumentTests {
 
     @Test("uses the frontmatter title for the window and the page")
     func frontmatterTitle() {
-        let page = MarkdownDocument(source: "---\ntitle: Notes & <Ideas>\n---\n# Heading")
-            .renderedPage(fallbackTitle: "README.md")
+        let page = DocumentContent(source: "---\ntitle: Notes & <Ideas>\n---\n# Heading", fallbackTitle: "README.md")
+            .page
         #expect(page.title == "Notes & <Ideas>")
         #expect(page.html.contains("<title>Notes &amp; &lt;Ideas&gt;</title>"))
         #expect(!page.html.contains("title: Notes"))
@@ -32,8 +33,26 @@ struct MarkdownDocumentTests {
 
     @Test("highlights fenced code at render time, without scripts")
     func highlightsCode() {
-        let page = MarkdownDocument(source: "```swift\nlet x = 1\n```").renderedPage(fallbackTitle: "README.md")
+        let page = DocumentContent(source: "```swift\nlet x = 1\n```", fallbackTitle: "README.md").page
         #expect(page.html.contains("<span class=\"hljs-keyword\">let</span>"))
         #expect(!page.html.contains("<script"))
+    }
+
+    @Test("keeps the body fragment and headings for in-place swaps and the outline")
+    func bodyAndHeadings() {
+        let page = DocumentContent(source: "# One\n\n## Two", fallbackTitle: "README.md").page
+        #expect(page.body.hasPrefix("<h1 id=\"one\" data-source-line=\"1\">"))
+        #expect(!page.body.contains("<article"))
+        #expect(page.headings.map(\.slug) == ["one", "two"])
+        #expect(page.headings.map(\.sourceLine) == [1, 3])
+    }
+
+    @Test("decodes UTF-8 and rejects other encodings")
+    func decoding() throws {
+        let content = try DocumentContent(data: Data("caf\u{E9}".utf8), fallbackTitle: "a.md")
+        #expect(content.source == "caf\u{E9}")
+        #expect(throws: CocoaError.self) {
+            try DocumentContent(data: Data([0x63, 0xE9, 0xFF]), fallbackTitle: "a.md")
+        }
     }
 }
