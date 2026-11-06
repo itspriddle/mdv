@@ -18,6 +18,7 @@ struct DocumentView: View {
                     RemoteImageBar(summary: summary, load: loadRemoteImages)
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) { FindBar(find: coordinator.find) }
             .overlay(alignment: .bottomLeading) { LinkStatusView(status: coordinator.linkStatus) }
     }
 }

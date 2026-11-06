@@ -62,8 +62,16 @@ public enum DefaultTheme {
         .hljs-strong { color: #24292e; font-weight: bold; }
         .hljs-addition { color: #22863a; background-color: #f0fff4; }
         .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
+        /* Find in page (the app's find bar): every match, and the current one. Never printed. */
+        ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.4); }
+        ::highlight(mdv-find-current) { background-color: #ff9632; color: #1f2328; }
+        @media print {
+          ::highlight(mdv-find), ::highlight(mdv-find-current) { background-color: transparent; color: inherit; }
+        }
         /* Dark colors are for the screen only: paper is always printed with the light colors. */
         @media screen and (prefers-color-scheme: dark) {
+          ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.3); }
+          ::highlight(mdv-find-current) { background-color: #ffb454; color: #0d1117; }
           body { color: #e6edf3; background: \(background.dark.hex); }
           pre { background: #161b22; }
           a { color: #4493f8; }
