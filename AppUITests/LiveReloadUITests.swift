@@ -85,14 +85,15 @@ final class LiveReloadUITests: XCTestCase {
     /// The topmost "Paragraph N." text whose top is inside the web view.
     ///
     /// The web area's frame is the whole scrollable page, so "inside" means below the top of the
-    /// `WKWebView`'s visible bounds. WebKit puts a text run's string in its value.
+    /// `WKWebView`'s visible bounds. WebKit puts a text run's string in its value (a heading's
+    /// value is its level, a number, hence the cast; see `MdvUITestApp.renderedText`).
     private func firstVisibleParagraph(in window: XCUIElement) -> XCUIElement? {
         guard let mdv else {
             return nil
         }
         let top = mdv.webViewContainer(in: window).frame.minY
         let paragraphs = mdv.webView(in: window).staticTexts.matching(
-            NSPredicate(format: "value BEGINSWITH 'Paragraph ' OR label BEGINSWITH 'Paragraph '"))
+            NSPredicate(format: "CAST(value, 'NSString') BEGINSWITH 'Paragraph ' OR label BEGINSWITH 'Paragraph '"))
         return paragraphs.allElementsBoundByIndex.first { $0.frame.minY >= top }
     }
 }

@@ -137,16 +137,13 @@ struct MdvUITestApp {
         return element
     }
 
-    /// The first element in the web view whose label contains `text`, or the first static text
-    /// whose value does.
+    /// The first element in the web view whose label or value contains `text`.
     ///
-    /// Only static text's value is matched: other elements can have a non-string value (a
-    /// heading's is its level, a checkbox's its state), and `CONTAINS` on a number throws an
-    /// `NSInvalidArgumentException` (macOS 26) instead of failing to match.
+    /// The value is cast to a string first: WebKit exposes a heading as static text whose value
+    /// is its level (a number), and on macOS 26 `CONTAINS` on a number throws an
+    /// `NSInvalidArgumentException` instead of failing to match.
     func renderedText(_ text: String, in window: XCUIElement? = nil) -> XCUIElement {
-        let predicate = NSPredicate(
-            format: "label CONTAINS %@ OR (elementType == %d AND value CONTAINS %@)", text,
-            XCUIElement.ElementType.staticText.rawValue, text)
+        let predicate = NSPredicate(format: "label CONTAINS %@ OR CAST(value, 'NSString') CONTAINS %@", text, text)
         return webView(in: window).descendants(matching: .any).matching(predicate).firstMatch
     }
 
