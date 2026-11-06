@@ -41,6 +41,7 @@ targets:
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - net.daringfireball.markdown
+              - $(PRODUCT_BUNDLE_IDENTIFIER_BASE).markdown
             NSDocumentClass: $(PRODUCT_MODULE_NAME).MarkdownDocument
           # Plain text opens from the Open panel and drag and drop, but mdv doesn't register as
           # a handler for it.
@@ -50,6 +51,9 @@ targets:
             LSItemContentTypes:
               - public.plain-text
             NSDocumentClass: $(PRODUCT_MODULE_NAME).MarkdownDocument
+        # macOS declares net.daringfireball.markdown (md, markdown); this import only stands in
+        # where it doesn't. A system declaration always wins over an import, so extensions
+        # added here would be ignored.
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: net.daringfireball.markdown
             UTTypeDescription: Markdown Document
@@ -60,11 +64,23 @@ targets:
               public.filename-extension:
                 - md
                 - markdown
+              public.mime-type:
+                - text/markdown
+        # The other common Markdown extensions, which no system type declares. Exported: mdv
+        # defines this type (under its own identifier) rather than borrowing another app's.
+        # Keep the identifier in sync with MarkdownContentTypes.otherMarkdownExtensions.
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).markdown
+            UTTypeDescription: Markdown Document
+            UTTypeConformsTo:
+              - net.daringfireball.markdown
+              - public.plain-text
+            UTTypeReferenceURL: https://daringfireball.net/projects/markdown/
+            UTTypeTagSpecification:
+              public.filename-extension:
                 - mdown
                 - mkd
                 - mkdn
-              public.mime-type:
-                - text/markdown
     entitlements:
       path: App/mdv.entitlements
       properties:

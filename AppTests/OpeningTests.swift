@@ -121,9 +121,10 @@ struct OpeningTests {
 
     // MARK: Document types
 
-    /// `.md` and `.markdown` are the system's `net.daringfireball.markdown`. The other
-    /// extensions may belong to another app's type on a given Mac (iA Writer declares
-    /// `net.ia.markdown`), but every such type conforms to plain text, which mdv also opens.
+    /// `.md` and `.markdown` are the system's `net.daringfireball.markdown`; `.mdown`, `.mkd`, and
+    /// `.mkdn` are mdv's exported type unless another app on this Mac declares them too (iA
+    /// Writer declares `net.ia.markdown`). Every such type conforms to plain text, which mdv
+    /// also opens.
     @Test("Markdown files open as MarkdownDocument", arguments: ["md", "markdown", "mdown", "mkd", "mkdn", "txt"])
     func markdownExtensions(fileExtension: String) throws {
         let url = try file("doc.\(fileExtension)")
@@ -131,10 +132,28 @@ struct OpeningTests {
         if ["md", "markdown"].contains(fileExtension) {
             #expect(typeName == Self.markdownType)
         }
+        let declaringTypes = UTType.types(tag: fileExtension, tagClass: .filenameExtension, conformingTo: nil)
+        if declaringTypes == [MarkdownContentTypes.otherMarkdownExtensions] {
+            #expect(typeName == MarkdownContentTypes.otherMarkdownExtensions.identifier)
+        }
         let type = try #require(UTType(typeName))
         #expect(type.conforms(to: .plainText))
         #expect(NSDocumentController.shared.documentClass(forType: typeName) == MarkdownDocument.self)
         #expect(MarkdownDocument.canConcurrentlyReadDocuments(ofType: typeName) == false)
+    }
+
+    @Test("mdv exports a Markdown type for the extensions the system type lacks")
+    func exportedMarkdownType() throws {
+        let identifier = MarkdownContentTypes.otherMarkdownExtensions.identifier
+        // The Swift constant matches the identifier project.yml derives from the bundle ID.
+        #expect(identifier == "\(try #require(Bundle.main.bundleIdentifier)).markdown")
+        let type = try #require(UTType(identifier))
+        #expect(type.isDeclared)
+        #expect(type.tags[.filenameExtension] == ["mdown", "mkd", "mkdn"])
+        #expect(type.conforms(to: MarkdownContentTypes.markdown))
+        #expect(type.conforms(to: .plainText))
+        #expect(NSDocumentController.shared.documentClass(forType: identifier) == MarkdownDocument.self)
+        #expect(DefaultViewer.contentTypes.contains(type))
     }
 
     @Test("the declared Markdown type has the text/markdown MIME type")

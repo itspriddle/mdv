@@ -97,9 +97,9 @@ lock the build database.
 - No force unwraps; prefer failable APIs (e.g. `String(bytes:encoding:)`) and throw on bad input.
 - Security defaults from `docs/VISION.md` are requirements: strict CSP, no remote content, JS off
   or bundle-only, sanitize raw HTML, user scripts are opt-in.
-- Bundle ID placeholder `com.itspriddle.mdv` lives in `PRODUCT_BUNDLE_IDENTIFIER_BASE` and
-  `MdvCommand.appBundleIdentifier`; keep them in sync. Same for `MARKETING_VERSION` and
-  `MdvInfo.version`.
+- Bundle ID placeholder `com.itspriddle.mdv` lives in `PRODUCT_BUNDLE_IDENTIFIER_BASE`,
+  `MdvCommand.appBundleIdentifier`, and the exported UTI `MarkdownContentTypes` (an app test
+  checks it); keep them in sync. Same for `MARKETING_VERSION` and `MdvInfo.version`.
 - Verify a dependency exists (and its latest version) before adding it.
 
 ## UI tests

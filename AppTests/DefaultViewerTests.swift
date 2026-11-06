@@ -27,6 +27,13 @@ final class FakeWorkspace: DefaultApplicationWorkspace {
             handlers[contentType] = "com.itspriddle.mdv"
         }
     }
+
+    /// Makes `bundleIdentifier` the default for every Markdown type mdv declares.
+    func setHandler(_ bundleIdentifier: String, for contentTypes: [UTType] = DefaultViewer.contentTypes) {
+        for contentType in contentTypes {
+            handlers[contentType] = bundleIdentifier
+        }
+    }
 }
 
 struct DeclinedByUser: Error {}
@@ -42,7 +49,7 @@ struct DefaultViewerTests {
 
     init() throws {
         defaults = try #require(UserDefaults(suiteName: suiteName))
-        workspace.handlers[Self.markdown] = "com.example.other"
+        workspace.setHandler("com.example.other")
     }
 
     func viewer(suppressed: Bool = false, at date: Date? = nil) -> DefaultViewer {
@@ -59,10 +66,19 @@ struct DefaultViewerTests {
 
     @Test("doesn't offer when mdv is already the default")
     func noOfferWhenDefault() {
-        workspace.handlers[Self.markdown] = "com.itspriddle.mdv"
+        workspace.setHandler("com.itspriddle.mdv")
         let viewer = viewer()
         #expect(viewer.isDefault)
         #expect(!viewer.shouldOffer)
+    }
+
+    @Test("offers until mdv is the default for every declared Markdown type")
+    func offersUntilDefaultForEveryType() {
+        #expect(DefaultViewer.contentTypes.count > 1)
+        workspace.setHandler("com.itspriddle.mdv", for: [Self.markdown])
+        let viewer = viewer()
+        #expect(!viewer.isDefault)
+        #expect(viewer.shouldOffer)
     }
 
     @Test("offers when no app is registered")
@@ -108,7 +124,7 @@ struct DefaultViewerTests {
         try await viewer.respond(.makeDefault)
         #expect(workspace.setCalls.map(\.1) == DefaultViewer.contentTypes)
         #expect(workspace.setCalls.allSatisfy { $0.0 == URL(filePath: "/Applications/mdv.app") })
-        workspace.handlers[Self.markdown] = "com.itspriddle.mdv"
+        workspace.setHandler("com.itspriddle.mdv")
         #expect(viewer.isDefault)
     }
 
@@ -132,7 +148,7 @@ struct DefaultViewerTests {
         let item = NSMenuItem("Make", action: #selector(AppDelegate.makeDefaultMarkdownViewer(_:)))
         #expect(controller.validateMenuItem(item))
         #expect(item.state == .off)
-        workspace.handlers[Self.markdown] = "com.itspriddle.mdv"
+        workspace.setHandler("com.itspriddle.mdv")
         #expect(!controller.validateMenuItem(item))
         #expect(item.state == .on)
     }

@@ -65,8 +65,8 @@ public enum LinkPolicy {
     /// Schemes handed to the default app.
     public static let externalSchemes: Set<String> = ["http", "https", "mailto"]
 
-    /// File name extensions mdv opens as Markdown. Must match the `net.daringfireball.markdown`
-    /// declaration in project.yml (an app test checks the built Info.plist).
+    /// File name extensions mdv opens as Markdown. Must match the Markdown type declarations in
+    /// project.yml, imported and exported (an app test checks the built Info.plist).
     public static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn"]
 
     public static func action(for url: URL, in context: LinkContext) -> LinkAction {

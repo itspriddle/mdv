@@ -24,7 +24,7 @@ final class DefaultViewer {
     }
 
     /// The Markdown types mdv declares as a handler (`LSHandlerRank` other than `None`).
-    static let contentTypes: [UTType] = [UTType(importedAs: "net.daringfireball.markdown")]
+    static let contentTypes: [UTType] = MarkdownContentTypes.all
 
     /// How long "Not Now" postpones the offer.
     static let snoozeInterval: TimeInterval = 30 * 24 * 60 * 60

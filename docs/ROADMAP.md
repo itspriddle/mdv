@@ -123,7 +123,8 @@ A pleasant, Mac-native document viewer.
   open as tabs; tabs follow the system "Prefer tabs" setting; restoration (including each
   window's reading position) follows the system "Close windows when quitting" setting, so
   `mdv FILE` doesn't bring back old windows (confirmed with the user); with no windows, launch
-  and Dock click show the Open panel; plain text opens but is never claimed.
+  and Dock click show the Open panel; plain text opens but is never claimed; `.mdown`/`.mkd`/
+  `.mkdn` are mdv's own exported type (the system Markdown type lists only `.md`/`.markdown`).
 - **Default handler (#23):** `LSHandlerRank` stays `Alternate`; mdv offers once in a
   non-modal panel ("Not Now" snoozes 30 days, "Don't Ask Again" is permanent) and has an app
   menu item until Settings exists.
@@ -187,8 +188,6 @@ CSS themes as a first-class feature.
     Markdown Viewer" there; optionally remember the remote image opt-in per file
   - Performance: cold open to first paint under 200 ms for README-sized docs (422 ms in M2),
     and the first open's read and render off the main thread (161 ms for 1 MB)
-  - Declare mdv's own exported UTI for `.mdown`/`.mkd`/`.mkdn`, which may resolve to another
-    app's type and then rely on plain-text handling
   - Smaller viewer polish, filed as issues: a document folder deleted and recreated isn't
     noticed; extensionless files (`README`) can't be opened from the Open panel; "Copy Link"
     on a relative link copies the internal `mdv-doc:` URL; the find pasteboard

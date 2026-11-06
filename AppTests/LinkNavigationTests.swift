@@ -196,13 +196,19 @@ final class LinkNavigationTests {
         #expect(LinkOpening(modifiers: [.shift], buttonNumber: 0) == .normal)
     }
 
-    @Test("LinkPolicy's Markdown extensions match the app's declared Markdown type")
+    @Test("LinkPolicy's Markdown extensions match the app's declared Markdown types")
     func declaredExtensions() throws {
-        let declarations = try #require(Bundle.main.infoDictionary?["UTImportedTypeDeclarations"] as? [[String: Any]])
-        let markdown = try #require(
-            declarations.first { $0["UTTypeIdentifier"] as? String == "net.daringfireball.markdown" })
-        let tags = try #require(markdown["UTTypeTagSpecification"] as? [String: Any])
-        let extensions = try #require(tags["public.filename-extension"] as? [String])
+        let info = try #require(Bundle.main.infoDictionary)
+        let declarations = try ["UTImportedTypeDeclarations", "UTExportedTypeDeclarations"].flatMap { key in
+            try #require(info[key] as? [[String: Any]])
+        }
+        let identifiers = Set(MarkdownContentTypes.all.map(\.identifier))
+        let markdown = declarations.filter { identifiers.contains($0["UTTypeIdentifier"] as? String ?? "") }
+        #expect(markdown.count == identifiers.count)
+        let extensions = try markdown.flatMap { declaration in
+            let tags = try #require(declaration["UTTypeTagSpecification"] as? [String: Any])
+            return try #require(tags["public.filename-extension"] as? [String])
+        }
         #expect(Set(extensions) == LinkPolicy.markdownExtensions)
     }
 }

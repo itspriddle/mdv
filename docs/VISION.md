@@ -102,9 +102,13 @@ editor or a browser.
   restoration (documents, frames, tab groups, and each window's reading position as a source
   line) follows the system "Close windows when quitting an application" setting, so
   `mdv FILE` doesn't bring back every old window. Documents whose file is gone or in the Trash
-  are skipped quietly. `.md`/`.markdown` are `net.daringfireball.markdown`;
-  `.mdown`/`.mkd`/`.mkdn` (which another app may declare) and plain text (`.txt`) open because
-  they conform to `public.plain-text`, which mdv reads but never claims (`LSHandlerRank None`).
+  are skipped quietly. `.md`/`.markdown` are the system's `net.daringfireball.markdown`
+  (imported, for a system without it). macOS lists only those two extensions, and an import
+  can't add to a system type, so `.mdown`/`.mkd`/`.mkdn` are mdv's own exported
+  `<bundle id>.markdown`, conforming to it (on a Mac where another app also declares them,
+  Launch Services may pick that app's type, which still conforms to plain text). Plain text
+  (`.txt`) opens because it conforms to `public.plain-text`, which mdv reads but never claims
+  (`LSHandlerRank None`).
   The first open reads and renders on the main thread (NSDocument's read path); live reloads
   don't.
 - **Outline sidebar (#24):** an AppKit sidebar split item (`NSOutlineView`, nested by heading
@@ -143,8 +147,8 @@ editor or a browser.
   in-place swaps are untouched and no style is injected. The query and options survive closing
   the bar and every reload: the search runs again after each display (in-place swap or full
   load), keeping the current match number without scrolling.
-- **Default handler:** mdv declares Markdown with `LSHandlerRank: Alternate` and asks, never
-  grabs (#23). `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
+- **Default handler:** mdv declares both Markdown types with `LSHandlerRank: Alternate` and
+  asks, never grabs (#23); "Make Default" covers both. `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
   non-modal panel, when a document opens while another app is the default ("Not Now" snoozes
   30 days, "Don't Ask Again" is permanent), and the app menu has "Make mdv the Default Markdown
