@@ -23,6 +23,8 @@ public struct RenderOptions: Sendable, Equatable {
     /// output (`mdv --html`) and the spec suites stay clean; the app turns it on. See
     /// `HTMLRenderer.writeSourceLine(of:into:)` for the attribute contract.
     public var sourceLines = false
+    /// Replace GitHub emoji shortcodes such as `:tada:` in text with their emoji (#10).
+    public var emoji = true
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
     /// for trusted input (the spec suites expect raw HTML to pass through).

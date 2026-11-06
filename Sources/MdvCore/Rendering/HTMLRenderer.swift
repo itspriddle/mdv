@@ -16,8 +16,8 @@ public struct HTMLRenderer: MarkdownRenderer {
         let extracted = options.detectsFrontmatter ? Frontmatter.extract(from: markdown) : nil
         let frontmatter = extracted?.frontmatter
         let body = extracted.map { String($0.body) } ?? markdown
-        let document = MarkdownParser(extensions: options.extensions)
-            .parse(body, lineOffset: frontmatter?.lineCount ?? 0)
+        let document = transformed(
+            MarkdownParser(extensions: options.extensions).parse(body, lineOffset: frontmatter?.lineCount ?? 0))
 
         var output = HTMLOutput(capacity: markdown.utf8.count + markdown.utf8.count / 4)
         if let frontmatter, options.frontmatterDisplay == .table {
@@ -35,9 +35,16 @@ public struct HTMLRenderer: MarkdownRenderer {
 
     /// Renders an already-parsed tree to an HTML fragment.
     public func html(for node: MarkdownNode) -> String {
+        let node = transformed(node)
         var output = HTMLOutput()
         render(node, headings: options.headingAnchors ? Heading.collect(in: node) : [], into: &output)
         return output.string
+    }
+
+    /// Applies the tree transforms `options` enables (emoji shortcodes), before headings are
+    /// collected so heading text and slugs see their result.
+    private func transformed(_ node: MarkdownNode) -> MarkdownNode {
+        options.emoji ? EmojiShortcodes.replace(in: node) : node
     }
 
     /// The document title: frontmatter `title` first, then the first non-empty `h1`.
@@ -188,7 +195,7 @@ extension HTMLRenderer {
         case .image(let source, let title):
             renderImage(node, source: source, title: title, into: &output)
             return false
-        case .codeBlock, .htmlBlock, .thematicBreak, .text, .softBreak, .lineBreak, .code, .htmlInline:
+        case .codeBlock, .htmlBlock, .thematicBreak, .text, .softBreak, .lineBreak, .code, .htmlInline, .emoji:
             renderLeaf(node, into: &output)
             return false
         case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition:
@@ -274,7 +281,7 @@ extension HTMLRenderer {
             output.raw("<hr")
             writeSourceLine(of: node, into: &output)
             output.raw(" />\n")
-        case .text(let text):
+        case .text(let text), .emoji(_, let text):
             output.text(text)
         case .softBreak:
             output.raw(UInt8(ascii: "\n"))
@@ -334,7 +341,7 @@ extension HTMLRenderer {
         var stack = node.children.reversed() as [MarkdownNode]
         while let current = stack.popLast() {
             switch current.kind {
-            case .text(let literal), .code(let literal), .htmlInline(let literal):
+            case .text(let literal), .code(let literal), .htmlInline(let literal), .emoji(_, let literal):
                 text += literal
             case .softBreak, .lineBreak:
                 text += " "

@@ -7,7 +7,7 @@ import Testing
 /// (`Fixtures/github`, captured with `gh api markdown`). See that folder's README.
 @Suite("GitHub reference fixtures")
 struct GitHubFixtureTests {
-    static let fixtures = ["tables", "strikethrough-autolinks", "task-lists", "footnotes"]
+    static let fixtures = ["tables", "strikethrough-autolinks", "task-lists", "footnotes", "emoji"]
 
     @Test("default output matches GitHub", arguments: fixtures)
     func matchesGitHub(_ name: String) throws {
@@ -22,11 +22,12 @@ struct GitHubFixtureTests {
         var html = html
         for literal in [
             "<markdown-accessiblity-table>", "</markdown-accessiblity-table>", " role=\"table\"",
-            " rel=\"nofollow\"", " class=\"notranslate\"", " id=\"\"", "user-content-",
+            " rel=\"nofollow\"", " class=\"notranslate\"", " id=\"\"", "user-content-", "</g-emoji>",
         ] {
             html = html.replacingOccurrences(of: literal, with: "")
         }
         html = html.replacing(/-[0-9a-f]{32}(?=")/, with: "")
+        html = html.replacing(/<g-emoji class="g-emoji" alias="[^"]*">/, with: "")
         return html.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

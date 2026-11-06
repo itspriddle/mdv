@@ -33,5 +33,6 @@ deliberately leaves out:
 | `id=""` on task checkboxes                       | Empty attribute                                    |
 | `user-content-` id/href prefix                   | DOM-clobbering guard for github.com's own page ids |
 | `-<32 hex digits>` suffix on footnote ids        | Per-render nonce                                   |
+| `<g-emoji class="g-emoji" alias="…">` wrapper    | github.com custom element; mdv writes the emoji    |
 
 Leading and trailing whitespace is trimmed on both sides; everything else must match exactly.

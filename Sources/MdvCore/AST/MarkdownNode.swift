@@ -67,6 +67,12 @@ extension MarkdownNode {
         /// Apple's `^[text](attributes)` syntax, which swift-cmark always parses. Children are the
         /// text; cmark's own HTML renderer outputs only the children.
         case attribute(String)
+
+        // MARK: mdv transforms
+
+        /// An emoji shortcode such as `:tada:`, replaced by `EmojiShortcodes` (#10). `shortcode`
+        /// is the alias without colons; `character` is the emoji it stands for.
+        case emoji(shortcode: String, character: String)
     }
 }
 
