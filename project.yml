@@ -19,7 +19,7 @@ packages:
     from: 1.8.2
 
 targets:
-  mdv:
+  MdvApp:
     type: application
     platform: macOS
     sources:
@@ -114,17 +114,37 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/mdv.app/Contents/MacOS/mdv
         BUNDLE_LOADER: $(TEST_HOST)
     dependencies:
-      - target: mdv
+      - target: MdvApp
+
+  # XCTest UI tests (Swift Testing has no UI testing API). Run with `make test-ui`.
+  AppUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: AppUITests
+        excludes:
+          - Fixtures
+      # Copied as a folder; tests find files with `Fixtures.url(named:)`.
+      - path: AppUITests/Fixtures
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: MdvApp
 
 schemes:
   mdv:
     build:
       targets:
-        mdv: all
+        MdvApp: all
         mdv-cli: all
     test:
       targets:
         - AppTests
+        - AppUITests
     run:
       config: Debug
     archive:
