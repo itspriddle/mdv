@@ -14,6 +14,17 @@ extension WebViewCoordinator {
         return line
     }
 
+    /// The source line the outline reads its current section at: `currentSourceLine()` a few
+    /// pixels below the top of the viewport, so a heading scrolled to the top is in its own
+    /// section. Read after each `ScrollPosition.js` report.
+    func sectionSourceLine() async throws -> Double {
+        let result = try await callBridge("return mdv.sectionSourceLine();")
+        guard let line = (result as? NSNumber)?.doubleValue else {
+            throw BridgeError.unexpectedResult
+        }
+        return line
+    }
+
     /// Scrolls so `line` (1-based, in the original file, fractional allowed) is at the top of
     /// the viewport.
     func scroll(toSourceLine line: Double) async throws {

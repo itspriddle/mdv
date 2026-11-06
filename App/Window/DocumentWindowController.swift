@@ -31,8 +31,23 @@ final class DocumentWindowController: NSWindowController {
     /// This window's remote image opt-in (#20); never saved, kept across reloads.
     let remoteImages = RemoteImageOptIn()
 
-    init(coordinator: WebViewCoordinator = WebViewCoordinator()) {
+    // MARK: Outline (#24, `DocumentWindowController+Outline.swift`)
+
+    /// The outline sidebar's content.
+    let outlineController = OutlineViewController()
+    /// The sidebar item, once the window's content is built.
+    var outlineSidebarItem: NSSplitViewItem?
+    /// Whether the outline shows before the sidebar exists (and its last requested state).
+    var wantsOutline: Bool
+    let outlinePreference: OutlinePreference
+
+    init(
+        coordinator: WebViewCoordinator = WebViewCoordinator(),
+        outlinePreference: OutlinePreference = OutlinePreference()
+    ) {
         self.coordinator = coordinator
+        self.outlinePreference = outlinePreference
+        wantsOutline = outlinePreference.showsOutlineInNewWindows
         let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
@@ -46,6 +61,7 @@ final class DocumentWindowController: NSWindowController {
         installLinkHandling()
         configureForOpening(window)
         installScrollTracking()
+        installOutline()
     }
 
     @available(*, unavailable)
@@ -65,7 +81,7 @@ final class DocumentWindowController: NSWindowController {
             // SwiftUI sets the minimum size; the window (and later restoration) owns the size.
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero
-            window?.contentViewController = hostingController
+            window?.contentViewController = makeSplitViewController(content: hostingController)
             documentContentDidChange()
         }
     }
@@ -89,6 +105,7 @@ final class DocumentWindowController: NSWindowController {
             return
         }
         synchronizeWindowTitleWithDocumentName()
+        outlineController.show(DocumentOutline(headings: page.headings))
         coordinator.documentFileURL = markdownDocument.fileURL
         // mdv-doc://<window>/<path>: relative images resolve against the document and are
         // served only from its allowed root (`LocalResourceSchemeHandler`). A moved file gets a
@@ -119,6 +136,7 @@ final class DocumentWindowController: NSWindowController {
                 loadedContentSecurityPolicy = page.contentSecurityPolicy
                 await scrollToPendingFragment()
                 await scrollToPendingSourceLine()
+                await updateOutlinePosition()
                 if !hasShownPage {
                     hasShownPage = true
                     // Arrow keys, space, and Page Down scroll the document right away.

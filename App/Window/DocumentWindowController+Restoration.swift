@@ -27,6 +27,7 @@ extension DocumentWindowController {
         }
         lastSourceLine = line
         window?.invalidateRestorableState()
+        outlineDocumentDidScroll()
     }
 
     /// Adds the reading position to the window's restorable state.
@@ -75,11 +76,13 @@ final class DocumentWindow: NSWindow {
     override func encodeRestorableState(with coder: NSCoder) {
         super.encodeRestorableState(with: coder)
         (windowController as? DocumentWindowController)?.encodeReadingPosition(with: coder)
+        (windowController as? DocumentWindowController)?.encodeOutlineState(with: coder)
     }
 
     override func restoreState(with coder: NSCoder) {
         super.restoreState(with: coder)
         (windowController as? DocumentWindowController)?.restoreReadingPosition(with: coder)
+        (windowController as? DocumentWindowController)?.restoreOutlineState(with: coder)
     }
 }
 

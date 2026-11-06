@@ -5,7 +5,7 @@ import AppKit
 @MainActor
 final class MainMenu {
     /// Features that add menu items, in order. Each feature adds one line here.
-    static let contributions: [any MenuContribution.Type] = [DefaultViewerMenu.self]
+    static let contributions: [any MenuContribution.Type] = [DefaultViewerMenu.self, OutlineMenu.self]
 
     /// The top-level menus features can add to.
     enum Menu: CaseIterable {

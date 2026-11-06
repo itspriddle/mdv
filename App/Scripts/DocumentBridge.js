@@ -36,10 +36,11 @@
     return element.getBoundingClientRect().top + window.scrollY;
   }
 
-  // The source line at the top of the viewport. Line 1 is the top of the page.
-  function currentSourceLine() {
+  // The source line at the top of the viewport (or `offset` CSS pixels below it). Line 1 is
+  // the top of the page.
+  function currentSourceLine(offset = 0) {
     const blocks = annotatedBlocks();
-    const viewportTop = window.scrollY;
+    const viewportTop = window.scrollY + offset;
     // A virtual block for line 1 at the top of the page covers frontmatter and padding.
     let lower = { line: 1, top: 0 };
     let upper = null;
@@ -57,6 +58,16 @@
     }
     const fraction = Math.min(1, Math.max(0, (viewportTop - lower.top) / (upper.top - lower.top)));
     return lower.line + fraction * (upper.line - lower.line);
+  }
+
+  // How far below the top of the viewport the outline's current section is measured, in CSS
+  // pixels, so a heading scrolled to the top (sub-pixel positions included) is in its section.
+  const SECTION_OFFSET = 8;
+
+  // The source line the outline's current section is read at (after each ScrollPosition.js
+  // report; see DocumentWindowController+Outline.swift).
+  function sectionSourceLine() {
+    return currentSourceLine(SECTION_OFFSET);
   }
 
   // Scrolls so `line` is at the top of the viewport. Lines before the first block scroll to
@@ -174,6 +185,7 @@
 
   globalThis.mdv = Object.freeze({
     currentSourceLine,
+    sectionSourceLine,
     scrollToSourceLine,
     scrollToFirstID,
     replaceContent,

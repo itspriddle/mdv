@@ -52,6 +52,9 @@ lock the build database.
     renders off the main actor, drops stale renders, sets `MarkdownDocument.fileStatus`). Live
     reload bypasses `NSDocument.revert`; the window swaps content in place with
     `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
+  - `Outline/`: `OutlineViewController` (the sidebar's `NSOutlineView`) and `OutlinePreference`
+    (default visibility). The tree and current-section logic are `MdvCore` `DocumentOutline`
+    and `OutlineTracker`.
   - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
     actions go in `DocumentWindowController+<Feature>.swift`), `DocumentView` (SwiftUI root).
   - `WebView/`: `WebViewCoordinator` owns the `WKWebView`: `load`, `replaceContent`, and the
