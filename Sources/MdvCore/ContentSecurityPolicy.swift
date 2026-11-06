@@ -18,6 +18,13 @@ public struct ContentSecurityPolicy: Sendable, Equatable {
     /// `file:`: the web view itself is never given file access.
     public static let viewer = ContentSecurityPolicy(imageSources: ["\(DocumentURLScheme.name):", "data:"])
 
+    /// The viewer after the user opts in to remote images for a window (#20): `.viewer` plus
+    /// `https:` images. Never `http:`: cleartext images can be read and swapped on the network,
+    /// and the render option (`RemoteImagePolicy.allowHTTPS`) shows them as placeholders.
+    /// Frames, fonts, styles, and media stay blocked.
+    public static let viewerAllowingRemoteImages = ContentSecurityPolicy(
+        imageSources: viewer.imageSources + ["https:"])
+
     /// The policy as a `<meta http-equiv="Content-Security-Policy">` value.
     public var header: String {
         "default-src 'none'; style-src 'unsafe-inline'; img-src \(imageSources.joined(separator: " "));"

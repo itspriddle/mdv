@@ -37,6 +37,13 @@ public enum DefaultTheme {
         .frontmatter th, .frontmatter td {
           padding: 4px 8px; text-align: left; vertical-align: top;
         }
+        .remote-image {
+          display: inline-flex; flex-direction: column; justify-content: center; align-items: center;
+          box-sizing: border-box; max-width: 100%; min-height: 1.75em; padding: 2px 8px; overflow: hidden;
+          vertical-align: middle; border: 1px dashed #d1d9e0; border-radius: 6px;
+          color: #59636e; background: #f6f8fa; font-size: 0.75em; line-height: 1.3; text-align: center;
+        }
+        .remote-image-host { opacity: 0.75; }
         /* Syntax highlighting: highlight.js 11 `github.css` and `github-dark.css` token colors
            (BSD-3-Clause, (c) 2006 Ivan Sagalaev and contributors; theme by @Hirse). */
         .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag,
@@ -60,6 +67,7 @@ public enum DefaultTheme {
           pre { background: #161b22; }
           a { color: #4493f8; }
           th, td, .footnotes { border-color: #3d444d; }
+          .remote-image { color: #9198a1; background: #151b23; border-color: #3d444d; }
           .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag,
           .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #ff7b72; }
           .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #d2a8ff; }

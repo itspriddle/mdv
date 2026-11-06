@@ -93,9 +93,8 @@ A pleasant, Mac-native document viewer.
   - A navigation policy for links cmark's safe mode blanks (`file:`) and for other schemes
     (#19: blocked, reason shown in the link status overlay; other local files revealed in
     Finder; link hover shows the destination)
-- **Open decision (M2 or M4):** remote `http(s)` images pass the sanitizer and only the CSP
-  blocks them, while VISION says "no remote content"; decide on the per-document opt-in and
-  whether to drop them in `MdvCore`
+- Remote images blocked by default (labeled placeholders in `MdvCore` plus the CSP), with a
+  per-window, unsaved opt-in that loads `https:` images only (see VISION's security model)
 - Find in page, zoom (Cmd +/-/0), print, copy as HTML / Markdown source
 - Outline / table-of-contents sidebar from headings
 - Light/dark appearance following the system
@@ -143,7 +142,8 @@ Make the terminal workflow excellent.
 - `cmd | mdv` streams stdin into a new window without leaving files behind in temp
   directories longer than needed
 - `--theme NAME`, `--flavor NAME`, `--html` / `--output FILE`, `--standalone` (inline CSS)
-- Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting
+- Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting, and
+  remote images (`--html` keeps them, as GitHub does, unless asked to block them; #20)
 - `--wait` blocks until the window closes (for `$EDITOR`-style and git workflows)
 - "Install command line tool" menu item (symlink to `/usr/local/bin` or `~/.local/bin`), plus
   uninstall
