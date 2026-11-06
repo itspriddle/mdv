@@ -75,6 +75,12 @@ editor or a browser.
   notifications and revert for live reload, per-window state restoration, tabs, recents, the
   responder chain for menu commands, and a window controller to own the web view. SwiftUI stays
   for window content (sidebar, find bar, banners).
+- **Default handler:** mdv declares Markdown with `LSHandlerRank: Alternate` and asks, never
+  grabs (#23). `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
+  mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
+  non-modal panel, when a document opens while another app is the default ("Not Now" snoozes
+  30 days, "Don't Ask Again" is permanent), and the app menu has "Make mdv the Default Markdown
+  Viewer" until Settings exists (M3). Plain text stays `None`.
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, GitHub Actions.
