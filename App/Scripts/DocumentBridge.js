@@ -64,7 +64,8 @@
   // pixels, so a heading scrolled to the top (sub-pixel positions included) is in its section.
   const SECTION_OFFSET = 8;
 
-  // The source line the outline's current section is read at (see ScrollPosition.js).
+  // The source line the outline's current section is read at (after each ScrollPosition.js
+  // report; see DocumentWindowController+Outline.swift).
   function sectionSourceLine() {
     return currentSourceLine(SECTION_OFFSET);
   }

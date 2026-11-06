@@ -34,11 +34,8 @@ extension DocumentWindowController {
         window?.invalidateRestorableState()
     }
 
-    /// Called from `init`: the toolbar, and the outline's links to the web view.
+    /// Called from `init`: the toolbar, and the outline's link to the web view.
     func installOutline() {
-        coordinator.sectionLineDidChange = { [weak self] line in
-            self?.outlineController.scrolled(to: line)
-        }
         outlineController.onJump = { [weak self] heading in
             self?.jump(to: heading)
         }
@@ -81,11 +78,37 @@ extension DocumentWindowController {
         }
     }
 
-    /// Reads the reading position after a (re)display, since source lines may have moved.
+    /// The document scrolled (a `ScrollPosition.js` report, at most one per 250 ms while
+    /// scrolling, and always one after scrolling stops): move the current section.
+    func outlineDocumentDidScroll() {
+        Task { await updateOutlinePosition() }
+    }
+
+    /// Reads the outline's reading position (`sectionSourceLine()`) and passes it on. Also
+    /// called after each (re)display, since source lines may have moved.
     func updateOutlinePosition() async {
         if let line = try? await coordinator.sectionSourceLine() {
             outlineController.scrolled(to: line)
         }
+    }
+}
+
+// MARK: - Restoration
+
+extension DocumentWindowController {
+    /// The restorable-state key for the outline's visibility (a `Bool`), saved by
+    /// `DocumentWindow` with the window's own state.
+    static let outlineVisibleStateKey = "mdvOutlineVisible"
+
+    func encodeOutlineState(with coder: NSCoder) {
+        coder.encode(isOutlineVisible, forKey: Self.outlineVisibleStateKey)
+    }
+
+    func restoreOutlineState(with coder: NSCoder) {
+        guard coder.containsValue(forKey: Self.outlineVisibleStateKey) else {
+            return
+        }
+        isOutlineVisible = coder.decodeBool(forKey: Self.outlineVisibleStateKey)
     }
 }
 

@@ -46,7 +46,10 @@ struct DocumentOutlineTests {
     @Test("duplicate headings are separate entries with unique ids")
     func duplicates() {
         let tree = outline("# Notes\n\n## Example\n\n## Example\n\n# Notes\n")
-        #expect(shape(tree.roots) == [.node("notes", [.node("example", []), .node("example-1", [])]), .node("notes-1", [])])
+        #expect(
+            shape(tree.roots) == [
+                .node("notes", [.node("example", []), .node("example-1", [])]), .node("notes-1", []),
+            ])
         #expect(tree.headings.map(\.text) == ["Notes", "Example", "Example", "Notes"])
     }
 
@@ -161,11 +164,12 @@ struct OutlineTrackerTests {
         tracker.scrolled(to: 6)
         #expect(tracker.selection == "two")
         // Two lines inserted at the top: the same position now reads as section one.
-        let shifted = DocumentOutline(headings: outline.headings.map {
-            var heading = $0
-            heading.sourceLine = (heading.sourceLine ?? 0) + 2
-            return heading
-        })
+        let shifted = DocumentOutline(
+            headings: outline.headings.map {
+                var heading = $0
+                heading.sourceLine = (heading.sourceLine ?? 0) + 2
+                return heading
+            })
         tracker.update(shifted)
         #expect(tracker.selection == "one")
         tracker.browsed(to: "three")

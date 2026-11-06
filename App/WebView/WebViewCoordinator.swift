@@ -10,7 +10,7 @@ import WebKit
 /// tree only embeds `webView` (`MarkdownWebView`); it never loads content.
 @MainActor
 final class WebViewCoordinator: NSObject {
-    let webView: WKWebView
+    let webView: DocumentWebView
 
     /// Serves this window's `mdv-doc` URLs (scoped local images).
     let localResources: LocalResourceSchemeHandler
@@ -36,19 +36,13 @@ final class WebViewCoordinator: NSObject {
     /// Performs every link action except in-page scrolling (opening documents and URLs).
     var linkHandler: ((LinkAction, LinkOpening) -> Void)?
 
-    // MARK: Outline (#24)
-
-    /// Called with the outline's reading position (`sectionSourceLine()`) after the document
-    /// scrolls, debounced by `ScrollPosition.js`.
-    var sectionLineDidChange: ((Double) -> Void)?
-
     /// - Parameter configuration: a fresh configuration (`WebViewConfiguration.make()`); this
     ///   coordinator installs its own `mdv-doc` scheme handler on it, so it can't be reused.
     init(configuration: WKWebViewConfiguration = WebViewConfiguration.make()) {
         let localResources = LocalResourceSchemeHandler()
         configuration.setURLSchemeHandler(localResources, forURLScheme: DocumentURLScheme.name)
         self.localResources = localResources
-        webView = WKWebView(frame: .zero, configuration: configuration)
+        webView = DocumentWebView(frame: .zero, configuration: configuration)
         super.init()
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -64,10 +58,6 @@ final class WebViewCoordinator: NSObject {
         webView.configuration.userContentController.add(
             LinkHoverMessageHandler(coordinator: self), contentWorld: AppScripts.world,
             name: LinkHoverMessageHandler.name)
-        // Scroll position reports from `ScrollPosition.js`, likewise app world only.
-        webView.configuration.userContentController.add(
-            ScrollPositionMessageHandler(coordinator: self), contentWorld: AppScripts.world,
-            name: ScrollPositionMessageHandler.name)
     }
 
     /// Scopes local image access to the document at `fileURL` (its `LocalResourceRoot`) and

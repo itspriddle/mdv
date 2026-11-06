@@ -58,7 +58,9 @@ final class OutlineTests {
     }
 
     /// Opens `source` in a window with the outline shown, once the page has loaded.
-    func open(_ source: String, outlineVisible: Bool = true) async throws -> (MarkdownDocument, DocumentWindowController) {
+    func open(_ source: String, outlineVisible: Bool = true) async throws -> (
+        MarkdownDocument, DocumentWindowController
+    ) {
         try Data(source.utf8).write(to: file)
         let document = try MarkdownDocument(contentsOf: file, ofType: Self.markdownType)
         documents.append(document)
@@ -67,6 +69,9 @@ final class OutlineTests {
         document.addWindowController(controller)
         controller.window?.layoutIfNeeded()
         try await until("the first load") { controller.coordinator.hasLoadedPage }
+        // The first display ends by focusing the web view; wait, so it doesn't take focus from
+        // the outline mid-test.
+        try await until("the web view focused") { controller.window?.firstResponder === controller.coordinator.webView }
         return (document, controller)
     }
 
@@ -186,8 +191,9 @@ final class OutlineTests {
         defer { close() }
         let (_, controller) = try await open(Self.sections)
         let outline = controller.outlineController
-        let three = try #require(outline.tracker.outline.headings.last)
-        controller.jump(to: three)
+        controller.window?.makeFirstResponder(outline.outlineView)
+        outline.outlineView.selectRowIndexes(IndexSet(integer: row("three", in: outline)), byExtendingSelection: false)
+        outline.outlineView.onActivate?()
         try await until("the jump landed") { outline.tracker.currentSection == "two" }
         // The page is at the bottom: "Three" can't reach the top of the view.
         try await Task.sleep(for: .milliseconds(300))
@@ -205,7 +211,7 @@ final class OutlineTests {
         missing.slug = "no-such-id"
         controller.jump(to: missing)
         try await until("scrolled to the line") {
-            try await controller.coordinator.currentSourceLine() >= Double(two.sourceLine ?? 0) - 0.01
+            try await controller.coordinator.sectionSourceLine() >= Double(two.sourceLine ?? 0)
         }
     }
 
@@ -251,9 +257,11 @@ final class OutlineTests {
         #expect(view.isItemExpanded(view.item(atRow: row("heading-2", in: outline))))
         #expect(selectedID(outline) == "heading-40")
     }
+}
 
-    // MARK: Visibility
+// MARK: - Visibility
 
+extension OutlineTests {
     @Test("toggling shows and hides the outline and sets the default for new windows")
     func toggle() async throws {
         defer { close() }
@@ -278,12 +286,34 @@ final class OutlineTests {
         #expect(defaults.bool(forKey: OutlinePreference.key))
     }
 
+    @Test("window restoration keeps each window's outline visibility")
+    func restoration() async throws {
+        defer { close() }
+        let (_, controller) = try await open("# One\n", outlineVisible: true)
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        controller.encodeOutlineState(with: archiver)
+        archiver.finishEncoding()
+
+        let (_, restored) = try await open("# One\n", outlineVisible: false)
+        #expect(!restored.isOutlineVisible)
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        restored.restoreOutlineState(with: unarchiver)
+        #expect(restored.isOutlineVisible)
+        #expect(!defaults.bool(forKey: OutlinePreference.key), "restoring doesn't change the default")
+
+        let window = try #require(controller.window)
+        let coder = KeyRecordingCoder()
+        window.encodeRestorableState(with: coder)
+        #expect(coder.keys.contains(DocumentWindowController.outlineVisibleStateKey))
+    }
+
     @Test("the window has an outline toolbar button")
     func toolbarButton() async throws {
         defer { close() }
         let (_, controller) = try await open("# One\n")
         let toolbar = try #require(controller.window?.toolbar)
-        let item = try #require(toolbar.items.first { $0.itemIdentifier == DocumentWindowController.toggleOutlineToolbarItem })
+        let item = try #require(
+            toolbar.items.first { $0.itemIdentifier == DocumentWindowController.toggleOutlineToolbarItem })
         #expect(item.action == #selector(DocumentWindowController.toggleOutline(_:)))
     }
 
@@ -306,49 +336,14 @@ final class OutlineTests {
 
     @Test("the scroll position handler is invisible to the page world")
     func handlerNotInPageWorld() async throws {
-        let coordinator = WebViewCoordinator()
-        try await coordinator.load(DocumentContent(source: "text", fallbackTitle: "t.md").page, baseURL: nil)
+        defer { close() }
+        let (_, controller) = try await open("text")
         let script = "return typeof globalThis.webkit?.messageHandlers?.scrollPosition;"
-        let pageWorld = try await coordinator.webView.callAsyncJavaScript(
-            script, arguments: [:], in: nil, contentWorld: .page)
+        let webView = controller.coordinator.webView
+        let pageWorld = try await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: .page)
         #expect(pageWorld as? String == "undefined")
-        let appWorld = try await coordinator.webView.callAsyncJavaScript(
+        let appWorld = try await webView.callAsyncJavaScript(
             script, arguments: [:], in: nil, contentWorld: AppScripts.world)
         #expect(appWorld as? String == "object")
-    }
-
-    @Test("scroll reports are debounced")
-    func debounced() async throws {
-        defer { close() }
-        let (_, controller) = try await open(Self.sections)
-        var reports: [Double] = []
-        controller.coordinator.sectionLineDidChange = { reports.append($0) }
-        _ = try await controller.coordinator.webView.callAsyncJavaScript(
-            """
-            for (let y = 0; y < 2000; y += 20) {
-              window.scrollTo(0, y);
-              await new Promise((resolve) => setTimeout(resolve, 16));
-            }
-            return true;
-            """, arguments: [:], in: nil, contentWorld: AppScripts.world)
-        try await until("a report") { !reports.isEmpty }
-        try await Task.sleep(for: .milliseconds(300))
-        // 100 scroll steps over about 1.6 s: a report at least every 200 ms, not one per step.
-        #expect(reports.count < 30, "\(reports.count) reports")
-        let last = try #require(reports.last)
-        #expect(abs(last - (try await controller.coordinator.sectionSourceLine())) < 0.001)
-    }
-
-    @Test("scroll messages must be finite source lines")
-    func messageValidation() {
-        let sourceLine = ScrollPositionMessageHandler.sourceLine(from:)
-        #expect(sourceLine(NSNumber(value: 12.5)) == 12.5)
-        #expect(sourceLine(NSNumber(value: 1)) == 1)
-        for invalid: Any in [
-            NSNumber(value: 0), NSNumber(value: -3), NSNumber(value: Double.nan), NSNumber(value: Double.infinity),
-            NSNumber(value: true), "12", NSNull(),
-        ] {
-            #expect(sourceLine(invalid) == nil, "\(invalid)")
-        }
     }
 }

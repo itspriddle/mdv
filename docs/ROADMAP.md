@@ -79,6 +79,8 @@ corpus of READMEs renders to match GitHub; renderer is fuzz/stress tested on lar
 A pleasant, Mac-native document viewer.
 
 - Open via Finder, Open dialog, drag and drop, recents, Dock; tabs; window restoration
+  (#22: drops on a window open as tabs; tabs and restoration follow the system settings;
+  reading position restored by source line; see VISION)
 - Offer to become the default `.md` handler
 - Live reload on file change (kqueue `DispatchSource` by path; `NSFilePresenter` is too slow and
   misses deletes), swapping content in place and preserving the reading position
