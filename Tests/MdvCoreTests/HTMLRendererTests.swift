@@ -71,9 +71,15 @@ struct HTMLRendererBlockTests {
         #expect(html("***") == "<hr />\n")
     }
 
-    @Test("HTML blocks pass through unchanged (until #7)")
+    @Test("HTML blocks pass through unchanged when sanitizing is off")
     func htmlBlock() {
-        #expect(html("<div class=\"x\">\n*hi*\n</div>") == "<div class=\"x\">\n*hi*\n</div>\n")
+        let renderer = HTMLRenderer(options: RenderOptions(sanitize: false))
+        #expect(renderer.render("<div class=\"x\">\n*hi*\n</div>").html == "<div class=\"x\">\n*hi*\n</div>\n")
+    }
+
+    @Test("HTML blocks are sanitized by default")
+    func htmlBlockSanitized() {
+        #expect(html("<div class=\"x\">\n*hi*\n</div>") == "<div>\n*hi*\n</div>\n")
     }
 }
 
@@ -121,8 +127,10 @@ struct HTMLRendererInlineTests {
         #expect(html("![x\ny](i.png)") == "<p><img src=\"i.png\" alt=\"x y\" /></p>\n")
     }
 
-    @Test("inline raw HTML passes through unchanged (until #7)")
+    @Test("inline raw HTML passes through unchanged when sanitizing is off")
     func inlineHTML() {
+        let renderer = HTMLRenderer(options: RenderOptions(sanitize: false))
+        #expect(renderer.render("a <span onclick=\"x\">b").html == "<p>a <span onclick=\"x\">b</p>\n")
         #expect(html("a <span title=\"x\">b</span>") == "<p>a <span title=\"x\">b</span></p>\n")
     }
 

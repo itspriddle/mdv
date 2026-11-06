@@ -19,8 +19,13 @@ public struct RenderOptions: Sendable, Equatable {
     /// first-`h1` title are filled in either way.
     public var headingAnchors = true
 
-    public init(extensions: Set<MarkdownExtension> = MarkdownExtension.gfm) {
+    /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
+    /// for trusted input (the spec suites expect raw HTML to pass through).
+    public var sanitize: Bool
+
+    public init(extensions: Set<MarkdownExtension> = MarkdownExtension.gfm, sanitize: Bool = true) {
         self.extensions = extensions
+        self.sanitize = sanitize
     }
 }
 

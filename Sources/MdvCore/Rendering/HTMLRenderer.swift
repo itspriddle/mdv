@@ -1,9 +1,10 @@
 /// mdv's HTML renderer: parses with `MarkdownParser` and walks the resulting `MarkdownNode` tree.
 ///
 /// Output for CommonMark nodes matches cmark's `cmark_render_html` byte for byte (safe mode for
-/// URLs, raw HTML passed through), so the CommonMark/GFM spec suites can check it directly. GFM
-/// tables and strikethrough match cmark too; task lists and footnotes follow `RenderOptions.gfmMarkup`. Later
-/// M1 features (anchors, emoji, sanitizing, highlighting, source lines) hook in here.
+/// URLs; raw HTML passed through when `RenderOptions.sanitize` is off), so the CommonMark/GFM
+/// spec suites can check it directly. Raw HTML is otherwise filtered by `HTMLSanitizer`. GFM
+/// tables and strikethrough match cmark too; task lists and footnotes follow
+/// `RenderOptions.gfmMarkup`. Later M1 features (emoji, highlighting, source lines) hook in here.
 public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
 
@@ -48,6 +49,7 @@ public struct HTMLRenderer: MarkdownRenderer {
     /// become heading ids when `options.headingAnchors` is on.
     private func render(_ root: MarkdownNode, headings: [Heading], into output: inout HTMLOutput) {
         var anchors = (options.headingAnchors ? headings : []).makeIterator()
+        let root = options.sanitize ? HTMLSanitizer().sanitize(root) : root
         // Walk with an explicit stack rather than recursion so deep trees cannot overflow it.
         var stack: [Step] = [.enter(root, Context())]
         while let step = stack.popLast() {
@@ -261,12 +263,12 @@ extension HTMLRenderer {
             output.text(block.literal)
             output.raw("</code></pre>\n")
         case .htmlBlock(let html):
-            // TODO(#7): sanitize raw HTML with the allowlist instead of passing it through.
+            // Already sanitized by `HTMLSanitizer` unless `options.sanitize` is off.
             output.newlineIfNeeded()
             output.raw(html)
             output.newlineIfNeeded()
         case .htmlInline(let html):
-            // TODO(#7): sanitize raw HTML with the allowlist instead of passing it through.
+            // Already sanitized by `HTMLSanitizer` unless `options.sanitize` is off.
             output.raw(html)
         case .thematicBreak:
             output.newlineIfNeeded()
