@@ -23,10 +23,18 @@ lock the build database.
 
 - `Sources/MdvCore`: all rendering logic (parse, transform, HTML, themes, preprocessors). No UI
   imports. New logic goes here so it is testable with `swift test`.
+  - `Parsing/`: `MarkdownParser` wraps swift-cmark's C API (the only code that imports
+    `cmark_gfm`); `MarkdownExtension` lists GFM extensions toggled via `RenderOptions`.
+  - `AST/`: `MarkdownNode`, our `Sendable` syntax tree (CommonMark + GFM kinds, source ranges).
+  - `Rendering/`: `HTMLRenderer` walks the AST to HTML; `MarkdownRenderer`, `RenderOptions`, and
+    `RenderedDocument` are the public API.
 - `App/`: SwiftUI app (module `MdvApp`), kept thin.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
+- `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
+  `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
+  a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
 - `project.yml`: XcodeGen spec. Never commit `mdv.xcodeproj`; edit `project.yml` instead.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.

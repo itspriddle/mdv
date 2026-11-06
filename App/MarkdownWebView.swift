@@ -2,7 +2,8 @@ import SwiftUI
 import WebKit
 
 /// Displays rendered Markdown. JavaScript is disabled until a vetted, bundle-only
-/// script policy lands (syntax highlighting / math in later milestones).
+/// script policy lands (math in a later milestone). Syntax highlighting needs none: it is
+/// static markup written at render time.
 struct MarkdownWebView: NSViewRepresentable {
     let html: String
     let baseURL: URL?

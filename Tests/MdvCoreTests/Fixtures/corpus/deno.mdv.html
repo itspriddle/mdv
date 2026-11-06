@@ -1,0 +1,68 @@
+<h1 id="deno"><a class="anchor" aria-hidden="true" href="#deno"></a>Deno</h1>
+<p><a href="https://crates.io/crates/deno"><img src="https://img.shields.io/crates/v/deno.svg" alt="" /></a>
+<a href="https://twitter.com/intent/follow?screen_name=deno_land"><img src="https://img.shields.io/twitter/follow/deno_land.svg?style=social&amp;label=Follow" alt="Twitter badge" /></a> <a href="https://bsky.app/profile/deno.land"><img src="https://img.shields.io/badge/Follow-whitesmoke?logo=bluesky" alt="Bluesky badge" /></a>
+<a href="https://discord.gg/deno"><img src="https://img.shields.io/discord/684898665143206084?logo=discord&amp;style=social" alt="Discord badge" /></a> <a href="https://www.youtube.com/@deno_land"><img src="https://img.shields.io/youtube/channel/subscribers/UCqC2G2M-rg4fzg1esKFLFIw?style=social" alt="YouTube badge" /></a></p>
+<img align="right" src="https://deno.land/logo.svg" height="150px" alt="the deno mascot dinosaur standing in the rain">
+<p><a href="https://deno.com">Deno</a>
+(<a href="https://ipa-reader.com/?text=%CB%88di%CB%90no%CA%8A">/ˈdiːnoʊ/</a>, pronounced
+<code>dee-no</code>) is a JavaScript, TypeScript, and WebAssembly runtime with secure
+defaults and a great developer experience. It's built on <a href="https://v8.dev/">V8</a>,
+<a href="https://www.rust-lang.org/">Rust</a>, and <a href="https://tokio.rs/">Tokio</a>.</p>
+<p>Learn more about the Deno runtime
+<a href="https://docs.deno.com/runtime/manual">in the documentation</a>.</p>
+<h2 id="installation"><a class="anchor" aria-hidden="true" href="#installation"></a>Installation</h2>
+<p>Install the Deno runtime on your system using one of the commands below. Note
+that there are a number of ways to install Deno - a comprehensive list of
+installation options can be found
+<a href="https://docs.deno.com/runtime/manual/getting_started/installation">here</a>.</p>
+<p>Shell (Mac, Linux):</p>
+<pre><code class="language-sh">curl -fsSL https://deno.land/install.sh | sh
+</code></pre>
+<p>PowerShell (Windows):</p>
+<pre><code class="language-powershell"><span class="hljs-built_in">irm</span> https://deno.land/install.ps1 | <span class="hljs-built_in">iex</span>
+</code></pre>
+<p><a href="https://formulae.brew.sh/formula/deno">Homebrew</a> (Mac):</p>
+<pre><code class="language-sh">brew install deno
+</code></pre>
+<p><a href="https://community.chocolatey.org/packages/deno">Chocolatey</a> (Windows):</p>
+<pre><code class="language-powershell">choco install deno
+</code></pre>
+<p><a href="https://winstall.app/apps/DenoLand.Deno">WinGet</a> (Windows):</p>
+<pre><code class="language-powershell">winget install <span class="hljs-literal">--id</span>=DenoLand.Deno
+</code></pre>
+<p><a href="https://scoop.sh/#/apps?q=deno&amp;id=678d8fb557b611df996989c675b1099630a5bbee">Scoop</a>
+(Windows):</p>
+<pre><code class="language-powershell">scoop install main/deno
+</code></pre>
+<h3 id="build-and-install-from-source"><a class="anchor" aria-hidden="true" href="#build-and-install-from-source"></a>Build and install from source</h3>
+<p>Complete instructions for building Deno from source can be found
+<a href="https://github.com/denoland/deno/blob/main/.github/CONTRIBUTING.md#building-from-source">here</a>.</p>
+<h2 id="your-first-deno-program"><a class="anchor" aria-hidden="true" href="#your-first-deno-program"></a>Your first Deno program</h2>
+<p>Deno can be used for many different applications, but is most commonly used to
+build web servers. Create a file called <code>server.ts</code> and include the following
+TypeScript code:</p>
+<pre><code class="language-ts"><span class="hljs-title class_">Deno</span>.<span class="hljs-title function_">serve</span>(<span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">_req</span>: <span class="hljs-title class_">Request</span></span>) =&gt;</span> {
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Response</span>(<span class="hljs-string">&quot;Hello, world!&quot;</span>);
+});
+</code></pre>
+<p>Run your server with the following command:</p>
+<pre><code class="language-sh">deno run --allow-net server.ts
+</code></pre>
+<p>This should start a local web server on
+<a href="http://localhost:8000">http://localhost:8000</a>.</p>
+<p>Learn more about writing and running Deno programs
+<a href="https://docs.deno.com/runtime/manual">in the docs</a>.</p>
+<h2 id="additional-resources"><a class="anchor" aria-hidden="true" href="#additional-resources"></a>Additional resources</h2>
+<ul>
+<li><strong><a href="https://docs.deno.com">Deno Docs</a></strong>: official guides and reference docs for
+the Deno runtime, <a href="https://deno.com/deploy">Deno Deploy</a>, and beyond.</li>
+<li><strong><a href="https://jsr.io/@std">Deno Standard Library</a></strong>: officially supported common
+utilities for Deno programs.</li>
+<li><strong><a href="https://jsr.io/">JSR</a></strong>: The open-source package registry for modern
+JavaScript and TypeScript</li>
+<li><strong><a href="https://deno.com/blog">Developer Blog</a></strong>: Product updates, tutorials, and
+more from the Deno team.</li>
+</ul>
+<h2 id="contributing"><a class="anchor" aria-hidden="true" href="#contributing"></a>Contributing</h2>
+<p>We appreciate your help! To contribute, please read our
+<a href=".github/CONTRIBUTING.md">contributing instructions</a>.</p>

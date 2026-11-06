@@ -2,27 +2,6 @@ import Testing
 
 @testable import MdvCore
 
-@Suite("SwiftMarkdownRenderer")
-struct MarkdownRendererTests {
-    let renderer = SwiftMarkdownRenderer()
-
-    @Test("renders a heading")
-    func heading() {
-        #expect(renderer.renderBody("# Hello").contains("<h1>Hello</h1>"))
-    }
-
-    @Test("renders emphasis inside a paragraph")
-    func emphasis() {
-        #expect(renderer.renderBody("some *text*") == "<p>some <em>text</em></p>\n")
-    }
-
-    @Test("renders GFM tables")
-    func table() {
-        let html = renderer.renderBody("| a | b |\n|---|---|\n| 1 | 2 |")
-        #expect(html.contains("<table>"))
-    }
-}
-
 @Suite("HTMLDocument")
 struct HTMLDocumentTests {
     @Test("wraps body with CSP and stylesheet")

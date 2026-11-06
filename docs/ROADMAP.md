@@ -7,7 +7,7 @@ them when the milestone is broken down.
 | Milestone                               | Theme                          | Release   | Status |
 | --------------------------------------- | ------------------------------ | --------- | ------ |
 | [M0](#m0-foundation)                    | Foundation                     | -         | Done   |
-| [M1](#m1-core-rendering)                | Core rendering                 | -         |        |
+| [M1](#m1-core-rendering)                | Core rendering                 | -         | Done   |
 | [M2](#m2-viewer-app)                    | Viewer app                     | -         |        |
 | [M3](#m3-themes)                        | Themes                         | -         |        |
 | [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         |        |
@@ -33,9 +33,11 @@ Get a buildable, tested, linted walking skeleton and a shared plan.
 
 ## M1: Core rendering
 
+**Status:** Done (2026-11-06).
+
 Make the rendered output correct and complete.
 
-- Custom `MarkupVisitor` HTML renderer replacing `HTMLFormatter`
+- Parse with swift-cmark into our own AST and render HTML from it, replacing swift-markdown
 - CommonMark + GFM: tables (with alignment), strikethrough, autolinks, task list checkboxes,
   footnotes
 - Heading anchors (GitHub-compatible slugs) and duplicate handling
@@ -44,14 +46,33 @@ Make the rendered output correct and complete.
   values (e.g. `title`) to the app
 - Emoji shortcodes (`:tada:`) using the GitHub emoji set
 - Raw HTML policy: allowlist sanitizer; dangerous tags and attributes removed
-- Syntax highlighting for fenced code blocks. **Decision needed:** bundled highlight.js run in
-  the webview (JS from the bundle only) vs. a native Swift highlighter at render time (works for
-  `--html` output with no JS)
+- Syntax highlighting for fenced code blocks
 - Source line annotations (`data-source-line`) to enable scroll sync later
-- Golden/snapshot test corpus (CommonMark spec, GFM spec samples, real-world READMEs)
+- Golden/snapshot test corpus (CommonMark spec, GFM spec samples, real-world READMEs), stress
+  and fuzz tests
+
+**Decisions:**
+
+- Parse with `swiftlang/swift-cmark` (cmark-gfm) directly, not swift-markdown, which can't enable
+  GFM autolinks or footnotes and forces smart punctuation. Our own `MarkdownNode` AST and
+  `HTMLRenderer` sit on top.
+- Syntax highlighting is native, at render time: a vendored, pinned highlight.js (BSD-3) in
+  JavaScriptCore inside `MdvCore`, emitting static class-based spans, so `--html` works and the
+  viewer keeps JavaScript off.
+- Raw HTML goes through our own allowlist sanitizer modeled on GitHub's (no SwiftSoup); it only
+  touches raw-HTML nodes, since renderer output is trusted.
+- TOML frontmatter is detected and hidden but not parsed; YAML is parsed with Yams.
+- The README corpus is compared with github.com's file view (contents API,
+  `application/vnd.github.html`); neither `POST /markdown` mode matches it.
+- Generated ids are unique per document: on a collision, footnote ids yield and heading slugs
+  keep their GitHub value.
+
+**Exceptions:** [spec](../Tests/MdvCoreTests/Fixtures/spec/exceptions.json) (GFM `tagfilter`
+only, permanent: the sanitizer replaces it) and
+[README corpus](../Tests/MdvCoreTests/Fixtures/corpus/README.md#exceptions).
 
 **Exit criteria:** GFM spec examples pass (or have documented exceptions); a representative
-corpus of READMEs renders to match GitHub; renderer is fuzz/stress tested on large inputs.
+corpus of READMEs renders to match GitHub; renderer is fuzz/stress tested on large inputs. ✅
 
 ## M2: Viewer app
 
@@ -63,6 +84,13 @@ A pleasant, Mac-native document viewer.
 - Relative images and links resolve against the file (`loadFileURL` with read access scoped
   to the document's folder)
 - Link handling: local `.md` opens in mdv, anchors scroll, external URLs open in the browser
+  - In-page links (`#heading`, `#fn-…`) scroll in place; `#foo` falls back to
+    `#user-content-foo` (raw HTML ids are prefixed); raw HTML `<h1>`–`<h6>` get anchors as on
+    GitHub
+  - A navigation policy for links cmark's safe mode blanks (`file:`) and for other schemes
+- **Open decision (M2 or M4):** remote `http(s)` images pass the sanitizer and only the CSP
+  blocks them, while VISION says "no remote content"; decide on the per-document opt-in and
+  whether to drop them in `MdvCore`
 - Find in page, zoom (Cmd +/-/0), print, copy as HTML / Markdown source
 - Outline / table-of-contents sidebar from headings
 - Light/dark appearance following the system
@@ -75,7 +103,8 @@ A pleasant, Mac-native document viewer.
 CSS themes as a first-class feature.
 
 - Bundled themes: GitHub (Primer, light and dark), Google Docs-style, minimal/serif
-- Theme model in `MdvCore`: name, stylesheet(s), light/dark variants, optional print CSS
+- Theme model in `MdvCore`: name, stylesheet(s), light/dark variants, optional print CSS; owns
+  the highlight.js token CSS now in `DefaultTheme`
 - Custom themes: CSS files in `~/Library/Application Support/mdv/Themes`, hot-reloaded
 - Theme picker per window plus a global default in a Settings window
 - Font size and content width controls layered on top of any theme
@@ -95,6 +124,7 @@ Control how source becomes Markdown.
 - Custom preprocessor: user-configured executable, document on stdin, Markdown on stdout,
   timeout and size limits, explicit opt-in with a clear warning
 - Per-document overrides via frontmatter (`mdv: { flavor: commonmark, theme: github }`)
+- GitHub alerts (`> [!NOTE]`) in the GFM flavor (rendered as plain block quotes in M1)
 - Settings UI for flavors and preprocessors
 
 **Exit criteria:** each flavor has its own test corpus; a misbehaving script (hang, crash,
@@ -108,6 +138,7 @@ Make the terminal workflow excellent.
 - `cmd | mdv` streams stdin into a new window without leaving files behind in temp
   directories longer than needed
 - `--theme NAME`, `--flavor NAME`, `--html` / `--output FILE`, `--standalone` (inline CSS)
+- Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting
 - `--wait` blocks until the window closes (for `$EDITOR`-style and git workflows)
 - "Install command line tool" menu item (symlink to `/usr/local/bin` or `~/.local/bin`), plus
   uninstall
@@ -136,6 +167,7 @@ Ship it.
 - Version bumping keeps `MARKETING_VERSION` and `MdvInfo.version` in sync
 - Homebrew cask
 - Make `itspriddle/<name>` public; project site / landing page; CONTRIBUTING and issue templates
+- Acknowledgements for bundled third-party code (highlight.js BSD-3 notice, gemoji data)
 
 **Exit criteria:** a 1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
 updates itself to 1.0.1 via Sparkle.

@@ -1,0 +1,189 @@
+<p>Any file that contains a <a href="https://yaml.org/">YAML</a> front matter block will be
+processed by Jekyll as a special file. The front matter must be the first thing
+in the file and must take the form of valid YAML set between triple-dashed
+lines. Here is a basic example:</p>
+<pre><code class="language-yaml"><span class="hljs-meta">---</span>
+<span class="hljs-attr">layout:</span> <span class="hljs-string">post</span>
+<span class="hljs-attr">title:</span> <span class="hljs-string">Blogging</span> <span class="hljs-string">Like</span> <span class="hljs-string">a</span> <span class="hljs-string">Hacker</span>
+<span class="hljs-meta">---
+</span></code></pre>
+<p>Between these triple-dashed lines, you can set predefined variables (see below
+for a reference) or even create custom ones of your own. These variables will
+then be available for you to access using Liquid tags both further down in the
+file and also in any layouts or includes that the page or post in question
+relies on.</p>
+<div>
+  <h5>UTF-8 Character Encoding Warning</h5>
+  <p>
+    If you use UTF-8 encoding, make sure that no <code>BOM</code> header
+    characters exist in your files or very, very bad things will happen to
+    Jekyll. This is especially relevant if you’re running
+    <a href="{{ '/docs/installation/windows/' | relative_url }}">Jekyll on Windows</a>.
+  </p>
+</div>
+<div>
+  <h5>Front Matter Variables Are Optional</h5>
+  <p>
+    If you want to use <a href="{{ '/docs/variables/' | relative_url }}">Liquid tags and variables</a>
+    but don’t need anything in your front matter, just leave it empty! The set
+    of triple-dashed lines with nothing in between will still get Jekyll to
+    process your file. (This is useful for things like CSS and RSS feeds!)
+  </p>
+</div>
+<h2 id="predefined-global-variables"><a class="anchor" aria-hidden="true" href="#predefined-global-variables"></a>Predefined Global Variables</h2>
+<p>There are a number of predefined global variables that you can set in the
+front matter of a page or post.</p>
+<div>
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <p><code>layout</code></p>
+      </td>
+      <td>
+        <p>
+<pre><code>      If set, this specifies the layout file to use. Use the layout file
+      name without the file extension. Layout files must be placed in the
+      &lt;code&gt;_layouts&lt;/code&gt; directory.
+
+    &lt;/p&gt;
+    &lt;ul&gt;
+      &lt;li&gt;
+        Using &lt;code&gt;null&lt;/code&gt; will produce a file without using a layout
+        file. This is overridden if the file is a post/document and has a
+        layout defined in the &lt;a href=&quot;{{ '/docs/configuration/front-matter-defaults/' | relative_url }}&quot;&gt;
+        front matter defaults&lt;/a&gt;.
+      &lt;/li&gt;
+      &lt;li&gt;
+        Starting from version 3.5.0, using &lt;code&gt;none&lt;/code&gt; in a post/document will
+        produce a file without using a layout file regardless of front matter defaults.
+        Using &lt;code&gt;none&lt;/code&gt; in a page will cause Jekyll to attempt to
+        use a layout named &quot;none&quot;.
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+  &lt;td&gt;
+    &lt;p&gt;&lt;code&gt;permalink&lt;/code&gt;&lt;/p&gt;
+  &lt;/td&gt;
+  &lt;td&gt;
+    &lt;p&gt;
+
+      If you need your processed blog post URLs to be something other than
+      the site-wide style (default &lt;code&gt;/year/month/day/title.html&lt;/code&gt;), then you can set
+      this variable and it will be used as the final URL.
+
+    &lt;/p&gt;
+  &lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+  &lt;td&gt;
+    &lt;p&gt;&lt;code&gt;published&lt;/code&gt;&lt;/p&gt;
+  &lt;/td&gt;
+  &lt;td&gt;
+    &lt;p&gt;
+      Set to false if you don’t want a specific post to show up when the
+      site is generated.
+    &lt;/p&gt;
+  &lt;/td&gt;
+&lt;/tr&gt;
+</code></pre>
+  </p></td></tr></tbody>
+</table>
+</div>
+<div>
+  <h5>Render Posts Marked As Unpublished</h5>
+  <p>
+    To preview unpublished pages, run `jekyll serve` or `jekyll build`
+    with the `--unpublished` switch. Jekyll also has a handy <a href="{{ '/docs/posts/#drafts' | relative_url }}">drafts</a>
+    feature tailored specifically for blog posts.
+  </p>
+</div>
+<h2 id="custom-variables"><a class="anchor" aria-hidden="true" href="#custom-variables"></a>Custom Variables</h2>
+<p>You can also set your own front matter variables you can access in Liquid. For
+instance, if you set a variable called <code>food</code>, you can use that in your page:</p>
+<p>{% raw %}</p>
+<pre><code class="language-liquid">---
+food: Pizza
+---
+
+&lt;h1&gt;{{ page.food }}&lt;/h1&gt;
+</code></pre>
+<p>{% endraw %}</p>
+<h2 id="predefined-variables-for-posts"><a class="anchor" aria-hidden="true" href="#predefined-variables-for-posts"></a>Predefined Variables for Posts</h2>
+<p>These are available out-of-the-box to be used in the front matter for a post.</p>
+<div>
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <p><code>date</code></p>
+      </td>
+      <td>
+        <p>
+          A date here overrides the date from the name of the post. This can be
+          used to ensure correct sorting of posts. A date is specified in the
+          format <code>YYYY-MM-DD HH:MM:SS +/-TTTT</code>; hours, minutes, seconds, and timezone offset
+          are optional.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <p><code>category</code></p>
+        <p><code>categories</code></p>
+      </td>
+      <td>
+        <p>
+<pre><code>      Instead of placing posts inside of folders, you can specify one or
+      more categories that the post belongs to. When the site is generated
+      the post will act as though it had been set with these categories
+      normally. Categories (plural key) can be specified as a &lt;a
+      href=&quot;https://en.wikipedia.org/wiki/YAML#Basic_components&quot;&gt;YAML list&lt;/a&gt; or a
+      space-separated string.
+
+    &lt;/p&gt;
+  &lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+  &lt;td&gt;
+    &lt;p&gt;&lt;code&gt;tags&lt;/code&gt;&lt;/p&gt;
+  &lt;/td&gt;
+  &lt;td&gt;
+    &lt;p&gt;
+
+      Similar to categories, one or multiple tags can be added to a post.
+      Also like categories, tags can be specified as a &lt;a
+      href=&quot;https://en.wikipedia.org/wiki/YAML#Basic_components&quot;&gt;YAML list&lt;/a&gt; or a
+      space-separated string.
+
+    &lt;/p&gt;
+  &lt;/td&gt;
+&lt;/tr&gt;
+</code></pre>
+  </p></td></tr></tbody>
+</table>
+</div>
+<div>
+  <h5>Don't repeat yourself</h5>
+  <p>
+    If you don't want to repeat your frequently used front matter variables
+    over and over, define
+    <a href="{{ '/docs/configuration/front-matter-defaults/' | relative_url }}" title="Front Matter defaults">defaults</a>
+    for them and only override them where necessary (or not at all). This works
+    both for predefined and custom variables.
+  </p>
+</div>

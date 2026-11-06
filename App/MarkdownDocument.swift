@@ -31,7 +31,28 @@ struct MarkdownDocument: FileDocument {
         throw CocoaError(.fileWriteNoPermission)
     }
 
-    func renderedHTML(title: String, renderer: some MarkdownRenderer = SwiftMarkdownRenderer()) -> String {
-        HTMLDocument(title: title, body: renderer.renderBody(source)).html
+    /// The app's render options: the defaults plus `data-source-line` annotations, which M2's
+    /// scroll sync and position-preserving reload read. `mdv --html` leaves them off.
+    static var renderOptions: RenderOptions {
+        var options = RenderOptions()
+        options.sourceLines = true
+        return options
     }
+
+    /// Renders the source into a full HTML page. The title is the document's own (frontmatter
+    /// `title`, then the first `h1`) or `fallbackTitle` (the file name).
+    func renderedPage(
+        fallbackTitle: String,
+        renderer: some MarkdownRenderer = HTMLRenderer(options: MarkdownDocument.renderOptions)
+    ) -> RenderedPage {
+        let rendered = renderer.render(source)
+        let title = rendered.title ?? fallbackTitle
+        return RenderedPage(title: title, html: HTMLDocument(title: title, body: rendered.html).html)
+    }
+}
+
+struct RenderedPage: Equatable {
+    /// Shown as the window title and the page `<title>`.
+    let title: String
+    let html: String
 }
