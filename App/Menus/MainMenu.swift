@@ -13,7 +13,7 @@ final class MainMenu {
     enum Menu: CaseIterable {
         /// Groups go after About (e.g. app-wide commands, until Settings exists).
         case app
-        /// Groups go after Open, Open Recent, and Close (e.g. Print).
+        /// Groups go after Open, Open Recent (inserted by AppKit), and Close (e.g. Print).
         case file
         /// Groups go after Copy and Select All (e.g. Find, Copy as HTML).
         case edit
@@ -79,16 +79,13 @@ final class MainMenu {
     }
 
     private func fileMenu() -> NSMenu {
-        // NSDocumentController finds and maintains Open Recent by its Clear Menu item.
-        let openRecent = NSMenu(title: "Open Recent")
-        openRecent.addItem(NSMenuItem("Clear Menu", action: #selector(NSDocumentController.clearRecentDocuments(_:))))
-        return menu(
+        // No Open Recent here: a menu built in code can't be marked as the recent documents
+        // menu (nibs do that with `systemMenu="recentDocuments"`), so NSDocumentController
+        // inserts and maintains its own after Open…, and one built here would be a duplicate.
+        menu(
             "File",
             [
-                [
-                    NSMenuItem("Open…", action: #selector(NSDocumentController.openDocument(_:)), key: "o"),
-                    NSMenuItem("Open Recent", submenu: openRecent),
-                ],
+                [NSMenuItem("Open…", action: #selector(NSDocumentController.openDocument(_:)), key: "o")],
                 [NSMenuItem("Close", action: #selector(NSWindow.performClose(_:)), key: "w")],
             ] + groups(for: .file))
     }
