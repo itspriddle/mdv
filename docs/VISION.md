@@ -105,9 +105,25 @@ editor or a browser.
 ## Security model
 
 - The rendered page has a strict Content-Security-Policy: no remote loads, inline styles only,
-  local/`data:` images only. Remote images become an explicit, per-document opt-in. In the app
-  it is `default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;`; `mdv --html`
-  output keeps `img-src file: data:` so a saved page still shows the images beside it.
+  local/`data:` images only. In the app it is
+  `default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;`; `mdv --html` output
+  keeps `img-src file: data:` so a saved page still shows the images beside it.
+- Remote images are blocked by default and are an explicit opt-in **per window** (#20):
+  - Blocking happens in `MdvCore` as well as the CSP. `RenderOptions.remoteImages` (`.block`
+    in the viewer) replaces every remote Markdown or raw-HTML image with a placeholder that
+    shows its alt text and host (sized like the image when raw HTML gives `width`/`height`).
+    It drops a `<source srcset>` that names one, and lists them in `blockedRemoteImages`. The
+    CSP blocks them on its own as well (tested with raw HTML the sanitizer never sees).
+  - When a page has blocked `https:` images, a bar offers "Remote images blocked: Load".
+    Loading reloads that window with `RemoteImagePolicy.allowHTTPS` and adds `https:` to
+    `img-src`, and nothing else: no `http:` ever, because cleartext images can be read and
+    swapped on the wire, so they stay placeholders. Frames, styles, fonts, and media stay blocked.
+  - The opt-in lasts for that window until it closes, survives live reloads, and is never
+    saved, so reopening a file blocks again. Remembering it per file can come later.
+  - `mdv --html` keeps GitHub-compatible output (`.keep`) by default, and its CSP blocks remote
+    images when the page is opened. A flag to block them in the HTML itself is M5 work.
+  - Tests use servers on 127.0.0.1 and never the network. A document full of remote images
+    makes no request, and a page with no CSP does make them (the control).
 - The web view never gets `file:` access. The app loads each document at
   `mdv-doc://<window token>/<absolute path>` (a `WKURLSchemeHandler`, chosen over
   `loadFileURL` plus a temp file in #18), so relative URLs resolve against the document, and
