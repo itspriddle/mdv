@@ -194,7 +194,9 @@ Rough priority order; each becomes its own milestone when it's next.
    `itspriddle/mdv` (private until 1.0).
 2. **Work issues:** one branch per issue following
    [Conventional Branch](https://conventional-branch.github.io) (`feature/…`, `bugfix/…`), commits
-   following [Conventional Commits](https://www.conventionalcommits.org).
-3. **Merge:** PR with tests; CI (`make lint`, core tests, app build/tests) must be green.
+   following [Conventional Commits](https://www.conventionalcommits.org). Issue branches merge
+   into a milestone integration branch; each issue leaves a handoff comment for the next one.
+3. **Merge:** one PR per milestone from the integration branch, with tests; CI (`make lint`, core
+   tests, app build/tests) must be green.
 4. **Close out:** update this roadmap (check off scope, adjust later milestones), then plan the
    next milestone.
