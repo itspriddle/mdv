@@ -10,8 +10,9 @@ extension RenderOptions {
     ///
     /// cmark's safe-mode URL filtering stays on: it is a security default, not an addition.
     public static var spec: RenderOptions {
-        let options = RenderOptions(extensions: Set(MarkdownExtension.allCases))
-        // Features: add `options.<toggle> = <off>` lines here (and make `options` a `var`).
+        var options = RenderOptions(extensions: Set(MarkdownExtension.allCases))
+        // Features: add `options.<toggle> = <off>` lines here.
+        options.gfmMarkup = .cmark
         return options
     }
 }

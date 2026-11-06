@@ -34,6 +34,9 @@ Examples run the way cmark-gfm's `test/spec_tests.py` runs them, through `HTMLRe
 - `spec.txt` and `regression.txt` enable only the extensions named on an example's fence
   (`example table footnotes`); `extensions.txt` enables all of them.
 - `example disabled` fences are skipped but keep their number.
+- `RenderOptions.spec` sets `gfmMarkup = .cmark`: task lists and footnotes are written with
+  cmark's reference markup, so these examples still check parsing, nesting, and numbering. The
+  default GitHub markup is checked against GitHub's own output in `../github`.
 - Output and expected HTML are compared after normalization (`HTMLNormalizer`, a port of
   cmark's `normalize.py`).
 

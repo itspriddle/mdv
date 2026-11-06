@@ -5,12 +5,26 @@ public protocol MarkdownRenderer: Sendable {
 
 /// Feature toggles for parsing and rendering. Later M1 issues add their switches here.
 public struct RenderOptions: Sendable, Equatable {
-    /// Syntax extensions enabled on top of CommonMark.
+    /// Syntax extensions enabled on top of CommonMark. Defaults to GitHub Flavored Markdown.
     public var extensions: Set<MarkdownExtension>
+    /// Markup for GFM extensions whose HTML differs between GitHub and cmark (task lists, and
+    /// footnotes from #5). `RenderOptions.spec` switches to `.cmark`.
+    public var gfmMarkup: GFMMarkup = .github
 
-    public init(extensions: Set<MarkdownExtension> = []) {
+    public init(extensions: Set<MarkdownExtension> = MarkdownExtension.gfm) {
         self.extensions = extensions
     }
+}
+
+/// Which HTML flavor `HTMLRenderer` writes for GFM extensions where GitHub's markup differs from
+/// cmark-gfm's reference renderer. Parsing, numbering, and nesting are the same in both.
+public enum GFMMarkup: Sendable, Equatable {
+    /// GitHub's markup (`task-list-item` classes and accessible checkboxes, ...), minus what
+    /// github.com adds on top: `user-content-` id prefixes, `rel="nofollow"`, `notranslate`
+    /// classes, and the table accessibility wrapper element.
+    case github
+    /// cmark-gfm's `cmark_render_html` markup, which the spec fixtures expect.
+    case cmark
 }
 
 /// The output of a `MarkdownRenderer`.
