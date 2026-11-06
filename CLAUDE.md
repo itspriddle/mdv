@@ -40,14 +40,18 @@ lock the build database.
     allowed-root rule, and `LocalImagePolicy`, which approves every local image read.
   - `RemoteImages/`: `RemoteImage` (what counts as remote), `RemoteImagePolicy`
     (`RenderOptions.remoteImages`), and the blocked-image placeholder markup.
+  - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`).
+  - `Outline/`: `DocumentOutline` (heading tree) and `OutlineTracker` (current section).
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
     never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
 - `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
-  `AppDelegate`), SwiftUI for window content only.
+  `AppDelegate`), SwiftUI for window content only. Feature folders: `Copy/`, `DefaultViewer/`,
+  `Print/`, `Zoom/` (each a small type plus its `DocumentWindowController+<Feature>.swift`).
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
-    plus `RenderedPage`). Every load and revert goes through `setContent(_:)`, which tells each
-    `DocumentWindowController`.
+    plus `RenderedPage`, and the remote-images variant). Every load and revert goes through
+    `setContent(_:)`, which tells each `DocumentWindowController`. `DocumentController` (the
+    shared `NSDocumentController`) finds open files by identity and skips gone files on restore.
   - `Find/`: `FindInPage` (find state and commands, tested with a fake host) and `FindBar`
     (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
     commands on). The page side is `App/Scripts/FindInPage.js` via `WebViewCoordinator+Find`.
@@ -56,17 +60,21 @@ lock the build database.
     reload bypasses `NSDocument.revert`; the window swaps content in place with
     `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
   - `Outline/`: `OutlineViewController` (the sidebar's `NSOutlineView`) and `OutlinePreference`
-    (default visibility). The tree and current-section logic are `MdvCore` `DocumentOutline`
-    and `OutlineTracker`.
+    (default visibility).
   - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
-    actions go in `DocumentWindowController+<Feature>.swift`), `DocumentView` (SwiftUI root).
-  - `WebView/`: `WebViewCoordinator` owns the `WKWebView`: `load`, `replaceContent`, and the
-    async bridge (`scroll(toSourceLine:)`, `scroll(toFragment:)`, `currentSourceLine()`).
-    `WebViewConfiguration` is where scheme handlers go; `+Navigation.swift` holds the policy.
+    actions go in `DocumentWindowController+<Feature>.swift`, menu validation in the one
+    `validateMenuItem` switch in `+Outline.swift`), `DocumentWindow` (restorable state),
+    `DocumentView` (SwiftUI root: find bar, file status and remote image bars, link status).
+  - `WebView/`: `WebViewCoordinator` owns the `DocumentWebView` (drops, context menu trimming):
+    `load`, `updateContent`, and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,
+    `scroll(toFragment:)`). `WebViewConfiguration` holds preferences and user scripts;
+    `LocalResourceSchemeHandler` serves `mdv-doc` images; `+Navigation.swift` applies
+    `LinkPolicy`.
   - `Scripts/`: bundled JS run only in `AppScripts.world`; pass values as arguments, never
     splice them into source.
   - `Menus/`: `MainMenu` builds the menu bar in code. A feature adds a `MenuContribution` type
-    in its own file plus one line in `MainMenu.contributions`.
+    in its own file plus one line in `MainMenu.contributions`. AppKit inserts Open Recent and
+    the Window menu's items itself; don't build them.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).

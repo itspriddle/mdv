@@ -3,9 +3,10 @@ import AppKit
 /// One open Markdown file. mdv is a viewer: the document reads and re-reads its file but never
 /// writes it.
 ///
-/// `NSDocument` gives us file coordination and `NSFilePresenter` change notifications (live
-/// reload), revert, recents, window tabs, and state restoration. The document owns the source
-/// text and the rendered page (`content`); each window's `DocumentWindowController` displays it.
+/// `NSDocument` gives us opening, revert, recents, window tabs, and state restoration. Live
+/// reload is `LiveReloader` (a kqueue watcher), not NSDocument's file presenter, which is late
+/// and misses deletes (#21). The document owns the source text and the rendered page
+/// (`content`); each window's `DocumentWindowController` displays it.
 /// Registered as `NSDocumentClass` for the document types declared in project.yml.
 @Observable
 final class MarkdownDocument: NSDocument {

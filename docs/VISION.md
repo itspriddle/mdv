@@ -74,23 +74,24 @@ editor or a browser.
   public API, what a viewer needs and `DocumentGroup` hides: a document object that owns
   its file (live reload hangs off it, below), per-window state restoration, tabs, recents, the
   responder chain for menu commands, and a window controller to own the web view. SwiftUI stays
-  for window content (sidebar, find bar, banners).
-- **Live reload:** each open document watches its file by path with kqueue
-  (`DispatchSource` on the file and its folder; `FileWatcher`), debounced 50 ms (capped at
-  150 ms for a steady stream). It handles in-place writes, atomic saves (rename over, swap,
-  Vim's rename-to-backup), delete and recreate, and renames (followed, except into the Trash,
-  which counts as a deletion). Chosen over `NSFilePresenter` (#21), which `NSDocument` already
-  is: measured, it reported edits from other processes about a second late and went silent for
-  good after a delete. Reloads bypass `NSDocument.revert` because NSDocument reads on the main
-  thread: the file is read and rendered off the main actor (a 1 MB document renders in about
-  0.5 s), stale renders are dropped, and the window swaps the new body into the loaded page in
-  place with an app script that keeps the reading position (the top source line, or the bottom
-  if the reader was there) in the same script run. Measured on 1 MB: the swap takes about
-  210 ms in WebKit against 230 ms for reloading the page and restoring the position, the main
-  thread never stalls more than a few milliseconds either way, and a reload can paint the top
-  of the page before the position is restored; so in-place swap, with reload-and-restore only when the base URL
-  changes (the file moved). A Vim `:w` of a 20 KB file shows in about 100 ms. Unreadable or
-  non-UTF-8 content, and deletion, keep the last render under a banner.
+  for window content (find bar, banners, link status); the outline sidebar is AppKit (below).
+- **Live reload:** each open document watches its file by path with kqueue (`DispatchSource` on
+  the file and its folder; `FileWatcher`), debounced 50 ms (capped at 150 ms for a steady
+  stream). It handles in-place writes, atomic saves (rename over, swap, Vim's rename-to-backup),
+  delete and recreate, and renames (followed, except into the Trash, which counts as a
+  deletion). Chosen over `NSFilePresenter` (#21), which `NSDocument` already is: measured, it
+  reported edits from other processes about a second late and went silent for good after a
+  delete. Reloads bypass `NSDocument.revert` because NSDocument reads on the main thread: the
+  file is read and rendered off the main actor (a 1 MB document renders in about 0.16 s in a
+  Release build, 0.5 s in Debug), stale renders are dropped, and the window swaps the new body
+  into the loaded page in place with an app script that keeps the reading position (the top
+  source line, or the bottom if the reader was there) in the same script run. Measured on 1 MB:
+  the swap takes about 210 ms in WebKit against 230 ms for reloading the page and restoring the
+  position, the main thread never stalls more than a few milliseconds either way, and a reload
+  can paint the top of the page before the position is restored; so in-place swap, with
+  reload-and-restore only when the base URL changes (the file moved). A Vim `:w` of a 20 KB file
+  shows in about 100 ms. Unreadable or non-UTF-8 content, and deletion, keep the last render
+  under a banner.
 - **Opening documents (#22):** AppKit's document paths (Finder, File > Open, Dock drops, Open
   Recent) go through `DocumentController`, which finds an already-open file by file identity
   (symlinks, `/tmp` vs `/private/tmp`) and focuses its window instead of duplicating it. Files
@@ -100,10 +101,12 @@ editor or a browser.
   `.automatic`, like Preview and TextEdit); Cmd-click on a link always makes a tab. Window
   restoration (documents, frames, tab groups, and each window's reading position as a source
   line) follows the system "Close windows when quitting an application" setting, so
-  `mdv FILE` doesn't bring back every old window. Documents whose file
-  is gone or in the Trash are skipped quietly. `.md`/`.markdown` are
-  `net.daringfireball.markdown`; `.mdown`/`.mkd`/`.mkdn`, and plain text (`.txt`), open because
+  `mdv FILE` doesn't bring back every old window. Documents whose file is gone or in the Trash
+  are skipped quietly. `.md`/`.markdown` are `net.daringfireball.markdown`;
+  `.mdown`/`.mkd`/`.mkdn` (which another app may declare) and plain text (`.txt`) open because
   they conform to `public.plain-text`, which mdv reads but never claims (`LSHandlerRank None`).
+  The first open reads and renders on the main thread (NSDocument's read path); live reloads
+  don't.
 - **Outline sidebar (#24):** an AppKit sidebar split item (`NSOutlineView`, nested by heading
   level) beside the document, from `RenderedDocument.headings` (raw HTML headings included).
   A click or Return jumps by anchor (`slug`), with the source line as fallback. The current
@@ -145,16 +148,17 @@ editor or a browser.
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
   non-modal panel, when a document opens while another app is the default ("Not Now" snoozes
   30 days, "Don't Ask Again" is permanent), and the app menu has "Make mdv the Default Markdown
-  Viewer" until Settings exists (M3). Plain text stays `None`.
+  Viewer" until Settings exists (M3).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
-- **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, GitHub Actions.
+- **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
+  tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
 
 ## Security model
 
 - The rendered page has a strict Content-Security-Policy: no remote loads, inline styles only,
-  local/`data:` images only. In the app it is
+  local/`data:` images only (until a window opts in to `https:` images, below). In the app it is
   `default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;`; `mdv --html` output
   keeps `img-src file: data:` so a saved page still shows the images beside it.
 - Remote images are blocked by default and are an explicit opt-in **per window** (#20):

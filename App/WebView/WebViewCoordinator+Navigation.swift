@@ -19,14 +19,14 @@ enum LinkOpening: Equatable {
 extension WebViewCoordinator {
     /// Where the shown document lives, for `LinkPolicy`. The page is served at
     /// `mdv-doc://<token>/<absolute path>` (#18), so links resolve to `mdv-doc` URLs; this
-    /// window's token maps them back to files (`DocumentURLScheme.filePath(from:token:)`). Any
-    /// other `mdv-doc` URL (another token, an unclean path) names no file and is blocked, and so
+    /// window's token maps them back to files and folders (`DocumentURLScheme.fileURL(from:token:)`;
+    /// a folder link such as `sub/` is revealed in Finder). Any other `mdv-doc` URL (another token, an unclean path) names no file and is blocked, and so
     /// are `file:` URLs, which a document can't produce (cmark's safe mode and the sanitizer drop
     /// them).
     var linkContext: LinkContext {
         let token = localResources.token
         return LinkContext(pageURL: webView.url?.withoutFragment, documentFileURL: documentFileURL) { url in
-            DocumentURLScheme.filePath(from: url, token: token).map { URL(filePath: $0) }
+            DocumentURLScheme.fileURL(from: url, token: token)
         }
     }
 

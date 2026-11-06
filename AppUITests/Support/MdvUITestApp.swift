@@ -39,6 +39,11 @@ struct MdvUITestApp {
         }
         app.launchArguments += arguments
         app.launchEnvironment.merge(environment) { _, new in new }
+        // Sanitizer runs (`TEST_RUNNER_ASAN_OPTIONS=… xcodebuild -enableAddressSanitizer YES`):
+        // give the app the runner's options, so a report prints instead of a crash dialog.
+        for key in ["ASAN_OPTIONS", "TSAN_OPTIONS"] where app.launchEnvironment[key] == nil {
+            app.launchEnvironment[key] = ProcessInfo.processInfo.environment[key]
+        }
         app.launch()
         return MdvUITestApp(app: app)
     }

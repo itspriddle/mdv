@@ -22,9 +22,8 @@ struct MainMenuTests {
     func standardMenus() {
         let menu = MainMenu.build(contributions: [])
         #expect(titles(menu).dropFirst() == ["File", "Edit", "View", "Window", "Help"])
-        #expect(titles(menu.item(withTitle: "File")?.submenu) == ["Open…", "Open Recent", "-", "Close"])
-        let openRecent = menu.item(withTitle: "File")?.submenu?.item(withTitle: "Open Recent")?.submenu
-        #expect(openRecent?.items.first?.action == #selector(NSDocumentController.clearRecentDocuments(_:)))
+        // Open Recent is inserted by AppKit in the running app (`openRecent()` below).
+        #expect(titles(menu.item(withTitle: "File")?.submenu) == ["Open…", "-", "Close"])
     }
 
     @Test("places contributed groups in their menus")
@@ -33,7 +32,7 @@ struct MainMenuTests {
         #expect(titles(menu.item(withTitle: "View")?.submenu) == ["Sample View Item", "-", "Enter Full Screen"])
         #expect(
             titles(menu.item(withTitle: "File")?.submenu) == [
-                "Open…", "Open Recent", "-", "Close", "-", "Sample File Item",
+                "Open…", "-", "Close", "-", "Sample File Item",
             ])
     }
 
@@ -41,5 +40,15 @@ struct MainMenuTests {
     func installed() {
         #expect(NSApp.mainMenu?.item(withTitle: "File") != nil)
         #expect(NSApp.windowsMenu === NSApp.mainMenu?.item(withTitle: "Window")?.submenu)
+    }
+
+    @Test("the running app's File menu has one Open Recent, which AppKit maintains")
+    func openRecent() throws {
+        let file = try #require(NSApp.mainMenu?.item(withTitle: "File")?.submenu)
+        let openRecent = file.items.filter { $0.title == "Open Recent" }
+        #expect(openRecent.count == 1)
+        #expect(file.items.firstIndex { $0.title == "Open Recent" } == 1)
+        let clear = openRecent.first?.submenu?.items.last
+        #expect(clear?.action == #selector(NSDocumentController.clearRecentDocuments(_:)))
     }
 }
