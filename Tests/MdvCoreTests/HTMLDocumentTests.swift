@@ -19,3 +19,19 @@ struct HTMLDocumentTests {
         #expect(html.contains("<title>&lt;script&gt;&amp;</title>"))
     }
 }
+
+@Suite("DefaultTheme")
+struct DefaultThemeTests {
+    @Test("writes colors as CSS hex")
+    func hex() {
+        #expect(ThemeColor(0x0D_11_17).hex == "#0d1117")
+        #expect(ThemeColor(0xFF_FF_FF).hex == "#ffffff")
+        #expect(ThemeColor(red: 1, green: 0xA0, blue: 0).hex == "#01a000")
+    }
+
+    @Test("the stylesheet uses the background the app paints before first load")
+    func background() {
+        #expect(DefaultTheme.css.contains("background: \(DefaultTheme.background.light.hex);"))
+        #expect(DefaultTheme.css.contains("background: \(DefaultTheme.background.dark.hex); }"))
+    }
+}

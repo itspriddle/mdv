@@ -1,12 +1,16 @@
 /// Placeholder stylesheet until the theme system lands in M3.
 public enum DefaultTheme {
+    /// Page background in light and dark appearance. The app paints its window and web view
+    /// with these before the first page loads, so a dark window never flashes white.
+    public static let background = ThemeBackground(light: ThemeColor(0xFF_FF_FF), dark: ThemeColor(0x0D_11_17))
+
     public static let css = """
         :root { color-scheme: light dark; }
         body {
           margin: 0;
           font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
           color: #1f2328;
-          background: #ffffff;
+          background: \(background.light.hex);
         }
         .markdown-body { max-width: 860px; margin: 0 auto; padding: 32px; }
         pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875em; }
@@ -52,7 +56,7 @@ public enum DefaultTheme {
         .hljs-addition { color: #22863a; background-color: #f0fff4; }
         .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
         @media (prefers-color-scheme: dark) {
-          body { color: #e6edf3; background: #0d1117; }
+          body { color: #e6edf3; background: \(background.dark.hex); }
           pre { background: #161b22; }
           a { color: #4493f8; }
           th, td, .footnotes { border-color: #3d444d; }
@@ -72,4 +76,40 @@ public enum DefaultTheme {
           .hljs-deletion { color: #ffdcd7; background-color: #67060c; }
         }
         """
+}
+
+/// A theme's page background for each system appearance.
+public struct ThemeBackground: Sendable, Equatable {
+    public var light: ThemeColor
+    public var dark: ThemeColor
+
+    public init(light: ThemeColor, dark: ThemeColor) {
+        self.light = light
+        self.dark = dark
+    }
+}
+
+/// An opaque sRGB color.
+public struct ThemeColor: Sendable, Equatable {
+    public var red: UInt8
+    public var green: UInt8
+    public var blue: UInt8
+
+    public init(red: UInt8, green: UInt8, blue: UInt8) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+    }
+
+    /// A color from a `0xRRGGBB` literal.
+    public init(_ rgb: UInt32) {
+        self.init(
+            red: UInt8(truncatingIfNeeded: rgb >> 16), green: UInt8(truncatingIfNeeded: rgb >> 8),
+            blue: UInt8(truncatingIfNeeded: rgb))
+    }
+
+    /// CSS hex notation, e.g. `#0d1117`.
+    public var hex: String {
+        "#" + [red, green, blue].map { $0 < 0x10 ? "0" + String($0, radix: 16) : String($0, radix: 16) }.joined()
+    }
 }
