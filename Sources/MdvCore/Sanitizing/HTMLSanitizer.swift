@@ -17,8 +17,8 @@
 ///   scheme (`http`, `https`, `mailto` for links) or be relative, after decoding character
 ///   references and ignoring whitespace and control characters.
 /// - `id` and `name` values are prefixed with `user-content-` (as on GitHub) so raw HTML can't
-///   collide with generated heading and footnote ids. (M2: in-document links to `#foo` should
-///   also try `#user-content-foo`.)
+///   collide with generated heading and footnote ids. The viewer's in-page links to `#foo` fall
+///   back to `#user-content-foo` (#19).
 /// - Tags are balanced per Markdown container. cmark splits raw HTML into separate nodes (an
 ///   inline `<span>`, text, then `</span>`; or HTML blocks around Markdown paragraphs), so the
 ///   sanitizer tracks open raw elements across the siblings of each container: an end tag

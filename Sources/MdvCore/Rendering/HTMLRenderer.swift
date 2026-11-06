@@ -9,7 +9,7 @@ public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
     /// Highlights fenced code blocks when `options.highlighting` is on; `nil` renders them plain.
     public var highlighter: (any SyntaxHighlighter)?
-    /// Per-render state: the footnote ids of the tree being rendered (set in `render(_:headings:into:)`).
+    /// Per-render state: the footnote ids of the tree being rendered (set in `render(_:into:)`).
     private(set) var footnoteIDs = FootnoteIDs()
 
     public init(
@@ -31,8 +31,7 @@ public struct HTMLRenderer: MarkdownRenderer {
         if let frontmatter, options.frontmatterDisplay == .table {
             FrontmatterHTML.render(frontmatter, into: &output)
         }
-        let headings = Heading.collect(in: document)
-        render(document, headings: headings, into: &output)
+        let headings = render(document, into: &output)
         return RenderedDocument(
             html: output.string,
             title: Self.title(frontmatter: frontmatter, headings: headings),
@@ -45,7 +44,7 @@ public struct HTMLRenderer: MarkdownRenderer {
     public func html(for node: MarkdownNode) -> String {
         let node = transformed(node)
         var output = HTMLOutput()
-        render(node, headings: options.headingAnchors ? Heading.collect(in: node) : [], into: &output)
+        render(node, into: &output)
         return output.string
     }
 
@@ -60,21 +59,32 @@ public struct HTMLRenderer: MarkdownRenderer {
         frontmatter?.title ?? headings.first { $0.level == 1 && !$0.text.isEmpty }?.text
     }
 
-    /// `headings` are `root`'s headings in document order (`Heading.collect(in:)`); their slugs
-    /// become heading ids when `options.headingAnchors` is on.
-    private func render(_ root: MarkdownNode, headings: [Heading], into output: inout HTMLOutput) {
-        let anchors = options.headingAnchors ? headings : []
+    /// Renders `root` and returns its headings in document order.
+    ///
+    /// Headings are collected after sanitizing, so text the sanitizer drops doesn't count and
+    /// raw HTML `<h1>`–`<h6>` can be included (`HeadingCollection`). With
+    /// `options.headingAnchors` on, their slugs become heading ids.
+    @discardableResult
+    private func render(_ root: MarkdownNode, into output: inout HTMLOutput) -> [Heading] {
         var root = options.sanitize ? HTMLSanitizer().sanitize(root) : root
+        let collection = HeadingCollection(root, includingRawHTML: options.sanitize)
+        var anchors: [String] = []
+        if options.headingAnchors {
+            anchors = collection.markdownSlugs
+            root = collection.anchoringRawHeadings(in: root)
+        }
         if options.highlighting, let highlighter {
             var highlighting = CodeHighlighting(highlighter: highlighter)
             root = highlighting.apply(to: root)
         }
         var renderer = self
-        renderer.footnoteIDs = FootnoteIDs(for: root, reserving: Set(anchors.map(\.slug)))
+        let reserved = options.headingAnchors ? Set(collection.headings.map(\.slug)) : []
+        renderer.footnoteIDs = FootnoteIDs(for: root, reserving: reserved)
         renderer.walk(root, anchors: anchors, into: &output)
+        return collection.headings
     }
 
-    private func walk(_ root: MarkdownNode, anchors: [Heading], into output: inout HTMLOutput) {
+    private func walk(_ root: MarkdownNode, anchors: [String], into output: inout HTMLOutput) {
         var anchors = anchors.makeIterator()
         // Walk with an explicit stack rather than recursion so deep trees cannot overflow it.
         var stack: [Step] = [.enter(root, Context())]
@@ -83,7 +93,7 @@ public struct HTMLRenderer: MarkdownRenderer {
             case .enter(let node, let context):
                 var anchor: String?
                 if case .heading = node.kind {
-                    anchor = anchors.next()?.slug
+                    anchor = anchors.next()
                 }
                 guard renderEnter(node, context, anchor: anchor, into: &output) else {
                     continue
