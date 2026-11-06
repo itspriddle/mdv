@@ -48,6 +48,9 @@ lock the build database.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`). Every load and revert goes through `setContent(_:)`, which tells each
     `DocumentWindowController`.
+  - `Find/`: `FindInPage` (find state and commands, tested with a fake host) and `FindBar`
+    (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
+    commands on). The page side is `App/Scripts/FindInPage.js` via `WebViewCoordinator+Find`.
   - `LiveReload/`: `FileWatcher` (kqueue by path, debounced) and `LiveReloader` (reads and
     renders off the main actor, drops stale renders, sets `MarkdownDocument.fileStatus`). Live
     reload bypasses `NSDocument.revert`; the window swaps content in place with

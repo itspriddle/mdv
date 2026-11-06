@@ -127,6 +127,19 @@ editor or a browser.
   Markdown Source copies the file as plain text and `net.daringfireball.markdown`. The web
   view's context menu drops browser items the viewer can't perform (Reload, Back/Forward,
   downloads, "Open Image/Media/Frame in New Window").
+- **Find in page (#25):** an app script in the isolated content world (`FindInPage.js`), with
+  a SwiftUI find bar above the page and Edit > Find sending the standard
+  `performTextFinderAction(_:)` up the responder chain. Chosen over `WKWebView.find`, which
+  reports only found / not found (no match count) and marks only the current match, and over
+  `NSTextFinder`, whose `WKWebView` integration is not public API (`WKWebView` doesn't
+  implement `performTextFinderAction(_:)` or the text finder client protocols). The script
+  matches across inline markup but not across blocks, ignores case unless Match Case is on,
+  treats the query as literal text with any whitespace matching any whitespace, skips text that
+  isn't rendered, and stops counting at 1000. Matches are painted with the CSS Custom Highlight
+  API (`::highlight(mdv-find)` rules in the theme), so the DOM, source-line positions, and
+  in-place swaps are untouched and no style is injected. The query and options survive closing
+  the bar and every reload: the search runs again after each display (in-place swap or full
+  load), keeping the current match number without scrolling.
 - **Default handler:** mdv declares Markdown with `LSHandlerRank: Alternate` and asks, never
   grabs (#23). `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
@@ -200,7 +213,8 @@ editor or a browser.
   Every other scheme, unmappable `mdv-doc` URL, and blank safe-mode link is blocked silently,
   with the reason shown in the window's link status overlay. Link hover is reported by an app
   script whose message handler exists only in the app's content world; its message is display
-  text and never acted on.
+  text and never acted on. Find in page passes the query to its app script as a value and
+  matches it as literal text; page content never reaches script source.
 - Custom preprocessor scripts run only when the user configures them, with a timeout, no shell
   interpolation, and the document passed via stdin.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
