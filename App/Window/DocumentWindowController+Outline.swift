@@ -118,6 +118,10 @@ extension DocumentWindowController: NSMenuItemValidation {
         case #selector(toggleOutline(_:)):
             menuItem.title = isOutlineVisible ? "Hide Outline" : "Show Outline"
             return true
+        case #selector(zoomInDocument(_:)), #selector(zoomOutDocument(_:)), #selector(resetDocumentZoom(_:)):
+            return validateZoomItem(menuItem)
+        case #selector(copyMarkdownSource(_:)), #selector(copyAsHTML(_:)):
+            return validateCopyItem(menuItem)
         default:
             return true
         }

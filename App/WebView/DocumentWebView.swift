@@ -36,6 +36,23 @@ final class DocumentWebView: WKWebView {
 
     override func draggingEnded(_ sender: any NSDraggingInfo) {}
 
+    /// The context menu, without the items the viewer can't perform (`WebViewContextMenu`, #26).
+    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+        super.willOpenMenu(menu, with: event)
+        WebViewContextMenu.trim(menu)
+    }
+
+    /// Pinch-to-zoom changes the window's magnification, which window restoration keeps.
+    override func magnify(with event: NSEvent) {
+        super.magnify(with: event)
+        window?.invalidateRestorableState()
+    }
+
+    override func smartMagnify(with event: NSEvent) {
+        super.smartMagnify(with: event)
+        window?.invalidateRestorableState()
+    }
+
     private func dropOperation(for sender: any NSDraggingInfo) -> NSDragOperation {
         fileDropHandler != nil && !openableFiles(in: sender).isEmpty ? .copy : []
     }

@@ -77,12 +77,14 @@ final class DocumentWindow: NSWindow {
         super.encodeRestorableState(with: coder)
         (windowController as? DocumentWindowController)?.encodeReadingPosition(with: coder)
         (windowController as? DocumentWindowController)?.encodeOutlineState(with: coder)
+        (windowController as? DocumentWindowController)?.encodeZoomState(with: coder)
     }
 
     override func restoreState(with coder: NSCoder) {
         super.restoreState(with: coder)
         (windowController as? DocumentWindowController)?.restoreReadingPosition(with: coder)
         (windowController as? DocumentWindowController)?.restoreOutlineState(with: coder)
+        (windowController as? DocumentWindowController)?.restoreZoomState(with: coder)
     }
 }
 
