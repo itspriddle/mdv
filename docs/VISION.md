@@ -104,6 +104,17 @@ editor or a browser.
   is gone or in the Trash are skipped quietly. `.md`/`.markdown` are
   `net.daringfireball.markdown`; `.mdown`/`.mkd`/`.mkdn`, and plain text (`.txt`), open because
   they conform to `public.plain-text`, which mdv reads but never claims (`LSHandlerRank None`).
+- **Outline sidebar (#24):** an AppKit sidebar split item (`NSOutlineView`, nested by heading
+  level) beside the document, from `RenderedDocument.headings` (raw HTML headings included).
+  A click or Return jumps by anchor (`slug`), with the source line as fallback. The current
+  section is the last heading at or before the reading position, read a few pixels below the
+  top of the view after each `ScrollPosition.js` report (one app-world scroll observer serves
+  both restoration and the outline). The selection follows scrolling except while the reader
+  browses the outline with the keyboard, and a jumped-to heading stays selected until the
+  reader scrolls away from where it landed (a short last section can't reach the top).
+  Re-renders keep the sidebar's scroll position, collapsed entries, and selection. Visibility
+  is per window (restored with the window) and the last toggle is the default for new
+  windows; hidden until first shown. A document without headings shows "No Headings".
 - **Default handler:** mdv declares Markdown with `LSHandlerRank: Alternate` and asks, never
   grabs (#23). `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
