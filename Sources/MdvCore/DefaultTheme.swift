@@ -22,6 +22,13 @@ public enum DefaultTheme {
           position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
           overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
         }
+        h1, h2, h3, h4, h5, h6 { position: relative; }
+        .anchor {
+          position: absolute; left: -1em; width: 1em; text-align: center; text-decoration: none; opacity: 0;
+        }
+        .anchor::before { content: "#"; }
+        h1:hover .anchor, h2:hover .anchor, h3:hover .anchor,
+        h4:hover .anchor, h5:hover .anchor, h6:hover .anchor, .anchor:focus { opacity: 1; }
         table.frontmatter { margin-bottom: 16px; font-size: 0.875em; }
         .frontmatter th, .frontmatter td {
           padding: 4px 8px; text-align: left; vertical-align: top;

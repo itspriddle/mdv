@@ -105,6 +105,6 @@ struct ParserMemoryTests {
         let renderer = HTMLRenderer(options: RenderOptions(extensions: Set(MarkdownExtension.allCases)))
         let html = renderer.render(largeDocument).html
         #expect(html.utf8.count > largeDocument.utf8.count / 2)
-        #expect(html.contains("<h1>Heading with <em>emphasis</em> and <code>code</code></h1>"))
+        #expect(html.contains(">Heading with <em>emphasis</em> and <code>code</code></h1>"))
     }
 }

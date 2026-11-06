@@ -2,8 +2,11 @@ import Testing
 
 @testable import MdvCore
 
+/// Renders with heading anchors off, so heading markup matches cmark's.
 private func html(_ markdown: String) -> String {
-    HTMLRenderer().render(markdown).html
+    var options = RenderOptions()
+    options.headingAnchors = false
+    return HTMLRenderer(options: options).render(markdown).html
 }
 
 @Suite("HTMLRenderer: CommonMark blocks")
@@ -182,12 +185,16 @@ struct HTMLRendererEscapingTests {
 
 @Suite("HTMLRenderer: API")
 struct HTMLRendererAPITests {
-    @Test("render returns an HTML fragment with no title or headings yet")
+    @Test("render returns an HTML fragment, title, and headings")
     func renderedDocument() {
         let document = HTMLRenderer().render("# Title")
-        #expect(document == RenderedDocument(html: "<h1>Title</h1>\n"))
-        #expect(document.title == nil)
-        #expect(document.headings.isEmpty)
+        #expect(
+            document
+                == RenderedDocument(
+                    html: "<h1 id=\"title\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#title\"></a>Title</h1>\n",
+                    title: "Title",
+                    headings: [Heading(level: 1, text: "Title", slug: "title", sourceLine: 1)]
+                ))
     }
 
     @Test("renders a pre-parsed tree")

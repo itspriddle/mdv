@@ -22,10 +22,12 @@ public struct HTMLRenderer: MarkdownRenderer {
         if let frontmatter, options.frontmatterDisplay == .table {
             FrontmatterHTML.render(frontmatter, into: &output)
         }
-        render(document, into: &output)
+        let headings = Heading.collect(in: document)
+        render(document, headings: headings, into: &output)
         return RenderedDocument(
             html: output.string,
-            title: Self.title(frontmatter: frontmatter, document: document),
+            title: Self.title(frontmatter: frontmatter, headings: headings),
+            headings: headings,
             frontmatter: frontmatter
         )
     }
@@ -33,23 +35,29 @@ public struct HTMLRenderer: MarkdownRenderer {
     /// Renders an already-parsed tree to an HTML fragment.
     public func html(for node: MarkdownNode) -> String {
         var output = HTMLOutput()
-        render(node, into: &output)
+        render(node, headings: options.headingAnchors ? Heading.collect(in: node) : [], into: &output)
         return output.string
     }
 
-    /// The document title: frontmatter `title` first, then the first `h1`.
-    static func title(frontmatter: Frontmatter?, document: MarkdownNode) -> String? {
-        // TODO(#6): fall back to the plain text of the first level-1 heading in `document`.
-        frontmatter?.title
+    /// The document title: frontmatter `title` first, then the first non-empty `h1`.
+    static func title(frontmatter: Frontmatter?, headings: [Heading]) -> String? {
+        frontmatter?.title ?? headings.first { $0.level == 1 && !$0.text.isEmpty }?.text
     }
 
-    private func render(_ root: MarkdownNode, into output: inout HTMLOutput) {
+    /// `headings` are `root`'s headings in document order (`Heading.collect(in:)`); their slugs
+    /// become heading ids when `options.headingAnchors` is on.
+    private func render(_ root: MarkdownNode, headings: [Heading], into output: inout HTMLOutput) {
+        var anchors = (options.headingAnchors ? headings : []).makeIterator()
         // Walk with an explicit stack rather than recursion so deep trees cannot overflow it.
         var stack: [Step] = [.enter(root, Context())]
         while let step = stack.popLast() {
             switch step {
             case .enter(let node, let context):
-                guard renderEnter(node, context, into: &output) else {
+                var anchor: String?
+                if case .heading = node.kind {
+                    anchor = anchors.next()?.slug
+                }
+                guard renderEnter(node, context, anchor: anchor, into: &output) else {
                     continue
                 }
                 stack.append(.exit(node, context))
@@ -138,7 +146,10 @@ extension HTMLRenderer {
 extension HTMLRenderer {
     /// Writes a node's opening markup. Returns `false` when the node is fully rendered and its
     /// children must not be visited (leaves, and images, whose alt text is written here).
-    private func renderEnter(_ node: MarkdownNode, _ context: Context, into output: inout HTMLOutput) -> Bool {
+    /// `anchor` is the heading id to write when `node` is a heading and anchors are on.
+    private func renderEnter(
+        _ node: MarkdownNode, _ context: Context, anchor: String?, into output: inout HTMLOutput
+    ) -> Bool {
         switch node.kind {
         case .document, .attribute:
             break
@@ -159,8 +170,7 @@ extension HTMLRenderer {
                 writeTaskCheckbox(isChecked: isChecked, into: &output)
             }
         case .heading(let level):
-            output.newlineIfNeeded()
-            output.raw("<h\(level)>")
+            renderHeadingStart(level: level, anchor: anchor, into: &output)
         case .emphasis:
             output.raw("<em>")
         case .strong:
@@ -274,6 +284,21 @@ extension HTMLRenderer {
         default:
             break
         }
+    }
+
+    /// `<hN>`, or with an anchor `<hN id="slug"><a class="anchor" aria-hidden="true"
+    /// href="#slug"></a>`; the theme draws the link's hover glyph.
+    private func renderHeadingStart(level: Int, anchor: String?, into output: inout HTMLOutput) {
+        output.newlineIfNeeded()
+        guard let anchor else {
+            output.raw("<h\(level)>")
+            return
+        }
+        output.raw("<h\(level) id=\"")
+        output.text(anchor)
+        output.raw("\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#")
+        output.text(anchor)
+        output.raw("\"></a>")
     }
 
     private func renderImage(_ node: MarkdownNode, source: String, title: String?, into output: inout HTMLOutput) {
