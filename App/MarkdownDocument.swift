@@ -31,8 +31,17 @@ struct MarkdownDocument: FileDocument {
         throw CocoaError(.fileWriteNoPermission)
     }
 
-    func renderedHTML(title: String, renderer: some MarkdownRenderer = HTMLRenderer()) -> String {
+    /// Renders the source into a full HTML page. The title is the document's own (frontmatter
+    /// `title`, then the first `h1`) or `fallbackTitle` (the file name).
+    func renderedPage(fallbackTitle: String, renderer: some MarkdownRenderer = HTMLRenderer()) -> RenderedPage {
         let rendered = renderer.render(source)
-        return HTMLDocument(title: rendered.title ?? title, body: rendered.html).html
+        let title = rendered.title ?? fallbackTitle
+        return RenderedPage(title: title, html: HTMLDocument(title: title, body: rendered.html).html)
     }
+}
+
+struct RenderedPage: Equatable {
+    /// Shown as the window title and the page `<title>`.
+    let title: String
+    let html: String
 }
