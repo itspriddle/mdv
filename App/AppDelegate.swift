@@ -21,11 +21,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         if !Self.isHostingUnitTests {
             defaultViewerOffer.start()
         }
-        if let url = UITestHooks.documentToOpen {
-            NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
-                if let error {
-                    NSLog("mdv: UI test document failed to open: %@", error.localizedDescription)
-                }
+        openUITestDocuments(UITestHooks.documentsToOpen[...])
+    }
+
+    /// Opens the UI test's documents one after another, so a repeated path finds the first open.
+    private func openUITestDocuments(_ urls: ArraySlice<URL>) {
+        guard let url = urls.first else {
+            return
+        }
+        NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { [weak self] _, _, error in
+            if let error {
+                NSLog("mdv: UI test document failed to open: %@", error.localizedDescription)
+            }
+            MainActor.assumeIsolated {
+                self?.openUITestDocuments(urls.dropFirst())
             }
         }
     }
@@ -34,10 +43,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         true
     }
 
-    /// A viewer has no untitled documents. When launched (or reactivated from the Dock) with no
-    /// windows, show the Open panel instead, as `DocumentGroup(viewing:)` did.
-    ///
-    /// TODO(#22): settle launch, Dock, and restoration behavior for the opening flows.
+    /// A viewer has no untitled documents. When launched with no documents to open and no
+    /// windows to restore, or reactivated from the Dock with no visible windows, show the Open
+    /// panel instead (#22). Opening files (Finder, Dock drop, `mdv FILE`) and restoring windows
+    /// skip this, as AppKit only asks when nothing else opened.
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
         !Self.isHostingUnitTests && !UITestHooks.isUITesting
     }

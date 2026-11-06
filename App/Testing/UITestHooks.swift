@@ -12,7 +12,10 @@ import Foundation
 ///   Links that would leave the app (browser, Finder) are shown in the link status overlay
 ///   instead (`opensLinksOutsideApp`).
 /// - `-MdvUITestOpen <path>`: open the document at an absolute path once launched, without the
-///   Open panel.
+///   Open panel. A property-list array (`-MdvUITestOpen '("/a.md", "/b.md")'`) opens several,
+///   in order.
+///
+/// UI-test launches (and hosted unit tests) never add to Open Recent (`DocumentController`).
 enum UITestHooks {
     #if DEBUG
         /// Launch argument (a `UserDefaults` key) that marks a UI-test launch.
@@ -41,15 +44,17 @@ enum UITestHooks {
         !isUITesting
     }
 
-    /// The document a UI test asked to open at launch, if any. Always `nil` in Release builds.
-    static var documentToOpen: URL? {
+    /// The documents a UI test asked to open at launch, in order. Always empty in Release builds.
+    static var documentsToOpen: [URL] {
         #if DEBUG
-            guard isUITesting, let path = UserDefaults.standard.string(forKey: openKey), path.hasPrefix("/") else {
-                return nil
+            guard isUITesting else {
+                return []
             }
-            return URL(filePath: path)
+            let defaults = UserDefaults.standard
+            let paths = defaults.stringArray(forKey: openKey) ?? defaults.string(forKey: openKey).map { [$0] } ?? []
+            return paths.filter { $0.hasPrefix("/") }.map { URL(filePath: $0) }
         #else
-            nil
+            []
         #endif
     }
 }
