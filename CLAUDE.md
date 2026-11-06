@@ -36,6 +36,8 @@ lock the build database.
     so everything the renderer emits must be escaped by construction).
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
   - `Transforms/`: AST passes (emoji shortcodes).
+  - `LocalResources/`: the app's `mdv-doc://<token>/<path>` URLs (`DocumentURLScheme`), the
+    allowed-root rule, and `LocalImagePolicy`, which approves every local image read.
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
     never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
