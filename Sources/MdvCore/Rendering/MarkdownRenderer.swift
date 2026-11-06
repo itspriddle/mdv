@@ -28,6 +28,10 @@ public struct RenderOptions: Sendable, Equatable {
     /// Syntax-highlight fenced code blocks that name a language, at render time (#11). Needs
     /// `HTMLRenderer.highlighter`; blocks render as plain escaped code without one.
     public var highlighting = true
+    /// Remote images (`RemoteImage`): kept as `<img>` (GitHub-compatible, `mdv --html`), or
+    /// replaced with a labeled placeholder (#20). The viewer blocks them until the user opts in.
+    /// Raw-HTML images are only replaced when `sanitize` is on.
+    public var remoteImages = RemoteImagePolicy.keep
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
     /// for trusted input (the spec suites expect raw HTML to pass through).
@@ -61,12 +65,19 @@ public struct RenderedDocument: Sendable, Equatable {
     public var headings: [Heading]
     /// The document's frontmatter, when `RenderOptions.detectsFrontmatter` found one (#8).
     public var frontmatter: Frontmatter?
+    /// Remote images replaced with placeholders under `RenderOptions.remoteImages` (#20):
+    /// Markdown images in document order, then raw-HTML images in document order.
+    public var blockedRemoteImages: [RemoteImage]
 
-    public init(html: String, title: String? = nil, headings: [Heading] = [], frontmatter: Frontmatter? = nil) {
+    public init(
+        html: String, title: String? = nil, headings: [Heading] = [], frontmatter: Frontmatter? = nil,
+        blockedRemoteImages: [RemoteImage] = []
+    ) {
         self.html = html
         self.title = title
         self.headings = headings
         self.frontmatter = frontmatter
+        self.blockedRemoteImages = blockedRemoteImages
     }
 }
 

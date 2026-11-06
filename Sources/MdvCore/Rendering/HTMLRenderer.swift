@@ -31,12 +31,13 @@ public struct HTMLRenderer: MarkdownRenderer {
         if let frontmatter, options.frontmatterDisplay == .table {
             FrontmatterHTML.render(frontmatter, into: &output)
         }
-        let headings = render(document, into: &output)
+        let (headings, blockedRemoteImages) = render(document, into: &output)
         return RenderedDocument(
             html: output.string,
             title: Self.title(frontmatter: frontmatter, headings: headings),
             headings: headings,
-            frontmatter: frontmatter
+            frontmatter: frontmatter,
+            blockedRemoteImages: blockedRemoteImages
         )
     }
 
@@ -59,14 +60,21 @@ public struct HTMLRenderer: MarkdownRenderer {
         frontmatter?.title ?? headings.first { $0.level == 1 && !$0.text.isEmpty }?.text
     }
 
-    /// Renders `root` and returns its headings in document order.
+    /// Renders `root` and returns its headings in document order and the remote images
+    /// replaced with placeholders (`RenderedDocument.blockedRemoteImages`).
     ///
     /// Headings are collected after sanitizing, so text the sanitizer drops doesn't count and
     /// raw HTML `<h1>`–`<h6>` can be included (`HeadingCollection`). With
     /// `options.headingAnchors` on, their slugs become heading ids.
     @discardableResult
-    private func render(_ root: MarkdownNode, into output: inout HTMLOutput) -> [Heading] {
-        var root = options.sanitize ? HTMLSanitizer().sanitize(root) : root
+    private func render(_ root: MarkdownNode, into output: inout HTMLOutput) -> (
+        headings: [Heading], blockedRemoteImages: [RemoteImage]
+    ) {
+        var rawBlockedImages: [RemoteImage] = []
+        var root =
+            options.sanitize
+            ? HTMLSanitizer(remoteImages: options.remoteImages).sanitize(root, blockedImages: &rawBlockedImages)
+            : root
         let collection = HeadingCollection(root, includingRawHTML: options.sanitize)
         var anchors: [String] = []
         if options.headingAnchors {
@@ -81,7 +89,7 @@ public struct HTMLRenderer: MarkdownRenderer {
         let reserved = options.headingAnchors ? Set(collection.headings.map(\.slug)) : []
         renderer.footnoteIDs = FootnoteIDs(for: root, reserving: reserved)
         renderer.walk(root, anchors: anchors, into: &output)
-        return collection.headings
+        return (collection.headings, blockedMarkdownImages(in: root) + rawBlockedImages)
     }
 
     private func walk(_ root: MarkdownNode, anchors: [String], into output: inout HTMLOutput) {
@@ -349,6 +357,11 @@ extension HTMLRenderer {
     }
 
     private func renderImage(_ node: MarkdownNode, source: String, title: String?, into output: inout HTMLOutput) {
+        if let image = blockedRemoteImage(source) {
+            output.raw(
+                RemoteImagePlaceholder.html(escapedAlt: HTMLDocument.escape(plainText(of: node)), image: image))
+            return
+        }
         output.raw("<img src=\"")
         writeURL(source, into: &output)
         output.raw("\" alt=\"")
