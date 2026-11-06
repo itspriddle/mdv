@@ -91,7 +91,10 @@ struct FrontmatterDetectionTests {
         #expect(Frontmatter.extract(from: "# Title\n---\na: 1\n---\n") == nil)
         let rendered = HTMLRenderer().render("Title\n---\n\ntext\n\n---\n")
         #expect(rendered.frontmatter == nil)
-        #expect(rendered.html == "<h2>Title</h2>\n<p>text</p>\n<hr />\n")
+        #expect(
+            rendered.html
+                == anchoredHeading(2, "title", "Title") + "\n<p>text</p>\n<hr />\n"
+        )
     }
 
     @Test("fences must stand alone on their lines")
@@ -159,12 +162,15 @@ struct YAMLFrontmatterTests {
         let frontmatter = try #require(rendered.frontmatter)
         #expect(frontmatter.entries == nil)
         #expect(frontmatter.error?.hasPrefix("Invalid YAML frontmatter") == true)
-        #expect(rendered.html == "<h1>Body</h1>\n")
-        #expect(rendered.title == nil)
+        #expect(
+            rendered.html == anchoredHeading(1, "body", "Body") + "\n")
+        #expect(rendered.title == "Body")
 
         var options = RenderOptions()
         options.frontmatterDisplay = .table
-        #expect(HTMLRenderer(options: options).render(markdown).html == "<h1>Body</h1>\n")
+        #expect(
+            HTMLRenderer(options: options).render(markdown).html
+                == anchoredHeading(1, "body", "Body") + "\n")
     }
 
     @Test("YAML that is not a mapping reports an error")
@@ -262,7 +268,10 @@ struct FrontmatterRenderingTests {
     func hidden() throws {
         let markdown = "---\ntitle: Doc\nlist:\n  - a\n---\n\n# One\n\ntext\n\n## Two\n"
         let rendered = HTMLRenderer().render(markdown)
-        #expect(rendered.html == "<h1>One</h1>\n<p>text</p>\n<h2>Two</h2>\n")
+        #expect(
+            rendered.html
+                == anchoredHeading(1, "one", "One") + "\n<p>text</p>\n" + anchoredHeading(2, "two", "Two") + "\n"
+        )
         #expect(rendered.title == "Doc")
         #expect(rendered.frontmatter?.lineCount == 5)
 
@@ -280,7 +289,10 @@ struct FrontmatterRenderingTests {
         let rendered = HTMLRenderer(options: options).render("---\ntitle: x\n---\n")
         #expect(rendered.frontmatter == nil)
         #expect(rendered.title == nil)
-        #expect(rendered.html == "<hr />\n<h2>title: x</h2>\n")
+        #expect(
+            rendered.html
+                == "<hr />\n" + anchoredHeading(2, "title-x", "title: x") + "\n"
+        )
     }
 
     @Test("title comes from a scalar title only")
@@ -358,7 +370,7 @@ struct FrontmatterRenderingTests {
         let html = HTMLRenderer(options: tableOptions).render("+++\ntitle = \"<x>\"\n+++\n# H\n").html
         let code =
             "<pre class=\"frontmatter\"><code class=\"language-toml\">title = &quot;&lt;x&gt;&quot;\n</code></pre>"
-        #expect(html == code + "\n<h1>H</h1>\n")
+        #expect(html == code + "\n" + anchoredHeading(1, "h", "H") + "\n")
     }
 
     @Test("table mode shows nothing for empty YAML")
