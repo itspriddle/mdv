@@ -90,6 +90,16 @@ struct OpeningTests {
         #expect(alreadyOpen)
     }
 
+    @Test("a file that isn't UTF-8 fails to open with an error and leaves no document")
+    func invalidFileFailsToOpen() async throws {
+        let url = folder.appending(path: "invalid.md")
+        try Data([0x23, 0x20, 0xFF, 0xFE, 0x0A]).write(to: url)
+        await #expect(throws: (any Error).self) {
+            _ = try await NSDocumentController.shared.openDocument(withContentsOf: url, display: false)
+        }
+        #expect(NSDocumentController.shared.document(for: url) == nil)
+    }
+
     @Test("restoration skips files that are gone, quietly")
     func restorationSkipsMissingFiles() async throws {
         let existing = try file("here.md")
