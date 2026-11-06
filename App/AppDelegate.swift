@@ -15,6 +15,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if let url = UITestHooks.documentToOpen {
+            NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
+                if let error {
+                    NSLog("mdv: UI test document failed to open: %@", error.localizedDescription)
+                }
+            }
+        }
+    }
+
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         true
     }
@@ -24,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// TODO(#22): settle launch, Dock, and restoration behavior for the opening flows.
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        !Self.isHostingUnitTests
+        !Self.isHostingUnitTests && !UITestHooks.isUITesting
     }
 
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
