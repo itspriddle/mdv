@@ -98,8 +98,11 @@ lock the build database.
   `Support/MdvUITestApp+<Feature>.swift`. Classes are `@MainActor final class ...: XCTestCase`.
 - Launch hooks (`UITestHooks`, `#if DEBUG` only, compiled out of Release): `-MdvUITesting YES`
   skips the launch Open panel and suppresses first-run prompts (features with a first-run prompt
-  must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` opens a
-  document at launch. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES`.
+  must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` (or a
+  plist array, `launch(openingFixtures:)`) opens documents at launch. Tests never add to Open
+  Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
+  `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
+  `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1 make test-ui` (CI sets it).
 - The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team
   in `Config/Local.xcconfig`, else ad hoc. Never run UI tests unsigned (Gatekeeper pops a
   "can't run" dialog for every attempt).

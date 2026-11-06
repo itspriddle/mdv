@@ -17,16 +17,23 @@ struct MdvUITestApp {
 
     /// Launches a fresh mdv, optionally opening `document`.
     ///
-    /// Every launch sets `-MdvUITesting YES` (no Open panel at launch, no first-run prompts) and
-    /// `-ApplePersistenceIgnoreState YES` (no restored windows from earlier runs).
+    /// Every launch sets `-MdvUITesting YES` (no Open panel at launch, no first-run prompts) and,
+    /// unless `restoresState`, `-ApplePersistenceIgnoreState YES` (no restored windows from
+    /// earlier runs; state is written to a temporary folder). `restoresState` instead saves and
+    /// restores windows for real, even when quitting with Cmd-Q (`NSQuitAlwaysKeepsWindows`).
     @discardableResult
     static func launch(
         opening document: URL? = nil,
         arguments: [String] = [],
-        environment: [String: String] = [:]
+        environment: [String: String] = [:],
+        restoresState: Bool = false
     ) -> MdvUITestApp {
         let app = XCUIApplication()
-        app.launchArguments = ["-MdvUITesting", "YES", "-ApplePersistenceIgnoreState", "YES"]
+        app.launchArguments = ["-MdvUITesting", "YES"]
+        app.launchArguments +=
+            restoresState
+            ? ["-ApplePersistenceIgnoreState", "NO", "-NSQuitAlwaysKeepsWindows", "YES"]
+            : ["-ApplePersistenceIgnoreState", "YES"]
         if let document {
             app.launchArguments += ["-MdvUITestOpen", document.path(percentEncoded: false)]
         }

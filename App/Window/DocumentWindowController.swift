@@ -24,12 +24,16 @@ final class DocumentWindowController: NSWindowController {
     private var canRecoverFromCrash = true
     /// A fragment to scroll to once the page loads (a link opened this document with `#…`).
     var pendingFragment: String?
+    /// The last reported reading position (source line), saved with window restoration.
+    var lastSourceLine: Double?
+    /// A restored reading position to scroll to once the page loads.
+    var pendingSourceLine: Double?
     /// This window's remote image opt-in (#20); never saved, kept across reloads.
     let remoteImages = RemoteImageOptIn()
 
     init(coordinator: WebViewCoordinator = WebViewCoordinator()) {
         self.coordinator = coordinator
-        let window = NSWindow(
+        let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
         window.backgroundColor = .themeBackground
@@ -40,6 +44,8 @@ final class DocumentWindowController: NSWindowController {
             self?.webContentProcessDidTerminate()
         }
         installLinkHandling()
+        configureForOpening(window)
+        installScrollTracking()
     }
 
     @available(*, unavailable)
@@ -112,6 +118,7 @@ final class DocumentWindowController: NSWindowController {
                 loadedBaseURL = baseURL
                 loadedContentSecurityPolicy = page.contentSecurityPolicy
                 await scrollToPendingFragment()
+                await scrollToPendingSourceLine()
                 if !hasShownPage {
                     hasShownPage = true
                     // Arrow keys, space, and Page Down scroll the document right away.
