@@ -14,10 +14,9 @@ struct DocumentView: View {
     let fileURL: URL?
 
     var body: some View {
-        MarkdownWebView(
-            html: document.renderedHTML(title: fileURL?.lastPathComponent ?? "Untitled"),
-            baseURL: fileURL?.deletingLastPathComponent()
-        )
-        .frame(minWidth: 480, minHeight: 360)
+        let page = document.renderedPage(fallbackTitle: fileURL?.lastPathComponent ?? "Untitled")
+        MarkdownWebView(html: page.html, baseURL: fileURL?.deletingLastPathComponent())
+            .frame(minWidth: 480, minHeight: 360)
+            .navigationTitle(page.title)
     }
 }

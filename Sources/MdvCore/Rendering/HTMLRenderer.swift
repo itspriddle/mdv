@@ -11,17 +11,38 @@ public struct HTMLRenderer: MarkdownRenderer {
     }
 
     public func render(_ markdown: String) -> RenderedDocument {
-        let document = MarkdownParser(extensions: options.extensions).parse(markdown)
-        return RenderedDocument(html: html(for: document, capacityHint: markdown.utf8.count))
+        let extracted = options.detectsFrontmatter ? Frontmatter.extract(from: markdown) : nil
+        let frontmatter = extracted?.frontmatter
+        let body = extracted.map { String($0.body) } ?? markdown
+        let document = MarkdownParser(extensions: options.extensions)
+            .parse(body, lineOffset: frontmatter?.lineCount ?? 0)
+
+        var output = HTMLOutput(capacity: markdown.utf8.count + markdown.utf8.count / 4)
+        if let frontmatter, options.frontmatterDisplay == .table {
+            FrontmatterHTML.render(frontmatter, into: &output)
+        }
+        render(document, into: &output)
+        return RenderedDocument(
+            html: output.string,
+            title: Self.title(frontmatter: frontmatter, document: document),
+            frontmatter: frontmatter
+        )
     }
 
     /// Renders an already-parsed tree to an HTML fragment.
     public func html(for node: MarkdownNode) -> String {
-        html(for: node, capacityHint: 0)
+        var output = HTMLOutput()
+        render(node, into: &output)
+        return output.string
     }
 
-    private func html(for root: MarkdownNode, capacityHint: Int) -> String {
-        var output = HTMLOutput(capacity: capacityHint + capacityHint / 4)
+    /// The document title: frontmatter `title` first, then the first `h1`.
+    static func title(frontmatter: Frontmatter?, document: MarkdownNode) -> String? {
+        // TODO(#6): fall back to the plain text of the first level-1 heading in `document`.
+        frontmatter?.title
+    }
+
+    private func render(_ root: MarkdownNode, into output: inout HTMLOutput) {
         // Walk with an explicit stack rather than recursion so deep trees cannot overflow it.
         var stack: [Step] = [.enter(root, Context())]
         while let step = stack.popLast() {
@@ -37,7 +58,6 @@ public struct HTMLRenderer: MarkdownRenderer {
                 renderExit(node, context, into: &output)
             }
         }
-        return output.string
     }
 }
 

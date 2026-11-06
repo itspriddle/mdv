@@ -18,12 +18,14 @@ public struct MarkdownParser: Sendable {
         self.extensions = extensions
     }
 
-    public func parse(_ markdown: String) -> MarkdownNode {
-        parse(markdown, allocator: nil)
+    /// Parses `markdown`. `lineOffset` is added to every `sourceRange` line, so a body parsed after
+    /// stripping frontmatter still reports lines of the original file (see `Frontmatter.lineCount`).
+    public func parse(_ markdown: String, lineOffset: Int = 0) -> MarkdownNode {
+        parse(markdown, lineOffset: lineOffset, allocator: nil)
     }
 
     /// `allocator` lets tests count cmark allocations to prove every node is freed.
-    func parse(_ markdown: String, allocator: UnsafeMutablePointer<cmark_mem>?) -> MarkdownNode {
+    func parse(_ markdown: String, lineOffset: Int = 0, allocator: UnsafeMutablePointer<cmark_mem>?) -> MarkdownNode {
         cmark_gfm_core_extensions_ensure_registered()
 
         // Source positions are always recorded. Smart punctuation (CMARK_OPT_SMART) is never
@@ -55,7 +57,7 @@ public struct MarkdownParser: Sendable {
         }
         defer { cmark_node_free(root) }
 
-        var builder = TreeBuilder()
+        var builder = TreeBuilder(lineOffset: lineOffset)
         return builder.build(root)
     }
 }
@@ -65,6 +67,8 @@ private typealias CmarkNode = UnsafeMutablePointer<cmark_node>
 /// Copies a cmark tree into `MarkdownNode`s without recursion, so deep input cannot overflow the
 /// stack during conversion.
 private struct TreeBuilder {
+    /// Added to every source line (lines of stripped frontmatter).
+    let lineOffset: Int
     private var footnoteNumbers: [String: Int] = [:]
     private var footnoteReferenceCounts: [String: Int] = [:]
     private var tableAlignments: [TableAlignment] = []
@@ -120,9 +124,9 @@ private struct TreeBuilder {
             return nil
         }
         return SourceRange(
-            start: SourcePosition(line: startLine, column: Int(cmark_node_get_start_column(node))),
+            start: SourcePosition(line: startLine + lineOffset, column: Int(cmark_node_get_start_column(node))),
             end: SourcePosition(
-                line: Int(cmark_node_get_end_line(node)),
+                line: Int(cmark_node_get_end_line(node)) + lineOffset,
                 column: Int(cmark_node_get_end_column(node))
             )
         )

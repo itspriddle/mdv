@@ -7,6 +7,11 @@ public protocol MarkdownRenderer: Sendable {
 public struct RenderOptions: Sendable, Equatable {
     /// Syntax extensions enabled on top of CommonMark.
     public var extensions: Set<MarkdownExtension>
+    /// Strip a leading YAML/TOML frontmatter block before parsing (#8). Turn off for spec
+    /// conformance, where a leading `---` block is ordinary Markdown.
+    public var detectsFrontmatter = true
+    /// How detected frontmatter is shown (#8).
+    public var frontmatterDisplay = FrontmatterDisplay.hidden
 
     public init(extensions: Set<MarkdownExtension> = []) {
         self.extensions = extensions
@@ -21,11 +26,14 @@ public struct RenderedDocument: Sendable, Equatable {
     public var title: String?
     /// Headings in document order, with their anchors (#6).
     public var headings: [Heading]
+    /// The document's frontmatter, when `RenderOptions.detectsFrontmatter` found one (#8).
+    public var frontmatter: Frontmatter?
 
-    public init(html: String, title: String? = nil, headings: [Heading] = []) {
+    public init(html: String, title: String? = nil, headings: [Heading] = [], frontmatter: Frontmatter? = nil) {
         self.html = html
         self.title = title
         self.headings = headings
+        self.frontmatter = frontmatter
     }
 }
 
