@@ -38,6 +38,8 @@ lock the build database.
   - `Transforms/`: AST passes (emoji shortcodes).
   - `LocalResources/`: the app's `mdv-doc://<token>/<path>` URLs (`DocumentURLScheme`), the
     allowed-root rule, and `LocalImagePolicy`, which approves every local image read.
+  - `RemoteImages/`: `RemoteImage` (what counts as remote), `RemoteImagePolicy`
+    (`RenderOptions.remoteImages`), and the blocked-image placeholder markup.
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
     never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.

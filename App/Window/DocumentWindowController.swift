@@ -1,4 +1,5 @@
 import AppKit
+import MdvCore
 import SwiftUI
 
 /// One document window: an AppKit window hosting `DocumentView` (SwiftUI), with a
@@ -17,6 +18,8 @@ final class DocumentWindowController: NSWindowController {
     private var displayTask: Task<Void, Never>?
     /// The base URL of the loaded page; content swaps in place only while it is unchanged.
     private var loadedBaseURL: URL?
+    /// The CSP of the loaded page. A swap keeps it, so a page that needs another one is loaded.
+    private var loadedContentSecurityPolicy: ContentSecurityPolicy?
     private var hasShownPage = false
     private var canRecoverFromCrash = true
     /// A fragment to scroll to once the page loads (a link opened this document with `#…`).
@@ -25,6 +28,8 @@ final class DocumentWindowController: NSWindowController {
     var lastSourceLine: Double?
     /// A restored reading position to scroll to once the page loads.
     var pendingSourceLine: Double?
+    /// This window's remote image opt-in (#20); never saved, kept across reloads.
+    let remoteImages = RemoteImageOptIn()
 
     init(coordinator: WebViewCoordinator = WebViewCoordinator()) {
         self.coordinator = coordinator
@@ -54,7 +59,9 @@ final class DocumentWindowController: NSWindowController {
                 return
             }
             let hostingController = NSHostingController(
-                rootView: DocumentView(document: markdownDocument, coordinator: coordinator))
+                rootView: DocumentView(
+                    document: markdownDocument, coordinator: coordinator, remoteImages: remoteImages,
+                    loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) }))
             // SwiftUI sets the minimum size; the window (and later restoration) owns the size.
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero
@@ -68,7 +75,8 @@ final class DocumentWindowController: NSWindowController {
     ///
     /// Live reload keeps the reading position: content is swapped into the loaded page in place
     /// (`updateContent(with:baseURL:)`), with no reload and no flash. Only when the base URL
-    /// changed (the file moved) is the page loaded again, and the position restored after.
+    /// changed (the file moved) or the CSP did (remote images opted in, #20) is the page loaded
+    /// again, and the position restored after.
     func documentContentDidChange() {
         canRecoverFromCrash = true
         display()
@@ -77,7 +85,7 @@ final class DocumentWindowController: NSWindowController {
     /// Shows the document's current content. Display tasks run one at a time, in order; a task
     /// that a newer one superseded before it started is skipped.
     private func display() {
-        guard let markdownDocument, let page = markdownDocument.content?.page else {
+        guard let markdownDocument, let page = displayedPage else {
             return
         }
         synchronizeWindowTitleWithDocumentName()
@@ -94,7 +102,9 @@ final class DocumentWindowController: NSWindowController {
                 return
             }
             do {
-                if coordinator.hasLoadedPage, baseURL == loadedBaseURL {
+                if coordinator.hasLoadedPage, baseURL == loadedBaseURL,
+                    page.contentSecurityPolicy == loadedContentSecurityPolicy
+                {
                     try await coordinator.updateContent(with: page, baseURL: baseURL)
                 } else if coordinator.hasLoadedPage {
                     let position = try? await coordinator.readingPosition()
@@ -106,6 +116,7 @@ final class DocumentWindowController: NSWindowController {
                     try await coordinator.load(page, baseURL: baseURL)
                 }
                 loadedBaseURL = baseURL
+                loadedContentSecurityPolicy = page.contentSecurityPolicy
                 await scrollToPendingFragment()
                 await scrollToPendingSourceLine()
                 if !hasShownPage {
