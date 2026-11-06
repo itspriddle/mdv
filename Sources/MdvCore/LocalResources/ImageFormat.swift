@@ -61,10 +61,13 @@ public enum ImageFormat: String, Sendable, CaseIterable {
     /// Whether the first element in `bytes` (UTF-8 text) is `<svg`. Skips what may legally
     /// precede the root element; anything else before it means "not SVG".
     private static func isSVG(_ bytes: [UInt8]) -> Bool {
-        var text = Substring(String(decoding: bytes, as: UTF8.self))
-        if text.hasPrefix("\u{FEFF}") {
-            text = text.dropFirst()
+        // Everything that matters here is ASCII. Drop a UTF-8 BOM and mask other non-ASCII
+        // bytes (which may be a character cut off at `sniffLength`) as `?`.
+        let body = bytes.starts(with: [0xEF, 0xBB, 0xBF]) ? Array(bytes.dropFirst(3)) : bytes
+        guard let ascii = String(bytes: body.map { $0 < 0x80 ? $0 : UInt8(ascii: "?") }, encoding: .ascii) else {
+            return false
         }
+        var text = Substring(ascii)
         while true {
             text = text.drop { $0.isWhitespace }
             if text.hasPrefix("<?") {
