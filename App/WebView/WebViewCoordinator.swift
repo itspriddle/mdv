@@ -53,7 +53,7 @@ final class WebViewCoordinator: NSObject {
         // Pinch-to-zoom: each window's own magnification (#26).
         webView.allowsMagnification = true
         // Behind and around the page (rubber-band overscroll): the theme background.
-        webView.underPageBackgroundColor = .themeBackground
+        webView.themeUnderPageBackgroundColor = .themeBackground
         // A fresh WKWebView paints white until its first page draws. Keep it hidden until then,
         // so the window's theme-colored background shows instead (no white flash in dark mode).
         webView.isHidden = true

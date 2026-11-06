@@ -33,9 +33,32 @@ struct AppearanceTests {
     func noWhiteFlash() throws {
         let controller = DocumentWindowController()
         #expect(controller.window?.backgroundColor == .themeBackground)
-        let underPage = try #require(
-            try resolved(controller.coordinator.webView.underPageBackgroundColor, in: .darkAqua))
-        #expect(Int((underPage.redComponent * 255).rounded()) == Int(DefaultTheme.background.dark.red))
         #expect(controller.coordinator.webView.isHidden)
+    }
+
+    /// WebKit on macOS 26 keeps `underPageBackgroundColor` resolved for the appearance it was set
+    /// in, so the web view re-resolves it on each change. The color is read as the web view
+    /// draws it: resolved in the web view's own appearance.
+    @Test(
+        "the web view's under-page background follows appearance changes",
+        arguments: [
+            [NSAppearance.Name.darkAqua, .aqua],
+            [.aqua, .darkAqua],
+        ])
+    func underPageBackgroundFollowsAppearance(sequence: [NSAppearance.Name]) throws {
+        let webView = DocumentWindowController().coordinator.webView
+        for name in sequence {
+            webView.appearance = try #require(NSAppearance(named: name))
+            #expect(webView.effectiveAppearance.name == name)
+            var underPage: NSColor?
+            webView.effectiveAppearance.performAsCurrentDrawingAppearance {
+                underPage = webView.underPageBackgroundColor.usingColorSpace(.sRGB)
+            }
+            let color = try #require(underPage)
+            let expected = name == .darkAqua ? DefaultTheme.background.dark : DefaultTheme.background.light
+            #expect(Int((color.redComponent * 255).rounded()) == Int(expected.red), "\(name.rawValue)")
+            #expect(Int((color.greenComponent * 255).rounded()) == Int(expected.green), "\(name.rawValue)")
+            #expect(Int((color.blueComponent * 255).rounded()) == Int(expected.blue), "\(name.rawValue)")
+        }
     }
 }

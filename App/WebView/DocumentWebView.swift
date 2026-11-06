@@ -9,6 +9,33 @@ final class DocumentWebView: WKWebView {
     /// Opens dropped files (already filtered to documents mdv can open). Set by the window.
     var fileDropHandler: (([URL]) -> Void)?
 
+    /// What WebKit paints behind and around the page (rubber-band overscroll, and before the
+    /// first paint): a dynamic color, resolved for this view's appearance.
+    ///
+    /// Use this, not `underPageBackgroundColor`, for a dynamic color. Some WebKit versions
+    /// (macOS 26) store that color resolved for the appearance current when it is set, so a dark
+    /// mode window would keep a light color (or the reverse) after an appearance change. This
+    /// sets it resolved and sets it again whenever the effective appearance changes.
+    var themeUnderPageBackgroundColor: NSColor? {
+        didSet { applyThemeUnderPageBackgroundColor() }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyThemeUnderPageBackgroundColor()
+    }
+
+    private func applyThemeUnderPageBackgroundColor() {
+        guard let color = themeUnderPageBackgroundColor else {
+            return
+        }
+        var resolved: NSColor?
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            resolved = color.usingColorSpace(.sRGB)
+        }
+        underPageBackgroundColor = resolved ?? color
+    }
+
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
         dropOperation(for: sender)
     }
