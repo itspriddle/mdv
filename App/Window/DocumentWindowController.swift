@@ -137,6 +137,7 @@ final class DocumentWindowController: NSWindowController {
                 await scrollToPendingFragment()
                 await scrollToPendingSourceLine()
                 await updateOutlinePosition()
+                await refreshFind()
                 if !hasShownPage {
                     hasShownPage = true
                     // Arrow keys, space, and Page Down scroll the document right away.
