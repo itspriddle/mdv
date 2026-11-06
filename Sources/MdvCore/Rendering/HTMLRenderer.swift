@@ -2,7 +2,7 @@
 ///
 /// Output for CommonMark nodes matches cmark's `cmark_render_html` byte for byte (safe mode for
 /// URLs, raw HTML passed through), so the CommonMark/GFM spec suites can check it directly. GFM
-/// tables and strikethrough match cmark too; task lists follow `RenderOptions.gfmMarkup`. Later
+/// tables and strikethrough match cmark too; task lists and footnotes follow `RenderOptions.gfmMarkup`. Later
 /// M1 features (anchors, emoji, sanitizing, highlighting, source lines) hook in here.
 public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
@@ -53,7 +53,7 @@ extension HTMLRenderer {
     }
 
     /// What a node needs to know about its ancestors.
-    private struct Context {
+    struct Context {
         /// The parent is `strong`; cmark collapses `****x****` into a single `<strong>`.
         var parentIsStrong = false
         /// The parent is a tight list, so this node is one of its items.
@@ -65,6 +65,10 @@ extension HTMLRenderer {
         /// This paragraph starts a task item: GitHub markup puts the checkbox (checked or not)
         /// inside it rather than directly after `<li>`.
         var taskCheckbox: Bool?
+        /// This node is the first footnote definition, so it opens the footnotes section.
+        var opensFootnoteSection = false
+        /// This paragraph ends a footnote definition, so the back-references go inside it.
+        var footnoteBackrefs: FootnoteBackrefs?
 
         /// The context shared by all children of a node of `kind`.
         func forChildren(of kind: MarkdownNode.Kind) -> Context {
@@ -86,27 +90,26 @@ extension HTMLRenderer {
         func forChild(_ child: MarkdownNode, at index: Int, of parent: MarkdownNode, _ options: RenderOptions)
             -> Context
         {
+            // Body rows follow the header row, and footnote definitions end the document, so the
+            // first of each is the one whose previous sibling is something else.
+            let previous = index > 0 ? parent.children[index - 1].kind : nil
             var context = self
             switch (parent.kind, child.kind) {
             case (.table, .tableRow(isHeader: false)):
-                context.opensTableBody = !parent.children[..<index].contains { $0.kind.isTableBodyRow }
+                context.opensTableBody = previous?.isTableBodyRow != true
             case (.taskItem(let isChecked), .paragraph) where index == 0 && options.gfmMarkup == .github:
                 context.taskCheckbox = isChecked
+            case (_, .footnoteDefinition):
+                context.opensFootnoteSection = previous?.isFootnoteDefinition != true
+            case (.footnoteDefinition(let label, let number, let referenceCount), .paragraph)
+            where index == parent.children.count - 1:
+                context.footnoteBackrefs = FootnoteBackrefs(
+                    label: label, number: number, referenceCount: referenceCount)
             default:
                 break
             }
             return context
         }
-    }
-}
-
-extension MarkdownNode.Kind {
-    fileprivate var isTableBodyRow: Bool {
-        self == .tableRow(isHeader: false)
-    }
-
-    fileprivate var isTaskItem: Bool {
-        if case .taskItem = self { true } else { false }
     }
 }
 
@@ -166,6 +169,10 @@ extension HTMLRenderer {
 
     private func renderExit(_ node: MarkdownNode, _ context: Context, into output: inout HTMLOutput) {
         switch node.kind {
+        case .document:
+            if node.children.last?.kind.isFootnoteDefinition == true {
+                output.raw("</ol>\n</section>\n")
+            }
         case .blockQuote:
             output.newlineIfNeeded()
             output.raw("</blockquote>\n")
@@ -175,6 +182,10 @@ extension HTMLRenderer {
             output.raw("</li>\n")
         case .paragraph:
             if !context.inTightListItem {
+                if let backrefs = context.footnoteBackrefs {
+                    output.raw(" ")
+                    writeFootnoteBackrefs(backrefs, into: &output)
+                }
                 output.raw("</p>\n")
             }
         case .heading(let level):
@@ -280,90 +291,5 @@ extension HTMLRenderer {
             }
         }
         return text
-    }
-}
-
-// MARK: - GFM extensions
-
-extension HTMLRenderer {
-    // TODO(#5): render footnote references and the footnotes section.
-    private func renderExtensionEnter(_ node: MarkdownNode, _ context: Context, into output: inout HTMLOutput) {
-        switch node.kind {
-        case .table:
-            output.newlineIfNeeded()
-            output.raw("<table>")
-        case .tableRow(let isHeader):
-            output.newlineIfNeeded()
-            if isHeader {
-                output.raw("<thead>\n")
-            } else if context.opensTableBody {
-                output.raw("<tbody>\n")
-            }
-            output.raw("<tr>")
-        case .tableCell(let alignment, let isHeader):
-            output.newlineIfNeeded()
-            output.raw(isHeader ? "<th" : "<td")
-            switch alignment {
-            case .left: output.raw(" align=\"left\"")
-            case .center: output.raw(" align=\"center\"")
-            case .right: output.raw(" align=\"right\"")
-            case .none: break
-            }
-            output.raw(">")
-        case .strikethrough:
-            output.raw("<del>")
-        case .taskItem(let isChecked):
-            output.newlineIfNeeded()
-            switch options.gfmMarkup {
-            case .github:
-                output.raw("<li class=\"task-list-item\">")
-                // A leading paragraph writes the checkbox itself (`Context.taskCheckbox`).
-                if node.children.first?.kind != .paragraph {
-                    writeTaskCheckbox(isChecked: isChecked, into: &output)
-                }
-            case .cmark:
-                output.raw("<li>")
-                output.raw(
-                    isChecked
-                        ? "<input type=\"checkbox\" checked=\"\" disabled=\"\" /> "
-                        : "<input type=\"checkbox\" disabled=\"\" /> ")
-            }
-        default:
-            break
-        }
-    }
-
-    private func renderExtensionExit(_ node: MarkdownNode, _ context: Context, into output: inout HTMLOutput) {
-        switch node.kind {
-        case .table:
-            if node.children.contains(where: \.kind.isTableBodyRow) {
-                output.newlineIfNeeded()
-                output.raw("</tbody>\n")
-            }
-            output.newlineIfNeeded()
-            output.raw("</table>\n")
-        case .tableRow(let isHeader):
-            output.newlineIfNeeded()
-            output.raw(isHeader ? "</tr>\n</thead>" : "</tr>")
-        case .tableCell(_, let isHeader):
-            output.raw(isHeader ? "</th>" : "</td>")
-        case .strikethrough:
-            output.raw("</del>")
-        case .taskItem:
-            output.raw("</li>\n")
-        default:
-            break
-        }
-    }
-
-    /// GitHub's task list checkbox and the space after it (the item's text starts after the
-    /// `[ ] ` marker). Always disabled: mdv is a viewer.
-    private func writeTaskCheckbox(isChecked: Bool, into output: inout HTMLOutput) {
-        output.raw(
-            isChecked
-                ? "<input type=\"checkbox\" disabled=\"\" class=\"task-list-item-checkbox\" "
-                    + "aria-label=\"Completed task\" checked=\"\"> "
-                : "<input type=\"checkbox\" disabled=\"\" class=\"task-list-item-checkbox\" "
-                    + "aria-label=\"Incomplete task\"> ")
     }
 }

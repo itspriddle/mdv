@@ -17,11 +17,16 @@ public enum DefaultTheme {
         th { font-weight: 600; }
         .task-list-item { list-style-type: none; }
         .task-list-item-checkbox { margin: 0 0.2em 0.25em -1.4em; vertical-align: middle; }
+        .footnotes { margin-top: 2em; padding-top: 1em; border-top: 1px solid #d1d9e0; font-size: 0.875em; }
+        .sr-only {
+          position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+          overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+        }
         @media (prefers-color-scheme: dark) {
           body { color: #e6edf3; background: #0d1117; }
           pre { background: #161b22; }
           a { color: #4493f8; }
-          th, td { border-color: #3d444d; }
+          th, td, .footnotes { border-color: #3d444d; }
         }
         """
 }

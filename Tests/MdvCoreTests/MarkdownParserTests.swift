@@ -145,4 +145,19 @@ struct MarkdownParserExtensionTests {
                 .footnoteDefinition(label: "z", number: 2, referenceCount: 1),
             ])
     }
+
+    @Test("footnotes take cmark's source-order numbers and counts, even when referenced from notes")
+    func footnotesReferencedFromDefinitions() {
+        // cmark numbers in source order: the reference to d inside e's definition comes first.
+        let tree = MarkdownParser(extensions: [.footnotes]).parse("[^d]: D\n\n[^e]: see [^d] [^E]\n\nx[^e]\n")
+        let all = kinds(tree)
+        #expect(all.contains(.footnoteReference(label: "d", number: 1, referenceIndex: 1)))
+        #expect(all.contains(.footnoteReference(label: "e", number: 2, referenceIndex: 1)))
+        #expect(all.contains(.footnoteReference(label: "e", number: 2, referenceIndex: 2)))
+        #expect(
+            tree.children.dropFirst().map(\.kind) == [
+                .footnoteDefinition(label: "d", number: 1, referenceCount: 1),
+                .footnoteDefinition(label: "e", number: 2, referenceCount: 2),
+            ])
+    }
 }

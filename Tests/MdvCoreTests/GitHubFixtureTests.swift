@@ -7,7 +7,7 @@ import Testing
 /// (`Fixtures/github`, captured with `gh api markdown`). See that folder's README.
 @Suite("GitHub reference fixtures")
 struct GitHubFixtureTests {
-    static let fixtures = ["tables", "strikethrough-autolinks", "task-lists"]
+    static let fixtures = ["tables", "strikethrough-autolinks", "task-lists", "footnotes"]
 
     @Test("default output matches GitHub", arguments: fixtures)
     func matchesGitHub(_ name: String) throws {

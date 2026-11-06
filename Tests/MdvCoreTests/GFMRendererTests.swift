@@ -149,3 +149,120 @@ struct GFMTaskListTests {
                 """)
     }
 }
+
+@Suite("HTMLRenderer: GFM footnotes")
+struct GFMFootnoteTests {
+    @Test("GitHub markup for a reference, the section, and the back-reference")
+    func github() {
+        #expect(
+            html("a[^n]\n\n[^n]: Note.")
+                == """
+                <p>a<sup><a href="#fn-n" id="fnref-n" data-footnote-ref="" aria-describedby="footnote-label">1</a>\
+                </sup></p>
+                <section data-footnotes="" class="footnotes"><h2 id="footnote-label" class="sr-only">Footnotes</h2>
+                <ol>
+                <li id="fn-n">
+                <p>Note. <a href="#fnref-n" data-footnote-backref="" aria-label="Back to reference 1" \
+                class="data-footnote-backref">↩</a></p>
+                </li>
+                </ol>
+                </section>
+
+                """)
+    }
+
+    @Test("repeated references get suffixed ids and one back-link each")
+    func multipleReferences() {
+        let output = html("a[^x] b[^x] c[^x]\n\n[^x]: X")
+        #expect(output.contains("id=\"fnref-x\""))
+        #expect(output.contains("id=\"fnref-x-2\""))
+        #expect(output.contains("id=\"fnref-x-3\""))
+        #expect(output.components(separatedBy: "href=\"#fn-x\"").count == 4)
+        #expect(
+            output.contains(
+                "<a href=\"#fnref-x-3\" data-footnote-backref=\"\" aria-label=\"Back to reference 1-3\" "
+                    + "class=\"data-footnote-backref\">↩<sup>3</sup></a></p>"))
+    }
+
+    @Test("numbered by first reference; unreferenced definitions are left out")
+    func numbering() {
+        let output = html("a[^b] c[^a]\n\n[^a]: A\n\n[^b]: B\n\n[^unused]: U")
+        #expect(
+            output.contains(
+                "href=\"#fn-b\" id=\"fnref-b\" data-footnote-ref=\"\" aria-describedby=\"footnote-label\">1<"))
+        #expect(
+            output.contains(
+                "href=\"#fn-a\" id=\"fnref-a\" data-footnote-ref=\"\" aria-describedby=\"footnote-label\">2<"))
+        let section = output.split(separator: "<section").last ?? ""
+        #expect(
+            section.range(of: "id=\"fn-b\"")?.lowerBound ?? section.endIndex
+                < section.range(of: "id=\"fn-a\"")?.lowerBound ?? section.startIndex)
+        #expect(!output.contains("unused"))
+        #expect(!output.contains(">U"))
+    }
+
+    @Test("a reference without a definition is literal text, and no section is written")
+    func missingDefinition() {
+        #expect(html("a[^nope]") == "<p>a[^nope]</p>\n")
+    }
+
+    @Test("block content: back-links follow a trailing non-paragraph block")
+    func blockContent() {
+        #expect(
+            html("a[^n]\n\n[^n]:\n    - one\n    - two\n\n    ```\n    code\n    ```")
+                .hasSuffix(
+                    """
+                    <li id="fn-n">
+                    <ul>
+                    <li>one</li>
+                    <li>two</li>
+                    </ul>
+                    <pre><code>code
+                    </code></pre>
+                    <a href="#fnref-n" data-footnote-backref="" aria-label="Back to reference 1" \
+                    class="data-footnote-backref">↩</a>
+                    </li>
+                    </ol>
+                    </section>
+
+                    """))
+    }
+
+    @Test(
+        "labels are user text: percent-encoded in ids and hrefs",
+        arguments: ["\"><script>alert(1)</script>", "a&b'c", "ünï"]
+    )
+    func specialLabels(label: String) {
+        let output = html("x[^\(label)]\n\n[^\(label)]: note")
+        #expect(output.contains("<sup><a href=\"#fn-"))
+        #expect(!output.contains("<script"))
+        let attributes = output.matches(of: /(?:id|href)="(#?fn(?:ref)?-[^"]*)"/).map { String($0.1) }
+        #expect(attributes.count == 4)
+        for value in attributes {
+            #expect(value.allSatisfy { $0.isASCII && !" <>'".contains($0) }, "\(value)")
+        }
+        // The reference and the definition agree, so the links resolve.
+        #expect(Set(attributes.map { $0.replacing(/^#?fn(ref)?-/, with: "") }).count == 1)
+    }
+
+    @Test("cmark markup (spec mode) for references and back-links")
+    func cmarkMarkup() {
+        #expect(
+            html("a[^n] b[^n]\n\n[^n]: N", markup: .cmark)
+                == """
+                <p>a<sup class="footnote-ref"><a href="#fn-n" id="fnref-n" data-footnote-ref>1</a></sup> \
+                b<sup class="footnote-ref"><a href="#fn-n" id="fnref-n-2" data-footnote-ref>1</a></sup></p>
+                <section class="footnotes" data-footnotes>
+                <ol>
+                <li id="fn-n">
+                <p>N <a href="#fnref-n" class="footnote-backref" data-footnote-backref data-footnote-backref-idx="1" \
+                aria-label="Back to reference 1">↩</a> <a href="#fnref-n-2" class="footnote-backref" \
+                data-footnote-backref data-footnote-backref-idx="1-2" aria-label="Back to reference 1-2">↩\
+                <sup class="footnote-ref">2</sup></a></p>
+                </li>
+                </ol>
+                </section>
+
+                """)
+    }
+}

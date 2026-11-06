@@ -15,6 +15,10 @@ gh api markdown -f mode=gfm -f text="$(cat NAME.md)" > NAME.html
 a fixture when its Markdown changes, and keep inputs to features mdv renders like GitHub (no
 fenced code with a language, headings, or raw HTML until their issues land).
 
+`mode=gfm` is GitHub's comment rendering, which turns soft line breaks into `<br>`; files
+render without that. Keep each paragraph on one line. (`mode=markdown` is an older pipeline that
+differs from github.com: no footnote section heading, unprefixed footnote hrefs.)
+
 ## Comparison
 
 Before comparing, the test removes what github.com adds on top of its Markdown rendering and mdv
