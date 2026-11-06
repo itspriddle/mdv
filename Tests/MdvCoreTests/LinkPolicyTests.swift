@@ -37,18 +37,27 @@ struct LinkPolicyTests {
         #expect(try action(href) == .scrollToFragment(fragment))
     }
 
+    /// A link to a local Markdown file and the document it should open.
+    struct MarkdownLink: Sendable, CustomTestStringConvertible {
+        var href: String
+        var path: String
+        var fragment: String?
+        var testDescription: String { href }
+    }
+
     @Test(
         "local Markdown files open in mdv, keeping the fragment",
         arguments: [
-            ("guide.md", "/Users/me/docs/guide.md", nil),
-            ("sub/Guide.MARKDOWN#setup", "/Users/me/docs/sub/Guide.MARKDOWN", "setup"),
-            ("../other/notes.mdown", "/Users/me/other/notes.mdown", nil),
-            ("/tmp/x.mkd", "/tmp/x.mkd", nil),
-            ("file:///tmp/y.mkdn#a%20b", "/tmp/y.mkdn", "a%20b"),
-            ("my%20file.md", "/Users/me/docs/my file.md", nil),
-        ] as [(String, String, String?)])
-    func markdown(href: String, path: String, fragment: String?) throws {
-        #expect(try action(href) == .openDocument(URL(filePath: path), fragment: fragment))
+            MarkdownLink(href: "guide.md", path: "/Users/me/docs/guide.md"),
+            MarkdownLink(
+                href: "sub/Guide.MARKDOWN#setup", path: "/Users/me/docs/sub/Guide.MARKDOWN", fragment: "setup"),
+            MarkdownLink(href: "../other/notes.mdown", path: "/Users/me/other/notes.mdown"),
+            MarkdownLink(href: "/tmp/x.mkd", path: "/tmp/x.mkd"),
+            MarkdownLink(href: "file:///tmp/y.mkdn#a%20b", path: "/tmp/y.mkdn", fragment: "a%20b"),
+            MarkdownLink(href: "my%20file.md", path: "/Users/me/docs/my file.md"),
+        ])
+    func markdown(link: MarkdownLink) throws {
+        #expect(try action(link.href) == .openDocument(URL(filePath: link.path), fragment: link.fragment))
     }
 
     @Test(

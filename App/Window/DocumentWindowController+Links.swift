@@ -61,24 +61,33 @@ extension DocumentWindowController {
             return
         }
         let inNewTab = opening == .newTab
-        NSDocumentController.shared.openDocument(withContentsOf: file, display: !inNewTab) {
-            [weak self] document, alreadyOpen, error in
+        NSDocumentController.shared.openDocument(withContentsOf: file, display: !inNewTab) { [weak self] in
+            let (document, alreadyOpen, error) = ($0, $1, $2)
             MainActor.assumeIsolated {
-                if let error {
-                    self?.showLinkMessage("Couldn’t open “\(file.lastPathComponent)”: \(error.localizedDescription)")
-                    return
-                }
-                guard let document = document as? MarkdownDocument else {
-                    return
-                }
-                if inNewTab {
-                    self?.showInNewTab(document, alreadyOpen: alreadyOpen)
-                }
-                if let fragment {
-                    for case let controller as DocumentWindowController in document.windowControllers {
-                        controller.scrollWhenLoaded(toFragment: fragment)
-                    }
-                }
+                self?.didOpenLinkedDocument(
+                    document, alreadyOpen: alreadyOpen, error: error, file: file, fragment: fragment, inNewTab: inNewTab
+                )
+            }
+        }
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    private func didOpenLinkedDocument(
+        _ document: NSDocument?, alreadyOpen: Bool, error: (any Error)?, file: URL, fragment: String?, inNewTab: Bool
+    ) {
+        if let error {
+            showLinkMessage("Couldn’t open “\(file.lastPathComponent)”: \(error.localizedDescription)")
+            return
+        }
+        guard let document = document as? MarkdownDocument else {
+            return
+        }
+        if inNewTab {
+            showInNewTab(document, alreadyOpen: alreadyOpen)
+        }
+        if let fragment {
+            for case let controller as DocumentWindowController in document.windowControllers {
+                controller.scrollWhenLoaded(toFragment: fragment)
             }
         }
     }
