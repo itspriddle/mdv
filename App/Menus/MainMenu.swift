@@ -5,10 +5,12 @@ import AppKit
 @MainActor
 final class MainMenu {
     /// Features that add menu items, in order. Each feature adds one line here.
-    static let contributions: [any MenuContribution.Type] = []
+    static let contributions: [any MenuContribution.Type] = [DefaultViewerMenu.self]
 
     /// The top-level menus features can add to.
     enum Menu: CaseIterable {
+        /// Groups go after About (e.g. app-wide commands, until Settings exists).
+        case app
         /// Groups go after Open, Open Recent, and Close (e.g. Print).
         case file
         /// Groups go after Copy and Select All (e.g. Find, Copy as HTML).
@@ -60,7 +62,8 @@ final class MainMenu {
         return menu(
             appName,
             [
-                [NSMenuItem("About \(appName)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)))],
+                [NSMenuItem("About \(appName)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)))]
+            ] + groups(for: .app) + [
                 [NSMenuItem("Services", submenu: NSMenu(title: "Services"))],
                 [
                     NSMenuItem("Hide \(appName)", action: #selector(NSApplication.hide(_:)), key: "h"),

@@ -37,6 +37,7 @@ targets:
         CFBundleDocumentTypes:
           - CFBundleTypeName: Markdown Document
             CFBundleTypeRole: Viewer
+            # Alternate: mdv offers to become the default instead of claiming it (#23, VISION).
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - net.daringfireball.markdown
