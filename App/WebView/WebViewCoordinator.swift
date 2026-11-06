@@ -10,7 +10,7 @@ import WebKit
 /// tree only embeds `webView` (`MarkdownWebView`); it never loads content.
 @MainActor
 final class WebViewCoordinator: NSObject {
-    let webView: WKWebView
+    let webView: DocumentWebView
 
     /// Serves this window's `mdv-doc` URLs (scoped local images).
     let localResources: LocalResourceSchemeHandler
@@ -42,7 +42,7 @@ final class WebViewCoordinator: NSObject {
         let localResources = LocalResourceSchemeHandler()
         configuration.setURLSchemeHandler(localResources, forURLScheme: DocumentURLScheme.name)
         self.localResources = localResources
-        webView = WKWebView(frame: .zero, configuration: configuration)
+        webView = DocumentWebView(frame: .zero, configuration: configuration)
         super.init()
         webView.navigationDelegate = self
         webView.uiDelegate = self

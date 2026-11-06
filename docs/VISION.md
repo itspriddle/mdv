@@ -91,6 +91,19 @@ editor or a browser.
   of the page before the position is restored; so in-place swap, with reload-and-restore only when the base URL
   changes (the file moved). A Vim `:w` of a 20 KB file shows in about 100 ms. Unreadable or
   non-UTF-8 content, and deletion, keep the last render under a banner.
+- **Opening documents (#22):** AppKit's document paths (Finder, File > Open, Dock drops, Open
+  Recent) go through `DocumentController`, which finds an already-open file by file identity
+  (symlinks, `/tmp` vs `/private/tmp`) and focuses its window instead of duplicating it. Files
+  dropped on a window open as **new tabs** of it; anything else dropped is refused, so WebKit
+  never loads a drop. With no windows, launching or clicking the Dock icon shows the Open panel.
+  Tabs follow the system "Prefer tabs when opening documents" setting (`tabbingMode`
+  `.automatic`, like Preview and TextEdit); Cmd-click on a link always makes a tab. Window
+  restoration (documents, frames, tab groups, and each window's reading position as a source
+  line) follows the system "Close windows when quitting an application" setting, so
+  `mdv FILE` doesn't bring back every old window. Documents whose file
+  is gone or in the Trash are skipped quietly. `.md`/`.markdown` are
+  `net.daringfireball.markdown`; `.mdown`/`.mkd`/`.mkdn`, and plain text (`.txt`), open because
+  they conform to `public.plain-text`, which mdv reads but never claims (`LSHandlerRank None`).
 - **Default handler:** mdv declares Markdown with `LSHandlerRank: Alternate` and asks, never
   grabs (#23). `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
