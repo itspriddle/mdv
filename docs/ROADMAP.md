@@ -4,19 +4,21 @@ Milestones are ordered by dependency. Each one becomes a GitHub milestone, then 
 into issues in its own planning session. Scope lists are starting points, not contracts. Refine
 them when the milestone is broken down.
 
-| Milestone                               | Theme                          | Release   |
-| --------------------------------------- | ------------------------------ | --------- |
-| [M0](#m0-foundation)                    | Foundation                     | -         |
-| [M1](#m1-core-rendering)                | Core rendering                 | -         |
-| [M2](#m2-viewer-app)                    | Viewer app                     | -         |
-| [M3](#m3-themes)                        | Themes                         | -         |
-| [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         |
-| [M5](#m5-cli)                           | CLI                            | -         |
-| [Gate](#gate-choose-the-name)           | Choose the final name          | -         |
-| [M6](#m6-distribution-and-10)           | Distribution                   | **1.0**   |
-| [Post-1.0](#post-10)                    | PDF, math, RTL, proofreading…  | 1.x       |
+| Milestone                               | Theme                          | Release   | Status |
+| --------------------------------------- | ------------------------------ | --------- | ------ |
+| [M0](#m0-foundation)                    | Foundation                     | -         | Done   |
+| [M1](#m1-core-rendering)                | Core rendering                 | -         |        |
+| [M2](#m2-viewer-app)                    | Viewer app                     | -         |        |
+| [M3](#m3-themes)                        | Themes                         | -         |        |
+| [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         |        |
+| [M5](#m5-cli)                           | CLI                            | -         |        |
+| [Gate](#gate-choose-the-name)           | Choose the final name          | -         |        |
+| [M6](#m6-distribution-and-10)           | Distribution                   | **1.0**   |        |
+| [Post-1.0](#post-10)                    | PDF, math, RTL, proofreading…  | 1.x       |        |
 
 ## M0: Foundation
+
+**Status:** Done (2026-11-06).
 
 Get a buildable, tested, linted walking skeleton and a shared plan.
 
@@ -27,7 +29,7 @@ Get a buildable, tested, linted walking skeleton and a shared plan.
 - SwiftLint + swift-format, `Makefile`, GitHub Actions CI
 - `docs/VISION.md`, `docs/ROADMAP.md`, `README.md`
 
-**Exit criteria:** `make lint test build` passes locally and in CI.
+**Exit criteria:** `make lint test build` passes locally and in CI. ✅
 
 ## M1: Core rendering
 
