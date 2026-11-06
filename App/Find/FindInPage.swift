@@ -26,6 +26,8 @@ struct FindMatches: Equatable, Sendable {
     var isLimited: Bool
     /// The match to start at: the first at or after the previous current match, or in view.
     var first: Int
+
+    var isEmpty: Bool { count < 1 }
 }
 
 /// One window's find in page: the find bar's state and the operations behind Edit > Find.

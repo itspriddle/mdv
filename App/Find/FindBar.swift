@@ -116,7 +116,7 @@ struct FindField: NSViewRepresentable {
 
 /// A search field whose cell edits with `FindFieldEditor`.
 final class FindSearchField: NSSearchField {
-    override class var cellClass: AnyClass? {
+    override static var cellClass: AnyClass? {
         get { FindSearchFieldCell.self }
         set {}
     }

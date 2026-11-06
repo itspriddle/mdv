@@ -298,17 +298,19 @@ struct FindInPageLogicTests {
     func menu() throws {
         let edit = MainMenu.build(contributions: [FindMenu.self]).item(withTitle: "Edit")?.submenu
         let find = try #require(edit?.item(withTitle: "Find")?.submenu)
-        let items = find.items.map { ($0.title, $0.keyEquivalent, $0.keyEquivalentModifierMask, $0.tag) }
-        let expected: [(String, String, NSEvent.ModifierFlags, NSTextFinder.Action)] = [
-            ("Find…", "f", .command, .showFindInterface),
-            ("Find Next", "g", .command, .nextMatch),
-            ("Find Previous", "g", [.command, .shift], .previousMatch),
-            ("Use Selection for Find", "e", .command, .setSearchString),
-        ]
-        #expect(items.count == expected.count)
-        for (item, want) in zip(items, expected) {
-            #expect(item.0 == want.0 && item.1 == want.1 && item.2 == want.2 && item.3 == want.3.rawValue)
+        /// Title, key, and `NSTextFinder.Action` per item.
+        func describe(_ item: NSMenuItem) -> String {
+            let shift = item.keyEquivalentModifierMask.contains(.shift) ? "shift-" : ""
+            return "\(item.title) cmd-\(shift)\(item.keyEquivalent) \(item.tag)"
         }
+        #expect(
+            find.items.map(describe) == [
+                "Find… cmd-f \(NSTextFinder.Action.showFindInterface.rawValue)",
+                "Find Next cmd-g \(NSTextFinder.Action.nextMatch.rawValue)",
+                "Find Previous cmd-shift-g \(NSTextFinder.Action.previousMatch.rawValue)",
+                "Use Selection for Find cmd-e \(NSTextFinder.Action.setSearchString.rawValue)",
+            ])
+        #expect(find.items.allSatisfy { $0.keyEquivalentModifierMask.contains(.command) })
         #expect(find.items.allSatisfy { $0.action == #selector(NSResponder.performTextFinderAction(_:)) })
     }
 
