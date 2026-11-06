@@ -132,6 +132,8 @@ struct RawHTMLSanitizer {
     }
 
     private var openElements: [String] = []
+    /// How many of each element are in `openElements`, so lookups don't scan a deep stack.
+    private var openCounts: [String: Int] = [:]
     private var dropping: Drop?
 
     /// Inside an element removed with its content; non-HTML siblings must be skipped.
@@ -186,6 +188,7 @@ struct RawHTMLSanitizer {
     mutating func finish() -> String {
         let closers = openElements.reversed().map { "</\($0)>" }.joined()
         openElements.removeAll()
+        openCounts.removeAll()
         dropping = nil
         return closers
     }
@@ -206,7 +209,9 @@ struct RawHTMLSanitizer {
         guard Policy.elements.contains(tag.name) else {
             return
         }
-        if let ancestors = Policy.requiredAncestors[tag.name], !openElements.contains(where: ancestors.contains) {
+        if let ancestors = Policy.requiredAncestors[tag.name],
+            !ancestors.contains(where: { openCounts[$0, default: 0] > 0 })
+        {
             return
         }
         output += "<\(tag.name)"
@@ -217,15 +222,17 @@ struct RawHTMLSanitizer {
             // `/>` on a non-void element is ignored by browsers: it's a start tag.
             output += ">"
             openElements.append(tag.name)
+            openCounts[tag.name, default: 0] += 1
         }
     }
 
     private mutating func endTag(_ name: String, into output: inout String) {
-        guard !HTMLSanitizerPolicy.voidElements.contains(name), let index = openElements.lastIndex(of: name) else {
+        guard openCounts[name, default: 0] > 0, let index = openElements.lastIndex(of: name) else {
             return
         }
         for element in openElements[index...].reversed() {
             output += "</\(element)>"
+            openCounts[element, default: 0] -= 1
         }
         openElements.removeSubrange(index...)
     }
