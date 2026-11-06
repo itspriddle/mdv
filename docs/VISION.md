@@ -115,6 +115,18 @@ editor or a browser.
   Re-renders keep the sidebar's scroll position, collapsed entries, and selection. Visibility
   is per window (restored with the window) and the last toggle is the default for new
   windows; hidden until first shown. A document without headings shows "No Headings".
+- **Zoom, print, copy (#26):** zoom is global with a per-window override. Cmd-+/-/0 set one
+  app-wide `pageZoom` level (Safari's steps, persisted in `UserDefaults`) that every window
+  follows live, so text size is a reading preference rather than a per-file chore. Pinch is
+  the window's own `WKWebView` magnification (scales without reflow, as in Safari), kept by
+  window restoration; Actual Size resets both. Print uses `WKWebView.printOperation` through
+  `NSDocument` (Page Setup, Save as PDF from the panel) with `@media print` rules in the theme:
+  light colors always, full width, wrapped code and tables, no anchor icons, external link
+  targets written out. Copy as HTML copies the `mdv --html` body fragment (no
+  `data-source-line`, remote images as written) as HTML plus its markup as plain text; Copy
+  Markdown Source copies the file as plain text and `net.daringfireball.markdown`. The web
+  view's context menu drops browser items the viewer can't perform (Reload, Back/Forward,
+  downloads, "Open Image/Media/Frame in New Window").
 - **Default handler:** mdv declares Markdown with `LSHandlerRank: Alternate` and asks, never
   grabs (#23). `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
