@@ -42,6 +42,8 @@ lock the build database.
     gets; `!important` there means protected from themes), and `ThemeLayer` (cascade layers
     `mdv-base` → `mdv-theme` → `mdv-user`, one `<style id>` each). Bundled themes are
     `extension Theme { static let … }` files here.
+    `Themes/Custom/`: custom theme files (#35): `CustomTheme` (header, id), `CustomThemeCSS` (the
+    safety check; `CustomThemeCSSScanner` tokenizes), `CustomThemeFolder` (reading the folder).
   - `LocalResources/`: the app's `mdv-doc://<token>/<path>` URLs (`DocumentURLScheme`), the
     allowed-root rule, `LocalImagePolicy`, which approves every local image read, and
     `RootRelativeURL` (`/docs/x.png` resolved against the allowed root, `RenderOptions.linkRoot`).
@@ -59,6 +61,8 @@ lock the build database.
   `DefaultViewer/`, `Print/`, `Themes/`, `Zoom/` (each a small type plus its
   `DocumentWindowController+<Feature>.swift`). `Themes/ThemeSettings` holds the theme registry
   and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
+  `Themes/CustomThemeLibrary` watches the custom themes folder (`ThemeFolderWatcher`) and
+  replaces the registry (`ThemeSettings.apply(_:)`).
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
@@ -132,8 +136,9 @@ lock the build database.
 - Launch hooks (`UITestHooks`, `#if DEBUG` only, compiled out of Release): `-MdvUITesting YES`
   skips the launch Open panel and suppresses first-run prompts (features with a first-run prompt
   must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` (or a
-  plist array, `launch(openingFixtures:)`) opens documents at launch. Tests never add to Open
-  Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
+  plist array, `launch(openingFixtures:)`) opens documents at launch; `-MdvUITestThemesFolder
+  <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
+  unit tests never load them). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
   `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1 make test-ui` (CI sets it).
 - The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team

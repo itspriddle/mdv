@@ -70,7 +70,7 @@ final class DocumentWindowController: NSWindowController {
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
-        themeID = themeSettings.defaultTheme.id
+        themeID = themeSettings.defaultThemeIDForNewWindows
         wantsOutline = outlinePreference.showsOutlineInNewWindows
         let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),

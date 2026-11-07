@@ -210,7 +210,7 @@ editor or a browser.
   and a custom theme could hide placeholders or find highlights with one `!important`. Theme
   CSS is inlined with every `</` written `<\/` so it can't close its `<style>` element. A theme
   that escapes its layer with a stray `}` becomes unlayered: it then outranks user controls but
-  still not the protected base rules (custom theme validation is #35).
+  still not the protected base rules; custom themes with unbalanced brackets are rejected (#35).
 - **Bundled themes (#33):** GitHub (`github`, the default), Document (`document`, a
   word-processor page; named to avoid Google's trademark), and Serif (`serif`, system serif
   reading column). GitHub vendors `sindresorhus/github-markdown-css` (MIT, pinned in
@@ -249,6 +249,33 @@ editor or a browser.
   whenever it changes, so a custom theme edited or deleted on disk (#35) updates or falls
   back to the default live. Print prints the window's web view, so it uses the window's
   theme; Copy as HTML stays a theme-free fragment.
+- **Custom themes (#35):** each `*.css` file in `~/Library/Application Support/mdv/Themes` is a
+  theme, id `custom:<file name>` (a namespace no bundled id uses, so it can't shadow one),
+  listed in the picker's own section. Metadata is an optional header comment, the first thing
+  in the file: `/* mdv-theme` on its first line, then `key: value` lines (`name`, `background`,
+  `background-dark` as `#rgb`/`#rrggbb`, `extends`); unknown or repeated keys are errors, so
+  typos surface. Name defaults to the file name; `background-dark` defaults to `background`,
+  and with neither the extended (else default) theme's backgrounds are used. A comment beat
+  `--mdv-background-*` custom properties: it needs no CSS parsing or cascade semantics to read,
+  and the window is painted from it before the page exists. Custom themes start from the base
+  layer only; `extends: <bundled id>` puts that theme's CSS first in the same layer, so the
+  file only overrides (bundled themes only, no chains). The file is checked by a small CSS
+  tokenizer (`CustomThemeCSS`, comments, strings, and escapes aware, so `@\69mport` and
+  `u\72l(` are caught) before it is inlined, independent of the CSP: no `@import`, no
+  `expression()`, every `url()` (and URL strings in `image-set()`, `image()`, `src()`,
+  `cross-fade()`) must be `data:image/…` (images only: the CSP has no `font-src`, and SVG images
+  in CSS run no script and load nothing), and `{}`/`()`/`[]` must nest with comments and
+  strings closed, so a stray `}` can't leave the theme layer. Rejected rather than stripped,
+  so a theme never renders differently than written without saying why. Files must be regular
+  files (no symbolic links, opened `O_NOFOLLOW | O_NONBLOCK`), at most 512 KB, UTF-8 without
+  NULs; at most 100 themes load. A file that fails is a disabled picker item with the reason
+  (and a log line), never an alert. Installed fonts by name are fine. The folder is watched
+  with kqueue off the main thread (the folder, each theme file, and while missing its nearest
+  existing ancestor), debounced 100 ms (300 ms cap); every burst re-reads the folder and
+  replaces `ThemeSettings.registry` only if something changed, so open windows swap an edited
+  theme in place (#34) and fall back to the default when it is deleted or broken (keeping
+  their pick for when it returns). The folder is created on demand (View > Theme > Open
+  Themes Folder).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI

@@ -7,8 +7,9 @@ import MdvCore
 /// Each window keeps its own theme (`DocumentWindowController.themeID`, restorable state). This
 /// holds what they share:
 /// - `registry`: the themes the picker lists. Custom themes (#35) replace it with
-///   `ThemeRegistry.bundled.adding(customThemes)`; every window then resolves its theme again
-///   and swaps in a changed or removed one in place.
+///   `baseRegistry.adding(customThemes)` (`apply(_:)`); every window then resolves its theme
+///   again and swaps in a changed or removed one in place.
+/// - `customThemeFailures`: custom theme files that didn't load, for the picker.
 /// - `defaultThemeID`: the theme for new windows, persisted. Until Settings (#36) sets it, the
 ///   last theme picked in any window.
 @MainActor
@@ -37,12 +38,20 @@ final class ThemeSettings {
         }
     }
 
+    /// The themes every registry has: what `registry` starts as, before custom themes.
+    let baseRegistry: ThemeRegistry
+
+    /// Custom theme files (#35) that didn't load, with why. The theme picker lists them as
+    /// disabled items.
+    private(set) var customThemeFailures: [CustomThemeFailure] = []
+
     init(
         registry: ThemeRegistry = .bundled,
         defaults: UserDefaults = .standard,
         isPersistent: Bool = !UITestHooks.isUITesting
     ) {
         self.registry = registry
+        self.baseRegistry = registry
         self.defaults = defaults
         self.isPersistent = isPersistent
     }
@@ -69,5 +78,31 @@ final class ThemeSettings {
     /// The theme new windows start with.
     var defaultTheme: Theme {
         registry.theme(id: defaultThemeID)
+    }
+
+    /// The id a new window starts with: `defaultThemeID` even when it isn't registered (yet),
+    /// so a window opened before the custom themes load, or while the default's file is
+    /// missing, switches to it once it is. Shows `defaultTheme` meanwhile.
+    var defaultThemeIDForNewWindows: String {
+        if let id = defaultThemeID, DocumentWindowController.isPlausibleThemeID(id) {
+            return id
+        }
+        return registry.defaultTheme.id
+    }
+
+    /// Replaces the custom themes (#35): `registry` becomes `baseRegistry` plus the catalog's
+    /// themes, and `customThemeFailures` its failures. Posts one change notification when
+    /// either changed; windows showing a changed or removed theme update in place.
+    func apply(_ catalog: CustomThemeCatalog) {
+        let newRegistry = baseRegistry.adding(catalog.themes)
+        guard newRegistry != registry || catalog.failures != customThemeFailures else {
+            return
+        }
+        customThemeFailures = catalog.failures
+        if newRegistry != registry {
+            registry = newRegistry  // posts
+        } else {
+            NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
+        }
     }
 }

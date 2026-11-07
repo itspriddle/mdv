@@ -7,9 +7,19 @@ import MdvCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
+    /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
+    /// themes folder).
+    private(set) var customThemes: CustomThemeLibrary?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         MainMenu.install()
+        // Before restoration: restored windows showing a custom theme switch to it as soon as
+        // the first load (off the main thread) lands.
+        if let folder = CustomThemeLibrary.folderURL {
+            let library = CustomThemeLibrary(folder: folder, settings: .shared)
+            library.start()
+            customThemes = library
+        }
         // Load highlight.js into its JavaScriptCore context off the main thread, so the first
         // document doesn't pay for it.
         Task.detached(priority: .utility) {
@@ -65,8 +75,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         defaultViewerOffer.makeDefaultMarkdownViewer(sender)
     }
 
+    /// View > Theme > Open Themes Folder: creates the folder if needed and shows it in Finder.
+    @objc func openThemesFolder(_ sender: Any?) {
+        customThemes?.openFolder()
+    }
+
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        defaultViewerOffer.validateMenuItem(menuItem)
+        if menuItem.action == #selector(openThemesFolder(_:)) {
+            return customThemes != nil
+        }
+        return defaultViewerOffer.validateMenuItem(menuItem)
     }
 
     /// Whether the app is the host for `AppTests`, where a modal Open panel would block the run.

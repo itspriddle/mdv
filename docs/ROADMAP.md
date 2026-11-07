@@ -212,6 +212,12 @@ CSS themes as a first-class feature.
   `mdv.replaceStyle` as #37), keeping the reading position, find, zoom, and remote-image
   opt-in; no reload. Theme is per window (restorable); the last pick is the default for new
   windows until Settings (#36). Print uses the window's theme; Copy as HTML stays theme-free.
+- Custom theme metadata (#35): an optional leading `/* mdv-theme … */` header comment with
+  `name`, `background`, `background-dark` (hex), and `extends` (a bundled id; default: base layer
+  only). Ids are `custom:<file name>`. `@import`, `expression()`, non-`data:image` URLs, and
+  unbalanced brackets reject the file (shown disabled in the picker with the reason) rather than
+  being stripped; `data:image/…` URLs are allowed. Regular files only (no symlinks), 512 KB,
+  UTF-8, 100 themes. kqueue folder watch, 100 ms debounce; see VISION.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.
