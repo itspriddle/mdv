@@ -199,10 +199,10 @@ struct HighlightingTests {
     @Test("a full HTML document stays self-contained, with no script")
     func selfContainedDocument() {
         let rendered = HTMLRenderer().render(fence("html", "<script src=\"https://x\"></script>"))
-        let page = HTMLDocument(title: "t", body: rendered.html).html
+        let page = HTMLDocument(title: "t", body: rendered.html, theme: .github).html
         #expect(page.contains("hljs-"))
         #expect(!page.contains("<script"))
-        #expect(DefaultTheme.css.contains(".hljs-keyword"))
+        #expect(Theme.github.highlightStylesheet.contains(".hljs-keyword"))
     }
 }
 

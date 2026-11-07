@@ -144,13 +144,13 @@ struct ColorModeImageTests {
         #expect(ColorModeImage(source: "x.png") == nil)
     }
 
-    @Test("the theme hides the other appearance's images and placeholders; print counts as light")
+    @Test("the base layer hides the other appearance's images and placeholders; print counts as light")
     func css() throws {
-        let css = DefaultTheme.css
+        let css = ThemeBase.css
         let lightBlock = try #require(css.range(of: "@media not screen and (prefers-color-scheme: dark) {"))
         let lightRules = css[lightBlock.upperBound...].prefix { $0 != "}" }
         #expect(lightRules.contains(##"img[src$="#gh-dark-mode-only"], .remote-image.gh-dark-mode-only"##))
-        #expect(lightRules.contains("display: none;"))
+        #expect(lightRules.contains("display: none !important;"))
         let darkStart = try #require(
             css.range(of: #"@media screen and (prefers-color-scheme: dark) {"#, options: .backwards))
         let darkRules = css[darkStart.upperBound...].prefix { $0 != "}" }

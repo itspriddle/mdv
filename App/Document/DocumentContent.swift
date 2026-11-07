@@ -94,7 +94,11 @@ struct RenderedPage: Equatable, Sendable {
     ) {
         let title = rendered.title ?? fallbackTitle
         self.title = title
-        self.html = HTMLDocument(title: title, body: rendered.html, contentSecurityPolicy: contentSecurityPolicy).html
+        self.html =
+            HTMLDocument(
+                title: title, body: rendered.html, theme: ThemeRegistry.bundled.defaultTheme,
+                contentSecurityPolicy: contentSecurityPolicy
+            ).html
         self.contentSecurityPolicy = contentSecurityPolicy
         self.body = rendered.html
         self.headings = rendered.headings

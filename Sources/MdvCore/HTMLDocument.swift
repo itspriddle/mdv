@@ -2,7 +2,8 @@
 public struct HTMLDocument: Sendable {
     public var title: String
     public var body: String
-    public var stylesheet: String
+    /// The page's theme, in the `mdv-theme` layer above the base layer (`ThemeBase`).
+    public var theme: Theme
     /// Restrictive by default: no scripts, no remote loads, inline styles, local images only.
     /// The app passes `.viewer`; `mdv --html` keeps `.standalone`.
     public var contentSecurityPolicy: ContentSecurityPolicy
@@ -10,12 +11,12 @@ public struct HTMLDocument: Sendable {
     public init(
         title: String,
         body: String,
-        stylesheet: String = DefaultTheme.css,
+        theme: Theme,
         contentSecurityPolicy: ContentSecurityPolicy = .standalone
     ) {
         self.title = title
         self.body = body
-        self.stylesheet = stylesheet
+        self.theme = theme
         self.contentSecurityPolicy = contentSecurityPolicy
     }
 
@@ -28,8 +29,11 @@ public struct HTMLDocument: Sendable {
         <meta http-equiv="Content-Security-Policy" content="\(contentSecurityPolicy.header)">
         <meta name="color-scheme" content="light dark">
         <title>\(Self.escape(title))</title>
-        <style>
-        \(stylesheet)
+        <style id="\(ThemeLayer.base.name)">
+        \(ThemeBase.layerCSS)
+        </style>
+        <style id="\(ThemeLayer.theme.name)">
+        \(theme.layerCSS)
         </style>
         </head>
         <body>

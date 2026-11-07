@@ -6,8 +6,8 @@
 // callAsyncJavaScript and passes the query as an argument, never as script source.
 //
 // Highlights use the CSS Custom Highlight API: ranges registered in `CSS.highlights` are painted
-// by the `::highlight(mdv-find)` and `::highlight(mdv-find-current)` rules in the page's
-// stylesheet (DefaultTheme). Nothing is inserted into the DOM and no inline style is set, so
+// by the `::highlight(mdv-find)` and `::highlight(mdv-find-current)` rules in the page's base
+// layer (MdvCore `ThemeBase`). Nothing is inserted into the DOM and no inline style is set, so
 // `data-source-line` positions, link hover, and live reload swaps are unaffected, and the page's
 // CSP (`style-src 'unsafe-inline'`, no scripts) is irrelevant to it. The highlight registry
 // belongs to the document, so ranges registered from this world are painted on the page.
