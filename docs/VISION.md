@@ -65,18 +65,156 @@ editor or a browser.
   auto-detection, like GitHub).
 - **Display:** `WKWebView`. HTML + CSS is what makes CSS themes, print styles, and PDF export
   possible; SwiftUI-native renderers (e.g. Textual, MarkdownView) can't use stylesheets.
-- **App:** SwiftUI `DocumentGroup` in viewer mode, AppKit where SwiftUI falls short.
+- **App:** AppKit document architecture hosting SwiftUI views. `MarkdownDocument` is an
+  `NSDocument` subclass, opened by `NSDocumentController`; each window is a
+  `DocumentWindowController` hosting a SwiftUI `DocumentView`, and a per-window
+  `WebViewCoordinator` owns the `WKWebView` (loading, in-place content swaps, navigation policy,
+  and the scroll/position bridge). The main menu is built in code from per-feature
+  contributions. Chosen over SwiftUI `DocumentGroup` (#16) because `NSDocument` gives us, as
+  public API, what a viewer needs and `DocumentGroup` hides: a document object that owns
+  its file (live reload hangs off it, below), per-window state restoration, tabs, recents, the
+  responder chain for menu commands, and a window controller to own the web view. SwiftUI stays
+  for window content (find bar, banners, link status); the outline sidebar is AppKit (below).
+- **Live reload:** each open document watches its file by path with kqueue (`DispatchSource` on
+  the file and its folder; `FileWatcher`), debounced 50 ms (capped at 150 ms for a steady
+  stream). It handles in-place writes, atomic saves (rename over, swap, Vim's rename-to-backup),
+  delete and recreate, and renames (followed, except into the Trash, which counts as a
+  deletion). Chosen over `NSFilePresenter` (#21), which `NSDocument` already is: measured, it
+  reported edits from other processes about a second late and went silent for good after a
+  delete. Reloads bypass `NSDocument.revert` because NSDocument reads on the main thread: the
+  file is read and rendered off the main actor (a 1 MB document renders in about 0.16 s in a
+  Release build, 0.5 s in Debug), stale renders are dropped, and the window swaps the new body
+  into the loaded page in place with an app script that keeps the reading position (the top
+  source line, or the bottom if the reader was there) in the same script run. Measured on 1 MB:
+  the swap takes about 210 ms in WebKit against 230 ms for reloading the page and restoring the
+  position, the main thread never stalls more than a few milliseconds either way, and a reload
+  can paint the top of the page before the position is restored; so in-place swap, with
+  reload-and-restore only when the base URL changes (the file moved). A Vim `:w` of a 20 KB file
+  shows in about 100 ms. Unreadable or non-UTF-8 content, and deletion, keep the last render
+  under a banner.
+- **Opening documents (#22):** AppKit's document paths (Finder, File > Open, Dock drops, Open
+  Recent) go through `DocumentController`, which finds an already-open file by file identity
+  (symlinks, `/tmp` vs `/private/tmp`) and focuses its window instead of duplicating it. Files
+  dropped on a window open as **new tabs** of it; anything else dropped is refused, so WebKit
+  never loads a drop. With no windows, launching or clicking the Dock icon shows the Open panel.
+  Tabs follow the system "Prefer tabs when opening documents" setting (`tabbingMode`
+  `.automatic`, like Preview and TextEdit); Cmd-click on a link always makes a tab. Window
+  restoration (documents, frames, tab groups, and each window's reading position as a source
+  line) follows the system "Close windows when quitting an application" setting, so
+  `mdv FILE` doesn't bring back every old window. Documents whose file is gone or in the Trash
+  are skipped quietly. `.md`/`.markdown` are the system's `net.daringfireball.markdown`
+  (imported, for a system without it). macOS lists only those two extensions, and an import
+  can't add to a system type, so `.mdown`/`.mkd`/`.mkdn` are mdv's own exported
+  `<bundle id>.markdown`, conforming to it (on a Mac where another app also declares them,
+  Launch Services may pick that app's type, which still conforms to plain text). Plain text
+  (`.txt`) opens because it conforms to `public.plain-text`, which mdv reads but never claims
+  (`LSHandlerRank None`).
+  The first open reads and renders on the main thread (NSDocument's read path); live reloads
+  don't.
+- **Outline sidebar (#24):** an AppKit sidebar split item (`NSOutlineView`, nested by heading
+  level) beside the document, from `RenderedDocument.headings` (raw HTML headings included).
+  A click or Return jumps by anchor (`slug`), with the source line as fallback. The current
+  section is the last heading at or before the reading position, read a few pixels below the
+  top of the view after each `ScrollPosition.js` report (one app-world scroll observer serves
+  both restoration and the outline). The selection follows scrolling except while the reader
+  browses the outline with the keyboard, and a jumped-to heading stays selected until the
+  reader scrolls away from where it landed (a short last section can't reach the top).
+  Re-renders keep the sidebar's scroll position, collapsed entries, and selection. Visibility
+  is per window (restored with the window) and the last toggle is the default for new
+  windows; hidden until first shown. A document without headings shows "No Headings".
+- **Zoom, print, copy (#26):** zoom is global with a per-window override. Cmd-+/-/0 set one
+  app-wide `pageZoom` level (Safari's steps, persisted in `UserDefaults`) that every window
+  follows live, so text size is a reading preference rather than a per-file chore. Pinch is
+  the window's own `WKWebView` magnification (scales without reflow, as in Safari), kept by
+  window restoration; Actual Size resets both. Print uses `WKWebView.printOperation` through
+  `NSDocument` (Page Setup, Save as PDF from the panel) with `@media print` rules in the theme:
+  light colors always, full width, wrapped code and tables, no anchor icons, external link
+  targets written out. Copy as HTML copies the `mdv --html` body fragment (no
+  `data-source-line`, remote images as written) as HTML plus its markup as plain text; Copy
+  Markdown Source copies the file as plain text and `net.daringfireball.markdown`. The web
+  view's context menu drops browser items the viewer can't perform (Reload, Back/Forward,
+  downloads, "Open Image/Media/Frame in New Window").
+- **Find in page (#25):** an app script in the isolated content world (`FindInPage.js`), with
+  a SwiftUI find bar above the page and Edit > Find sending the standard
+  `performTextFinderAction(_:)` up the responder chain. Chosen over `WKWebView.find`, which
+  reports only found / not found (no match count) and marks only the current match, and over
+  `NSTextFinder`, whose `WKWebView` integration is not public API (`WKWebView` doesn't
+  implement `performTextFinderAction(_:)` or the text finder client protocols). The script
+  matches across inline markup but not across blocks, ignores case unless Match Case is on,
+  treats the query as literal text with any whitespace matching any whitespace, skips text that
+  isn't rendered, and stops counting at 1000. Matches are painted with the CSS Custom Highlight
+  API (`::highlight(mdv-find)` rules in the theme), so the DOM, source-line positions, and
+  in-place swaps are untouched and no style is injected. The query and options survive closing
+  the bar and every reload: the search runs again after each display (in-place swap or full
+  load), keeping the current match number without scrolling.
+- **Default handler:** mdv declares both Markdown types with `LSHandlerRank: Alternate` and
+  asks, never grabs (#23); "Make Default" covers both. `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
+  mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
+  non-modal panel, when a document opens while another app is the default ("Not Now" snoozes
+  30 days, "Don't Ask Again" is permanent), and the app menu has "Make mdv the Default Markdown
+  Viewer" until Settings exists (M3).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
-- **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, GitHub Actions.
+- **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
+  tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
 
 ## Security model
 
 - The rendered page has a strict Content-Security-Policy: no remote loads, inline styles only,
-  local/`data:` images only. Remote images become an explicit, per-document opt-in.
-- JavaScript is disabled in the viewer until a feature needs it; when enabled, only scripts
-  shipped in the app bundle may run, never script from the document.
+  local/`data:` images only (until a window opts in to `https:` images, below). In the app it is
+  `default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;`; `mdv --html` output
+  keeps `img-src file: data:` so a saved page still shows the images beside it.
+- Remote images are blocked by default and are an explicit opt-in **per window** (#20):
+  - Blocking happens in `MdvCore` as well as the CSP. `RenderOptions.remoteImages` (`.block`
+    in the viewer) replaces every remote Markdown or raw-HTML image with a placeholder that
+    shows its alt text and host (sized like the image when raw HTML gives `width`/`height`).
+    It drops a `<source srcset>` that names one, and lists them in `blockedRemoteImages`. The
+    CSP blocks them on its own as well (tested with raw HTML the sanitizer never sees).
+  - When a page has blocked `https:` images, a bar offers "Remote images blocked: Load".
+    Loading reloads that window with `RemoteImagePolicy.allowHTTPS` and adds `https:` to
+    `img-src`, and nothing else: no `http:` ever, because cleartext images can be read and
+    swapped on the wire, so they stay placeholders. Frames, styles, fonts, and media stay blocked.
+  - The opt-in lasts for that window until it closes, survives live reloads, and is never
+    saved, so reopening a file blocks again. Remembering it per file can come later.
+  - `mdv --html` keeps GitHub-compatible output (`.keep`) by default, and its CSP blocks remote
+    images when the page is opened. A flag to block them in the HTML itself is M5 work.
+  - Tests use servers on 127.0.0.1 and never the network. A document full of remote images
+    makes no request, and a page with no CSP does make them (the control).
+- The web view never gets `file:` access. The app loads each document at
+  `mdv-doc://<window token>/<absolute path>` (a `WKURLSchemeHandler`, chosen over
+  `loadFileURL` plus a temp file in #18), so relative URLs resolve against the document, and
+  every local read is a decision by `LocalImagePolicy` (MdvCore, unit tested). It serves a file
+  only if, after resolving `..`, percent-encoding, and every symlink (`realpath`, then
+  `F_GETPATH` on the opened descriptor), it is a regular file inside the allowed root, no larger
+  than 32 MB, with a PNG, JPEG, GIF, WebP, or SVG extension whose content sniffs as that same
+  format. Anything else gets an empty 404: no listings, paths, or reasons; the page shows a
+  broken image. SVG is only ever an `<img>`, where WebKit runs no scripts and loads no
+  subresources (tested).
+- The allowed root is **the enclosing git work tree's root, else the document's folder**: the
+  nearest folder at or above the document containing `.git`, unless that is the home folder or
+  `/`. Docs in a repository use `../images/x.png` the way GitHub resolves them, the repository
+  is the document's own trust domain, and only images are served from it.
+- Root-relative URLs (`/docs/x.png`, `<img src="/...">`, `<source srcset="/...">`,
+  `[x](/docs/guide.md)`) resolve against **the same allowed root**, as GitHub resolves them
+  against the repository; without a repository that is the document's folder (one rule for
+  images and links, and a leading `/` never means the file system root). The renderer rewrites
+  them to `<root>/...` (`RenderOptions.linkRoot`, `RootRelativeURL`) with `.`/`..` clamped at
+  the root, so `LocalImagePolicy` and `LinkPolicy` see ordinary `mdv-doc` URLs and stay the
+  only checks; `//host` stays remote. `mdv --html` and Copy as HTML keep them as written.
+- GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` images (and their remote-image
+  placeholders) show only in the matching appearance through `DefaultTheme` CSS
+  (`img[src$=...]` under `prefers-color-scheme`), so they follow live appearance changes; print
+  shows the light variant. `<picture><source media="(prefers-color-scheme: dark)">` works
+  as is (sanitizer and CSP allow it).
+- Page JavaScript is disabled (`allowsContentJavaScript = false`): document `<script>`s,
+  inline event handlers, and `javascript:` URLs never run, with or without the CSP. The viewer's
+  own behavior (scrolling, position tracking, anchor fallback, in-place content swaps) is done by
+  app scripts that ship in the bundle (`App/Scripts/`) and run only in an isolated
+  `WKContentWorld`, which shares the DOM with the page but not its globals. Swift calls them
+  with `callAsyncJavaScript` using fixed function bodies; every value (lines, fragments, HTML)
+  is passed as an argument, never spliced into script source. Tests prove page scripts stay
+  blocked while app scripts run.
 - Raw HTML in Markdown is sanitized per a defined policy rather than passed through blindly.
 - Syntax highlighting runs only the vendored highlight.js, in a private JavaScriptCore context
   with no access to the page, files, or network; code and language names are passed as values,
@@ -85,8 +223,18 @@ editor or a browser.
   and is re-serialized before insertion; anything else falls back to plain escaped code.
   JavaScriptCore has no execution time limit, so blocks over 128 KB and code beyond a 256 KB
   per-document budget are left unhighlighted.
-- Links open in the default browser; local Markdown links open in mdv; nothing navigates the
-  viewer away from the document.
+- Links go through one tested navigation policy (`LinkPolicy` in `MdvCore`, #19), and nothing
+  navigates the viewer away from the document: the only main-frame navigations allowed are the
+  page loads the app starts. In-page fragments scroll via the app-script bridge (raw id, then
+  percent-decoded, then `user-content-`). `http`, `https`, and `mailto` open in the default app.
+  Local Markdown files (`mdv-doc` URLs mapped back to files with the window's token) open in
+  mdv; Cmd-click or middle-click opens them in a new tab. Other local files and folders are
+  **revealed in Finder, never opened**, so a document can't launch an app or script by link.
+  Every other scheme, unmappable `mdv-doc` URL, and blank safe-mode link is blocked silently,
+  with the reason shown in the window's link status overlay. Link hover is reported by an app
+  script whose message handler exists only in the app's content world; its message is display
+  text and never acted on. Find in page passes the query to its app script as a value and
+  matches it as literal text; page content never reaches script source.
 - Custom preprocessor scripts run only when the user configures them, with a timeout, no shell
   interpolation, and the document passed via stdin.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.

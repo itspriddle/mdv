@@ -17,6 +17,8 @@ extension RenderOptions {
         options.gfmMarkup = .cmark
         options.headingAnchors = false
         options.highlighting = false
+        options.linkRoot = nil
+        options.remoteImages = .keep
         options.sanitize = false
         options.sourceLines = false
         return options

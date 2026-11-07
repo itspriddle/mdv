@@ -19,7 +19,7 @@ packages:
     from: 1.8.2
 
 targets:
-  mdv:
+  MdvApp:
     type: application
     platform: macOS
     sources:
@@ -32,12 +32,28 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHumanReadableCopyright: Copyright © 2026 Joshua Priddle. MIT License.
+        # AppKit app lifecycle (App/main.swift); no main nib.
+        NSPrincipalClass: NSApplication
         CFBundleDocumentTypes:
           - CFBundleTypeName: Markdown Document
             CFBundleTypeRole: Viewer
+            # Alternate: mdv offers to become the default instead of claiming it (#23, VISION).
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - net.daringfireball.markdown
+              - $(PRODUCT_BUNDLE_IDENTIFIER_BASE).markdown
+            NSDocumentClass: $(PRODUCT_MODULE_NAME).MarkdownDocument
+          # Plain text opens from the Open panel and drag and drop, but mdv doesn't register as
+          # a handler for it.
+          - CFBundleTypeName: Plain Text Document
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: None
+            LSItemContentTypes:
+              - public.plain-text
+            NSDocumentClass: $(PRODUCT_MODULE_NAME).MarkdownDocument
+        # macOS declares net.daringfireball.markdown (md, markdown); this import only stands in
+        # where it doesn't. A system declaration always wins over an import, so extensions
+        # added here would be ignored.
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: net.daringfireball.markdown
             UTTypeDescription: Markdown Document
@@ -48,11 +64,23 @@ targets:
               public.filename-extension:
                 - md
                 - markdown
+              public.mime-type:
+                - text/markdown
+        # The other common Markdown extensions, which no system type declares. Exported: mdv
+        # defines this type (under its own identifier) rather than borrowing another app's.
+        # Keep the identifier in sync with MarkdownContentTypes.otherMarkdownExtensions.
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).markdown
+            UTTypeDescription: Markdown Document
+            UTTypeConformsTo:
+              - net.daringfireball.markdown
+              - public.plain-text
+            UTTypeReferenceURL: https://daringfireball.net/projects/markdown/
+            UTTypeTagSpecification:
+              public.filename-extension:
                 - mdown
                 - mkd
                 - mkdn
-              public.mime-type:
-                - text/markdown
     entitlements:
       path: App/mdv.entitlements
       properties:
@@ -103,17 +131,37 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/mdv.app/Contents/MacOS/mdv
         BUNDLE_LOADER: $(TEST_HOST)
     dependencies:
-      - target: mdv
+      - target: MdvApp
+
+  # XCTest UI tests (Swift Testing has no UI testing API). Run with `make test-ui`.
+  AppUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: AppUITests
+        excludes:
+          - Fixtures
+      # Copied as a folder; tests find files with `Fixtures.url(named:)`.
+      - path: AppUITests/Fixtures
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: MdvApp
 
 schemes:
   mdv:
     build:
       targets:
-        mdv: all
+        MdvApp: all
         mdv-cli: all
     test:
       targets:
         - AppTests
+        - AppUITests
     run:
       config: Debug
     archive:

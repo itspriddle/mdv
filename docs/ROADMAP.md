@@ -8,7 +8,7 @@ them when the milestone is broken down.
 | --------------------------------------- | ------------------------------ | --------- | ------ |
 | [M0](#m0-foundation)                    | Foundation                     | -         | Done   |
 | [M1](#m1-core-rendering)                | Core rendering                 | -         | Done   |
-| [M2](#m2-viewer-app)                    | Viewer app                     | -         |        |
+| [M2](#m2-viewer-app)                    | Viewer app                     | -         | Done   |
 | [M3](#m3-themes)                        | Themes                         | -         |        |
 | [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         |        |
 | [M5](#m5-cli)                           | CLI                            | -         |        |
@@ -76,39 +76,123 @@ corpus of READMEs renders to match GitHub; renderer is fuzz/stress tested on lar
 
 ## M2: Viewer app
 
+**Status:** Done (2026-11-06).
+
 A pleasant, Mac-native document viewer.
 
 - Open via Finder, Open dialog, drag and drop, recents, Dock; tabs; window restoration
 - Offer to become the default `.md` handler
-- Live reload on file change (FSEvents/`DispatchSource`), preserving scroll position
-- Relative images and links resolve against the file (`loadFileURL` with read access scoped
-  to the document's folder)
-- Link handling: local `.md` opens in mdv, anchors scroll, external URLs open in the browser
-  - In-page links (`#heading`, `#fn-…`) scroll in place; `#foo` falls back to
-    `#user-content-foo` (raw HTML ids are prefixed); raw HTML `<h1>`–`<h6>` get anchors as on
-    GitHub
-  - A navigation policy for links cmark's safe mode blanks (`file:`) and for other schemes
-- **Open decision (M2 or M4):** remote `http(s)` images pass the sanitizer and only the CSP
-  blocks them, while VISION says "no remote content"; decide on the per-document opt-in and
-  whether to drop them in `MdvCore`
+- Live reload on file change, preserving the reading position
+- Relative images and links resolve against the file, with scoped file access
+- Link handling: local `.md` opens in mdv, anchors scroll, external URLs open in the browser;
+  a navigation policy for every other link
+- Remote images blocked by default, with a per-window opt-in
 - Find in page, zoom (Cmd +/-/0), print, copy as HTML / Markdown source
 - Outline / table-of-contents sidebar from headings
 - Light/dark appearance following the system
-- UI tests for the core flows
+- UI tests for the core flows (open, links, images, reload, outline, find, zoom/copy), in CI
+
+**Decisions** (details and rationale in [VISION](VISION.md#architecture-overview)):
+
+- **Document architecture (#16):** AppKit `NSDocument`/`NSDocumentController` hosting SwiftUI
+  window content, with an AppKit app lifecycle and a code-built menu (per-feature
+  `MenuContribution`s), not SwiftUI `DocumentGroup`, which hides file presenters, revert, the
+  window controller, restoration, and the responder chain. Positions are fractional source
+  lines. App scripts are bundled `.js` run in an isolated content world; page JS stays off.
+- **UI tests (#17):** an XCTest `AppUITests` target in its own CI job, driven by Debug-only
+  launch hooks (`UITestHooks`); the Xcode app target is `MdvApp` so the runner doesn't launch
+  the SwiftPM `mdv` CLI.
+- **Local resources (#18):** a `WKURLSchemeHandler` (`mdv-doc://<window token>/<absolute
+  path>`), not `loadFileURL` plus a temp file; it serves only images that `LocalImagePolicy`
+  approves inside the allowed root, the enclosing git work tree or else the document's folder
+  (never home or `/`); extension and sniffed format must match. Root-relative `/x` links and
+  images resolve against that root, as on GitHub, and `#gh-dark-mode-only` /
+  `#gh-light-mode-only` images follow the appearance (CSS).
+- **Links (#19):** one tested `LinkPolicy`; the main frame never leaves the document. Local
+  Markdown opens in mdv (Cmd-click or middle-click: a new tab); other local files and folders
+  are revealed in Finder, never opened; `http`/`https`/`mailto` open in the default app; other
+  schemes are blocked silently with the reason in the link status overlay. Fragments try the
+  raw id, the decoded id, then `user-content-`. Raw HTML headings get GitHub-style anchors.
+- **Remote images (#20):** blocked in `MdvCore` (labeled placeholders) and by the CSP; the
+  opt-in is per window, unsaved, and `https:` only; the bar appears only when an `https:` image
+  was blocked. `mdv --html` keeps remote images by default (its CSP blocks them when opened).
+- **Live reload (#21):** a kqueue watcher by path (measured: `NSFilePresenter` reported other
+  apps' edits ~1 s late and went silent after a delete), reading and rendering off the main
+  actor, bypassing `NSDocument.revert`; an in-place body swap that keeps the reading position
+  (reload-and-restore only when the file moved). Renames are followed; a move to the Trash is
+  a deletion; the last render stays under a banner when the file is deleted or unreadable.
+- **Opening (#22):** an already-open file is found by identity and focused; drops on a window
+  open as tabs; tabs follow the system "Prefer tabs" setting; restoration (including each
+  window's reading position) follows the system "Close windows when quitting" setting, so
+  `mdv FILE` doesn't bring back old windows (confirmed with the user); with no windows, launch
+  and Dock click show the Open panel; plain text opens but is never claimed; `.mdown`/`.mkd`/
+  `.mkdn` are mdv's own exported type (the system Markdown type lists only `.md`/`.markdown`).
+- **Default handler (#23):** `LSHandlerRank` stays `Alternate`; mdv offers once in a
+  non-modal panel ("Not Now" snoozes 30 days, "Don't Ask Again" is permanent) and has an app
+  menu item until Settings exists.
+- **Outline (#24):** an AppKit `NSOutlineView` sidebar split item (arrows browse, Return or
+  click jumps), collapsible, hidden by default; the last toggle is the default for new
+  windows, and visibility is restored per window.
+- **Find (#25):** an app script with match counts and highlight-all via the CSS Custom
+  Highlight API, not `WKWebView.find` (no count) or `NSTextFinder` (no public `WKWebView`
+  integration); standard `performTextFinderAction(_:)` commands; it re-runs after reloads.
+- **Zoom, print, copy (#26):** one app-wide, persisted zoom level for Cmd +/-/0, with pinch as
+  a per-window magnification override; print through `NSDocument` and the print panel (Save
+  as PDF) with `@media print` rules that always use light colors; Copy as HTML copies the
+  `mdv --html` body fragment; the web view's context menu drops browser-only items
+  (a blocklist, so new system items keep working).
+- **Close-out (#27):** AppKit inserts and maintains Open Recent (a code-built one can't be
+  marked as the recents menu and showed up twice). The first open of a document still reads
+  and renders on the main thread (below); moving it off main needs a background `NSDocument`
+  init, which the SDK's `@MainActor` annotation on `NSDocument` traps at runtime under Swift
+  6, so it is deferred to M3.
+
+**Crash and hang pass (#27):** `AppTests` (183 tests, including a stress suite: many windows
+opened, reloaded, and closed mid-load; files deleted, renamed, and rewritten while open; a
+removed folder; malformed and non-UTF-8 files) and `AppUITests` pass under Address Sanitizer
+and Thread Sanitizer in Debug with no reports; `MdvCoreTests` under both sanitizers fail only
+their wall-clock budgets (sanitizer slowdown). `make test-ui` passed 5 consecutive runs locally
+(20 tests, the opt-in restoration test skipped) with no retries; CI has yet to run it.
+
+**Performance (#27):** cold window open to first paint, measured from process start (the
+kernel's start time) to two animation frames after the first page load finished, Release
+build, Apple silicon, median of 6 launches with the file as an argument:
+
+| Document | Size | First open read + render (main thread) | Cold open to first paint |
+| -------- | ---- | -------------------------------------- | ------------------------ |
+| mdv README | 1.7 KB | 3 ms | 372 ms |
+| `bat` README (corpus) | 34 KB | 8 ms | 422 ms |
+| Synthetic (code, tables, lists) | 1 MB | 161 ms | 737 ms |
+| Synthetic | 5 MB | 392 ms | 1816 ms |
+
+For the README, the time is about 90 ms to the document read, 60 ms creating the web view,
+70 ms building the window (split view, SwiftUI hosting), 100 ms loading the page (including
+launching the WebContent process), and 100 ms to the painted frame. That misses VISION's
+200 ms; a web view pre-warmed at launch saved only ~40 ms. Follow-up in M3.
 
 **Exit criteria:** daily-drivable for reading local docs; no known crashes; UI tests in CI.
+✅ (automated checks; the manual daily-driver checklist is in the #27 handoff)
 
 ## M3: Themes
 
 CSS themes as a first-class feature.
 
 - Bundled themes: GitHub (Primer, light and dark), Google Docs-style, minimal/serif
-- Theme model in `MdvCore`: name, stylesheet(s), light/dark variants, optional print CSS; owns
-  the highlight.js token CSS now in `DefaultTheme`
+- Theme model in `MdvCore`: name, stylesheet(s), light/dark variants, optional print CSS
+  (print themes; M2 ships basic `@media print` rules in `DefaultTheme`); owns the highlight.js
+  token CSS now in `DefaultTheme`
 - Custom themes: CSS files in `~/Library/Application Support/mdv/Themes`, hot-reloaded
 - Theme picker per window plus a global default in a Settings window
 - Font size and content width controls layered on top of any theme
 - Theme authoring guide (the only doc written for end users before 1.0)
+- Viewer follow-ups from M2:
+  - Settings window: theme default, outline default, zoom; move "Make mdv the Default
+    Markdown Viewer" there; optionally remember the remote image opt-in per file
+  - Performance: cold open to first paint under 200 ms for README-sized docs (422 ms in M2),
+    and the first open's read and render off the main thread (161 ms for 1 MB)
+  - Smaller viewer polish, filed as issues: a document folder deleted and recreated isn't
+    noticed; extensionless files (`README`) can't be opened from the Open panel; "Copy Link"
+    on a relative link copies the internal `mdv-doc:` URL; the find pasteboard
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.
@@ -138,7 +222,8 @@ Make the terminal workflow excellent.
 - `cmd | mdv` streams stdin into a new window without leaving files behind in temp
   directories longer than needed
 - `--theme NAME`, `--flavor NAME`, `--html` / `--output FILE`, `--standalone` (inline CSS)
-- Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting
+- Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting, and
+  remote images (`--html` keeps them, as GitHub does, unless asked to block them; #20)
 - `--wait` blocks until the window closes (for `$EDITOR`-style and git workflows)
 - "Install command line tool" menu item (symlink to `/usr/local/bin` or `~/.local/bin`), plus
   uninstall

@@ -38,3 +38,28 @@ jobs:
         run: make test-core
       - name: Build and test app
         run: make build test-app SIGN=0
+
+  # Separate job: runs in parallel with `test`, and a UI flake doesn't hide core/app results.
+  # Signs ad hoc (no Config/Local.xcconfig in CI); see `make test-ui`.
+  ui-test:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Install tools
+        run: brew install xcodegen
+      - name: UI tests
+        run: make test-ui
+        env:
+          # Runs the window restoration UI test, which writes real saved state (fine on CI).
+          TEST_RUNNER_MDV_UI_TEST_RESTORATION: "1"
+      - name: Upload UI test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: AppUITests.xcresult
+          path: build/AppUITests.xcresult
+          retention-days: 7

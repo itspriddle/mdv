@@ -17,8 +17,10 @@
 ///   scheme (`http`, `https`, `mailto` for links) or be relative, after decoding character
 ///   references and ignoring whitespace and control characters.
 /// - `id` and `name` values are prefixed with `user-content-` (as on GitHub) so raw HTML can't
-///   collide with generated heading and footnote ids. (M2: in-document links to `#foo` should
-///   also try `#user-content-foo`.)
+///   collide with generated heading and footnote ids. The viewer's in-page links to `#foo` fall
+///   back to `#user-content-foo` (#19).
+/// - Remote `<img>` sources that `remoteImages` blocks become a `RemoteImagePlaceholder`, and a
+///   `<source>` whose `srcset` names one is removed (its `<picture>` falls back to the `<img>`).
 /// - Tags are balanced per Markdown container. cmark splits raw HTML into separate nodes (an
 ///   inline `<span>`, text, then `</span>`; or HTML blocks around Markdown paragraphs), so the
 ///   sanitizer tracks open raw elements across the siblings of each container: an end tag
@@ -28,44 +30,68 @@
 ///   cmark moves to the end of the document count as a new container: the body's open
 ///   elements are closed before them, so they are never wrapped or dropped.
 public struct HTMLSanitizer: Sendable {
-    public init() {}
+    /// Which remote raw-HTML images become placeholders (`RenderOptions.remoteImages`).
+    public var remoteImages: RemoteImagePolicy
+    /// Root-relative URLs resolve against this folder (`HTMLSanitizer+RootRelative.swift`).
+    public var linkRoot: String?
+
+    public init(remoteImages: RemoteImagePolicy = .keep, linkRoot: String? = nil) {
+        self.remoteImages = remoteImages
+        self.linkRoot = linkRoot
+    }
 
     /// Returns `root` with every raw-HTML node sanitized. Nodes that sanitize to nothing are
     /// removed, and siblings inside a dropped element (e.g. between inline `<script>` and
     /// `</script>`) are removed with it.
     public func sanitize(_ root: MarkdownNode) -> MarkdownNode {
+        var blockedImages: [RemoteImage] = []
+        return sanitize(root, blockedImages: &blockedImages)
+    }
+
+    /// `sanitize(_:)`, also appending each remote image replaced with a placeholder, in order.
+    func sanitize(_ root: MarkdownNode, blockedImages: inout [RemoteImage]) -> MarkdownNode {
         switch root.kind {
         case .htmlBlock(let html):
-            return MarkdownNode(.htmlBlock(sanitize(fragment: html)), sourceRange: root.sourceRange)
+            return MarkdownNode(
+                .htmlBlock(sanitize(fragment: html, blockedImages: &blockedImages)), sourceRange: root.sourceRange)
         case .htmlInline(let html):
-            return MarkdownNode(.htmlInline(sanitize(fragment: html)), sourceRange: root.sourceRange)
+            return MarkdownNode(
+                .htmlInline(sanitize(fragment: html, blockedImages: &blockedImages)), sourceRange: root.sourceRange)
         default:
-            return sanitizeTree(root)
+            return sanitizeTree(root, blockedImages: &blockedImages)
         }
     }
 
     /// Sanitizes a standalone HTML fragment, closing any elements left open at its end.
     public func sanitize(fragment html: String) -> String {
-        var sanitizer = RawHTMLSanitizer()
-        return sanitizer.sanitize(html) + sanitizer.finish()
+        var blockedImages: [RemoteImage] = []
+        return sanitize(fragment: html, blockedImages: &blockedImages)
+    }
+
+    private func sanitize(fragment html: String, blockedImages: inout [RemoteImage]) -> String {
+        var sanitizer = makeRawSanitizer()
+        let output = sanitizer.sanitize(html) + sanitizer.finish()
+        blockedImages += sanitizer.takeBlockedImages()
+        return output
     }
 
     private struct Frame {
         var node: MarkdownNode
         var nextChild = 0
         var children: [MarkdownNode] = []
-        var sanitizer = RawHTMLSanitizer()
+        var sanitizer: RawHTMLSanitizer
 
-        init(_ node: MarkdownNode) {
+        init(_ node: MarkdownNode, sanitizer: RawHTMLSanitizer) {
             self.node = node
+            self.sanitizer = sanitizer
             children.reserveCapacity(node.children.count)
         }
     }
 
     /// Rebuilds the tree with an explicit stack (no recursion), one `RawHTMLSanitizer` per
     /// container so tags balance within it.
-    private func sanitizeTree(_ root: MarkdownNode) -> MarkdownNode {
-        var stack = [Frame(root)]
+    private func sanitizeTree(_ root: MarkdownNode, blockedImages: inout [RemoteImage]) -> MarkdownNode {
+        var stack = [Frame(root, sanitizer: makeRawSanitizer())]
         while let top = stack.indices.last {
             guard stack[top].nextChild < stack[top].node.children.count else {
                 var frame = stack.removeLast()
@@ -86,14 +112,16 @@ public struct HTMLSanitizer: Sendable {
                 // body must not wrap or hide them (and leave references dangling), so the body's
                 // open elements are closed, and any dropping ends, before the first one.
                 Self.closeOpenElements(in: &stack[top])
-                stack.append(Frame(child))
+                stack.append(Frame(child, sanitizer: makeRawSanitizer()))
             case .htmlBlock(let html):
                 let clean = stack[top].sanitizer.sanitize(html)
+                blockedImages += stack[top].sanitizer.takeBlockedImages()
                 if clean.contains(where: { !$0.isWhitespace }) {
                     stack[top].children.append(MarkdownNode(.htmlBlock(clean), sourceRange: child.sourceRange))
                 }
             case .htmlInline(let html):
                 let clean = stack[top].sanitizer.sanitize(html)
+                blockedImages += stack[top].sanitizer.takeBlockedImages()
                 if !clean.isEmpty {
                     stack[top].children.append(MarkdownNode(.htmlInline(clean), sourceRange: child.sourceRange))
                 }
@@ -109,7 +137,7 @@ public struct HTMLSanitizer: Sendable {
                 if child.children.isEmpty {
                     stack[top].children.append(child)
                 } else {
-                    stack.append(Frame(child))
+                    stack.append(Frame(child, sanitizer: makeRawSanitizer()))
                 }
             }
         }
@@ -119,7 +147,7 @@ public struct HTMLSanitizer: Sendable {
     /// Appends end tags for the raw elements still open in `frame` and resets its sanitizer.
     private static func closeOpenElements(in frame: inout Frame) {
         let closers = frame.sanitizer.finish()
-        frame.sanitizer = RawHTMLSanitizer()
+        frame.sanitizer = frame.sanitizer.restarted()
         if !closers.isEmpty {
             let kind: MarkdownNode.Kind =
                 holdsBlocks(frame.node.kind) ? .htmlBlock(closers + "\n") : .htmlInline(closers)
@@ -149,6 +177,21 @@ struct RawHTMLSanitizer {
     /// How many of each element are in `openElements`, so lookups don't scan a deep stack.
     private var openCounts: [String: Int] = [:]
     private var dropping: Drop?
+    let remoteImages: RemoteImagePolicy
+    let linkRoot: String?
+    /// Remote images replaced with placeholders since the last `takeBlockedImages()`.
+    private var blockedImages: [RemoteImage] = []
+
+    init(remoteImages: RemoteImagePolicy = .keep, linkRoot: String? = nil) {
+        self.remoteImages = remoteImages
+        self.linkRoot = linkRoot
+    }
+
+    /// Returns and clears the remote images replaced so far.
+    mutating func takeBlockedImages() -> [RemoteImage] {
+        defer { blockedImages.removeAll() }
+        return blockedImages
+    }
 
     /// Inside an element removed with its content; non-HTML siblings must be skipped.
     var isDroppingContent: Bool {
@@ -228,8 +271,12 @@ struct RawHTMLSanitizer {
         {
             return
         }
+        if remoteImages != .keep, let replacement = remoteImageReplacement(for: tag) {
+            output += replacement
+            return
+        }
         output += "<\(tag.name)"
-        output += Self.attributes(of: tag)
+        output += attributes(of: tag)
         if Policy.voidElements.contains(tag.name) {
             output += tag.isSelfClosing ? " />" : ">"
         } else {
@@ -251,7 +298,43 @@ struct RawHTMLSanitizer {
         openElements.removeSubrange(index...)
     }
 
-    private static func attributes(of tag: HTMLStartTag) -> String {
+    /// What a blocked remote `<img>` or `<source>` becomes: a placeholder, or nothing for a
+    /// `<source>`. `nil` keeps the tag. Only values the attribute policy would keep count.
+    private mutating func remoteImageReplacement(for tag: HTMLStartTag) -> String? {
+        func value(of name: String) -> AttributeValue? {
+            guard HTMLSanitizerPolicy.allowsAttribute(name, on: tag.name),
+                let raw = tag.attributes.first(where: { $0.name == name })?.value
+            else {
+                return nil
+            }
+            return AttributeValue(raw)
+        }
+        switch tag.name {
+        case "img":
+            guard let source = value(of: "src")?.decoded, let image = RemoteImage(source: source),
+                remoteImages.blocks(image)
+            else {
+                return nil
+            }
+            blockedImages.append(image)
+            return RemoteImagePlaceholder.html(
+                escapedAlt: value(of: "alt")?.serialized ?? "", image: image, width: value(of: "width")?.decoded,
+                height: value(of: "height")?.decoded)
+        case "source":
+            guard let srcset = value(of: "srcset")?.decoded,
+                URLSchemePolicy.srcsetURLs(srcset).contains(where: {
+                    RemoteImage(source: $0).map(remoteImages.blocks) == true
+                })
+            else {
+                return nil
+            }
+            return ""
+        default:
+            return nil
+        }
+    }
+
+    private func attributes(of tag: HTMLStartTag) -> String {
         typealias Policy = HTMLSanitizerPolicy
         var output = ""
         for attribute in tag.attributes where Policy.allowsAttribute(attribute.name, on: tag.name) {
@@ -269,7 +352,7 @@ struct RawHTMLSanitizer {
                     continue
                 }
             }
-            var serialized = value.serialized
+            var serialized = rootRelativeValue(of: attribute.name, on: tag.name, value) ?? value.serialized
             if isPrefixed {
                 guard !value.decoded.isEmpty else {
                     continue

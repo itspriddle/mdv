@@ -1,6 +1,7 @@
 included:
   - App
   - AppTests
+  - AppUITests
   - CLI
   - Sources
   - Tests

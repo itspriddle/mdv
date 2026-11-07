@@ -40,6 +40,11 @@ struct HTMLTokenizer {
         scalars = Array(html.unicodeScalars)
     }
 
+    /// How many Unicode scalars of the input have been consumed: the end of the last token.
+    var scalarOffset: Int {
+        position
+    }
+
     mutating func next() -> HTMLToken? {
         while position < scalars.count {
             if scalars[position] != "<" {

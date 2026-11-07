@@ -9,7 +9,8 @@ process) before planning work.
 ```sh
 make generate         # regenerate mdv.xcodeproj from project.yml (run after adding/removing files)
 make test-core        # swift test (MdvCore), fast, no Xcode project needed
-make test             # core + app tests
+make test             # core + app unit tests (not UI tests)
+make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
 make build            # app + embedded CLI (signed via Config/Local.xcconfig); SIGN=0 for unsigned
 make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
 make format           # auto-format; run before committing
@@ -35,13 +36,51 @@ lock the build database.
     so everything the renderer emits must be escaped by construction).
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
   - `Transforms/`: AST passes (emoji shortcodes).
+  - `LocalResources/`: the app's `mdv-doc://<token>/<path>` URLs (`DocumentURLScheme`), the
+    allowed-root rule, `LocalImagePolicy`, which approves every local image read, and
+    `RootRelativeURL` (`/docs/x.png` resolved against the allowed root, `RenderOptions.linkRoot`).
+  - `RemoteImages/`: `RemoteImage` (what counts as remote), `RemoteImagePolicy`
+    (`RenderOptions.remoteImages`), and the blocked-image placeholder markup.
+  - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`).
+  - `Outline/`: `DocumentOutline` (heading tree) and `OutlineTracker` (current section).
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
     never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
-- `App/`: SwiftUI app (module `MdvApp`), kept thin.
+- `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
+  `AppDelegate`), SwiftUI for window content only. Feature folders: `Copy/`, `DefaultViewer/`,
+  `Print/`, `Zoom/` (each a small type plus its `DocumentWindowController+<Feature>.swift`).
+  - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
+    plus `RenderedPage`, and the remote-images variant). Every load and revert goes through
+    `setContent(_:)`, which tells each `DocumentWindowController`. `DocumentController` (the
+    shared `NSDocumentController`) finds open files by identity and skips gone files on restore.
+  - `Find/`: `FindInPage` (find state and commands, tested with a fake host) and `FindBar`
+    (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
+    commands on). The page side is `App/Scripts/FindInPage.js` via `WebViewCoordinator+Find`.
+  - `LiveReload/`: `FileWatcher` (kqueue by path, debounced) and `LiveReloader` (reads and
+    renders off the main actor, drops stale renders, sets `MarkdownDocument.fileStatus`). Live
+    reload bypasses `NSDocument.revert`; the window swaps content in place with
+    `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
+  - `Outline/`: `OutlineViewController` (the sidebar's `NSOutlineView`) and `OutlinePreference`
+    (default visibility).
+  - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
+    actions go in `DocumentWindowController+<Feature>.swift`, menu validation in the one
+    `validateMenuItem` switch in `+Outline.swift`), `DocumentWindow` (restorable state),
+    `DocumentView` (SwiftUI root: find bar, file status and remote image bars, link status).
+  - `WebView/`: `WebViewCoordinator` owns the `DocumentWebView` (drops, context menu trimming):
+    `load`, `updateContent`, and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,
+    `scroll(toFragment:)`). `WebViewConfiguration` holds preferences and user scripts;
+    `LocalResourceSchemeHandler` serves `mdv-doc` images; `+Navigation.swift` applies
+    `LinkPolicy`.
+  - `Scripts/`: bundled JS run only in `AppScripts.world`; pass values as arguments, never
+    splice them into source.
+  - `Menus/`: `MainMenu` builds the menu bar in code. A feature adds a `MenuContribution` type
+    in its own file plus one line in `MainMenu.contributions`. AppKit inserts Open Recent and
+    the Window menu's items itself; don't build them.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
+- `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
+  the Debug-only launch hooks they use.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
   `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
   a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
@@ -59,10 +98,40 @@ lock the build database.
 - No force unwraps; prefer failable APIs (e.g. `String(bytes:encoding:)`) and throw on bad input.
 - Security defaults from `docs/VISION.md` are requirements: strict CSP, no remote content, JS off
   or bundle-only, sanitize raw HTML, user scripts are opt-in.
-- Bundle ID placeholder `com.itspriddle.mdv` lives in `PRODUCT_BUNDLE_IDENTIFIER_BASE` and
-  `MdvCommand.appBundleIdentifier`; keep them in sync. Same for `MARKETING_VERSION` and
-  `MdvInfo.version`.
+- Bundle ID placeholder `com.itspriddle.mdv` lives in `PRODUCT_BUNDLE_IDENTIFIER_BASE`,
+  `MdvCommand.appBundleIdentifier`, and the exported UTI `MarkdownContentTypes` (an app test
+  checks it); keep them in sync. Same for `MARKETING_VERSION` and `MdvInfo.version`.
 - Verify a dependency exists (and its latest version) before adding it.
+
+## UI tests
+
+- `AppUITests` (XCTest; Swift Testing has no UI API) drives the built app. Every M2+ feature with
+  a user-facing flow adds a test here. Fixtures live in `AppUITests/Fixtures/` (a folder
+  reference; `Fixtures.url(named:)`).
+- Use `MdvUITestApp` (`AppUITests/Support/`): `launch(openingFixture:)`, `waitForWindow(titled:)`,
+  `webView(in:)`, `waitForRenderedText(_:in:)`. Add feature helpers in
+  `Support/MdvUITestApp+<Feature>.swift`. Classes are `@MainActor final class ...: XCTestCase`.
+- Launch hooks (`UITestHooks`, `#if DEBUG` only, compiled out of Release): `-MdvUITesting YES`
+  skips the launch Open panel and suppresses first-run prompts (features with a first-run prompt
+  must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` (or a
+  plist array, `launch(openingFixtures:)`) opens documents at launch. Tests never add to Open
+  Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
+  `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
+  `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1 make test-ui` (CI sets it).
+- The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team
+  in `Config/Local.xcconfig`, else ad hoc. Never run UI tests unsigned (Gatekeeper pops a
+  "can't run" dialog for every attempt).
+- Local setup: the app that runs `make test-ui` (Terminal, iTerm, Claude Code's host) needs
+  System Settings > Privacy & Security > Developer Tools, or Gatekeeper kills the runner
+  ("Test crashed with signal kill before establishing connection"; log shows "Gatekeeper policy
+  blocked execution"). The first run asks to allow `AppUITests-Runner` Accessibility access.
+- Debugging: failures leave `build/AppUITests.xcresult` (screenshots, logs, UI hierarchy);
+  `open build/AppUITests.xcresult`. Run one test with
+  `xcodebuild ... test -only-testing:AppUITests/SmokeUITests/testOpensFixtureWithTitleAndRenderedText`
+  or from Xcode (`make generate`, open `mdv.xcodeproj`, scheme `mdv`). `app.debugDescription`
+  prints the accessibility tree. CI uploads the result bundle on failure.
+- The Xcode app target is `MdvApp` (product `mdv.app`): a target named `mdv` collides with the
+  SwiftPM `mdv` executable, and the UI test runner then launches the CLI.
 
 ## Workflow
 
