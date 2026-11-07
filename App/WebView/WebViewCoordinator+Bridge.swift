@@ -104,6 +104,14 @@ extension WebViewCoordinator {
             arguments: ["line": position.line, "atBottom": position.atBottom])
     }
 
+    /// Returns after `count` animation frames of the loaded page: after two, the frame that
+    /// was pending when this was called has been drawn (`LaunchTiming`'s first paint).
+    func waitForAnimationFrames(_ count: Int) async throws {
+        _ = try await callBridge(
+            "for (let i = 0; i < count; i++) { await new Promise(resolve => requestAnimationFrame(resolve)); }",
+            arguments: ["count": count])
+    }
+
     /// Runs a fixed bridge function body in the app world. `body` must be a literal; pass every
     /// value through `arguments`.
     func callBridge(_ body: StaticString, arguments: [String: Any] = [:]) async throws -> Any? {

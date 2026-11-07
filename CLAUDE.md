@@ -19,6 +19,7 @@ make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
 make vendor-highlightjs  # re-vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
 swift run mdv --html FILE   # render to stdout without Xcode
+scripts/measure-cold-open [-f] FILE  # Release cold open to first paint, median of N launches (GUI)
 ```
 
 `.NOTPARALLEL` is set because the user's shell exports `MAKEFLAGS=-j9`; concurrent xcodebuilds
@@ -96,6 +97,8 @@ lock the build database.
     `LinkPolicy`.
   - `Scripts/`: bundled JS run only in `AppScripts.world`; pass values as arguments, never
     splice them into source.
+  - `Performance/`: `LaunchTiming`, launch milestones that `scripts/measure-cold-open` reads
+    (on only with `MDV_LAUNCH_TIMING` set; kept in Release, which is what it measures).
   - `Menus/`: `MainMenu` builds the menu bar in code. A feature adds a `MenuContribution` type
     in its own file plus one line in `MainMenu.contributions`. AppKit inserts Open Recent and
     the Window menu's items itself; don't build them.

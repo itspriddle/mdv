@@ -98,6 +98,16 @@ final class WebViewCoordinator: NSObject {
     /// `expectedLoadURL` stays unambiguous.
     static let preparationURL = URL(string: "about:blank#mdv-prepare")
 
+    /// Whether `url` is `preparationURL` as WebKit reports it. WebKit on macOS 26 percent-encodes
+    /// the `#` of a base URL (`about:blank%23mdv-prepare`, in the navigation action and in
+    /// `webView.url`); macOS 27 keeps it. Both forms match.
+    static func isPreparationURL(_ url: URL?) -> Bool {
+        guard let url, let preparationURL else {
+            return false
+        }
+        return url == preparationURL || url.absoluteString.removingPercentEncoding == preparationURL.absoluteString
+    }
+
     /// Starts the web view's first load, of an empty page, before there is a page to show (the
     /// document is still rendering off the main actor, #32). A web view's first load costs a
     /// fixed 15-30 ms on the main thread (attaching its web content process); paying it here,
@@ -144,6 +154,7 @@ final class WebViewCoordinator: NSObject {
     func load(html: String, baseURL: URL?) async throws {
         loadedTheme = nil
         expectedLoadURL = baseURL ?? URL(string: "about:blank")
+        LaunchTiming.mark("loadStarted")
         guard let navigation = webView.loadHTMLString(html, baseURL: baseURL) else {
             return
         }

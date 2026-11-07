@@ -161,6 +161,7 @@ final class DocumentWindowController: NSWindowController {
                     }
                 } else {
                     try await coordinator.load(page, baseURL: baseURL)
+                    LaunchTiming.mark("pageLoaded")
                 }
                 loadedBaseURL = baseURL
                 loadedContentSecurityPolicy = page.contentSecurityPolicy
@@ -172,6 +173,7 @@ final class DocumentWindowController: NSWindowController {
                     hasShownPage = true
                     // Arrow keys, space, and Page Down scroll the document right away.
                     window?.makeFirstResponder(coordinator.webView)
+                    await LaunchTiming.firstPageLoaded(in: coordinator)
                 }
             } catch {
                 // A newer load cancelled this one, or the web content process exited (handled

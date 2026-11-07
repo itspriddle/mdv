@@ -153,19 +153,27 @@ struct FirstRenderTests {
         await document.pendingRender?.value
         let renderTime = ContinuousClock.now - renderStart
         let longestGapWhileRendering = heartbeat.longestGap
+        let longestBusyWhileRendering = heartbeat.longestBusyGap
         heartbeat.reset()
         try await until("the page") { controller.coordinator.hasLoadedPage }
         // For the record (#40 tracks the open path): the numbers in this test's output.
         print(
             "FirstRenderTests 5 MB, outline \(outlineVisible ? "shown" : "hidden"): read+decode \(readTime), "
                 + "window \(windowTime), rest of the render \(renderTime) off main, longest main-thread gap "
-                + "while rendering \(longestGapWhileRendering), while loading the page \(heartbeat.longestGap)")
+                + "while rendering \(longestGapWhileRendering) (busy \(longestBusyWhileRendering)), "
+                + "while loading the page \(heartbeat.longestGap) (busy \(heartbeat.longestBusyGap))")
 
         #expect(document.content?.page.headings.isEmpty == false)
         // One frame at 60 Hz.
         #expect(readTime < .milliseconds(17), "read+decode took \(readTime)")
+        // Main-thread CPU time between heartbeats, not wall time: on a loaded machine (parallel
+        // builds, CI) the main thread also waits to be scheduled, which isn't a stall we caused
+        // (wall-clock gaps of 21-44 ms were seen that way while the busy time stayed under 5 ms).
         let bound: Duration = outlineVisible ? .milliseconds(50) : .milliseconds(17)
-        #expect(longestGapWhileRendering < bound, "main thread stalled \(longestGapWhileRendering)")
+        #expect(longestBusyWhileRendering < bound, "main thread busy for \(longestBusyWhileRendering) at once")
+        // A main thread waiting for the render (a lock, a synchronous hop) uses no CPU; it would
+        // wait for most of the render, far over this bound.
+        #expect(longestGapWhileRendering < .milliseconds(250), "main thread stalled \(longestGapWhileRendering)")
         #expect(renderTime > longestGapWhileRendering * 4, "the render ran while the main thread kept going")
     }
 
@@ -181,6 +189,8 @@ struct FirstRenderTests {
         #expect(coordinator.webView.isHidden)
         if waitForPreparation {
             try await until("the preparation load") { !coordinator.webView.isLoading }
+            #expect(coordinator.expectedLoadURL == nil, "the navigation policy allowed the preparation load")
+            #expect(WebViewCoordinator.isPreparationURL(coordinator.webView.url))
         }
         // A page without a base URL loads at about:blank, which the preparation URL must not match.
         let baseURL = withBaseURL ? coordinator.documentURL(forFileAt: try write("# Page", to: "page.md")) : nil
@@ -201,13 +211,13 @@ struct FirstRenderTests {
         defer { document.close() }
         document.makeWindowControllers()
         let controller = try #require(document.windowControllers.first as? DocumentWindowController)
-        #expect(controller.coordinator.webView.url == WebViewCoordinator.preparationURL)
+        #expect(WebViewCoordinator.isPreparationURL(controller.coordinator.webView.url))
         try await until("the page") { controller.coordinator.hasLoadedPage }
         #expect(controller.coordinator.webView.url?.scheme == "mdv-doc")
 
         let second = DocumentWindowController()
         document.addWindowController(second)
-        #expect(second.coordinator.webView.url != WebViewCoordinator.preparationURL)
+        #expect(!WebViewCoordinator.isPreparationURL(second.coordinator.webView.url))
         try await until("the second window's page") { second.coordinator.hasLoadedPage }
     }
 
@@ -256,41 +266,5 @@ struct FirstRenderTests {
         #expect(throws: CocoaError(.fileReadInapplicableStringEncoding)) {
             try MarkdownDocument(contentsOf: bad, ofType: Self.markdownType)
         }
-    }
-}
-
-/// A hang detector: a main-actor loop that wakes every millisecond and records the longest
-/// time between wake-ups, which is the longest the main thread was busy with something else.
-@MainActor
-final class MainThreadHeartbeat {
-    private(set) var longestGap: Duration = .zero
-    private var last = ContinuousClock.now
-    private var task: Task<Void, Never>?
-
-    func start() {
-        reset()
-        task = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(1))
-                self?.beat()
-            }
-        }
-    }
-
-    /// Forgets gaps so far; the next one is measured from now.
-    func reset() {
-        longestGap = .zero
-        last = ContinuousClock.now
-    }
-
-    func stop() {
-        task?.cancel()
-        task = nil
-    }
-
-    private func beat() {
-        let now = ContinuousClock.now
-        longestGap = max(longestGap, now - last)
-        last = now
     }
 }

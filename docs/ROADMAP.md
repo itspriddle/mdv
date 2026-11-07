@@ -239,6 +239,35 @@ CSS themes as a first-class feature.
   example theme in `docs/example-theme.css`. A core test (`ThemeGuideTests`) loads the example,
   checks that the guide embeds it verbatim, runs every CSS snippet through the custom theme
   check, and matches the quoted error messages and limits against the code.
+- 200 ms (#40): not reachable with `WKWebView`; the target is the floor instead. The floor is a
+  bare AppKit app that loads the same page into one `WKWebView` (configured like mdv's) first
+  thing at launch, in one plain window (`scripts/cold-open-floor.swift`). mdv is now within
+  0-50 ms of it (run to run), and what remains is mostly WebKit's: the web content process takes about 130 ms from the first load to a
+  finished page, and the first frames another 40-90 ms, after AppKit is up (about 45 ms) and the
+  web view exists (about 50 ms). mdv starts its first window's web view first thing at launch
+  (`WebViewPrewarmer`), so that bring-up overlaps the rest of the launch, the document read, and
+  the window build. A regression is anything clearly slower than the floor, measured in the same
+  sitting (`scripts/measure-cold-open -f`). See VISION.
+
+**Performance (#40):** cold open to first paint, as in #27 (process start to two animation
+frames after the first page load finished, Release, file as an argument, outline hidden),
+MacBook Air (Apple silicon), macOS 27.2, with `scripts/measure-cold-open`. Before and after
+were launched interleaved in one sitting (median of 12 launches; 6-10 for the large files),
+and the floor with them. The machine was shared with parallel builds (load average 5-9), so
+absolute numbers run higher than on an idle machine (#27 measured an idle 372 ms for the
+README); compare within a column set, not with #27.
+
+| Document | Size | Before #40 | After #40 | Floor (bare `WKWebView`) |
+| -------- | ---- | ---------- | --------- | ------------------------ |
+| mdv README | 1.7 KB | 398 ms | 341 ms | 348 ms |
+| `bat` README (corpus) | 34 KB | 415 ms | 363 ms | 376 ms |
+| Synthetic | 1 MB | 645 ms | 646 ms | |
+| Synthetic | 5 MB | 1945 ms | 1921 ms | |
+
+The gain varies with how long WebKit takes to start its content process: 13-78 ms for the
+README across runs. The bare app's numbers include no menus, toolbar, sidebar, or SwiftUI;
+mdv's come within 0-50 ms of it (another sitting: 338 ms vs 287 ms), because WebKit, not mdv,
+is most of the critical path.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.

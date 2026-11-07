@@ -61,10 +61,17 @@ final class LargeDocumentUITests: XCTestCase {
         self.mdv = mdv
 
         // The small document opens and renders while the large one is still rendering (or
-        // done, on a fast machine); either way both windows are up.
+        // done, on a fast machine); either way the large one's window is up, titled with the
+        // file name until its render lands. Waiting for that window, rather than for a window
+        // count, avoids `windows.count`, which snapshots the whole app, the 5 MB page included,
+        // on every poll: once it failed with both windows listed, the snapshots outlasting the
+        // default timeout while the large page loaded.
         let smallWindow = mdv.waitForWindow(titled: "Smoke Test Fixture", timeout: 30)
         mdv.waitForRenderedText("The quick brown fox renders in mdv.", in: smallWindow)
-        mdv.waitForWindowCount(2)
+        let largeWindow = mdv.app.windows.matching(
+            NSPredicate(format: "title IN %@", ["large.md", "Large Document"])
+        ).firstMatch
+        XCTAssertTrue(largeWindow.waitForExistence(timeout: 30), "the large document's window is up")
 
         // The large document's window takes its title from the render once it lands. Its page
         // isn't queried: the accessibility tree of a 5 MB page is too slow to snapshot.
