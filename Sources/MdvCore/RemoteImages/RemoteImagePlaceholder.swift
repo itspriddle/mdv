@@ -7,7 +7,9 @@ import Foundation
 ///      title="https://img.shields.io/badge.svg"><span class="remote-image-alt">Build</span>
 ///      <span class="remote-image-host">img.shields.io</span></span>
 ///
-/// It has no URL-valued attribute, so it loads nothing. The theme styles the classes.
+/// It has no URL-valued attribute, so it loads nothing. The theme styles the classes. A URL
+/// ending in GitHub's `#gh-dark-mode-only` or `#gh-light-mode-only` adds that fragment as a
+/// class, so the theme shows the placeholder only in that appearance, like the image itself.
 enum RemoteImagePlaceholder {
     /// `escapedAlt` is the alt text already escaped for a double-quoted attribute (and so for
     /// element content too); `width` and `height` are raw HTML attribute values, used only when
@@ -15,7 +17,9 @@ enum RemoteImagePlaceholder {
     static func html(escapedAlt: String, image: RemoteImage, width: String? = nil, height: String? = nil) -> String {
         let label = escapedAlt.isEmpty ? "Image" : escapedAlt
         let host = HTMLDocument.escape(image.host)
-        var html = "<span class=\"remote-image\" role=\"img\" aria-label=\"Blocked remote image: \(label)"
+        let modeClass = ColorModeImage(source: image.url).map { " " + $0.fragment } ?? ""
+        var html =
+            "<span class=\"remote-image\(modeClass)\" role=\"img\" aria-label=\"Blocked remote image: \(label)"
         if !host.isEmpty {
             html += " (\(host))"
         }

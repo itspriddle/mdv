@@ -113,7 +113,21 @@ public enum DefaultTheme {
           img { max-width: 100%; }
           h1, h2, h3, h4, h5, h6 { break-after: avoid; }
         }
+        /* GitHub's theme-specific images (`ColorModeImage`), and their remote-image placeholders:
+           `#gh-dark-mode-only` shows only in dark mode, `#gh-light-mode-only` only in light mode
+           and on paper (print is always light). Media queries follow appearance changes live. */
+        @media not screen and (prefers-color-scheme: dark) {
+          \(hidingRule(for: .dark))
+        }
+        @media screen and (prefers-color-scheme: dark) {
+          \(hidingRule(for: .light))
+        }
         """
+
+    /// Hides the images (and placeholders) meant only for the other appearance.
+    private static func hidingRule(for mode: ColorModeImage) -> String {
+        "img[src$=\"#\(mode.fragment)\"], .remote-image.\(mode.fragment) { display: none; }"
+    }
 }
 
 /// A theme's page background for each system appearance.
