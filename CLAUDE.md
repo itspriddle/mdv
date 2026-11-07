@@ -36,6 +36,11 @@ lock the build database.
     so everything the renderer emits must be escaped by construction).
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
   - `Transforms/`: AST passes (emoji shortcodes).
+  - `Themes/`: `Theme` (CSS plus `ThemeBackground`), `ThemeRegistry` (the one place the app and
+    CLI get a theme; unknown ids fall back to GitHub), `ThemeBase` (the base layer every page
+    gets; `!important` there means protected from themes), and `ThemeLayer` (cascade layers
+    `mdv-base` → `mdv-theme` → `mdv-user`, one `<style id>` each). Bundled themes are
+    `extension Theme { static let … }` files here.
   - `LocalResources/`: the app's `mdv-doc://<token>/<path>` URLs (`DocumentURLScheme`), the
     allowed-root rule, `LocalImagePolicy`, which approves every local image read, and
     `RootRelativeURL` (`/docs/x.png` resolved against the allowed root, `RenderOptions.linkRoot`).

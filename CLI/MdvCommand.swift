@@ -47,7 +47,8 @@ struct MdvCommand: ParsableCommand {
             }
         for source in sources {
             let rendered = renderer.render(source.markdown)
-            let document = HTMLDocument(title: rendered.title ?? source.title, body: rendered.html)
+            let document = HTMLDocument(
+                title: rendered.title ?? source.title, body: rendered.html, theme: ThemeRegistry.bundled.defaultTheme)
             print(document.html)
         }
     }

@@ -19,14 +19,24 @@ struct AppearanceTests {
     @Test(
         "the window background is the theme's, per appearance",
         arguments: [
-            (NSAppearance.Name.aqua, DefaultTheme.background.light),
-            (NSAppearance.Name.darkAqua, DefaultTheme.background.dark),
+            (NSAppearance.Name.aqua, ThemeRegistry.bundled.defaultTheme.background.light),
+            (NSAppearance.Name.darkAqua, ThemeRegistry.bundled.defaultTheme.background.dark),
         ])
     func themeBackground(appearance: NSAppearance.Name, expected: ThemeColor) throws {
         let color = try #require(try resolved(.themeBackground, in: appearance))
         #expect(Int((color.redComponent * 255).rounded()) == Int(expected.red))
         #expect(Int((color.greenComponent * 255).rounded()) == Int(expected.green))
         #expect(Int((color.blueComponent * 255).rounded()) == Int(expected.blue))
+    }
+
+    @Test("any theme's background resolves per appearance")
+    func anyThemeBackground() throws {
+        let background = ThemeBackground(light: ThemeColor(0xF0_E0_D0), dark: ThemeColor(0x10_20_30))
+        for (name, expected) in [(NSAppearance.Name.aqua, background.light), (.darkAqua, background.dark)] {
+            let color = try #require(try resolved(.themeBackground(background), in: name))
+            #expect(Int((color.redComponent * 255).rounded()) == Int(expected.red), "\(name.rawValue)")
+            #expect(Int((color.blueComponent * 255).rounded()) == Int(expected.blue), "\(name.rawValue)")
+        }
     }
 
     @Test("document windows and web views paint the theme background before the page")
@@ -55,7 +65,10 @@ struct AppearanceTests {
                 underPage = webView.underPageBackgroundColor.usingColorSpace(.sRGB)
             }
             let color = try #require(underPage)
-            let expected = name == .darkAqua ? DefaultTheme.background.dark : DefaultTheme.background.light
+            let expected =
+                name == .darkAqua
+                ? ThemeRegistry.bundled.defaultTheme.background.dark
+                : ThemeRegistry.bundled.defaultTheme.background.light
             #expect(Int((color.redComponent * 255).rounded()) == Int(expected.red), "\(name.rawValue)")
             #expect(Int((color.greenComponent * 255).rounded()) == Int(expected.green), "\(name.rawValue)")
             #expect(Int((color.blueComponent * 255).rounded()) == Int(expected.blue), "\(name.rawValue)")

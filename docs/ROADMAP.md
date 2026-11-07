@@ -180,8 +180,7 @@ CSS themes as a first-class feature.
 
 - Bundled themes: GitHub (Primer, light and dark), Google Docs-style, minimal/serif
 - Theme model in `MdvCore`: name, stylesheet(s), light/dark variants, optional print CSS
-  (print themes; M2 ships basic `@media print` rules in `DefaultTheme`); owns the highlight.js
-  token CSS now in `DefaultTheme`
+  (print themes; M2 ships basic `@media print` rules); owns the highlight.js token CSS
 - Custom themes: CSS files in `~/Library/Application Support/mdv/Themes`, hot-reloaded
 - Theme picker per window plus a global default in a Settings window
 - Font size and content width controls layered on top of any theme
@@ -194,6 +193,12 @@ CSS themes as a first-class feature.
   - Smaller viewer polish, filed as issues: a document folder deleted and recreated isn't
     noticed; extensionless files (`README`) can't be opened from the Open panel; "Copy Link"
     on a relative link copies the internal `mdv-doc:` URL; the find pasteboard
+
+**Decisions:**
+
+- CSS layering (#31): cascade layers, `@layer mdv-base, mdv-theme, mdv-user`, one `<style>` per
+  layer. The base layer's `!important` rules (find highlights, placeholders, light/dark-only
+  images, structural print rules) can't be undone by any theme; see VISION.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.

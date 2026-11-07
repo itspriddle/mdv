@@ -127,7 +127,7 @@ editor or a browser.
   follows live, so text size is a reading preference rather than a per-file chore. Pinch is
   the window's own `WKWebView` magnification (scales without reflow, as in Safari), kept by
   window restoration; Actual Size resets both. Print uses `WKWebView.printOperation` through
-  `NSDocument` (Page Setup, Save as PDF from the panel) with `@media print` rules in the theme:
+  `NSDocument` (Page Setup, Save as PDF from the panel) with `@media print` rules in the theme layers:
   light colors always, full width, wrapped code and tables, no anchor icons, external link
   targets written out. Copy as HTML copies the `mdv --html` body fragment (no
   `data-source-line`, remote images as written) as HTML plus its markup as plain text; Copy
@@ -143,7 +143,7 @@ editor or a browser.
   matches across inline markup but not across blocks, ignores case unless Match Case is on,
   treats the query as literal text with any whitespace matching any whitespace, skips text that
   isn't rendered, and stops counting at 1000. Matches are painted with the CSS Custom Highlight
-  API (`::highlight(mdv-find)` rules in the theme), so the DOM, source-line positions, and
+  API (`::highlight(mdv-find)` rules in the base layer), so the DOM, source-line positions, and
   in-place swaps are untouched and no style is injected. The query and options survive closing
   the bar and every reload: the search runs again after each display (in-place swap or full
   load), keeping the current match number without scrolling.
@@ -153,6 +153,33 @@ editor or a browser.
   non-modal panel, when a document opens while another app is the default ("Not Now" snoozes
   30 days, "Don't Ask Again" is permanent), and the app menu has "Make mdv the Default Markdown
   Viewer" until Settings exists (M3).
+- **Themes (#31):** a `Theme` (MdvCore) is plain CSS plus metadata: id, display name, a
+  `ThemeBackground` per appearance (the app paints windows and the under-page area with it
+  before first paint, and the page's `body` background is generated from it so they can't
+  disagree), highlight.js token CSS, and optional print CSS. `ThemeRegistry` is the one place
+  the app and `mdv --html` get a theme; a missing, unknown, or deleted id resolves to the
+  default (GitHub). Every page is built in three **CSS cascade layers**, declared first with
+  `@layer mdv-base, mdv-theme, mdv-user;`, each in its own `<style id="mdv-…">` element so a
+  theme switch (#34) or user controls (#37) replace one element's text in place:
+  - `mdv-base` (`ThemeBase`): rules viewer features depend on. Its `!important` declarations
+    are protected: the cascade reverses layer order for important declarations, so an earlier
+    layer's important rule beats any later layer's and any unlayered one. That covers
+    `.sr-only`, find highlights (never printed), the remote-image placeholder's visibility,
+    `#gh-*-mode-only` hiding, and structural print rules (light color scheme, full width,
+    unclipped code and tables, no anchor icons, page breaks). Its other rules (placeholder
+    look, link targets written out on paper) are defaults a theme may restyle. Raw HTML
+    `style` attributes are stripped, so element-attached styles can't override it either.
+  - `mdv-theme`: the theme's CSS. Ordinary declarations beat the base layer whatever their
+    specificity, so themes need not know the base selectors.
+  - `mdv-user`: user controls (#37), which beat any theme the same way.
+
+  Chosen over concatenation order (base, theme, controls in one sheet), where precedence
+  depends on specificity: a theme's `.markdown-body pre { overflow: auto }` would beat the
+  base's print `pre { overflow: visible }`, controls would need ever more specific selectors,
+  and a custom theme could hide placeholders or find highlights with one `!important`. Theme
+  CSS is inlined with every `</` written `<\/` so it can't close its `<style>` element. A theme
+  that escapes its layer with a stray `}` becomes unlayered: it then outranks user controls but
+  still not the protected base rules (custom theme validation is #35).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
@@ -203,7 +230,7 @@ editor or a browser.
   the root, so `LocalImagePolicy` and `LinkPolicy` see ordinary `mdv-doc` URLs and stay the
   only checks; `//host` stays remote. `mdv --html` and Copy as HTML keep them as written.
 - GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` images (and their remote-image
-  placeholders) show only in the matching appearance through `DefaultTheme` CSS
+  placeholders) show only in the matching appearance through the base layer's CSS (`ThemeBase`)
   (`img[src$=...]` under `prefers-color-scheme`), so they follow live appearance changes; print
   shows the light variant. `<picture><source media="(prefers-color-scheme: dark)">` works
   as is (sanitizer and CSP allow it).

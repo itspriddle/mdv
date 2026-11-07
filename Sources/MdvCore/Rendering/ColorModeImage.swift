@@ -1,5 +1,5 @@
 /// GitHub's theme-specific images: a URL ending in `#gh-dark-mode-only` is shown only in dark
-/// mode, and `#gh-light-mode-only` only in light mode. `DefaultTheme` hides the other one with
+/// mode, and `#gh-light-mode-only` only in light mode. the base theme layer (`ThemeBase`) hides the other one with
 /// `img[src$="#..."]` selectors (and the matching placeholder class), so it follows live
 /// appearance changes without a re-render; print always shows the light variant.
 public enum ColorModeImage: String, Sendable, CaseIterable {
