@@ -80,6 +80,13 @@ final class ThemeSettings {
         registry.theme(id: defaultThemeID)
     }
 
+    /// The theme a window that picked `id` shows: that theme while it is registered; else, while
+    /// a custom theme's file is missing or broken, the default theme (Settings', #45), which
+    /// itself falls back to the registry's default (GitHub) when it isn't registered either.
+    func theme(forWindowThemeID id: String) -> Theme {
+        registry.contains(id: id) ? registry.theme(id: id) : defaultTheme
+    }
+
     /// The id a new window starts with: `defaultThemeID` even when it isn't registered (yet),
     /// so a window opened before the custom themes load, or while the default's file is
     /// missing, switches to it once it is. Shows `defaultTheme` meanwhile.

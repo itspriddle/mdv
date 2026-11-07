@@ -36,8 +36,8 @@ final class OutlineTests {
 
     let folder: URL
     let file: URL
-    let defaultsSuite = "mdv-outline-tests-\(UUID().uuidString)"
-    let defaults: UserDefaults
+    let throwawayDefaults: ThrowawayDefaults
+    var defaults: UserDefaults { throwawayDefaults.defaults }
     var documents: [MarkdownDocument] = []
 
     init() throws {
@@ -45,12 +45,11 @@ final class OutlineTests {
             path: "mdv-outline-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         file = folder.appending(path: "notes.md")
-        defaults = try #require(UserDefaults(suiteName: defaultsSuite))
+        throwawayDefaults = try ThrowawayDefaults("mdv-outline-tests")
     }
 
     deinit {
         try? FileManager.default.removeItem(at: folder)
-        UserDefaults().removePersistentDomain(forName: defaultsSuite)
     }
 
     var preference: OutlinePreference {

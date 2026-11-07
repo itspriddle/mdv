@@ -43,12 +43,12 @@ struct DeclinedByUser: Error {}
 struct DefaultViewerTests {
     static let markdown = UTType(importedAs: "net.daringfireball.markdown")
     let workspace = FakeWorkspace()
-    let defaults: UserDefaults
-    let suiteName = "DefaultViewerTests.\(UUID().uuidString)"
+    let throwawayDefaults: ThrowawayDefaults
+    var defaults: UserDefaults { throwawayDefaults.defaults }
     var date = Date(timeIntervalSince1970: 1_000_000)
 
     init() throws {
-        defaults = try #require(UserDefaults(suiteName: suiteName))
+        throwawayDefaults = try ThrowawayDefaults("mdv-default-viewer-tests")
         workspace.setHandler("com.example.other")
     }
 

@@ -131,7 +131,10 @@ enum YAMLFrontmatter {
         }
     }
 
-    /// Runs `body` on a new thread with a `parserStackSize` stack and waits for it.
+    /// Runs `body` on a new thread with a `parserStackSize` stack and waits for it. The thread runs
+    /// at the caller's quality of service: a user-initiated render (or the main thread) waiting on
+    /// a default-QoS thread is a priority inversion (the Thread Performance Checker flagged it
+    /// under the M3 sanitizer pass, #45).
     private static func onLargeStack(
         _ body: @escaping @Sendable () -> Result<[FrontmatterEntry], LoadError>
     ) -> Result<[FrontmatterEntry], LoadError> {
@@ -143,6 +146,7 @@ enum YAMLFrontmatter {
             done.signal()
         }
         thread.stackSize = parserStackSize
+        thread.qualityOfService = Thread.current.qualityOfService
         thread.start()
         done.wait()
         return box.result.withLock { $0 } ?? .failure(LoadError("YAML frontmatter could not be parsed."))

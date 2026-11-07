@@ -116,9 +116,8 @@ struct FirstRenderTests {
         arguments: [false, true])
     func mainThreadStaysResponsive(outlineVisible: Bool) async throws {
         let url = try write(Self.largeSource(bytes: 5_000_000), to: "five.md")
-        let suite = "mdv-first-render-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { UserDefaults().removePersistentDomain(forName: suite) }
+        let throwawayDefaults = try ThrowawayDefaults("mdv-first-render")
+        let defaults = throwawayDefaults.defaults
         let outlinePreference = OutlinePreference(defaults: defaults, isPersistent: true)
         outlinePreference.showsOutlineInNewWindows = outlineVisible
 

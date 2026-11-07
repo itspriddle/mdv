@@ -18,8 +18,10 @@ make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
 make vendor-highlightjs  # re-vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
+make vendor-github-markdown-css  # re-vendor the GitHub theme (GHCSS_VERSION=x.y.z) as generated Swift
 swift run mdv --html FILE   # render to stdout without Xcode
-scripts/measure-cold-open [-f] FILE  # Release cold open to first paint, median of N launches (GUI)
+scripts/measure-cold-open [-f] FILE  # Release cold open to first paint, median of N launches (GUI);
+                                     # -f adds the bare-WKWebView floor (scripts/cold-open-floor.swift)
 ```
 
 `.NOTPARALLEL` is set because the user's shell exports `MAKEFLAGS=-j9`; concurrent xcodebuilds
@@ -64,7 +66,13 @@ lock the build database.
   `DocumentWindowController+<Feature>.swift`). `Themes/ThemeSettings` holds the theme registry
   and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
   `Themes/CustomThemeLibrary` watches the custom themes folder (`ThemeFolderWatcher`) and
-  replaces the registry (`ThemeSettings.apply(_:)`).
+  replaces the registry (`ThemeSettings.apply(_:)`). A window whose picked theme isn't
+  registered shows Settings' default (`ThemeSettings.theme(forWindowThemeID:)`).
+  - `Settings/`: `SettingsWindowController` (App menu > Settings…, a toolbar-style
+    `NSTabViewController` of SwiftUI panes), `SettingsModel` (wraps the existing stores:
+    `ThemeSettings`, `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, the default
+    viewer; stores nothing itself), and `GeneralSettingsView`. A new setting is a store with
+    `init(defaults:isPersistent:)`, a property and `set…` method on the model, and a row.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
@@ -92,7 +100,8 @@ lock the build database.
   - `WebView/`: `WebViewCoordinator` owns the `DocumentWebView` (drops, context menu trimming):
     `prepareForFirstLoad()` (a blank page while the first render runs), `load`, `updateContent`,
     and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,
-    `scroll(toFragment:)`). `WebViewConfiguration` holds preferences and user scripts;
+    `scroll(toFragment:)`). `WebViewPrewarmer` starts the first window's web view at launch
+    (#40). `WebViewConfiguration` holds preferences and user scripts;
     `LocalResourceSchemeHandler` serves `mdv-doc` images; `+Navigation.swift` applies
     `LinkPolicy`.
   - `Scripts/`: bundled JS run only in `AppScripts.world`; pass values as arguments, never
@@ -105,6 +114,12 @@ lock the build database.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
+  `AppTests/Support/`: `DocumentWindowTestCase` (windows over temp files and throwaway
+  settings), `ThrowawayDefaults` (a per-test `UserDefaults` suite in a temp folder; never use
+  `UserDefaults(suiteName:)` with a plain name, which leaves a plist in ~/Library/Preferences),
+  `MainThreadHeartbeat` (main-thread stalls by CPU time), `SnapshotImage`, `LoopbackServer`.
+  `StressTests` (+`Themes`) is the crash and hang suite; run it under ASan and TSan at each
+  milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
 - `docs/THEMES.md`: the end-user theme authoring guide, with `docs/example-theme.css`.

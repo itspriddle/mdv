@@ -249,7 +249,10 @@ editor or a browser.
   when it loads a page (off the main actor), and a theme picked mid-load is swapped in when
   the load finishes. Windows resolve their theme id in `ThemeSettings.registry` again
   whenever it changes, so a custom theme edited or deleted on disk (#35) updates or falls
-  back to the default live. Print prints the window's web view, so it uses the window's
+  back live. The fallback for a picked theme that isn't registered (deleted, broken, or not
+  loaded yet) is Settings' default theme, and the registry's default (GitHub) only when that
+  is missing too (`ThemeSettings.theme(forWindowThemeID:)`, #45); the window keeps its pick and
+  shows it again when it returns. Print prints the window's web view, so it uses the window's
   theme; Copy as HTML stays a theme-free fragment.
 - **Custom themes (#35):** each `*.css` file in `~/Library/Application Support/mdv/Themes` is a
   theme, id `custom:<file name>` (a namespace no bundled id uses, so it can't shadow one),
@@ -261,7 +264,10 @@ editor or a browser.
   `--mdv-background-*` custom properties: it needs no CSS parsing or cascade semantics to read,
   and the window is painted from it before the page exists. Custom themes start from the base
   layer only; `extends: <bundled id>` puts that theme's CSS first in the same layer, so the
-  file only overrides (bundled themes only, no chains). The file is checked by a small CSS
+  file only overrides (bundled themes only, no chains). Without `extends` there are no
+  highlight.js token colors either: a theme written from scratch styles everything it wants,
+  code included, rather than inheriting colors chosen for another palette (decided in #45;
+  the guide says so). The file is checked by a small CSS
   tokenizer (`CustomThemeCSS`, comments, strings, and escapes aware, so `@\69mport` and
   `u\72l(` are caught) before it is inlined, independent of the CSP: no `@import`, no
   `expression()`, every `url()` (and URL strings in `image-set()`, `image()`, `src()`,
@@ -275,8 +281,8 @@ editor or a browser.
   with kqueue off the main thread (the folder, each theme file, and while missing its nearest
   existing ancestor), debounced 100 ms (300 ms cap); every burst re-reads the folder and
   replaces `ThemeSettings.registry` only if something changed, so open windows swap an edited
-  theme in place (#34) and fall back to the default when it is deleted or broken (keeping
-  their pick for when it returns). The folder is created on demand (View > Theme > Open
+  theme in place (#34) and fall back to Settings' default theme when it is deleted or broken
+  (keeping their pick for when it returns). The folder is created on demand (View > Theme > Open
   Themes Folder). The end-user guide is [`docs/THEMES.md`](THEMES.md) (#44); its example theme
   (`docs/example-theme.css`), snippets, and quoted error messages are checked by
   `ThemeGuideTests`.
@@ -416,8 +422,9 @@ editor or a browser.
 - `mdv README.md` shows a document indistinguishable from GitHub's rendering as fast as a
   `WKWebView` can show it. The original goal, under 200 ms, isn't reachable with `WKWebView`
   (#40): a bare AppKit app that loads the page into one web view first thing at launch paints
-  it in about 350 ms on a MacBook Air (ROADMAP M3), most of it WebKit starting its web content
-  process and drawing the first frames. mdv comes within about 50 ms of that floor;
-  `scripts/measure-cold-open -f` measures both.
+  it in about 290-350 ms on a MacBook Air (ROADMAP M3), most of it WebKit starting its web
+  content process and drawing the first frames. The agreed target (#40, accepted at the M3
+  close-out) is that floor: mdv's cold open stays within about 0-50 ms of the bare app's,
+  measured in the same run with `scripts/measure-cold-open -f`.
 - Switching themes or editing the file in another app updates the window instantly.
 - A new contributor can clone, `make bootstrap && make test`, and be productive in minutes.
