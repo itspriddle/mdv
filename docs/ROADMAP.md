@@ -152,7 +152,8 @@ opened, reloaded, and closed mid-load; files deleted, renamed, and rewritten whi
 removed folder; malformed and non-UTF-8 files) and `AppUITests` pass under Address Sanitizer
 and Thread Sanitizer in Debug with no reports; `MdvCoreTests` under both sanitizers fail only
 their wall-clock budgets (sanitizer slowdown). `make test-ui` passed 5 consecutive runs locally
-(20 tests, the opt-in restoration test skipped) with no retries; CI has yet to run it.
+(20 tests, the opt-in restoration test skipped) with no retries; CI (macOS 26, Xcode 26.6)
+runs the full UI suite, including restoration, and was green on the merged PR (#28).
 
 **Performance (#27):** cold window open to first paint, measured from process start (the
 kernel's start time) to two animation frames after the first page load finished, Release
