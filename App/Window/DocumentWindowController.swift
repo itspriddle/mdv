@@ -44,6 +44,9 @@ final class DocumentWindowController: NSWindowController {
     /// The app-wide page zoom this window follows (#26, `DocumentWindowController+Zoom.swift`).
     let zoomSettings: ZoomSettings
 
+    /// The app-wide content width this window follows (#37, `+ContentWidth.swift`).
+    let contentWidthSettings: ContentWidthSettings
+
     // MARK: Theme (#34, `DocumentWindowController+Theme.swift`)
 
     /// The registry and default theme this window follows.
@@ -57,11 +60,13 @@ final class DocumentWindowController: NSWindowController {
         coordinator: WebViewCoordinator = WebViewCoordinator(),
         outlinePreference: OutlinePreference = OutlinePreference(),
         zoomSettings: ZoomSettings = .shared,
+        contentWidthSettings: ContentWidthSettings = .shared,
         themeSettings: ThemeSettings = .shared
     ) {
         self.coordinator = coordinator
         self.outlinePreference = outlinePreference
         self.zoomSettings = zoomSettings
+        self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
         themeID = themeSettings.defaultTheme.id
         wantsOutline = outlinePreference.showsOutlineInNewWindows
@@ -79,6 +84,7 @@ final class DocumentWindowController: NSWindowController {
         installScrollTracking()
         installOutline()
         installZoom()
+        installContentWidth()
         installTheme()
     }
 

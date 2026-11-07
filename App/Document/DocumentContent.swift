@@ -105,10 +105,12 @@ struct RenderedPage: Equatable, Sendable {
         self.blockedRemoteImages = rendered.blockedRemoteImages
     }
 
-    /// The complete HTML page (`HTMLDocument`: the CSP, `theme`, body). The rendered content is
-    /// the document's, shared by its windows; the theme is each window's own (#34), so the page
-    /// is put together when a window loads it.
-    func html(theme: Theme) -> String {
-        HTMLDocument(title: title, body: body, theme: theme, contentSecurityPolicy: contentSecurityPolicy).html
+    /// The complete HTML page (`HTMLDocument`: the CSP, `theme`, `userStyle`, body). The
+    /// rendered content is the document's, shared by its windows; the theme is each window's
+    /// own (#34), so the page is put together when a window loads it.
+    func html(theme: Theme, userStyle: UserStyle = .themeDefaults) -> String {
+        HTMLDocument(
+            title: title, body: body, theme: theme, userStyle: userStyle, contentSecurityPolicy: contentSecurityPolicy
+        ).html
     }
 }

@@ -82,7 +82,7 @@ extension WebViewCoordinator {
     /// theme element. Use `show(_:)`, which tracks what the page holds.
     func replaceTheme(css: String) async throws -> Bool {
         let result = try await callBridge(
-            "return mdv.replaceTheme(id, css);", arguments: ["id": ThemeLayer.theme.name, "css": css])
+            "return mdv.replaceStyle(id, css);", arguments: ["id": ThemeLayer.theme.name, "css": css])
         return (result as? NSNumber)?.boolValue == true
     }
 

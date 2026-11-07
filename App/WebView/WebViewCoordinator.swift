@@ -47,6 +47,11 @@ final class WebViewCoordinator: NSObject {
     /// Performs every link action except in-page scrolling (opening documents and URLs).
     var linkHandler: ((LinkAction, LinkOpening) -> Void)?
 
+    /// The reader's style controls (#37) every page this coordinator loads starts with. Set it
+    /// before the first load; after a change, `applyUserStyleToPage()`
+    /// (`WebViewCoordinator+UserStyle.swift`) updates the loaded page in place.
+    var userStyle = UserStyle.themeDefaults
+
     /// Find in page (#25, `WebViewCoordinator+Find.swift`): the find bar's state and commands,
     /// sharing the system find pasteboard (#42).
     private(set) lazy var find = FindInPage(host: self, pasteboard: NSPasteboard(name: .find))
@@ -115,15 +120,23 @@ final class WebViewCoordinator: NSObject {
     /// - Parameter baseURL: resolves relative URLs in the page: the document's
     ///   `documentURL(forFileAt:)`.
     ///
-    /// The page gets the current `theme`. If `show(_:)` picked another theme while it loaded,
-    /// that theme is swapped in before this returns. The page text is put together off the main
-    /// actor: for a large document, joining it with the theme takes milliseconds (#32).
+    /// The page gets the current `theme` and `userStyle`, so a load never paints another look
+    /// first and then jumps. If either changed while it loaded, it is swapped in before this
+    /// returns. The page text is put together off the main actor: for a large document,
+    /// joining it with the styles takes milliseconds (#32).
     func load(_ page: RenderedPage, baseURL: URL?) async throws {
         let theme = theme
-        let html = await Task.detached(priority: .userInitiated) { page.html(theme: theme) }.value
+        let style = userStyle
+        let html = await Task.detached(priority: .userInitiated) {
+            page.html(theme: theme, userStyle: style)
+        }.value
         try await load(html: html, baseURL: baseURL)
         loadedTheme = theme
+        // The theme or the style changed while the page was loading.
         try await swapThemeIfNeeded()
+        if userStyle != style {
+            try await applyUserStyleToPage()
+        }
     }
 
     /// Loads a complete HTML page and waits for it to finish. `html` must be a page built by

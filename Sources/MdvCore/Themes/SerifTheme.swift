@@ -27,7 +27,7 @@ enum SerifTheme {
           box-sizing: border-box; max-width: var(--mdv-content-width, 40em); margin: 0 auto;
           padding: 56px 32px 72px; color: var(--serif-text);
           font-family: ui-serif, "New York", Charter, Georgia, "Times New Roman", serif;
-          font-size: var(--mdv-font-size, 19px); line-height: 1.65;
+          font-size: 19px; line-height: 1.65;
           overflow-wrap: break-word; hanging-punctuation: first; font-kerning: normal;
         }
         .markdown-body > :first-child { margin-top: 0; }

@@ -120,6 +120,8 @@ extension DocumentWindowController: NSMenuItemValidation {
             return true
         case #selector(zoomInDocument(_:)), #selector(zoomOutDocument(_:)), #selector(resetDocumentZoom(_:)):
             return validateZoomItem(menuItem)
+        case #selector(setContentWidth(_:)):
+            return validateContentWidthItem(menuItem)
         case #selector(copyMarkdownSource(_:)), #selector(copyAsHTML(_:)):
             return validateCopyItem(menuItem)
         case #selector(performTextFinderAction(_:)), #selector(centerSelectionInVisibleArea(_:)):

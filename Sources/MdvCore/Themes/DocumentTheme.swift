@@ -31,7 +31,7 @@ enum DocumentTheme {
           box-sizing: border-box; max-width: var(--mdv-content-width, 816px); margin: 32px auto; padding: 96px;
           background: var(--doc-page); box-shadow: var(--doc-shadow); color: var(--doc-text);
           font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-          font-size: var(--mdv-font-size, 11pt); line-height: 1.5;
+          font-size: 11pt; line-height: 1.5;
           overflow-wrap: break-word;
         }
         @media screen and (max-width: 880px) {

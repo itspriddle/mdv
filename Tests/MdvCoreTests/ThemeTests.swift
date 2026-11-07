@@ -88,9 +88,11 @@ struct ThemeTests {
         let base = try #require(
             html.range(of: "<style id=\"mdv-base\">\n@layer mdv-base, mdv-theme, mdv-user;\n@layer mdv-base {"))
         let theme = try #require(html.range(of: "<style id=\"mdv-theme\">\n@layer mdv-theme {"))
+        let user = try #require(html.range(of: "<style id=\"mdv-user\">\n@layer mdv-user {"))
         #expect(base.upperBound > order.lowerBound)
         #expect(base.lowerBound < theme.lowerBound)
-        #expect(html.components(separatedBy: "@layer").count == 4)  // statement + two blocks
+        #expect(theme.lowerBound < user.lowerBound)
+        #expect(html.components(separatedBy: "@layer").count == 5)  // statement + three blocks
     }
 
     @Test("theme CSS can't close its style element")
@@ -98,7 +100,7 @@ struct ThemeTests {
         let html = HTMLDocument(title: "t", body: "", theme: Self.hostile).html
         #expect(!html.contains("</style><script>"))
         #expect(html.contains(#"<\/style><script>"#))
-        #expect(html.components(separatedBy: "</style>").count == 3)
+        #expect(html.components(separatedBy: "</style>").count == 4)
         #expect(ThemeLayer.inlineSafe("a::after { content: \"</STYLE>\"; }") == #"a::after { content: "<\/STYLE>"; }"#)
     }
 
