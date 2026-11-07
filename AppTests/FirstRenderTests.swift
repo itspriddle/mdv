@@ -181,6 +181,8 @@ struct FirstRenderTests {
         #expect(coordinator.webView.isHidden)
         if waitForPreparation {
             try await until("the preparation load") { !coordinator.webView.isLoading }
+            #expect(coordinator.expectedLoadURL == nil, "the navigation policy allowed the preparation load")
+            #expect(WebViewCoordinator.isPreparationURL(coordinator.webView.url))
         }
         // A page without a base URL loads at about:blank, which the preparation URL must not match.
         let baseURL = withBaseURL ? coordinator.documentURL(forFileAt: try write("# Page", to: "page.md")) : nil
@@ -201,13 +203,13 @@ struct FirstRenderTests {
         defer { document.close() }
         document.makeWindowControllers()
         let controller = try #require(document.windowControllers.first as? DocumentWindowController)
-        #expect(controller.coordinator.webView.url == WebViewCoordinator.preparationURL)
+        #expect(WebViewCoordinator.isPreparationURL(controller.coordinator.webView.url))
         try await until("the page") { controller.coordinator.hasLoadedPage }
         #expect(controller.coordinator.webView.url?.scheme == "mdv-doc")
 
         let second = DocumentWindowController()
         document.addWindowController(second)
-        #expect(second.coordinator.webView.url != WebViewCoordinator.preparationURL)
+        #expect(!WebViewCoordinator.isPreparationURL(second.coordinator.webView.url))
         try await until("the second window's page") { second.coordinator.hasLoadedPage }
     }
 

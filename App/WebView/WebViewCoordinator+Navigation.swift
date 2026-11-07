@@ -39,7 +39,7 @@ extension WebViewCoordinator {
             return .cancel
         }
         let targetsMainFrame = action.targetFrame?.isMainFrame ?? true
-        if action.targetFrame?.isMainFrame == true, action.navigationType == .other, url == expectedLoadURL {
+        if action.targetFrame?.isMainFrame == true, action.navigationType == .other, isExpectedLoad(url) {
             expectedLoadURL = nil
             return .allow
         }
@@ -47,6 +47,18 @@ extension WebViewCoordinator {
             followLink(url, opening: LinkOpening(modifiers: action.modifierFlags, buttonNumber: action.buttonNumber))
         }
         return .cancel
+    }
+
+    /// Whether `url` is the load this coordinator started: `expectedLoadURL`, or the preparation
+    /// page in either of WebKit's spellings (`isPreparationURL(_:)`).
+    func isExpectedLoad(_ url: URL) -> Bool {
+        guard let expectedLoadURL else {
+            return false
+        }
+        if expectedLoadURL == Self.preparationURL {
+            return Self.isPreparationURL(url)
+        }
+        return url == expectedLoadURL
     }
 
     /// Follows a clicked link through `LinkPolicy`: in-page fragments scroll here; every other
