@@ -58,6 +58,7 @@ final class WebViewCoordinator: NSObject {
         // so the window's theme-colored background shows instead (no white flash in dark mode).
         webView.isHidden = true
         webView.setAccessibilityIdentifier("document-web-view")
+        webView.copyLinkHandler = { [weak self] in self?.copyContextMenuLink() }
         // Hover reports from `LinkHover.js`, accepted from the app's content world only.
         webView.configuration.userContentController.add(
             LinkHoverMessageHandler(coordinator: self), contentWorld: AppScripts.world,
