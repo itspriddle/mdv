@@ -7,6 +7,8 @@ DERIVED     := build/DerivedData
 # UI test results (screenshots, logs): open in Xcode to debug a failure.
 UI_RESULT   := build/AppUITests.xcresult
 HLJS_VERSION ?= 11.12.0
+# sindresorhus/github-markdown-css release the GitHub theme is generated from.
+GHCSS_VERSION ?= 5.9.0
 XCODEBUILD_BASE := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DESTINATION)' -derivedDataPath $(DERIVED)
 XCODEBUILD  := $(XCODEBUILD_BASE)
 # github/gemoji commit the emoji table is generated from (`make emoji`).
@@ -27,7 +29,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: help bootstrap generate build test test-core test-app test-ui lint format emoji vendor-highlightjs clean
+.PHONY: help bootstrap generate build test test-core test-app test-ui lint format emoji vendor-highlightjs vendor-github-markdown-css clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -68,6 +70,9 @@ emoji: ## Regenerate the emoji shortcode table from github/gemoji at GEMOJI_COMM
 
 vendor-highlightjs: ## Vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
 	scripts/vendor-highlightjs.sh $(HLJS_VERSION)
+
+vendor-github-markdown-css: ## Vendor github-markdown-css (GHCSS_VERSION=x.y.z) as generated Swift
+	scripts/vendor-github-markdown-css.sh $(GHCSS_VERSION)
 
 clean: ## Remove build artifacts
 	rm -rf .build build $(PROJECT)
