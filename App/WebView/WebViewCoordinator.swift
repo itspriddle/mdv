@@ -73,6 +73,27 @@ final class WebViewCoordinator: NSObject {
         localResources.scope(toDocumentAt: fileURL)
     }
 
+    /// The URL of the blank page `prepareForFirstLoad()` loads: distinct from every real load's
+    /// URL (`about:blank` without a base URL), so the navigation policy's one allowed load per
+    /// `expectedLoadURL` stays unambiguous.
+    static let preparationURL = URL(string: "about:blank#mdv-prepare")
+
+    /// Starts the web view's first load, of an empty page, before there is a page to show (the
+    /// document is still rendering off the main actor, #32). A web view's first load costs a
+    /// fixed 15-30 ms on the main thread (attaching its web content process); paying it here,
+    /// while the window is built, overlaps it with the render, so the page load after the
+    /// render is cheap. The next `load` replaces the page, finished or not. Does nothing once a
+    /// load has started.
+    func prepareForFirstLoad() {
+        guard !hasLoadedPage, expectedLoadURL == nil, webView.url == nil else {
+            return
+        }
+        expectedLoadURL = Self.preparationURL
+        webView.loadHTMLString(
+            #"<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'"><title></title>"#,
+            baseURL: Self.preparationURL)
+    }
+
     /// Loads a full page and waits for it to finish. Replaces whatever was loaded, including the
     /// scroll position; use `replaceContent(with:)` to keep it.
     ///

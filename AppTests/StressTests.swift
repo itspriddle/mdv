@@ -95,6 +95,45 @@ struct StressTests {
         #expect(try await pageTitle(controller) == "Doc 0")
     }
 
+    @Test("closing windows while their first render is in flight drops the render and frees the document")
+    func closeMidRender() async throws {
+        let source = FirstRenderTests.largeSource(bytes: 1_000_000)
+        let urls = try (0..<6).map { try write(source, to: "large-\($0).md") }
+        weak var lastDocument: MarkdownDocument?
+        for round in 0..<3 {
+            var renders: [Task<Void, Never>] = []
+            for (index, url) in urls.enumerated() {
+                let (document, controller) = try open(url)
+                document.showWindows()
+                renders += [document.pendingRender].compactMap { $0 }
+                // Close before the render (most), after a turn, or once the page loads.
+                switch (index + round) % 3 {
+                case 0:
+                    document.close()
+                case 1:
+                    await Task.yield()
+                    document.close()
+                default:
+                    try await until("load \(index)", timeout: .seconds(30)) { controller.coordinator.hasLoadedPage }
+                    document.close()
+                }
+                #expect(document.pendingRender == nil)
+                lastDocument = document
+            }
+            // The dropped renders finish in the background without touching the closed windows.
+            for render in renders {
+                await render.value
+            }
+        }
+        // Nothing (a render task, the window) keeps the last closed document alive.
+        try await until("the closed document is freed") { lastDocument == nil }
+        // And a new window still opens and renders normally.
+        let (document, controller) = try open(urls[0])
+        defer { document.close() }
+        try await until("the final load", timeout: .seconds(30)) { controller.coordinator.hasLoadedPage }
+        #expect(try await pageTitle(controller) == "Large Document")
+    }
+
     @Test("rapid reloads of many open windows end on the newest content")
     func reloadChurn() async throws {
         let urls = try (0..<5).map { try write("# Start \($0)", to: "reload-\($0).md") }

@@ -88,6 +88,10 @@ final class DocumentWindowController: NSWindowController {
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero
             window?.contentViewController = makeSplitViewController(content: hostingController)
+            if markdownDocument.content == nil {
+                // Still rendering (#32): start the web view now, so the page loads fast after.
+                coordinator.prepareForFirstLoad()
+            }
             documentContentDidChange()
         }
     }
