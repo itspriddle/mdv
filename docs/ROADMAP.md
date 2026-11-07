@@ -9,7 +9,7 @@ them when the milestone is broken down.
 | [M0](#m0-foundation)                    | Foundation                     | -         | Done   |
 | [M1](#m1-core-rendering)                | Core rendering                 | -         | Done   |
 | [M2](#m2-viewer-app)                    | Viewer app                     | -         | Done   |
-| [M3](#m3-themes)                        | Themes                         | -         |        |
+| [M3](#m3-themes)                        | Themes                         | -         | Done   |
 | [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         |        |
 | [M5](#m5-cli)                           | CLI                            | -         |        |
 | [Gate](#gate-choose-the-name)           | Choose the final name          | -         |        |
@@ -176,6 +176,8 @@ launching the WebContent process), and 100 ms to the painted frame. That misses 
 
 ## M3: Themes
 
+**Status:** Done (2026-11-07).
+
 CSS themes as a first-class feature.
 
 - Bundled themes: GitHub (Primer, light and dark), a word-processor style ("Document"), minimal/serif
@@ -187,8 +189,9 @@ CSS themes as a first-class feature.
 - Theme authoring guide (the only doc written for end users before 1.0)
 - Viewer follow-ups from M2:
   - Settings window: theme default, outline default, zoom; move "Make mdv the Default
-    Markdown Viewer" there; optionally remember the remote image opt-in per file
-  - Performance: cold open to first paint under 200 ms for README-sized docs (422 ms in M2),
+    Markdown Viewer" there; optionally remember the remote image opt-in per file (deferred, #36)
+  - Performance: cold open to first paint under 200 ms for README-sized docs (422 ms in M2;
+    replaced by the agreed `WKWebView` floor, #40),
     and the first open's read and render off the main thread (161 ms for 1 MB)
   - Smaller viewer polish, filed as issues: a document folder deleted and recreated isn't
     noticed; extensionless files (`README`) can't be opened from the Open panel; "Copy Link"
@@ -239,7 +242,9 @@ CSS themes as a first-class feature.
   example theme in `docs/example-theme.css`. A core test (`ThemeGuideTests`) loads the example,
   checks that the guide embeds it verbatim, runs every CSS snippet through the custom theme
   check, and matches the quoted error messages and limits against the code.
-- 200 ms (#40): not reachable with `WKWebView`; the target is the floor instead. The floor is a
+- 200 ms (#40, accepted at the close-out): not reachable with `WKWebView`; the agreed target is
+  the floor instead: mdv's cold open stays within about 0-50 ms of the floor's, measured in the
+  same run. The floor is a
   bare AppKit app that loads the same page into one `WKWebView` (configured like mdv's) first
   thing at launch, in one plain window (`scripts/cold-open-floor.swift`). mdv is now within
   0-50 ms of it (run to run), and what remains is mostly WebKit's: the web content process takes about 130 ms from the first load to a
@@ -248,6 +253,22 @@ CSS themes as a first-class feature.
   (`WebViewPrewarmer`), so that bring-up overlaps the rest of the launch, the document read, and
   the window build. A regression is anything clearly slower than the floor, measured in the same
   sitting (`scripts/measure-cold-open -f`). See VISION.
+- Opening and live reload edge cases (#41): while the document's folder is missing, the
+  watcher sits on the nearest existing ancestor and follows the path back down; extensionless
+  files that sniff as UTF-8 text open as plain text (`DocumentController.canOpen(_:)`, the one
+  rule for the Open panel and drops). mdv still declares only Markdown (`Alternate`) and plain
+  text (`None`), never `public.data`.
+- Copy Link and find (#42): Copy Link never copies an `mdv-doc:` URL (`CopyableLink`); the find
+  bar shares the system find pasteboard; Jump to Selection (Cmd-J).
+- No per-file zoom (#43): it would make Cmd +/- mean "this file" or "every file" depending on
+  history; pinch already covers a one-off. The outline gained Expand/Collapse All and a
+  per-window, restored width.
+- Missing custom theme fallback (#45): a window whose custom theme is deleted, broken, or not
+  loaded yet shows Settings' default theme, and GitHub (the registry's default) only when that
+  default is missing too; the window keeps its pick and shows it again when the file returns.
+- Custom themes without `extends` (#45): unchanged, they start from the base layer only, with no
+  highlight.js token colors; a theme written from scratch styles code itself (the guide and its
+  example show how).
 
 **Performance (#40):** cold open to first paint, as in #27 (process start to two animation
 frames after the first page load finished, Release, file as an argument, outline hidden),
@@ -269,8 +290,71 @@ README across runs. The bare app's numbers include no menus, toolbar, sidebar, o
 mdv's come within 0-50 ms of it (another sitting: 338 ms vs 287 ms), because WebKit, not mdv,
 is most of the critical path.
 
+**Crash and hang pass (#45):** `AppTests` (289 tests, including the stress suite, extended with
+theme switches racing rapid live reloads and a custom themes folder edited, broken, deleted, and
+refilled while windows open and close) and `AppUITests` (33 tests, restoration included) pass
+under Address Sanitizer and Thread Sanitizer in Debug, with no sanitizer reports. The Thread
+Performance Checker flagged one priority inversion in mdv's code: the YAML frontmatter parser's
+large-stack thread ran at default QoS while a user-initiated render waited for it; it now runs
+at the caller's QoS, and a TSan re-run is clean. The UI runs' remaining runtime warnings come
+from the XCUITest runner ("should not be called on the main thread", one per test; a QoS
+warning marked `[Internal]` in the pasteboard tests), not the app. Hosted tests no longer leave
+a `UserDefaults` plist per test in `~/Library/Preferences` (`ThrowawayDefaults`).
+
+**Performance (#45):** the #40 harness on the finished milestone (`scripts/measure-cold-open
+-f`, Release, MacBook Air, macOS 27.2, outline hidden, load average 5-10 from background
+system work). The milestone build and the integration branch before #45 were launched
+interleaved, with the floor, in one sitting: three rounds of 4 launches each (3 for the large
+files), the median of the rounds' medians. A separate non-interleaved run of the milestone (12
+launches, 8 for the large files) is in brackets.
+
+| Document | Size | M3 (before #45) | M3 | Floor (bare `WKWebView`) | M3 minus floor |
+| -------- | ---- | --------------- | -- | ------------------------ | -------------- |
+| mdv README | 1.9 KB | 333 ms | 336 ms (344) | 305 ms (300) | +31 ms (+44) |
+| `bat` README (corpus) | 34 KB | 360 ms | 360 ms (389) | 328 ms (324) | +32 ms (+65) |
+| Synthetic | 1 MB | 674 ms | 658 ms (682) | | |
+| Synthetic | 5 MB | 2092 ms | 2069 ms (2146) | | |
+
+mdv stays within the agreed 0-50 ms of the floor in the interleaved run (the separate run's
+`bat` gap, 65 ms, came with load rising to 10). The 1 MB and 5 MB numbers match the build
+before #45 in the same sitting; they run about 10% above #40's table, which was measured under
+lighter load. The outline's first fill (about 20 ms on the main thread when a 5 MB render lands
+with the sidebar shown) is still there; deferred, below.
+
+**Deferred from M3** (from the issue handoffs; none blocks 1.0 on its own):
+
+- Themes: keyboard shortcuts for themes and content width presets; keeping a broken custom
+  theme's last good version while the file is broken; per-file symlinks in the Themes folder
+  (a symlinked folder works); `os.Logger` instead of `NSLog` for theme failures; Copy as HTML
+  with theme CSS (would revisit #38's "unaffected"); stripping unused vendored GitHub CSS
+  (`.pl-*`, `.csv-data`, `g-emoji`); narrow-window padding for GitHub.
+- Theme guide: screenshots; its paths say `mdv` (rename with the app before M6); `@font-face
+  { src: local(…) }` is neither rejected nor tested; `ThemeBase`'s comment says pages break
+  around code, but only rows, images, and placeholders have `break-inside: avoid`.
+- Print: a print-panel "Print backgrounds" option; no UI test drives the print panel (PDF output
+  is checked by hosted tests); remote `https:` `<picture>` sources at print time are untested.
+- Visual regression: no zoom/width variants, outline sidebar, or custom themes in the
+  snapshots; each re-record adds about 2 MB per OS to history (Git LFS if themes churn); a
+  macos-26 runner image update can require re-recording from CI's artifact.
+- Settings: remembering the remote-image opt-in per file (decided against for now, #36); no
+  Settings UI for restoration or for resetting the default viewer offer; no UI test for the
+  Settings window's position; no manual VoiceOver pass.
+- Performance: the outline's first fill (about 20 ms on main for a 5 MB document with the
+  sidebar shown; options: fill after the first load, or lazily while collapsed); no progress
+  indicator for long first renders (about 0.4 s of an empty window at 5 MB); no performance
+  check in CI (needs a GUI session and Release; CI timing is too noisy); the prewarmed web
+  view lingers if no document window ever opens.
+- Opening and links: other routes that may expose `mdv-doc:` URLs (dragging a link out of the
+  page, Share on a link, Copy Image) are unchecked; the find pasteboard isn't re-read on app
+  activation while the bar is open; dropping an extensionless file from Finder and `mdv
+  CHANGELOG` are manual checks only; the Open panel sniffs every extensionless file it lists
+  (fine locally, maybe slow on a large network folder); while a document's folder is missing,
+  the watcher may sit on a busy ancestor such as `~`.
+- Outline: the sidebar width is per window; new windows don't inherit the last width.
+
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
-restart; bundled themes pass a visual regression check.
+restart; bundled themes pass a visual regression check. ✅ (automated checks; the manual
+checklist is in the milestone PR)
 
 ## M4: Flavors and preprocessors
 
@@ -282,7 +366,13 @@ Control how source becomes Markdown.
   TBD)
 - Custom preprocessor: user-configured executable, document on stdin, Markdown on stdout,
   timeout and size limits, explicit opt-in with a clear warning
-- Per-document overrides via frontmatter (`mdv: { flavor: commonmark, theme: github }`)
+- Per-document overrides via frontmatter (`mdv: { flavor: commonmark, theme: github }`). A
+  `theme:` override resolves like a window's pick (M3): bundled or `custom:<file>` ids through
+  `ThemeSettings.registry`, falling back to Settings' default; decide whether it beats a theme
+  the reader picked for that window, and whether it is remembered by restoration
+- Frontmatter display: `RenderOptions` can render frontmatter as a table
+  (`FrontmatterDisplay.table`), but nothing in the app exposes it; a Settings option would make
+  `table.frontmatter`/`pre.frontmatter` in `docs/THEMES.md` real (update the guide)
 - GitHub alerts (`> [!NOTE]`) in the GFM flavor (rendered as plain block quotes in M1)
 - Settings UI for flavors and preprocessors
 
@@ -296,7 +386,11 @@ Make the terminal workflow excellent.
 - `mdv FILE...` opens files in the running app (or launches it)
 - `cmd | mdv` streams stdin into a new window without leaving files behind in temp
   directories longer than needed
-- `--theme NAME`, `--flavor NAME`, `--html` / `--output FILE`, `--standalone` (inline CSS)
+- `--theme NAME`, `--flavor NAME`, `--html` / `--output FILE`, `--standalone` (inline CSS).
+  M3 settled the pieces: `ThemeRegistry` is the one place the CLI gets a theme (unknown ids fall
+  back to GitHub), pages are three cascade layers (`ThemeLayer`), and custom themes load with
+  `CustomThemeFolder` (MdvCore). Decide whether `--theme` accepts custom themes (`custom:<file>`
+  from the Themes folder) and whether `mdv FILE --theme X` sets that window's theme in the app
 - Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting, and
   remote images (`--html` keeps them, as GitHub does, unless asked to block them; #20)
 - `--wait` blocks until the window closes (for `$EDITOR`-style and git workflows)
