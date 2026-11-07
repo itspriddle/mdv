@@ -24,8 +24,11 @@ extension RawHTMLSanitizer {
     /// The serialized value of a URL attribute with its root-relative URLs resolved
     /// (`RootRelativeURL`), or nil when nothing changes. Rewritten URLs are percent-encoded like
     /// Markdown URLs (`HTMLOutput.url`); everything else is escaped for a quoted attribute.
+    ///
+    /// Works on the fully decoded value (`AttributeValue.text`): a named reference such as
+    /// `&eacute;` is part of the file name, so it must be decoded before percent-encoding.
     func rootRelativeValue(of attribute: String, on element: String, _ value: AttributeValue) -> String? {
-        let decoded = value.decoded
+        let decoded = value.text
         guard let linkRoot, Self.rootRelativeAttributes[element] == attribute else {
             return nil
         }
@@ -53,7 +56,8 @@ extension RawHTMLSanitizer {
 /// Splits a `srcset` into its URLs and everything between them (whitespace, commas, and
 /// descriptors), keeping every character, following the HTML "parse a srcset attribute"
 /// steps: a URL is a run of non-whitespace (trailing commas end the candidate), and its
-/// descriptors run to the next comma outside parentheses.
+/// descriptors run to the next comma outside parentheses. Whitespace is ASCII whitespace only,
+/// as in HTML, so a decoded `&nbsp;` stays inside its URL.
 enum SrcsetCandidates {
     struct Piece: Equatable {
         var text: String
@@ -72,11 +76,11 @@ enum SrcsetCandidates {
             return taken
         }
         while !rest.isEmpty {
-            _ = take { $0.isWhitespace || $0 == "," }
+            _ = take { isASCIIWhitespace($0) || $0 == "," }
             guard !rest.isEmpty else {
                 break
             }
-            var url = rest.prefix { !$0.isWhitespace }
+            var url = rest.prefix { !isASCIIWhitespace($0) }
             let endsCandidate = url.hasSuffix(",")
             while url.hasSuffix(",") {
                 url = url.dropLast()
@@ -97,5 +101,10 @@ enum SrcsetCandidates {
             }
         }
         return pieces
+    }
+
+    /// HTML's ASCII whitespace: tab, LF, FF, CR, and space (CR LF is one `Character`).
+    private static func isASCIIWhitespace(_ character: Character) -> Bool {
+        character.unicodeScalars.allSatisfy { ["\t", "\n", "\u{C}", "\r", " "].contains($0) }
     }
 }

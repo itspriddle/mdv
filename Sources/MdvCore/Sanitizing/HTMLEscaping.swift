@@ -43,27 +43,34 @@ enum HTMLEscaping {
 /// what the browser would see in every position that matters for URL schemes. Other named
 /// references (`&eacute;`, `&nbsp;`, …) can only produce non-ASCII characters, which can't
 /// form a URL scheme; they are left in `decoded` as written and kept verbatim in `serialized`
-/// so they still render.
+/// so they still render. `text` has every reference decoded, for values the sanitizer rewrites
+/// (root-relative URLs) rather than copies.
 struct AttributeValue {
     /// The value as the policy should judge it.
     private(set) var decoded = ""
     /// The value escaped for a double-quoted attribute.
     private(set) var serialized = ""
+    /// The value as a browser reads it: every character reference decoded
+    /// (`HTMLEntities.all`).
+    private(set) var text = ""
 
     init(_ raw: String) {
         let scalars = Array(raw.unicodeScalars)
         var decoded = String.UnicodeScalarView()
         var serialized = String.UnicodeScalarView()
+        var text = String.UnicodeScalarView()
         var index = 0
         while index < scalars.count {
             let scalar = scalars[index]
             guard scalar == "&" else {
                 Self.append(scalar, decoded: &decoded, serialized: &serialized)
+                text.append(scalar == "\u{0}" ? "\u{FFFD}" : scalar)
                 index += 1
                 continue
             }
             if let (value, end) = Self.numericReference(in: scalars, at: index) {
                 decoded.append(value)
+                text.append(value)
                 if (0x20...0x7E).contains(value.value) {
                     Self.appendEscaped(value, to: &serialized)
                 } else {
@@ -81,31 +88,45 @@ struct AttributeValue {
             }
             let name = String(String.UnicodeScalarView(scalars[(index + 1)..<nameEnd]))
             let hasSemicolon = nameEnd < scalars.count && scalars[nameEnd] == ";"
+            // Legacy references without `;` are decoded in attributes unless followed by an
+            // alphanumeric (impossible here: the name run is maximal) or `=`.
+            let isLegacy = !hasSemicolon && (nameEnd >= scalars.count || scalars[nameEnd] != "=")
             if hasSemicolon, let value = HTMLEntities.asciiValued[name] {
                 for character in value.unicodeScalars {
                     Self.append(character, decoded: &decoded, serialized: &serialized)
                 }
+                text.append(contentsOf: value.unicodeScalars)
                 index = nameEnd + 1
-            } else if !hasSemicolon, let value = HTMLEntities.legacyASCIIValued[name],
-                nameEnd >= scalars.count || scalars[nameEnd] != "="
-            {
-                // Legacy references without `;` are decoded in attributes unless followed by
-                // an alphanumeric (impossible here: the name run is maximal) or `=`.
+            } else if isLegacy, let value = HTMLEntities.legacyASCIIValued[name] {
                 Self.append(value, decoded: &decoded, serialized: &serialized)
+                text.append(value)
                 index = nameEnd
             } else if !name.isEmpty {
-                // Not ASCII-valued: keep the reference as written.
+                // Not ASCII-valued: keep the reference as written in `decoded` and `serialized`.
                 let reference = "&" + name
                 decoded.append(contentsOf: reference.unicodeScalars)
                 serialized.append(contentsOf: reference.unicodeScalars)
                 index = nameEnd
+                if hasSemicolon, let value = HTMLEntities.all[name] {
+                    text.append(contentsOf: value.unicodeScalars)
+                    // The `;` is part of the reference: copy it to the other two as written.
+                    decoded.append(";")
+                    serialized.append(";")
+                    index += 1
+                } else if isLegacy, let value = HTMLEntities.legacy[name] {
+                    text.append(contentsOf: value.unicodeScalars)
+                } else {
+                    text.append(contentsOf: reference.unicodeScalars)
+                }
             } else {
                 Self.append(scalar, decoded: &decoded, serialized: &serialized)
+                text.append(scalar)
                 index += 1
             }
         }
         self.decoded = String(decoded)
         self.serialized = String(serialized)
+        self.text = String(text)
     }
 
     private static func append(

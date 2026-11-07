@@ -15,6 +15,7 @@ make build            # app + embedded CLI (signed via Config/Local.xcconfig); S
 make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
+make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
 make vendor-highlightjs  # re-vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
 swift run mdv --html FILE   # render to stdout without Xcode
 ```
@@ -50,8 +51,9 @@ lock the build database.
     and `CopyableLink` (what Copy Link copies; never an `mdv-doc:` URL).
   - `Outline/`: `DocumentOutline` (heading tree) and `OutlineTracker` (current section).
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
-  - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
-    never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
+  - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make html-entities`,
+    `make vendor-highlightjs`); never edit by hand. `Vendor/` holds vendored sources with a
+    MANIFEST and license.
 - `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
   `AppDelegate`), SwiftUI for window content only. Feature folders: `ContentWidth/`, `Copy/`,
   `DefaultViewer/`, `Print/`, `Zoom/` (each a small type plus its `DocumentWindowController+<Feature>.swift`).

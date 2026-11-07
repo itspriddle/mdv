@@ -115,6 +115,37 @@ struct RootRelativeRenderingTests {
         #expect(html.contains(#"<img src="rel.png">"#))
     }
 
+    @Test("named character references in raw HTML URLs are decoded before encoding (#43)")
+    func namedReferences() {
+        let html = Self.render(
+            """
+            <img src="/docs/caf&eacute;.png"> <a href="/na&iuml;ve.md#x&amp;y">n</a> \
+            <img src="/a&nbsp;b.png"> <img src="/c&eacute.png"> <img src="/d&eacute=x.png"> \
+            <img src="/not&notanentity;.png">
+
+            <picture><source srcset="/x&eacute;&nbsp;y.png 2x"><img src="x.png"></picture>
+            """)
+        #expect(html.contains(#"<img src="/r/my%20repo/docs/caf%C3%A9.png">"#), "\(html)")
+        #expect(html.contains(#"<a href="/r/my%20repo/na%C3%AFve.md#x&amp;y">n</a>"#), "\(html)")
+        #expect(html.contains(#"<img src="/r/my%20repo/a%C2%A0b.png">"#), "\(html)")
+        // Legacy references decode without `;`, except before `=` in an attribute.
+        #expect(html.contains(#"<img src="/r/my%20repo/c%C3%A9.png">"#), "\(html)")
+        #expect(html.contains(#"<img src="/r/my%20repo/d&amp;eacute=x.png">"#), "\(html)")
+        #expect(html.contains(#"<img src="/r/my%20repo/not&amp;notanentity;.png">"#), "\(html)")
+        // `&nbsp;` is not srcset whitespace: it stays in the URL.
+        #expect(html.contains(#"<source srcset="/r/my%20repo/x%C3%A9%C2%A0y.png 2x">"#), "\(html)")
+    }
+
+    @Test("references outside rewritten URLs are kept as written")
+    func referencesKept() {
+        // `&notit;` is `&not` followed by an alphanumeric: not a reference in an attribute.
+        let value = AttributeValue("caf&eacute; &eacute &notin; &notit; &amp;eacute; &#233;")
+        #expect(value.serialized == "caf&eacute; &eacute &notin; &notit; &amp;eacute; &#xE9;")
+        #expect(value.decoded == "caf&eacute; &eacute &notin; &notit; &eacute; \u{E9}")
+        #expect(value.text == "caf\u{E9} \u{E9} \u{2209} &notit; &eacute; \u{E9}")
+        #expect(Self.render(#"<img src="caf&eacute;.png">"#).contains(#"<img src="caf&eacute;.png">"#))
+    }
+
     @Test("without linkRoot (mdv --html, spec mode) nothing changes")
     func off() {
         let html = Self.render("![a](/docs/a.png) <img src=\"/b.png\">", linkRoot: nil)
