@@ -9,6 +9,16 @@ final class DocumentWebView: WKWebView {
     /// Opens dropped files (already filtered to documents mdv can open). Set by the window.
     var fileDropHandler: (([URL]) -> Void)?
 
+    /// Performs the context menu's Copy Link in place of WebKit, which would copy the internal
+    /// `mdv-doc` URL of a relative link (#42). Set by the coordinator; without it, Copy Link is
+    /// removed from the menu.
+    var copyLinkHandler: (() -> Void)?
+
+    /// The context menu's Copy Link target (menu item targets are weak).
+    private lazy var copyLinkTarget = MenuItemTarget { [weak self] in
+        self?.copyLinkHandler?()
+    }
+
     /// What WebKit paints behind and around the page (rubber-band overscroll, and before the
     /// first paint): a dynamic color, resolved for this view's appearance.
     ///
@@ -66,7 +76,17 @@ final class DocumentWebView: WKWebView {
     /// The context menu, without the items the viewer can't perform (`WebViewContextMenu`, #26).
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         super.willOpenMenu(menu, with: event)
+        WebViewContextMenu.redirectCopyLink(in: menu, to: copyLinkHandler == nil ? nil : copyLinkTarget)
         WebViewContextMenu.trim(menu)
+    }
+
+    /// Jump to Selection goes to the window controller, which knows the current find match.
+    /// WebKit's own command would scroll only the page's selection.
+    override func responds(to selector: Selector?) -> Bool {
+        if selector == #selector(NSResponder.centerSelectionInVisibleArea(_:)) {
+            return false
+        }
+        return super.responds(to: selector)
     }
 
     /// Pinch-to-zoom changes the window's magnification, which window restoration keeps.

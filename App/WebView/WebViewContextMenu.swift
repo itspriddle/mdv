@@ -3,9 +3,10 @@ import AppKit
 /// Trims the web view's context menu (#26) to items that work in the viewer. WebKit offers
 /// browser items that the navigation policy cancels (Reload, Back, Forward), that need
 /// downloads (Download Linked File / Image / Media), or that would open a resource as a page
-/// (Open Image / Media / Frame in New Window). Everything else stays: Copy, Copy Link, Copy
-/// Image, Open Link and Open Link in New Window (both routed through the link policy), Look
-/// Up, Translate, Search With, Share, Speech, Services, Writing Tools.
+/// (Open Image / Media / Frame in New Window). Everything else stays: Copy, Copy Link (performed
+/// by the app, `redirectCopyLink`), Copy Image, Open Link and Open Link in New Window (both
+/// routed through the link policy), Look Up, Translate, Search With, Share, Speech, Services,
+/// Writing Tools.
 ///
 /// A blocklist rather than an allowlist, so system items added in later macOS releases keep
 /// working. WebKit's identifiers are `WKMenuItemIdentifier…` strings (SPI constants; values
@@ -28,6 +29,24 @@ enum WebViewContextMenu {
         "WKMenuItemIdentifierAddHighlightToNewQuickNote",
     ]
 
+    /// WebKit's Copy Link item, which copies the link's resolved URL: the internal `mdv-doc` URL
+    /// for a relative link.
+    static let copyLinkIdentifier = "WKMenuItemIdentifierCopyLink"
+
+    /// Makes Copy Link perform `target` (`MenuItemTarget.performAction(_:)`) instead of WebKit's
+    /// action, or removes it when `target` is nil, so it never copies an `mdv-doc` URL (#42).
+    @MainActor
+    static func redirectCopyLink(in menu: NSMenu, to target: MenuItemTarget?) {
+        for item in menu.items where item.identifier?.rawValue == copyLinkIdentifier {
+            if let target {
+                item.target = target
+                item.action = #selector(MenuItemTarget.performAction(_:))
+            } else {
+                menu.removeItem(item)
+            }
+        }
+    }
+
     /// Removes the unsupported items from `menu`, then separators left leading, trailing, or
     /// doubled.
     @MainActor
@@ -46,5 +65,19 @@ enum WebViewContextMenu {
         if let last = menu.items.last, last.isSeparatorItem {
             menu.removeItem(last)
         }
+    }
+}
+
+/// A menu item target that runs a closure, for items whose action the app takes over.
+@MainActor
+final class MenuItemTarget: NSObject {
+    private let handler: () -> Void
+
+    init(_ handler: @escaping () -> Void) {
+        self.handler = handler
+    }
+
+    @objc func performAction(_ sender: Any?) {
+        handler()
     }
 }
