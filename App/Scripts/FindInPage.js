@@ -27,7 +27,9 @@
     "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main", "nav",
     "ol", "p", "pre", "section", "summary", "table", "td", "th", "tr", "ul",
   ].join(", ");
-  const HIDDEN = "script, style, template, noscript";
+  // Not rendered, or visually hidden for assistive technology only (`.sr-only`, such as the
+  // footnotes section's "Footnotes" heading): a match there would have nothing to show.
+  const HIDDEN = "script, style, template, noscript, .sr-only";
 
   let matches = [];
   let current = -1;

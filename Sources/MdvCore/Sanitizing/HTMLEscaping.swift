@@ -43,77 +43,102 @@ enum HTMLEscaping {
 /// what the browser would see in every position that matters for URL schemes. Other named
 /// references (`&eacute;`, `&nbsp;`, …) can only produce non-ASCII characters, which can't
 /// form a URL scheme; they are left in `decoded` as written and kept verbatim in `serialized`
-/// so they still render.
+/// so they still render. `text` has every reference decoded, for values the sanitizer rewrites
+/// (root-relative URLs) rather than copies.
 struct AttributeValue {
     /// The value as the policy should judge it.
     private(set) var decoded = ""
     /// The value escaped for a double-quoted attribute.
     private(set) var serialized = ""
+    /// The value as a browser reads it: every character reference decoded
+    /// (`HTMLEntities.all`).
+    private(set) var text = ""
 
     init(_ raw: String) {
         let scalars = Array(raw.unicodeScalars)
-        var decoded = String.UnicodeScalarView()
-        var serialized = String.UnicodeScalarView()
+        var output = Output()
         var index = 0
         while index < scalars.count {
             let scalar = scalars[index]
-            guard scalar == "&" else {
-                Self.append(scalar, decoded: &decoded, serialized: &serialized)
-                index += 1
-                continue
-            }
-            if let (value, end) = Self.numericReference(in: scalars, at: index) {
-                decoded.append(value)
-                if (0x20...0x7E).contains(value.value) {
-                    Self.appendEscaped(value, to: &serialized)
-                } else {
-                    // Re-emit non-printable and non-ASCII values as references, so the
-                    // browser applies its own mapping (e.g. `&#x80;` is €).
-                    serialized.append(
-                        contentsOf: "&#x\(String(value.value, radix: 16, uppercase: true));".unicodeScalars)
-                }
+            if scalar == "&", let (value, end) = Self.numericReference(in: scalars, at: index) {
+                output.appendNumeric(value)
                 index = end
-                continue
-            }
-            var nameEnd = index + 1
-            while nameEnd < scalars.count, HTMLEscaping.isASCIIAlphanumeric(scalars[nameEnd]) {
-                nameEnd += 1
-            }
-            let name = String(String.UnicodeScalarView(scalars[(index + 1)..<nameEnd]))
-            let hasSemicolon = nameEnd < scalars.count && scalars[nameEnd] == ";"
-            if hasSemicolon, let value = HTMLEntities.asciiValued[name] {
-                for character in value.unicodeScalars {
-                    Self.append(character, decoded: &decoded, serialized: &serialized)
-                }
-                index = nameEnd + 1
-            } else if !hasSemicolon, let value = HTMLEntities.legacyASCIIValued[name],
-                nameEnd >= scalars.count || scalars[nameEnd] != "="
-            {
-                // Legacy references without `;` are decoded in attributes unless followed by
-                // an alphanumeric (impossible here: the name run is maximal) or `=`.
-                Self.append(value, decoded: &decoded, serialized: &serialized)
-                index = nameEnd
-            } else if !name.isEmpty {
-                // Not ASCII-valued: keep the reference as written.
-                let reference = "&" + name
-                decoded.append(contentsOf: reference.unicodeScalars)
-                serialized.append(contentsOf: reference.unicodeScalars)
-                index = nameEnd
+            } else if scalar == "&" {
+                index = Self.namedReference(in: scalars, at: index, into: &output)
             } else {
-                Self.append(scalar, decoded: &decoded, serialized: &serialized)
+                output.append(scalar)
                 index += 1
             }
         }
-        self.decoded = String(decoded)
-        self.serialized = String(serialized)
+        decoded = String(output.decoded)
+        serialized = String(output.serialized)
+        text = String(output.text)
     }
 
-    private static func append(
-        _ scalar: Unicode.Scalar, decoded: inout String.UnicodeScalarView, serialized: inout String.UnicodeScalarView
-    ) {
-        let scalar = scalar == "\u{0}" ? "\u{FFFD}" : scalar
-        decoded.append(scalar)
-        appendEscaped(scalar, to: &serialized)
+    /// Handles a named reference (or a bare `&`) at `start`; returns the index after it.
+    private static func namedReference(in scalars: [Unicode.Scalar], at start: Int, into output: inout Output) -> Int {
+        var nameEnd = start + 1
+        while nameEnd < scalars.count, HTMLEscaping.isASCIIAlphanumeric(scalars[nameEnd]) {
+            nameEnd += 1
+        }
+        let name = String(String.UnicodeScalarView(scalars[(start + 1)..<nameEnd]))
+        guard !name.isEmpty else {
+            output.append("&")
+            return start + 1
+        }
+        let hasSemicolon = nameEnd < scalars.count && scalars[nameEnd] == ";"
+        // Legacy references without `;` are decoded in attributes unless followed by an
+        // alphanumeric (impossible here: the name run is maximal) or `=`.
+        let isLegacy = !hasSemicolon && (nameEnd >= scalars.count || scalars[nameEnd] != "=")
+        if hasSemicolon, let value = HTMLEntities.asciiValued[name] {
+            value.unicodeScalars.forEach { output.append($0) }
+            return nameEnd + 1
+        }
+        if isLegacy, let value = HTMLEntities.legacyASCIIValued[name] {
+            output.append(value)
+            return nameEnd
+        }
+        // Not ASCII-valued: kept as written in `decoded` and `serialized`, decoded in `text`.
+        if hasSemicolon, let value = HTMLEntities.all[name] {
+            output.appendKept("&\(name);", value: value)
+            return nameEnd + 1
+        }
+        output.appendKept("&" + name, value: isLegacy ? HTMLEntities.legacy[name] : nil)
+        return nameEnd
+    }
+
+    /// The three forms of the value, built together.
+    private struct Output {
+        var decoded = String.UnicodeScalarView()
+        var serialized = String.UnicodeScalarView()
+        var text = String.UnicodeScalarView()
+
+        /// A literal character (NUL becomes U+FFFD, as browsers read it).
+        mutating func append(_ scalar: Unicode.Scalar) {
+            let scalar = scalar == "\u{0}" ? "\u{FFFD}" : scalar
+            decoded.append(scalar)
+            text.append(scalar)
+            AttributeValue.appendEscaped(scalar, to: &serialized)
+        }
+
+        mutating func appendNumeric(_ value: Unicode.Scalar) {
+            decoded.append(value)
+            text.append(value)
+            if (0x20...0x7E).contains(value.value) {
+                AttributeValue.appendEscaped(value, to: &serialized)
+            } else {
+                // Re-emit non-printable and non-ASCII values as references, so the browser
+                // applies its own mapping (e.g. `&#x80;` is €).
+                serialized.append(contentsOf: "&#x\(String(value.value, radix: 16, uppercase: true));".unicodeScalars)
+            }
+        }
+
+        /// A reference kept as written, whose value (if it is one) only `text` gets.
+        mutating func appendKept(_ reference: String, value: String?) {
+            decoded.append(contentsOf: reference.unicodeScalars)
+            serialized.append(contentsOf: reference.unicodeScalars)
+            text.append(contentsOf: (value ?? reference).unicodeScalars)
+        }
     }
 
     private static func appendEscaped(_ scalar: Unicode.Scalar, to serialized: inout String.UnicodeScalarView) {

@@ -91,6 +91,22 @@ struct LiveReloadTests {
         #expect(abs(line - 101) < 0.05, "top line \(line)")
     }
 
+    @Test("after the web content process exits, the page loads again at the reading position (#43)")
+    func recoversFromCrash() async throws {
+        let (document, controller) = try await open(Self.longSource)
+        defer { document.close() }
+        let coordinator = controller.coordinator
+        try await coordinator.scroll(toSourceLine: 101)
+        try await until("the position reported") { abs((controller.lastSourceLine ?? 0) - 101) < 0.05 }
+        // What WebKit calls when the process crashes; the dead page can't report its position.
+        coordinator.webViewWebContentProcessDidTerminate(coordinator.webView)
+        #expect(!coordinator.hasLoadedPage)
+        try await until("the page loaded again") { coordinator.hasLoadedPage }
+        try await until("the reading position restored") {
+            abs(try await coordinator.currentSourceLine() - 101) < 0.05
+        }
+    }
+
     @Test("stays at the bottom while the file grows")
     func followsTail() async throws {
         let (document, controller) = try await open(Self.longSource)

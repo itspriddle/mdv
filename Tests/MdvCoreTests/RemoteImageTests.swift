@@ -113,7 +113,7 @@ struct RemoteImageRenderingTests {
         #expect(
             rendered.blockedRemoteImages.map(\.url) == [
                 "https://img.shields.io/build.svg", "http://example.com/p.png", "//cdn.example/x.png",
-                "https://raw.example/r.png", "http://raw.example/c.png",
+                "https://raw.example/r.png", "http://raw.example/c.png", "https://raw.example/wide.png",
             ])
         #expect(
             rendered.html.contains(
@@ -150,6 +150,27 @@ struct RemoteImageRenderingTests {
                 "http://example.com/p.png", "//cdn.example/x.png", "http://raw.example/c.png",
             ])
         #expect(rendered.blockedRemoteImages.allSatisfy { !$0.isHTTPS })
+    }
+
+    @Test("a picture with blocked images is reported once, also when only a source is remote (#43)")
+    func pictureSources() {
+        let rendered = Self.render(
+            """
+            <picture><source media="(prefers-color-scheme: dark)" srcset="local.png 1x, http://a.example/d.png 2x">\
+            <source srcset="https://b.example/w.png"><img src="https://c.example/i.png"></picture>
+
+            <picture>
+            <source srcset="https://d.example/only.png">
+            <img src="local.png">
+            </picture>
+
+            <source srcset="https://e.example/stray.png">
+            """, .block)
+        #expect(rendered.blockedRemoteImages.map(\.url) == ["http://a.example/d.png", "https://d.example/only.png"])
+        #expect(Self.sources(in: rendered.html) == ["local.png"])
+        let optedIn = Self.render(
+            "<picture><source srcset=\"https://d.example/only.png\"><img src=\"x.png\"></picture>", .allowHTTPS)
+        #expect(optedIn.blockedRemoteImages.isEmpty)
     }
 
     @Test("a blocked image inside a link stays inside the link")

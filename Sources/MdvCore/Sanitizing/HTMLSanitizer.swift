@@ -181,6 +181,9 @@ struct RawHTMLSanitizer {
     let linkRoot: String?
     /// Remote images replaced with placeholders since the last `takeBlockedImages()`.
     private var blockedImages: [RemoteImage] = []
+    /// The open `<picture>` already reported a blocked image (from a removed `<source>`), so its
+    /// `<img>` doesn't count as a second one.
+    private var pictureReportedBlockedImage = false
 
     init(remoteImages: RemoteImagePolicy = .keep, linkRoot: String? = nil) {
         self.remoteImages = remoteImages
@@ -271,6 +274,9 @@ struct RawHTMLSanitizer {
         {
             return
         }
+        if tag.name == "picture" {
+            pictureReportedBlockedImage = false
+        }
         if remoteImages != .keep, let replacement = remoteImageReplacement(for: tag) {
             output += replacement
             return
@@ -300,6 +306,10 @@ struct RawHTMLSanitizer {
 
     /// What a blocked remote `<img>` or `<source>` becomes: a placeholder, or nothing for a
     /// `<source>`. `nil` keeps the tag. Only values the attribute policy would keep count.
+    ///
+    /// Each `<picture>` with a blocked image is reported once, even when only a `<source>` is
+    /// remote and its `<img>` is local (a dark-mode variant, a 2x image), so the Load bar shows
+    /// for it: the first removed `<source>` reports it, and the `<img>` then doesn't.
     private mutating func remoteImageReplacement(for tag: HTMLStartTag) -> String? {
         func value(of name: String) -> AttributeValue? {
             guard HTMLSanitizerPolicy.allowsAttribute(name, on: tag.name),
@@ -316,22 +326,31 @@ struct RawHTMLSanitizer {
             else {
                 return nil
             }
-            blockedImages.append(image)
+            if !(isInPicture && pictureReportedBlockedImage) {
+                blockedImages.append(image)
+            }
             return RemoteImagePlaceholder.html(
                 escapedAlt: value(of: "alt")?.serialized ?? "", image: image, width: value(of: "width")?.decoded,
                 height: value(of: "height")?.decoded)
         case "source":
             guard let srcset = value(of: "srcset")?.decoded,
-                URLSchemePolicy.srcsetURLs(srcset).contains(where: {
-                    RemoteImage(source: $0).map(remoteImages.blocks) == true
-                })
+                let image = URLSchemePolicy.srcsetURLs(srcset).lazy.compactMap({ RemoteImage(source: $0) })
+                    .first(where: remoteImages.blocks)
             else {
                 return nil
+            }
+            if isInPicture && !pictureReportedBlockedImage {
+                pictureReportedBlockedImage = true
+                blockedImages.append(image)
             }
             return ""
         default:
             return nil
         }
+    }
+
+    private var isInPicture: Bool {
+        openCounts["picture", default: 0] > 0
     }
 
     private func attributes(of tag: HTMLStartTag) -> String {
@@ -364,37 +383,5 @@ struct RawHTMLSanitizer {
             output += " \(attribute.name)=\"\(serialized)\""
         }
         return output
-    }
-}
-
-/// URL scheme checks for sanitized attributes.
-enum URLSchemePolicy {
-    /// Whether `url` (with character references already decoded) is relative or uses one of
-    /// `schemes`.
-    ///
-    /// Stricter than a URL parser on purpose, like the `sanitize` gem: every character up to
-    /// U+0020 and DEL is removed first (browsers strip tab and newlines anywhere and leading
-    /// controls), and then anything before a `:` that comes before the first `/`, `?`, or `#`
-    /// is the scheme and must be allowlisted. So `jav&#x09;ascript:`, ` javascript:`, and even
-    /// `foo bar:x` are rejected, and `/a:b`, `?a:b`, and `#a:b` are relative.
-    static func allows(_ url: String, schemes: Set<String>) -> Bool {
-        var scheme = ""
-        for scalar in url.unicodeScalars where scalar.value > 0x20 && scalar.value != 0x7F {
-            switch scalar {
-            case ":":
-                return schemes.contains(scheme.lowercased())
-            case "/", "?", "#":
-                return true
-            default:
-                scheme.unicodeScalars.append(scalar)
-            }
-        }
-        return true
-    }
-
-    /// Every comma- or whitespace-separated piece of a `srcset`, so each URL is checked
-    /// whatever the descriptors are. Over-splitting only makes the check stricter.
-    static func srcsetURLs(_ srcset: String) -> [String] {
-        srcset.split { $0 == "," || $0.isWhitespace }.map(String.init)
     }
 }

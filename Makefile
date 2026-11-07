@@ -15,6 +15,8 @@ XCODEBUILD  := $(XCODEBUILD_BASE)
 GEMOJI_COMMIT := fadaeaf1f1a9be82b321316a6c5502e43138b2f6
 GEMOJI_JSON   := build/gemoji/emoji-$(GEMOJI_COMMIT).json
 EMOJI_TABLE   := Sources/MdvCore/Generated/EmojiTable.swift
+ENTITIES_JSON := build/html-entities/entities.json
+ENTITY_TABLE  := Sources/MdvCore/Generated/HTMLEntityTable.swift
 # CI and unsigned local builds: make build SIGN=0
 ifeq ($(SIGN),0)
 XCODEBUILD += CODE_SIGNING_ALLOWED=NO
@@ -29,7 +31,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: help bootstrap generate build test test-core test-app test-ui lint format emoji vendor-highlightjs vendor-github-markdown-css clean
+.PHONY: help bootstrap generate build test test-core test-app test-ui lint format emoji html-entities vendor-highlightjs vendor-github-markdown-css clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -67,6 +69,11 @@ emoji: ## Regenerate the emoji shortcode table from github/gemoji at GEMOJI_COMM
 	mkdir -p $(dir $(GEMOJI_JSON)) $(dir $(EMOJI_TABLE))
 	curl -fsSL "https://raw.githubusercontent.com/github/gemoji/$(GEMOJI_COMMIT)/db/emoji.json" -o $(GEMOJI_JSON)
 	swift scripts/generate-emoji.swift $(GEMOJI_JSON) $(GEMOJI_COMMIT) $(EMOJI_TABLE)
+
+html-entities: ## Regenerate the HTML named character reference table from the WHATWG list
+	mkdir -p $(dir $(ENTITIES_JSON)) $(dir $(ENTITY_TABLE))
+	curl -fsSL "https://html.spec.whatwg.org/entities.json" -o $(ENTITIES_JSON)
+	swift scripts/generate-html-entities.swift $(ENTITIES_JSON) $(ENTITY_TABLE)
 
 vendor-highlightjs: ## Vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
 	scripts/vendor-highlightjs.sh $(HLJS_VERSION)
