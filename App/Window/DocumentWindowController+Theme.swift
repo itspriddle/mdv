@@ -1,16 +1,13 @@
 import AppKit
 import MdvCore
 
-/// The window's theme (#34): View > Theme and the toolbar's theme menu pick it, the switch is
-/// in place (`WebViewCoordinator.show(_:)`, no reload), and window restoration keeps it.
+/// The window's theme (#34): View > Theme picks it, the switch is in place (`WebViewCoordinator.show(_:)`, no reload), and window restoration keeps it.
 ///
 /// The window shows `themeSettings.theme(forWindowThemeID: themeID)`: an unknown or removed id
 /// (a deleted or broken custom theme, #35) falls back to Settings' default theme (#45), and a
 /// custom theme whose CSS changed is swapped in when the registry is replaced. `themeID` keeps
 /// the pick, so the theme comes back when its file does.
 extension DocumentWindowController {
-    static let themeToolbarItem = NSToolbarItem.Identifier("theme")
-
     /// The restorable-state key for the picked theme's id (a `String`).
     static let themeStateKey = "mdvTheme"
 
@@ -50,8 +47,7 @@ extension DocumentWindowController {
 
     // MARK: Actions
 
-    /// View > Theme > <theme> and the toolbar's theme menu: the sender's `representedObject` is
-    /// the theme id. Only this window changes; the theme for new windows is Settings' (#36).
+    /// View > Theme > <theme>: the sender's `representedObject` is the theme id. Only this window changes; the theme for new windows is Settings' (#36).
     @objc func selectTheme(_ sender: Any?) {
         guard let id = (sender as? NSMenuItem)?.representedObject as? String,
             themeSettings.registry.contains(id: id)
@@ -65,18 +61,6 @@ extension DocumentWindowController {
     func validateThemeItem(_ menuItem: NSMenuItem) -> Bool {
         menuItem.state = (menuItem.representedObject as? String) == theme.id ? .on : .off
         return true
-    }
-
-    /// The toolbar's theme menu: the same items as View > Theme.
-    func makeThemeToolbarItem() -> NSToolbarItem {
-        let item = NSMenuToolbarItem(itemIdentifier: Self.themeToolbarItem)
-        item.label = "Theme"
-        item.paletteLabel = "Theme"
-        item.toolTip = "Choose the window’s theme"
-        item.image = NSImage(systemSymbolName: "paintpalette", accessibilityDescription: "Theme")
-        item.showsIndicator = true
-        item.menu = ThemeMenu.makeMenu(settings: themeSettings)
-        return item
     }
 
     // MARK: Restoration

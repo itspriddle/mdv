@@ -224,20 +224,17 @@ extension DocumentWindowController: NSMenuItemValidation {
 
 extension DocumentWindowController: NSToolbarDelegate {
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [Self.toggleOutlineToolbarItem, .flexibleSpace, Self.themeToolbarItem]
+        [Self.toggleOutlineToolbarItem]
     }
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [Self.toggleOutlineToolbarItem, .flexibleSpace, Self.themeToolbarItem]
+        [Self.toggleOutlineToolbarItem]
     }
 
     func toolbar(
         _ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
         willBeInsertedIntoToolbar flag: Bool
     ) -> NSToolbarItem? {
-        if itemIdentifier == Self.themeToolbarItem {
-            return makeThemeToolbarItem()
-        }
         guard itemIdentifier == Self.toggleOutlineToolbarItem else {
             return nil
         }

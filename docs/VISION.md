@@ -236,8 +236,7 @@ editor or a browser.
   font size would be a second "bigger text" command that differs only in leaving images,
   padding, and code at their size. Per-window width was rejected for the same reason zoom is
   global: it's a reading preference, not a property of the document.
-- **Theme picker (#34):** each window has its own theme, picked from View > Theme or the
-  toolbar's theme menu (bundled themes, then custom ones in their own section), checked in
+- **Theme picker (#34):** each window has its own theme, picked from View > Theme (bundled themes, then custom ones in their own section), checked in
   the menu, and kept by window restoration (an unknown id shows the default). A pick changes
   that window only; the theme for new windows is Settings' (#36). A switch is an in-place swap, not a reload: an app script replaces the
   `mdv-theme` `<style>` text (`mdv.replaceStyle`, shared with #37) and restores the reading

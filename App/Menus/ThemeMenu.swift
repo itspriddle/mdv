@@ -6,8 +6,7 @@ import MdvCore
 /// files that didn't load (disabled, with the reason). The action is
 /// `DocumentWindowController.selectTheme(_:)`; its validation checks the window's theme. The
 /// items are rebuilt each time the menu opens, so themes added or removed while the app runs
-/// show up. The toolbar's theme menu is the same menu (`makeMenu(settings:)`); only View >
-/// Theme ends with "Open Themes Folder" (`AppDelegate.openThemesFolder(_:)`).
+/// show up. View > Theme ends with "Open Themes Folder" (`AppDelegate.openThemesFolder(_:)`).
 enum ThemeMenu: MenuContribution {
     static func contribute(to menu: MainMenu) {
         menu.addGroup(

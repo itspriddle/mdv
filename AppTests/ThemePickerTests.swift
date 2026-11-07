@@ -209,19 +209,6 @@ final class ThemePickerTests: DocumentWindowTestCase {
         #expect(menu.items.last?.title == "Mine")
     }
 
-    @Test("the toolbar has a theme menu")
-    func toolbar() async throws {
-        defer { closeAll() }
-        let (_, controller) = try await openLong(themeSettings: themeSettings())
-        let toolbar = try #require(controller.window?.toolbar)
-        #expect(controller.toolbarDefaultItemIdentifiers(toolbar).contains(DocumentWindowController.themeToolbarItem))
-        let item = try #require(
-            controller.toolbar(
-                toolbar, itemForItemIdentifier: DocumentWindowController.themeToolbarItem,
-                willBeInsertedIntoToolbar: true) as? NSMenuToolbarItem)
-        #expect(item.menu.items.map { $0.representedObject as? String } == ThemeRegistry.bundled.themes.map(\.id))
-    }
-
     // MARK: Restoration and registry changes
 
     @Test("window restoration keeps the theme; unknown or bad ids show the default")

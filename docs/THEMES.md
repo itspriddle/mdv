@@ -359,7 +359,7 @@ The check understands CSS comments, strings, and escapes, and ignores case, so
 ## When a theme doesn't load
 
 A file that can't be used isn't an alert: it's listed, disabled, at the end of
-**View > Theme** (and the toolbar's theme menu) as its name and the reason, and under
+**View > Theme** as its name and the reason, and under
 **Settings > General**. Fix the file and save; it loads at once. While it's broken, windows
 that were showing it fall back to the default theme set in **Settings > General** (GitHub, the
 built-in default, if that one is missing or broken too), and switch back when it loads again.

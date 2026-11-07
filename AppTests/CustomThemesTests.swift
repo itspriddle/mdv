@@ -366,8 +366,8 @@ final class CustomThemeLibraryTests: DocumentWindowTestCase {
                 "Open Themes Folder",
             ])
         #expect(menu.items.last?.action == #selector(AppDelegate.openThemesFolder(_:)))
-        // The toolbar's menu has no folder item.
-        let toolbarMenu = ThemeMenu.makeMenu(settings: settings)
-        #expect(toolbarMenu.items.last?.title.hasPrefix("big:") == true)
+        // Without the folder item, the failure is last.
+        let plainMenu = ThemeMenu.makeMenu(settings: settings)
+        #expect(plainMenu.items.last?.title.hasPrefix("big:") == true)
     }
 }
