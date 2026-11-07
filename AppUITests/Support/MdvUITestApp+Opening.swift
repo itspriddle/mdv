@@ -58,13 +58,21 @@ extension MdvUITestApp {
         XCTAssertTrue(
             field.waitForExistence(timeout: Self.defaultTimeout), "Go to Folder field", file: sourceFile, line: line)
         field.typeText(file.deletingLastPathComponent().path(percentEncoded: false) + "\n")
+        // List view: in column view (the default on CI's macOS 26 runners) the file's row can
+        // sit outside the visible columns, with no hit point.
+        app.typeKey("2", modifierFlags: .command)
         let item = panel.descendants(matching: .textField).matching(
             NSPredicate(format: "value == %@", file.lastPathComponent)
         ).firstMatch
         XCTAssertTrue(
             item.waitForExistence(timeout: Self.defaultTimeout), "\(file.lastPathComponent) in the panel",
             file: sourceFile, line: line)
-        item.click()
+        if item.isHittable {
+            item.click()
+        } else {
+            // Type-select in the file list: a greyed-out file can't be selected this way either.
+            app.typeText(file.lastPathComponent)
+        }
         let open = panel.buttons["Open"]
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: open)
         XCTAssertEqual(

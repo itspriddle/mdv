@@ -83,7 +83,9 @@ extension OutlineTests {
 extension OutlineTests {
     func sidebarWidth(_ controller: DocumentWindowController) -> CGFloat {
         controller.window?.layoutIfNeeded()
-        return controller.outlineSidebarItem?.viewController.view.frame.width ?? 0
+        // The pane, not the sidebar view: macOS 26 insets the view inside its pane.
+        let splitView = (controller.outlineSidebarItem?.viewController.parent as? NSSplitViewController)?.splitView
+        return splitView?.arrangedSubviews.first?.frame.width ?? 0
     }
 
     func archivedOutlineState(_ controller: DocumentWindowController) throws -> NSKeyedUnarchiver {

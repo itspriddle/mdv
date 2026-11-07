@@ -60,10 +60,14 @@ enum GitHubTheme {
             deletion: (prettylights("markup-deleted-text"), prettylights("markup-deleted-bg"))),
         dark: nil)
 
-    /// Paper: no page background, links in the text color and underlined.
+    /// Paper: links in the text color and underlined, light fills kept. The body stays 16px
+    /// (12.8pt on paper, where WebKit lays pages out 1.25 times the paper's width in CSS pixels).
     static let printStylesheet = """
-        body { background: none; }
         .markdown-body a { color: inherit; text-decoration: underline; }
+        /* Code, keys, highlights, and tables keep their light fills (WebKit leaves backgrounds off
+           on paper otherwise), so code blocks and diff lines still read as blocks. */
+        .markdown-body pre, .markdown-body code, .markdown-body kbd, .markdown-body mark,
+        .markdown-body table { print-color-adjust: exact; }
         """
 
     private static func prettylights(_ name: String) -> String {

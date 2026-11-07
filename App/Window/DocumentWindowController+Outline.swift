@@ -76,8 +76,12 @@ extension DocumentWindowController {
         guard let outlineSidebarItem, !outlineSidebarItem.isCollapsed else {
             return
         }
-        let width = outlineSidebarItem.viewController.view.frame.width
-        guard width > 0, width != outlineWidth else {
+        // The pane's width, which is the divider position `applyOutlineWidth` sets. The sidebar
+        // view itself can be inset inside its pane (8 pt on macOS 26), so saving the view's
+        // width would shrink the sidebar on every restore.
+        guard let width = (notification.object as? NSSplitView)?.arrangedSubviews.first?.frame.width,
+            width > 0, width != outlineWidth
+        else {
             return
         }
         outlineWidth = width

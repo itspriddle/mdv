@@ -10,8 +10,8 @@ import MdvCore
 ///   `baseRegistry.adding(customThemes)` (`apply(_:)`); every window then resolves its theme
 ///   again and swaps in a changed or removed one in place.
 /// - `customThemeFailures`: custom theme files that didn't load, for the picker.
-/// - `defaultThemeID`: the theme for new windows, persisted. Until Settings (#36) sets it, the
-///   last theme picked in any window.
+/// - `defaultThemeID`: the theme for new windows, persisted. Only Settings (#36) sets it; View >
+///   Theme changes one window.
 @MainActor
 final class ThemeSettings {
     /// The app's settings. UI tests keep the default theme in memory.

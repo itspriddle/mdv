@@ -118,9 +118,14 @@ enum SerifTheme {
                 addition: ("#b9dca8", "#26331e"), deletion: ("#f0b4a8", "#3d2420")))
         + "\n.hljs-comment { font-style: italic; }"
 
-    /// Paper: no tint, the column fills the printable width.
+    /// Paper: the column fills the printable width at a book's text size. The screen's 19px
+    /// would be over 15pt on paper (WebKit lays pages out 1.25 times the paper's width in CSS
+    /// pixels); 15px prints at 12pt. Headings and code are in em, so they follow.
     static let printStylesheet = """
-        body { background: none; }
-        .markdown-body { padding: 0; }
+        .markdown-body { padding: 0; font-size: 15px; }
+        /* Code, keys, highlights, and tables keep their light fills (WebKit leaves backgrounds off
+           on paper otherwise), so code blocks and diff lines still read as blocks. */
+        .markdown-body pre, .markdown-body code, .markdown-body kbd, .markdown-body mark,
+        .markdown-body table { print-color-adjust: exact; }
         """
 }

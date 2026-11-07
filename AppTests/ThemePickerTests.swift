@@ -145,7 +145,7 @@ final class ThemePickerTests: DocumentWindowTestCase {
         #expect(try await pageThemeCSS(in: controller) == Theme.serif.layerCSS.trimmingCharacters(in: .newlines))
     }
 
-    @Test("each window has its own theme; a pick becomes the default for new windows")
+    @Test("each window has its own theme; a pick doesn't change the default for new windows")
     func perWindow() async throws {
         defer { closeAll() }
         let settings = themeSettings()
@@ -156,17 +156,23 @@ final class ThemePickerTests: DocumentWindowTestCase {
         first.selectTheme(item)
         #expect(first.theme == .serif)
         #expect(second.theme == .github)
-        #expect(settings.defaultThemeID == "serif")
+        #expect(settings.defaultThemeID == nil)
         let (_, third) = try await openLong(name: "third.md", themeSettings: settings)
-        #expect(third.theme == .serif)
-        #expect(try await pageThemeCSS(in: third) == Theme.serif.layerCSS.trimmingCharacters(in: .newlines))
-        #expect(try windowBackgroundMatches(third, .serif))
+        #expect(third.theme == .github)
+
+        // The default (Settings) applies to new windows only.
+        settings.defaultThemeID = "serif"
+        #expect(first.theme == .serif)
+        #expect(second.theme == .github)
+        let (_, fourth) = try await openLong(name: "fourth.md", themeSettings: settings)
+        #expect(fourth.theme == .serif)
+        #expect(try await pageThemeCSS(in: fourth) == Theme.serif.layerCSS.trimmingCharacters(in: .newlines))
+        #expect(try windowBackgroundMatches(fourth, .serif))
 
         // An item for an id that isn't registered does nothing.
         item.representedObject = "nope"
         first.selectTheme(item)
         #expect(first.theme == .serif)
-        #expect(settings.defaultThemeID == "serif")
     }
 
     // MARK: Menus
