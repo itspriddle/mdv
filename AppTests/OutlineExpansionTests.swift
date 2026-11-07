@@ -78,3 +78,66 @@ extension OutlineTests {
         #expect(controller.outlineController.validateMenuItem(contextExpand))
     }
 }
+
+/// The outline sidebar's width, saved per window with window restoration (#43).
+extension OutlineTests {
+    func sidebarWidth(_ controller: DocumentWindowController) -> CGFloat {
+        controller.window?.layoutIfNeeded()
+        return controller.outlineSidebarItem?.viewController.view.frame.width ?? 0
+    }
+
+    func archivedOutlineState(_ controller: DocumentWindowController) throws -> NSKeyedUnarchiver {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        controller.encodeOutlineState(with: archiver)
+        archiver.finishEncoding()
+        return try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+    }
+
+    @Test("a resized sidebar's width is saved and restored with the window")
+    func widthRestoration() async throws {
+        defer { close() }
+        let (_, controller) = try await open("# One\n")
+        let initial = sidebarWidth(controller)
+        controller.applyOutlineWidth(300)
+        #expect(sidebarWidth(controller) == 300)
+        #expect(initial != 300)
+        #expect(controller.outlineWidth == 300)
+
+        let (_, restored) = try await open("# One\n")
+        restored.restoreOutlineState(with: try archivedOutlineState(controller))
+        #expect(sidebarWidth(restored) == 300)
+
+        let window = try #require(controller.window)
+        let coder = KeyRecordingCoder()
+        window.encodeRestorableState(with: coder)
+        #expect(coder.keys.contains(DocumentWindowController.outlineWidthStateKey))
+    }
+
+    @Test("a hidden sidebar's restored width applies when it is shown")
+    func widthRestorationWhileHidden() async throws {
+        defer { close() }
+        let (_, controller) = try await open("# One\n")
+        controller.applyOutlineWidth(250)
+        controller.setOutlineVisible(false, animated: false)
+        let state = try archivedOutlineState(controller)
+
+        let (_, restored) = try await open("# One\n", outlineVisible: false)
+        restored.restoreOutlineState(with: state)
+        #expect(!restored.isOutlineVisible)
+        restored.setOutlineVisible(true, animated: false)
+        #expect(sidebarWidth(restored) == 250)
+    }
+
+    @Test("restored widths are validated and clamped to the sidebar's limits")
+    func widthValidation() async throws {
+        defer { close() }
+        #expect(DocumentWindowController.validOutlineWidth(.nan) == nil)
+        #expect(DocumentWindowController.validOutlineWidth(-1) == nil)
+        #expect(DocumentWindowController.validOutlineWidth(.infinity) == nil)
+        let (_, controller) = try await open("# One\n")
+        controller.applyOutlineWidth(5000)
+        #expect(sidebarWidth(controller) == 420)
+        controller.applyOutlineWidth(10)
+        #expect(sidebarWidth(controller) == 160)
+    }
+}

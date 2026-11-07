@@ -39,6 +39,8 @@ final class DocumentWindowController: NSWindowController {
     var outlineSidebarItem: NSSplitViewItem?
     /// Whether the outline shows before the sidebar exists (and its last requested state).
     var wantsOutline: Bool
+    /// The sidebar's width while last shown (or restored), saved with the window (#43).
+    var outlineWidth: CGFloat?
     let outlinePreference: OutlinePreference
 
     /// The app-wide page zoom this window follows (#26, `DocumentWindowController+Zoom.swift`).

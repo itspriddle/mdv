@@ -61,7 +61,45 @@ extension DocumentWindowController {
         splitViewController.splitViewItems = [sidebar, document]
         splitViewController.view.frame.size = window?.contentLayoutRect.size ?? .zero
         outlineSidebarItem = sidebar
+        if let outlineWidth {
+            applyOutlineWidth(outlineWidth)
+        }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(outlineSplitViewDidResize(_:)), name: NSSplitView.didResizeSubviewsNotification,
+            object: splitViewController.splitView)
         return splitViewController
+    }
+
+    /// The sidebar was resized (by the reader, or by showing it): remember its width for
+    /// window restoration.
+    @objc private func outlineSplitViewDidResize(_ notification: Notification) {
+        guard let outlineSidebarItem, !outlineSidebarItem.isCollapsed else {
+            return
+        }
+        let width = outlineSidebarItem.viewController.view.frame.width
+        guard width > 0, width != outlineWidth else {
+            return
+        }
+        outlineWidth = width
+        window?.invalidateRestorableState()
+    }
+
+    /// Sets the sidebar to `width` (clamped to its limits), now if it is shown, else when it is
+    /// next shown: a collapsed split item reopens at its view's last width.
+    func applyOutlineWidth(_ width: CGFloat) {
+        guard let outlineSidebarItem,
+            let splitView = (outlineSidebarItem.viewController.parent as? NSSplitViewController)?.splitView
+        else {
+            outlineWidth = width
+            return
+        }
+        let width = min(max(width, outlineSidebarItem.minimumThickness), outlineSidebarItem.maximumThickness)
+        outlineWidth = width
+        if outlineSidebarItem.isCollapsed {
+            outlineSidebarItem.viewController.view.frame.size.width = width
+        } else {
+            splitView.setPosition(width, ofDividerAt: 0)
+        }
     }
 
     /// View > Expand All Headings: every outline entry (#43).
@@ -110,15 +148,31 @@ extension DocumentWindowController {
     /// `DocumentWindow` with the window's own state.
     static let outlineVisibleStateKey = "mdvOutlineVisible"
 
+    /// The restorable-state key for the sidebar's width (a `Double`, in points), #43.
+    static let outlineWidthStateKey = "mdvOutlineWidth"
+
     func encodeOutlineState(with coder: NSCoder) {
         coder.encode(isOutlineVisible, forKey: Self.outlineVisibleStateKey)
+        if let outlineWidth {
+            coder.encode(Double(outlineWidth), forKey: Self.outlineWidthStateKey)
+        }
     }
 
     func restoreOutlineState(with coder: NSCoder) {
-        guard coder.containsValue(forKey: Self.outlineVisibleStateKey) else {
-            return
+        if coder.containsValue(forKey: Self.outlineVisibleStateKey) {
+            isOutlineVisible = coder.decodeBool(forKey: Self.outlineVisibleStateKey)
         }
-        isOutlineVisible = coder.decodeBool(forKey: Self.outlineVisibleStateKey)
+        if coder.containsValue(forKey: Self.outlineWidthStateKey),
+            let width = Self.validOutlineWidth(coder.decodeDouble(forKey: Self.outlineWidthStateKey))
+        {
+            applyOutlineWidth(width)
+        }
+    }
+
+    /// `width` if it is a usable sidebar width, else nil (restorable state is untrusted input);
+    /// `applyOutlineWidth(_:)` clamps it to the sidebar's limits.
+    nonisolated static func validOutlineWidth(_ width: Double) -> CGFloat? {
+        width.isFinite && width > 0 && width < 10_000 ? CGFloat(width) : nil
     }
 }
 
