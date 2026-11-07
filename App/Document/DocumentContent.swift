@@ -15,14 +15,24 @@ struct DocumentContent: Equatable, Sendable {
     let remoteImagesPage: RenderedPage?
 
     /// Renders `source`. The page title is the document's own (frontmatter `title`, then the
-    /// first `h1`) or `fallbackTitle` (the file name).
-    init(source: String, fallbackTitle: String) {
+    /// first `h1`) or `fallbackTitle` (the file name). Root-relative links and images
+    /// (`/docs/x.png`) resolve against `linkRoot`, the document's allowed root
+    /// (`linkRoot(forDocumentAt:)`), as GitHub resolves them against the repository.
+    init(source: String, fallbackTitle: String, linkRoot: String? = nil) {
         self.source = source
-        let page = Self.render(source, fallbackTitle: fallbackTitle, allowingRemoteImages: false)
+        let options = Self.renderOptions(linkRoot: linkRoot)
+        let page = Self.render(source, fallbackTitle: fallbackTitle, options: options, allowingRemoteImages: false)
         self.page = page
         remoteImagesPage =
             page.blockedRemoteImages.contains(where: \.isHTTPS)
-            ? Self.render(source, fallbackTitle: fallbackTitle, allowingRemoteImages: true) : nil
+            ? Self.render(source, fallbackTitle: fallbackTitle, options: options, allowingRemoteImages: true) : nil
+    }
+
+    /// The folder root-relative URLs resolve against for the document at `fileURL`: the same
+    /// allowed root its images are served from (`LocalResourceRoot`: the git work tree, else the
+    /// document's folder). Nil without a file.
+    static func linkRoot(forDocumentAt fileURL: URL?) -> String? {
+        fileURL.flatMap { LocalResourceRoot.forDocument(at: $0) }
     }
 
     /// The page for a window, depending on whether it opted in to remote images.
@@ -30,28 +40,33 @@ struct DocumentContent: Equatable, Sendable {
         allowingRemoteImages ? remoteImagesPage ?? page : page
     }
 
-    private static func render(_ source: String, fallbackTitle: String, allowingRemoteImages: Bool) -> RenderedPage {
-        let options = renderOptions(allowingRemoteImages: allowingRemoteImages)
+    private static func render(
+        _ source: String, fallbackTitle: String, options: RenderOptions, allowingRemoteImages: Bool
+    ) -> RenderedPage {
+        var options = options
+        options.remoteImages = allowingRemoteImages ? .allowHTTPS : .block
         return RenderedPage(
             rendered: HTMLRenderer(options: options).render(source), fallbackTitle: fallbackTitle,
             contentSecurityPolicy: allowingRemoteImages ? .viewerAllowingRemoteImages : .viewer)
     }
 
     /// Decodes UTF-8 file contents and renders them.
-    init(data: Data, fallbackTitle: String) throws {
+    init(data: Data, fallbackTitle: String, linkRoot: String? = nil) throws {
         guard let source = String(bytes: data, encoding: .utf8) else {
             throw CocoaError(.fileReadInapplicableStringEncoding)
         }
-        self.init(source: source, fallbackTitle: fallbackTitle)
+        self.init(source: source, fallbackTitle: fallbackTitle, linkRoot: linkRoot)
     }
 
     /// The app's render options: the defaults plus `data-source-line` annotations, which the
     /// scroll bridge (`WebViewCoordinator`) reads, and remote images blocked (placeholders)
-    /// unless the window opted in, then `https:` only. `mdv --html` leaves both off.
-    static func renderOptions(allowingRemoteImages: Bool = false) -> RenderOptions {
+    /// unless the window opted in, then `https:` only, and root-relative URLs resolved against
+    /// `linkRoot`. `mdv --html` leaves all three off.
+    static func renderOptions(allowingRemoteImages: Bool = false, linkRoot: String? = nil) -> RenderOptions {
         var options = RenderOptions()
         options.sourceLines = true
         options.remoteImages = allowingRemoteImages ? .allowHTTPS : .block
+        options.linkRoot = linkRoot
         return options
     }
 }

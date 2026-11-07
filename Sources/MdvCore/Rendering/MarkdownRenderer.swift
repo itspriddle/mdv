@@ -32,6 +32,12 @@ public struct RenderOptions: Sendable, Equatable {
     /// replaced with a labeled placeholder (#20). The viewer blocks them until the user opts in.
     /// Raw-HTML images are only replaced when `sanitize` is on.
     public var remoteImages = RemoteImagePolicy.keep
+    /// The folder root-relative URLs (`/docs/x.png`) resolve against, as GitHub resolves them
+    /// against the repository root (`RootRelativeURL`): Markdown links and images, and raw-HTML
+    /// `a[href]`, `img[src]`, and `source[srcset]` (when `sanitize` is on). An absolute path; the
+    /// app sets the document's allowed root (`LocalResourceRoot`). `nil` (the default, and
+    /// `mdv --html`) writes them unchanged.
+    public var linkRoot: String?
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
     /// for trusted input (the spec suites expect raw HTML to pass through).

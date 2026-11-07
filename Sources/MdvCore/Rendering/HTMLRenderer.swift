@@ -73,7 +73,7 @@ public struct HTMLRenderer: MarkdownRenderer {
         var rawBlockedImages: [RemoteImage] = []
         var root =
             options.sanitize
-            ? HTMLSanitizer(remoteImages: options.remoteImages).sanitize(root, blockedImages: &rawBlockedImages)
+            ? HTMLSanitizer(for: options).sanitize(root, blockedImages: &rawBlockedImages)
             : root
         let collection = HeadingCollection(root, includingRawHTML: options.sanitize)
         var anchors: [String] = []
@@ -373,10 +373,10 @@ extension HTMLRenderer {
         output.raw("\" />")
     }
 
-    /// Writes `url` percent-encoded, or nothing when its scheme is unsafe (cmark's safe mode).
+    /// Writes `url` percent-encoded (`RootRelativeURL` under `linkRoot`), or nothing if unsafe (cmark's safe mode).
     private func writeURL(_ url: String, into output: inout HTMLOutput) {
         if !DangerousURL.matches(url) {
-            output.url(url)
+            output.url(options.linkRoot.flatMap { RootRelativeURL.resolve(url, root: $0) } ?? url)
         }
     }
 

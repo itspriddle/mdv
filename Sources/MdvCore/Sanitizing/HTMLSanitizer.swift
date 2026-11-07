@@ -32,9 +32,12 @@
 public struct HTMLSanitizer: Sendable {
     /// Which remote raw-HTML images become placeholders (`RenderOptions.remoteImages`).
     public var remoteImages: RemoteImagePolicy
+    /// Root-relative URLs resolve against this folder (`HTMLSanitizer+RootRelative.swift`).
+    public var linkRoot: String?
 
-    public init(remoteImages: RemoteImagePolicy = .keep) {
+    public init(remoteImages: RemoteImagePolicy = .keep, linkRoot: String? = nil) {
         self.remoteImages = remoteImages
+        self.linkRoot = linkRoot
     }
 
     /// Returns `root` with every raw-HTML node sanitized. Nodes that sanitize to nothing are
@@ -66,7 +69,7 @@ public struct HTMLSanitizer: Sendable {
     }
 
     private func sanitize(fragment html: String, blockedImages: inout [RemoteImage]) -> String {
-        var sanitizer = RawHTMLSanitizer(remoteImages: remoteImages)
+        var sanitizer = makeRawSanitizer()
         let output = sanitizer.sanitize(html) + sanitizer.finish()
         blockedImages += sanitizer.takeBlockedImages()
         return output
@@ -78,9 +81,9 @@ public struct HTMLSanitizer: Sendable {
         var children: [MarkdownNode] = []
         var sanitizer: RawHTMLSanitizer
 
-        init(_ node: MarkdownNode, remoteImages: RemoteImagePolicy) {
+        init(_ node: MarkdownNode, sanitizer: RawHTMLSanitizer) {
             self.node = node
-            sanitizer = RawHTMLSanitizer(remoteImages: remoteImages)
+            self.sanitizer = sanitizer
             children.reserveCapacity(node.children.count)
         }
     }
@@ -88,7 +91,7 @@ public struct HTMLSanitizer: Sendable {
     /// Rebuilds the tree with an explicit stack (no recursion), one `RawHTMLSanitizer` per
     /// container so tags balance within it.
     private func sanitizeTree(_ root: MarkdownNode, blockedImages: inout [RemoteImage]) -> MarkdownNode {
-        var stack = [Frame(root, remoteImages: remoteImages)]
+        var stack = [Frame(root, sanitizer: makeRawSanitizer())]
         while let top = stack.indices.last {
             guard stack[top].nextChild < stack[top].node.children.count else {
                 var frame = stack.removeLast()
@@ -109,7 +112,7 @@ public struct HTMLSanitizer: Sendable {
                 // body must not wrap or hide them (and leave references dangling), so the body's
                 // open elements are closed, and any dropping ends, before the first one.
                 Self.closeOpenElements(in: &stack[top])
-                stack.append(Frame(child, remoteImages: remoteImages))
+                stack.append(Frame(child, sanitizer: makeRawSanitizer()))
             case .htmlBlock(let html):
                 let clean = stack[top].sanitizer.sanitize(html)
                 blockedImages += stack[top].sanitizer.takeBlockedImages()
@@ -134,7 +137,7 @@ public struct HTMLSanitizer: Sendable {
                 if child.children.isEmpty {
                     stack[top].children.append(child)
                 } else {
-                    stack.append(Frame(child, remoteImages: remoteImages))
+                    stack.append(Frame(child, sanitizer: makeRawSanitizer()))
                 }
             }
         }
@@ -144,7 +147,7 @@ public struct HTMLSanitizer: Sendable {
     /// Appends end tags for the raw elements still open in `frame` and resets its sanitizer.
     private static func closeOpenElements(in frame: inout Frame) {
         let closers = frame.sanitizer.finish()
-        frame.sanitizer = RawHTMLSanitizer(remoteImages: frame.sanitizer.remoteImages)
+        frame.sanitizer = frame.sanitizer.restarted()
         if !closers.isEmpty {
             let kind: MarkdownNode.Kind =
                 holdsBlocks(frame.node.kind) ? .htmlBlock(closers + "\n") : .htmlInline(closers)
@@ -175,11 +178,13 @@ struct RawHTMLSanitizer {
     private var openCounts: [String: Int] = [:]
     private var dropping: Drop?
     let remoteImages: RemoteImagePolicy
+    let linkRoot: String?
     /// Remote images replaced with placeholders since the last `takeBlockedImages()`.
     private var blockedImages: [RemoteImage] = []
 
-    init(remoteImages: RemoteImagePolicy = .keep) {
+    init(remoteImages: RemoteImagePolicy = .keep, linkRoot: String? = nil) {
         self.remoteImages = remoteImages
+        self.linkRoot = linkRoot
     }
 
     /// Returns and clears the remote images replaced so far.
@@ -271,7 +276,7 @@ struct RawHTMLSanitizer {
             return
         }
         output += "<\(tag.name)"
-        output += Self.attributes(of: tag)
+        output += attributes(of: tag)
         if Policy.voidElements.contains(tag.name) {
             output += tag.isSelfClosing ? " />" : ">"
         } else {
@@ -329,7 +334,7 @@ struct RawHTMLSanitizer {
         }
     }
 
-    private static func attributes(of tag: HTMLStartTag) -> String {
+    private func attributes(of tag: HTMLStartTag) -> String {
         typealias Policy = HTMLSanitizerPolicy
         var output = ""
         for attribute in tag.attributes where Policy.allowsAttribute(attribute.name, on: tag.name) {
@@ -347,7 +352,7 @@ struct RawHTMLSanitizer {
                     continue
                 }
             }
-            var serialized = value.serialized
+            var serialized = rootRelativeValue(of: attribute.name, on: tag.name, value) ?? value.serialized
             if isPrefixed {
                 guard !value.decoded.isEmpty else {
                     continue

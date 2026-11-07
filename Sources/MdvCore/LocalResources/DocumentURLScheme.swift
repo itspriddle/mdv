@@ -104,7 +104,7 @@ public enum DocumentURLScheme {
 
     /// RFC 3986 `pchar` minus `%`: unreserved, sub-delims, `:` and `@`. Everything else
     /// (including `/`, `?`, `#`, `%`, spaces, and non-ASCII) is percent-encoded.
-    private static let pathSegmentAllowed = CharacterSet(
+    static let pathSegmentAllowed = CharacterSet(
         charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!$&'()*+,;=:@")
 
     private static func segments(ofAbsolutePath path: String) -> [String]? {

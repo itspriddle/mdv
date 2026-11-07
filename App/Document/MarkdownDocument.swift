@@ -37,7 +37,9 @@ final class MarkdownDocument: NSDocument {
     /// Reads and renders the file. NSDocument calls this for the initial open and for every
     /// revert (`revert(toContentsOf:ofType:)`), so a reload is a revert.
     override nonisolated func read(from url: URL, ofType typeName: String) throws {
-        let content = try DocumentContent(data: Data(contentsOf: url), fallbackTitle: url.lastPathComponent)
+        let content = try DocumentContent(
+            data: Data(contentsOf: url), fallbackTitle: url.lastPathComponent,
+            linkRoot: DocumentContent.linkRoot(forDocumentAt: url))
         // NSDocument reads on the main thread unless `canConcurrentlyReadDocuments(ofType:)`
         // returns true, which this class does not.
         MainActor.assumeIsolated {

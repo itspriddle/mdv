@@ -114,6 +114,8 @@ final class LiveReloader {
         if source == currentSource {
             return nil
         }
-        return DocumentContent(source: source, fallbackTitle: url.lastPathComponent)
+        return DocumentContent(
+            source: source, fallbackTitle: url.lastPathComponent,
+            linkRoot: DocumentContent.linkRoot(forDocumentAt: url))
     }
 }
