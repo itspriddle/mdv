@@ -47,21 +47,32 @@ final class DocumentWindowController: NSWindowController {
     /// The app-wide content width this window follows (#37, `+ContentWidth.swift`).
     let contentWidthSettings: ContentWidthSettings
 
+    // MARK: Theme (#34, `DocumentWindowController+Theme.swift`)
+
+    /// The registry and default theme this window follows.
+    let themeSettings: ThemeSettings
+    /// The id of the theme picked for this window (restorable). It may name a theme that is no
+    /// longer registered (a deleted custom theme); the window then shows the default
+    /// (`theme`), and shows the picked one again if it comes back.
+    var themeID: String
+
     init(
         coordinator: WebViewCoordinator = WebViewCoordinator(),
         outlinePreference: OutlinePreference = OutlinePreference(),
         zoomSettings: ZoomSettings = .shared,
-        contentWidthSettings: ContentWidthSettings = .shared
+        contentWidthSettings: ContentWidthSettings = .shared,
+        themeSettings: ThemeSettings = .shared
     ) {
         self.coordinator = coordinator
         self.outlinePreference = outlinePreference
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
+        self.themeSettings = themeSettings
+        themeID = themeSettings.defaultTheme.id
         wantsOutline = outlinePreference.showsOutlineInNewWindows
         let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
-        window.backgroundColor = .themeBackground
         window.minSize = NSSize(width: 480, height: 360)
         window.center()
         super.init(window: window)
@@ -74,6 +85,7 @@ final class DocumentWindowController: NSWindowController {
         installOutline()
         installZoom()
         installContentWidth()
+        installTheme()
     }
 
     @available(*, unavailable)

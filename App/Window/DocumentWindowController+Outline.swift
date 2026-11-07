@@ -126,6 +126,8 @@ extension DocumentWindowController: NSMenuItemValidation {
             return validateCopyItem(menuItem)
         case #selector(performTextFinderAction(_:)), #selector(centerSelectionInVisibleArea(_:)):
             return validateFindItem(menuItem)
+        case #selector(selectTheme(_:)):
+            return validateThemeItem(menuItem)
         default:
             return true
         }
@@ -134,17 +136,20 @@ extension DocumentWindowController: NSMenuItemValidation {
 
 extension DocumentWindowController: NSToolbarDelegate {
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [Self.toggleOutlineToolbarItem]
+        [Self.toggleOutlineToolbarItem, .flexibleSpace, Self.themeToolbarItem]
     }
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [Self.toggleOutlineToolbarItem]
+        [Self.toggleOutlineToolbarItem, .flexibleSpace, Self.themeToolbarItem]
     }
 
     func toolbar(
         _ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
         willBeInsertedIntoToolbar flag: Bool
     ) -> NSToolbarItem? {
+        if itemIdentifier == Self.themeToolbarItem {
+            return makeThemeToolbarItem()
+        }
         guard itemIdentifier == Self.toggleOutlineToolbarItem else {
             return nil
         }

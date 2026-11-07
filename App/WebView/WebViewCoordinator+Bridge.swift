@@ -77,6 +77,15 @@ extension WebViewCoordinator {
         try await load(page, baseURL: baseURL)
     }
 
+    /// Replaces the loaded page's theme (the `mdv-theme` style element's text, `Theme.layerCSS`)
+    /// and keeps the reading position, in one script run. Returns `false` when the page has no
+    /// theme element. Use `show(_:)`, which tracks what the page holds.
+    func replaceTheme(css: String) async throws -> Bool {
+        let result = try await callBridge(
+            "return mdv.replaceStyle(id, css);", arguments: ["id": ThemeLayer.theme.name, "css": css])
+        return (result as? NSNumber)?.boolValue == true
+    }
+
     /// The reading position to keep across a reload.
     func readingPosition() async throws -> ReadingPosition {
         let result = try await callBridge("return mdv.readingPosition();")

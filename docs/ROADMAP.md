@@ -208,6 +208,11 @@ CSS themes as a first-class feature.
   View > Content Width, global and persisted, applied live via the `mdv-user` layer
   (`--mdv-content-width`); print ignores it. See VISION.
 
+- Theme switch (#34): in-place swap of the `mdv-theme` `<style>` text by app script (same
+  `mdv.replaceStyle` as #37), keeping the reading position, find, zoom, and remote-image
+  opt-in; no reload. Theme is per window (restorable); the last pick is the default for new
+  windows until Settings (#36). Print uses the window's theme; Copy as HTML stays theme-free.
+
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.
 
