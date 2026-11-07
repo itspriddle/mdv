@@ -9,6 +9,8 @@ import WebKit
 @Suite("Find in page", .serialized, .timeLimit(.minutes(1)))
 struct FindInPageTests {
     let coordinator = WebViewCoordinator()
+    /// Stands in for the system find pasteboard, which tests must not change.
+    let findPasteboard = FakeFindPasteboard()
     /// Offscreen, never shown: gives the page an 800x600 viewport.
     let window = NSWindow(
         contentRect: NSRect(x: 0, y: 0, width: 800, height: 600), styleMask: [.titled], backing: .buffered,
@@ -17,6 +19,7 @@ struct FindInPageTests {
     init() {
         window.isReleasedWhenClosed = false
         window.contentView = coordinator.webView
+        coordinator.find.pasteboard = findPasteboard
     }
 
     var find: FindInPage { coordinator.find }
@@ -97,6 +100,15 @@ struct FindInPageTests {
         try await load("<details><summary>Summary</summary>\n\nsecret word\n\n</details>\n\nvisible word")
         await search("word")
         #expect(find.matchCount == 1)
+    }
+
+    @Test("skips visually hidden .sr-only text, such as the footnotes heading (#43)")
+    func screenReaderOnlyText() async throws {
+        try await load("A note[^1] about footnotes.\n\n[^1]: The footnote body.")
+        await search("footnotes")
+        #expect(find.matchCount == 1)
+        await search("footnote")
+        #expect(find.matchCount == 2)
     }
 
     @Test("stops counting at the limit")
@@ -309,9 +321,12 @@ struct FindInPageLogicTests {
                 "Find Next cmd-g \(NSTextFinder.Action.nextMatch.rawValue)",
                 "Find Previous cmd-shift-g \(NSTextFinder.Action.previousMatch.rawValue)",
                 "Use Selection for Find cmd-e \(NSTextFinder.Action.setSearchString.rawValue)",
+                "Jump to Selection cmd-j 0",
             ])
         #expect(find.items.allSatisfy { $0.keyEquivalentModifierMask.contains(.command) })
-        #expect(find.items.allSatisfy { $0.action == #selector(NSResponder.performTextFinderAction(_:)) })
+        #expect(
+            find.items.dropLast().allSatisfy { $0.action == #selector(NSResponder.performTextFinderAction(_:)) })
+        #expect(find.items.last?.action == #selector(NSResponder.centerSelectionInVisibleArea(_:)))
     }
 
     @Test("find commands reach the window controller, also from the find field")
@@ -348,6 +363,7 @@ struct FindInPageLogicTests {
     @Test("menu commands drive the window's find")
     func commands() {
         let controller = DocumentWindowController()
+        controller.coordinator.find.pasteboard = nil
         let item = NSMenuItem(
             "Find…", action: #selector(NSResponder.performTextFinderAction(_:)), key: "f")
         item.tag = NSTextFinder.Action.showFindInterface.rawValue

@@ -39,24 +39,42 @@ final class DocumentWindowController: NSWindowController {
     var outlineSidebarItem: NSSplitViewItem?
     /// Whether the outline shows before the sidebar exists (and its last requested state).
     var wantsOutline: Bool
+    /// The sidebar's width while last shown (or restored), saved with the window (#43).
+    var outlineWidth: CGFloat?
     let outlinePreference: OutlinePreference
 
     /// The app-wide page zoom this window follows (#26, `DocumentWindowController+Zoom.swift`).
     let zoomSettings: ZoomSettings
 
+    /// The app-wide content width this window follows (#37, `+ContentWidth.swift`).
+    let contentWidthSettings: ContentWidthSettings
+
+    // MARK: Theme (#34, `DocumentWindowController+Theme.swift`)
+
+    /// The registry and default theme this window follows.
+    let themeSettings: ThemeSettings
+    /// The id of the theme picked for this window (restorable). It may name a theme that is no
+    /// longer registered (a deleted custom theme); the window then shows the default
+    /// (`theme`), and shows the picked one again if it comes back.
+    var themeID: String
+
     init(
         coordinator: WebViewCoordinator = WebViewCoordinator(),
         outlinePreference: OutlinePreference = OutlinePreference(),
-        zoomSettings: ZoomSettings = .shared
+        zoomSettings: ZoomSettings = .shared,
+        contentWidthSettings: ContentWidthSettings = .shared,
+        themeSettings: ThemeSettings = .shared
     ) {
         self.coordinator = coordinator
         self.outlinePreference = outlinePreference
         self.zoomSettings = zoomSettings
+        self.contentWidthSettings = contentWidthSettings
+        self.themeSettings = themeSettings
+        themeID = themeSettings.defaultThemeIDForNewWindows
         wantsOutline = outlinePreference.showsOutlineInNewWindows
         let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
-        window.backgroundColor = .themeBackground
         window.minSize = NSSize(width: 480, height: 360)
         window.center()
         super.init(window: window)
@@ -68,6 +86,8 @@ final class DocumentWindowController: NSWindowController {
         installScrollTracking()
         installOutline()
         installZoom()
+        installContentWidth()
+        installTheme()
     }
 
     @available(*, unavailable)
@@ -88,6 +108,10 @@ final class DocumentWindowController: NSWindowController {
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero
             window?.contentViewController = makeSplitViewController(content: hostingController)
+            if markdownDocument.content == nil {
+                // Still rendering (#32): start the web view now, so the page loads fast after.
+                coordinator.prepareForFirstLoad()
+            }
             documentContentDidChange()
         }
     }
@@ -137,6 +161,7 @@ final class DocumentWindowController: NSWindowController {
                     }
                 } else {
                     try await coordinator.load(page, baseURL: baseURL)
+                    LaunchTiming.mark("pageLoaded")
                 }
                 loadedBaseURL = baseURL
                 loadedContentSecurityPolicy = page.contentSecurityPolicy
@@ -148,6 +173,7 @@ final class DocumentWindowController: NSWindowController {
                     hasShownPage = true
                     // Arrow keys, space, and Page Down scroll the document right away.
                     window?.makeFirstResponder(coordinator.webView)
+                    await LaunchTiming.firstPageLoaded(in: coordinator)
                 }
             } catch {
                 // A newer load cancelled this one, or the web content process exited (handled
@@ -156,13 +182,17 @@ final class DocumentWindowController: NSWindowController {
         }
     }
 
-    /// The web content process exited (crash, or the system reclaimed it): load the page again.
-    /// Once per content change, so a page that crashes WebKit can't loop.
+    /// The web content process exited (crash, or the system reclaimed it): load the page again
+    /// at the last reported reading position (the page that knew it is gone). Once per content
+    /// change, so a page that crashes WebKit can't loop.
     private func webContentProcessDidTerminate() {
         guard canRecoverFromCrash else {
             return
         }
         canRecoverFromCrash = false
+        if pendingSourceLine == nil {
+            pendingSourceLine = lastSourceLine
+        }
         display()
     }
 

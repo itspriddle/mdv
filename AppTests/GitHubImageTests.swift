@@ -7,7 +7,7 @@ import WebKit
 
 /// Hosted `WKWebView` tests for GitHub's image conventions: root-relative URLs resolve against
 /// the repository (`RootRelativeURL`), and `#gh-dark-mode-only` / `#gh-light-mode-only` images
-/// and `<picture>` sources follow the web view's appearance live (`DefaultTheme`).
+/// and `<picture>` sources follow the web view's appearance live (`ThemeBase`).
 @MainActor
 @Suite("GitHub image conventions", .serialized, .timeLimit(.minutes(1)))
 struct GitHubImageTests {

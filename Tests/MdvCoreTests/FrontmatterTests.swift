@@ -382,7 +382,7 @@ struct FrontmatterRenderingTests {
     func documentTitle() throws {
         let rendered = HTMLRenderer().render("---\ntitle: \"</title><script>x</script>\"\n---\n")
         let title = try #require(rendered.title)
-        let html = HTMLDocument(title: title, body: rendered.html).html
+        let html = HTMLDocument(title: title, body: rendered.html, theme: .github).html
         #expect(html.contains("<title>&lt;/title&gt;&lt;script&gt;x&lt;/script&gt;</title>"))
     }
 }

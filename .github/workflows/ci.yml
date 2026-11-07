@@ -38,6 +38,14 @@ jobs:
         run: make test-core
       - name: Build and test app
         run: make build test-app SIGN=0
+      - name: Upload theme snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: theme-snapshots
+          path: build/theme-snapshots
+          if-no-files-found: ignore
+          retention-days: 7
 
   # Separate job: runs in parallel with `test`, and a UI flake doesn't hide core/app results.
   # Signs ad hoc (no Config/Local.xcconfig in CI); see `make test-ui`.

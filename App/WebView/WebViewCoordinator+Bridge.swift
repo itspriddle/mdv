@@ -77,6 +77,15 @@ extension WebViewCoordinator {
         try await load(page, baseURL: baseURL)
     }
 
+    /// Replaces the loaded page's theme (the `mdv-theme` style element's text, `Theme.layerCSS`)
+    /// and keeps the reading position, in one script run. Returns `false` when the page has no
+    /// theme element. Use `show(_:)`, which tracks what the page holds.
+    func replaceTheme(css: String) async throws -> Bool {
+        let result = try await callBridge(
+            "return mdv.replaceStyle(id, css);", arguments: ["id": ThemeLayer.theme.name, "css": css])
+        return (result as? NSNumber)?.boolValue == true
+    }
+
     /// The reading position to keep across a reload.
     func readingPosition() async throws -> ReadingPosition {
         let result = try await callBridge("return mdv.readingPosition();")
@@ -93,6 +102,14 @@ extension WebViewCoordinator {
         _ = try await callBridge(
             "return mdv.restorePosition({ line, atBottom });",
             arguments: ["line": position.line, "atBottom": position.atBottom])
+    }
+
+    /// Returns after `count` animation frames of the loaded page: after two, the frame that
+    /// was pending when this was called has been drawn (`LaunchTiming`'s first paint).
+    func waitForAnimationFrames(_ count: Int) async throws {
+        _ = try await callBridge(
+            "for (let i = 0; i < count; i++) { await new Promise(resolve => requestAnimationFrame(resolve)); }",
+            arguments: ["count": count])
     }
 
     /// Runs a fixed bridge function body in the app world. `body` must be a literal; pass every

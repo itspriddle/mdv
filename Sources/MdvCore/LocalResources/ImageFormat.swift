@@ -32,6 +32,17 @@ public enum ImageFormat: String, Sendable, CaseIterable {
         }
     }
 
+    /// The uniform type identifier of the format, for the pasteboard (Copy Image).
+    public var typeIdentifier: String {
+        switch self {
+        case .png: "public.png"
+        case .jpeg: "public.jpeg"
+        case .gif: "com.compuserve.gif"
+        case .webp: "org.webmproject.webp"
+        case .svg: "public.svg-image"
+        }
+    }
+
     /// How many leading bytes `sniff(_:)` looks at.
     public static let sniffLength = 4096
 

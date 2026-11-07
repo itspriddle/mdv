@@ -25,10 +25,19 @@ extension DocumentWindowController {
     func setOutlineVisible(_ visible: Bool, animated: Bool) {
         wantsOutline = visible
         if let outlineSidebarItem, outlineSidebarItem.isCollapsed == visible {
+            // Showing resizes the pane (recording its width); put back the saved one after.
+            let width = visible ? outlineWidth : nil
             if animated {
-                outlineSidebarItem.animator().isCollapsed = !visible
+                NSAnimationContext.runAnimationGroup { _ in
+                    outlineSidebarItem.animator().isCollapsed = !visible
+                } completionHandler: { [weak self] in
+                    MainActor.assumeIsolated {
+                        if let width { self?.applyOutlineWidth(width) }
+                    }
+                }
             } else {
                 outlineSidebarItem.isCollapsed = !visible
+                if let width { applyOutlineWidth(width) }
             }
         }
         window?.invalidateRestorableState()
@@ -61,7 +70,66 @@ extension DocumentWindowController {
         splitViewController.splitViewItems = [sidebar, document]
         splitViewController.view.frame.size = window?.contentLayoutRect.size ?? .zero
         outlineSidebarItem = sidebar
+        if let outlineWidth {
+            applyOutlineWidth(outlineWidth)
+        }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(outlineSplitViewDidResize(_:)), name: NSSplitView.didResizeSubviewsNotification,
+            object: splitViewController.splitView)
         return splitViewController
+    }
+
+    /// The sidebar was resized (by the reader, or by showing it): remember its width for
+    /// window restoration.
+    @objc private func outlineSplitViewDidResize(_ notification: Notification) {
+        guard let outlineSidebarItem, !outlineSidebarItem.isCollapsed else {
+            return
+        }
+        // The pane's width, which is the divider position `applyOutlineWidth` sets. The sidebar
+        // view itself can be inset inside its pane (8 pt on macOS 26), so saving the view's
+        // width would shrink the sidebar on every restore.
+        guard let width = (notification.object as? NSSplitView)?.arrangedSubviews.first?.frame.width,
+            width > 0, width != outlineWidth
+        else {
+            return
+        }
+        outlineWidth = width
+        window?.invalidateRestorableState()
+    }
+
+    /// Sets the sidebar to `width` (clamped to its limits), now if it is shown, else when it is
+    /// next shown: a collapsed split item reopens at its view's last width.
+    func applyOutlineWidth(_ width: CGFloat) {
+        guard let outlineSidebarItem,
+            let splitView = (outlineSidebarItem.viewController.parent as? NSSplitViewController)?.splitView
+        else {
+            outlineWidth = width
+            return
+        }
+        if outlineSidebarItem.isCollapsed {
+            // Applied when shown (`setOutlineVisible`): the pane's inset is only known then.
+            outlineWidth = min(max(width, outlineSidebarItem.minimumThickness), outlineSidebarItem.maximumThickness)
+            return
+        }
+        // `width` is the pane's (the divider position). The sidebar view can be inset inside its
+        // pane (8 pt on macOS 26), and AppKit holds the view to `minimumThickness`, so the
+        // narrowest pane is that plus the inset.
+        let pane = splitView.arrangedSubviews.first?.frame.width ?? 0
+        let inset = max(0, pane - outlineSidebarItem.viewController.view.frame.width)
+        let width = min(
+            max(width, outlineSidebarItem.minimumThickness + inset), outlineSidebarItem.maximumThickness)
+        outlineWidth = width
+        splitView.setPosition(width, ofDividerAt: 0)
+    }
+
+    /// View > Expand All Headings: every outline entry (#43).
+    @objc func expandAllOutlineEntries(_ sender: Any?) {
+        outlineController.expandAll()
+    }
+
+    /// View > Collapse All Headings: every outline entry (#43).
+    @objc func collapseAllOutlineEntries(_ sender: Any?) {
+        outlineController.collapseAll()
     }
 
     /// Scrolls to `heading` by its anchor (`slug`), or by its source line if no element has
@@ -100,15 +168,31 @@ extension DocumentWindowController {
     /// `DocumentWindow` with the window's own state.
     static let outlineVisibleStateKey = "mdvOutlineVisible"
 
+    /// The restorable-state key for the sidebar's width (a `Double`, in points), #43.
+    static let outlineWidthStateKey = "mdvOutlineWidth"
+
     func encodeOutlineState(with coder: NSCoder) {
         coder.encode(isOutlineVisible, forKey: Self.outlineVisibleStateKey)
+        if let outlineWidth {
+            coder.encode(Double(outlineWidth), forKey: Self.outlineWidthStateKey)
+        }
     }
 
     func restoreOutlineState(with coder: NSCoder) {
-        guard coder.containsValue(forKey: Self.outlineVisibleStateKey) else {
-            return
+        if coder.containsValue(forKey: Self.outlineVisibleStateKey) {
+            isOutlineVisible = coder.decodeBool(forKey: Self.outlineVisibleStateKey)
         }
-        isOutlineVisible = coder.decodeBool(forKey: Self.outlineVisibleStateKey)
+        if coder.containsValue(forKey: Self.outlineWidthStateKey),
+            let width = Self.validOutlineWidth(coder.decodeDouble(forKey: Self.outlineWidthStateKey))
+        {
+            applyOutlineWidth(width)
+        }
+    }
+
+    /// `width` if it is a usable sidebar width, else nil (restorable state is untrusted input);
+    /// `applyOutlineWidth(_:)` clamps it to the sidebar's limits.
+    nonisolated static func validOutlineWidth(_ width: Double) -> CGFloat? {
+        width.isFinite && width > 0 && width < 10_000 ? CGFloat(width) : nil
     }
 }
 
@@ -118,10 +202,20 @@ extension DocumentWindowController: NSMenuItemValidation {
         case #selector(toggleOutline(_:)):
             menuItem.title = isOutlineVisible ? "Hide Outline" : "Show Outline"
             return true
+        case #selector(expandAllOutlineEntries(_:)):
+            return isOutlineVisible && outlineController.canExpandAll
+        case #selector(collapseAllOutlineEntries(_:)):
+            return isOutlineVisible && outlineController.canCollapseAll
         case #selector(zoomInDocument(_:)), #selector(zoomOutDocument(_:)), #selector(resetDocumentZoom(_:)):
             return validateZoomItem(menuItem)
+        case #selector(setContentWidth(_:)):
+            return validateContentWidthItem(menuItem)
         case #selector(copyMarkdownSource(_:)), #selector(copyAsHTML(_:)):
             return validateCopyItem(menuItem)
+        case #selector(performTextFinderAction(_:)), #selector(centerSelectionInVisibleArea(_:)):
+            return validateFindItem(menuItem)
+        case #selector(selectTheme(_:)):
+            return validateThemeItem(menuItem)
         default:
             return true
         }

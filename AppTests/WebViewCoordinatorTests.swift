@@ -268,3 +268,25 @@ struct WebViewCoordinatorTests {
         #expect(csp as? String == ContentSecurityPolicy.viewer.header)
     }
 }
+
+// MARK: The preparation load (#32, #40)
+
+extension WebViewCoordinatorTests {
+    @Test("WebKit's percent-encoded spelling of the preparation URL (macOS 26) still matches")
+    func preparationURLSpellings() throws {
+        #expect(WebViewCoordinator.isPreparationURL(URL(string: "about:blank#mdv-prepare")))
+        #expect(WebViewCoordinator.isPreparationURL(URL(string: "about:blank%23mdv-prepare")))
+        #expect(!WebViewCoordinator.isPreparationURL(URL(string: "about:blank")))
+        #expect(!WebViewCoordinator.isPreparationURL(URL(string: "about:blank#other")))
+        #expect(!WebViewCoordinator.isPreparationURL(nil))
+
+        let coordinator = WebViewCoordinator()
+        coordinator.expectedLoadURL = WebViewCoordinator.preparationURL
+        #expect(coordinator.isExpectedLoad(try #require(URL(string: "about:blank%23mdv-prepare"))))
+        #expect(!coordinator.isExpectedLoad(try #require(URL(string: "about:blank"))))
+        // Only the preparation URL is compared loosely: a real load must match exactly.
+        coordinator.expectedLoadURL = URL(string: "mdv-doc://token/a%20b.md")
+        #expect(coordinator.isExpectedLoad(try #require(URL(string: "mdv-doc://token/a%20b.md"))))
+        #expect(!coordinator.isExpectedLoad(try #require(URL(string: "mdv-doc://token/a%2520b.md"))))
+    }
+}

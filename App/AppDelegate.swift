@@ -7,9 +7,36 @@ import MdvCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
+    /// The app-wide appearance (Settings and View > Appearance); injectable for tests.
+    let appearanceSettings: AppearanceSettings
+    /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
+    /// themes folder).
+    private(set) var customThemes: CustomThemeLibrary?
+    /// The Settings window, created the first time it is shown and reused after.
+    private var settingsWindowController: SettingsWindowController?
+
+    init(appearanceSettings: AppearanceSettings = .shared) {
+        self.appearanceSettings = appearanceSettings
+        super.init()
+    }
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        LaunchTiming.mark("willFinishLaunching")
+        // First: the web view's content process launches while the rest of the launch runs
+        // (#40). Hosted unit tests make their own windows and web views, and set their own
+        // appearances, so they never read the reader's.
+        if !Self.isHostingUnitTests {
+            followAppearanceSettings()
+            WebViewPrewarmer.shared.prewarm()
+        }
         MainMenu.install()
+        // Before restoration: restored windows showing a custom theme switch to it as soon as
+        // the first load (off the main thread) lands.
+        if let folder = CustomThemeLibrary.folderURL {
+            let library = CustomThemeLibrary(folder: folder, settings: .shared)
+            library.start()
+            customThemes = library
+        }
         // Load highlight.js into its JavaScriptCore context off the main thread, so the first
         // document doesn't pay for it.
         Task.detached(priority: .utility) {
@@ -18,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        LaunchTiming.mark("didFinishLaunching")
         if !Self.isHostingUnitTests {
             defaultViewerOffer.start()
         }
@@ -60,13 +88,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         false
     }
 
-    /// App menu: "Make mdv the Default Markdown Viewer" (`DefaultViewerMenu`).
-    @objc func makeDefaultMarkdownViewer(_ sender: Any?) {
-        defaultViewerOffer.makeDefaultMarkdownViewer(sender)
+    /// App menu > Settings… (`SettingsMenu`): shows the one Settings window.
+    @objc func showSettings(_ sender: Any?) {
+        let controller = settingsWindowController ?? makeSettingsWindowController()
+        settingsWindowController = controller
+        controller.show()
+    }
+
+    private func makeSettingsWindowController() -> SettingsWindowController {
+        var openThemesFolder: (@MainActor () -> Void)?
+        if let library = customThemes {
+            openThemesFolder = { library.openFolder() }
+        }
+        return SettingsWindowController(
+            model: SettingsModel(
+                appearanceSettings: appearanceSettings, defaultViewerOffer: defaultViewerOffer,
+                openThemesFolder: openThemesFolder))
+    }
+
+    /// View > Theme > Open Themes Folder and Settings' button: creates the folder if needed and
+    /// shows it in Finder.
+    @objc func openThemesFolder(_ sender: Any?) {
+        customThemes?.openFolder()
     }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        defaultViewerOffer.validateMenuItem(menuItem)
+        switch menuItem.action {
+        case #selector(openThemesFolder(_:)):
+            return customThemes != nil
+        case #selector(chooseAppearance(_:)):
+            return validateAppearanceItem(menuItem)
+        default:
+            return true
+        }
     }
 
     /// Whether the app is the host for `AppTests`, where a modal Open panel would block the run.

@@ -9,7 +9,10 @@ import Foundation
 /// - atomically, writing a temporary file and renaming it over the original (TextEdit, most
 ///   editors), or renaming the original to a backup first (Vim's default `backupcopy=auto`):
 ///   the path now names a new inode, so the watcher reopens it;
-/// - delete then recreate: the parent folder's source fires when the name comes back.
+/// - delete then recreate: the parent folder's source fires when the name comes back;
+/// - the whole folder deleted and recreated (`git checkout` of a branch without it, build
+///   tools): while the folder is missing, the watcher watches its nearest existing ancestor,
+///   and follows the path back down as folders reappear.
 ///
 /// After every burst of kernel events (`latency`, capped at `maximumLatency` for a steady
 /// stream) the watcher `stat`s the path and compares it with what it last reported, so a burst
@@ -113,6 +116,7 @@ final class FileWatcher: @unchecked Sendable {
 
     private struct WatchedItem {
         let source: any DispatchSourceFileSystemObject
+        let path: String
         let identity: FileIdentity
     }
 
@@ -122,10 +126,43 @@ final class FileWatcher: @unchecked Sendable {
             path: url.path(percentEncoded: false), events: [.write, .extend, .attrib, .delete, .rename, .link, .revoke])
     }
 
-    private func watchDirectory() {
+    /// Watches the file's folder or, while that folder is missing, its nearest existing
+    /// ancestor, so the folder (and then the file) coming back is seen. Does nothing if that
+    /// folder is already watched. Returns whether the watched folder changed: a folder deeper
+    /// on the path may have appeared before the new source started, so the caller checks again.
+    @discardableResult
+    private func watchDirectory() -> Bool {
+        let target = Self.nearestExistingFolder(of: url.deletingLastPathComponent())
+        if directory?.path == target?.path, directory?.identity == target?.identity {
+            return false
+        }
         directory?.source.cancel()
-        // `.write` on a folder: an entry was added, removed, or renamed.
-        directory = makeSource(path: url.deletingLastPathComponent().path(percentEncoded: false), events: [.write])
+        directory = nil
+        guard let target else {
+            return false
+        }
+        // `.write`: an entry was added, removed, or renamed. `.delete`/`.rename`: the folder
+        // itself went away, so watch further up. `.revoke`: its volume was unmounted.
+        directory = makeSource(path: target.path, events: [.write, .delete, .rename, .revoke])
+        // A folder that can't be opened isn't watched; checking again would only spin.
+        return directory != nil
+    }
+
+    /// `folder`, or its nearest ancestor that exists, with its identity.
+    private static func nearestExistingFolder(of folder: URL) -> (path: String, identity: FileIdentity)? {
+        var candidate = folder.standardizedFileURL
+        while true {
+            let path = candidate.path(percentEncoded: false)
+            var info = stat()
+            if stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFDIR {
+                return (path, FileIdentity(info))
+            }
+            let parent = candidate.deletingLastPathComponent().standardizedFileURL
+            guard parent.path(percentEncoded: false) != path else {
+                return nil
+            }
+            candidate = parent
+        }
     }
 
     private func makeSource(path: String, events: DispatchSource.FileSystemEvent) -> WatchedItem? {
@@ -147,7 +184,7 @@ final class FileWatcher: @unchecked Sendable {
             close(descriptor)
         }
         source.activate()
-        return WatchedItem(source: source, identity: FileIdentity(info))
+        return WatchedItem(source: source, path: path, identity: FileIdentity(info))
     }
 
     // MARK: Debounce and evaluation
@@ -176,6 +213,11 @@ final class FileWatcher: @unchecked Sendable {
         burstStart = nil
         guard !isStopped else {
             return
+        }
+        // First, so a file created after the folder came back is seen by the `stat` below or
+        // by the new source.
+        if watchDirectory() {
+            kernelEventDidArrive()
         }
         let path = url.path(percentEncoded: false)
         if let fingerprint = Fingerprint(path: path) {

@@ -6,8 +6,8 @@
 // callAsyncJavaScript and passes the query as an argument, never as script source.
 //
 // Highlights use the CSS Custom Highlight API: ranges registered in `CSS.highlights` are painted
-// by the `::highlight(mdv-find)` and `::highlight(mdv-find-current)` rules in the page's
-// stylesheet (DefaultTheme). Nothing is inserted into the DOM and no inline style is set, so
+// by the `::highlight(mdv-find)` and `::highlight(mdv-find-current)` rules in the page's base
+// layer (MdvCore `ThemeBase`). Nothing is inserted into the DOM and no inline style is set, so
 // `data-source-line` positions, link hover, and live reload swaps are unaffected, and the page's
 // CSP (`style-src 'unsafe-inline'`, no scripts) is irrelevant to it. The highlight registry
 // belongs to the document, so ranges registered from this world are painted on the page.
@@ -27,7 +27,9 @@
     "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main", "nav",
     "ol", "p", "pre", "section", "summary", "table", "td", "th", "tr", "ul",
   ].join(", ");
-  const HIDDEN = "script, style, template, noscript";
+  // Not rendered, or visually hidden for assistive technology only (`.sr-only`, such as the
+  // footnotes section's "Footnotes" heading): a match there would have nothing to show.
+  const HIDDEN = "script, style, template, noscript, .sr-only";
 
   let matches = [];
   let current = -1;
@@ -225,5 +227,23 @@
     return (document.getSelection()?.toString() ?? "").slice(0, MAXIMUM_QUERY_LENGTH);
   }
 
-  globalThis.mdvFind = Object.freeze({ search, select, clear, selectionText });
+  // Jump to Selection: scrolls the current match (while the find bar is open) or else the
+  // selected text into view. Returns false when there is neither.
+  function revealSelection() {
+    let range = current >= 0 && current < matches.length ? matches[current] : null;
+    if (range === null) {
+      const selection = document.getSelection();
+      if (selection === null || selection.rangeCount === 0 || selection.isCollapsed) {
+        return false;
+      }
+      range = selection.getRangeAt(0);
+    }
+    if (!range.startContainer.isConnected) {
+      return false;
+    }
+    reveal(range);
+    return true;
+  }
+
+  globalThis.mdvFind = Object.freeze({ search, select, clear, selectionText, revealSelection });
 })();

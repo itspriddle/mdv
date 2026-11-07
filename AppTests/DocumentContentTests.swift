@@ -1,4 +1,5 @@
 import Foundation
+import MdvCore
 import Testing
 
 @testable import MdvApp
@@ -8,16 +9,16 @@ struct DocumentContentTests {
     @Test("renders source into a full HTML document")
     func rendersHTML() {
         let page = DocumentContent(source: "Some *text*", fallbackTitle: "README.md").page
-        #expect(page.html.contains("<p data-source-line=\"1\">Some <em>text</em></p>"))
-        #expect(page.html.contains("<title>README.md</title>"))
+        #expect(page.html(theme: .github).contains("<p data-source-line=\"1\">Some <em>text</em></p>"))
+        #expect(page.html(theme: .github).contains("<title>README.md</title>"))
         #expect(page.title == "README.md")
     }
 
     @Test("uses the first h1 for the window and the page")
     func headingTitle() {
         let page = DocumentContent(source: "intro\n\n# Title", fallbackTitle: "README.md").page
-        #expect(page.html.contains("<h1 id=\"title\" data-source-line=\"3\">"))
-        #expect(page.html.contains("<title>Title</title>"))
+        #expect(page.html(theme: .github).contains("<h1 id=\"title\" data-source-line=\"3\">"))
+        #expect(page.html(theme: .github).contains("<title>Title</title>"))
         #expect(page.title == "Title")
     }
 
@@ -26,16 +27,24 @@ struct DocumentContentTests {
         let page = DocumentContent(source: "---\ntitle: Notes & <Ideas>\n---\n# Heading", fallbackTitle: "README.md")
             .page
         #expect(page.title == "Notes & <Ideas>")
-        #expect(page.html.contains("<title>Notes &amp; &lt;Ideas&gt;</title>"))
-        #expect(!page.html.contains("title: Notes"))
-        #expect(page.html.contains("<h1 id=\"heading\" data-source-line=\"4\">"))
+        #expect(page.html(theme: .github).contains("<title>Notes &amp; &lt;Ideas&gt;</title>"))
+        #expect(!page.html(theme: .github).contains("title: Notes"))
+        #expect(page.html(theme: .github).contains("<h1 id=\"heading\" data-source-line=\"4\">"))
+    }
+
+    @Test("the page is put together with the window's theme")
+    func pageTheme() {
+        let page = DocumentContent(source: "Some *text*", fallbackTitle: "README.md").page
+        #expect(page.html(theme: .serif).contains(Theme.serif.layerCSS))
+        #expect(!page.html(theme: .serif).contains(Theme.github.layerCSS))
+        #expect(page.html(theme: .github).contains(Theme.github.layerCSS))
     }
 
     @Test("highlights fenced code at render time, without scripts")
     func highlightsCode() {
         let page = DocumentContent(source: "```swift\nlet x = 1\n```", fallbackTitle: "README.md").page
-        #expect(page.html.contains("<span class=\"hljs-keyword\">let</span>"))
-        #expect(!page.html.contains("<script"))
+        #expect(page.html(theme: .github).contains("<span class=\"hljs-keyword\">let</span>"))
+        #expect(!page.html(theme: .github).contains("<script"))
     }
 
     @Test("keeps the body fragment and headings for in-place swaps and the outline")

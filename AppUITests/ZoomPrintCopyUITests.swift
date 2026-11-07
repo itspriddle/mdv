@@ -1,7 +1,7 @@
 import AppKit
 import XCTest
 
-/// Zoom shortcuts and the Copy menu items (#26).
+/// Zoom shortcuts, the Copy menu items (#26), and the context menu's Copy Link (#42).
 ///
 /// These tests write to and read the **general pasteboard** (the app copies there); they
 /// overwrite whatever was on it. Printing is not driven here (the print panel needs a user);
@@ -97,6 +97,33 @@ final class ZoomPrintCopyUITests: XCTestCase {
         waitForPasteboard(.string, toContain: "The quick brown fox renders in mdv.")
         let types = NSPasteboard.general.types ?? []
         XCTAssertTrue(types.contains(.rtf) || types.contains(.html), "rich text: \(types)")
+    }
+
+    /// The context menu's Copy Link (#42): a relative link is copied as the `file:` URL it
+    /// names, never the window's internal `mdv-doc:` URL; an external link as written.
+    func testCopyLinkCopiesFileURLsForRelativeLinks() throws {
+        let mdv = try MdvUITestApp.launch(openingFixture: "links.md")
+        self.mdv = mdv
+        let window = mdv.waitForWindow(titled: "Links Fixture")
+        mdv.waitForRenderedText("Jump to", in: window)
+
+        NSPasteboard.general.clearContents()
+        mdv.link("the target document", in: window).rightClick()
+        mdv.app.menuItems["Copy Link"].firstMatch.click()
+        waitForPasteboard(.string, toContain: "links-target.md")
+        let copied = try XCTUnwrap(NSPasteboard.general.string(forType: .string))
+        XCTAssertTrue(copied.hasPrefix("file:///"), copied)
+        XCTAssertTrue(copied.hasSuffix("/Fixtures/links-target.md#target-section"), copied)
+        for type in NSPasteboard.general.types ?? [] {
+            let value = NSPasteboard.general.string(forType: type) ?? ""
+            XCTAssertFalse(value.lowercased().contains("mdv-doc"), "\(type.rawValue): \(value)")
+        }
+
+        NSPasteboard.general.clearContents()
+        mdv.link("the example site", in: window).rightClick()
+        mdv.app.menuItems["Copy Link"].firstMatch.click()
+        waitForPasteboard(.string, toContain: "example.com")
+        XCTAssertEqual(NSPasteboard.general.string(forType: .string), "https://example.com/mdv-ui-test")
     }
 
     func testDocumentCommandsAreDisabledWithoutADocumentWindow() {

@@ -1,10 +1,10 @@
 import AppKit
 import SwiftUI
 
-/// Shows the offer to become the default Markdown viewer in a small non-modal panel, and runs the
-/// menu command. The policy lives in `DefaultViewer`.
+/// Shows the offer to become the default Markdown viewer in a small non-modal panel, and runs
+/// Settings' "Make mdv the Default Markdown Viewer". The policy lives in `DefaultViewer`.
 @MainActor
-final class DefaultViewerOfferController: NSObject, NSMenuItemValidation {
+final class DefaultViewerOfferController: NSObject {
     let viewer: DefaultViewer
     private var panel: NSPanel?
     private var observer: (any NSObjectProtocol)?
@@ -57,26 +57,16 @@ final class DefaultViewerOfferController: NSObject, NSMenuItemValidation {
         }
     }
 
-    /// Menu action: "Make mdv the Default Markdown Viewer".
-    @objc func makeDefaultMarkdownViewer(_ sender: Any?) {
+    /// Settings > General, "Make mdv the Default Markdown Viewer" (#36): closes the offer if it
+    /// is showing, makes mdv the default, and shows an alert if that fails.
+    func makeDefault() async {
         panel?.close()
         panel = nil
-        Task {
-            do {
-                try await viewer.makeDefault()
-            } catch {
-                Self.reportFailure(error)
-            }
+        do {
+            try await viewer.makeDefault()
+        } catch {
+            Self.reportFailure(error)
         }
-    }
-
-    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        guard menuItem.action == #selector(makeDefaultMarkdownViewer(_:)) else {
-            return true
-        }
-        let isDefault = viewer.isDefault
-        menuItem.state = isDefault ? .on : .off
-        return !isDefault
     }
 
     private static func reportFailure(_ error: any Error) {

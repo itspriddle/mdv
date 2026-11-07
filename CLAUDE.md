@@ -11,12 +11,17 @@ make generate         # regenerate mdv.xcodeproj from project.yml (run after add
 make test-core        # swift test (MdvCore), fast, no Xcode project needed
 make test             # core + app unit tests (not UI tests)
 make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
+make record-theme-snapshots  # re-record bundled theme references for this macOS version (#39)
 make build            # app + embedded CLI (signed via Config/Local.xcconfig); SIGN=0 for unsigned
 make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
+make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
 make vendor-highlightjs  # re-vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
+make vendor-github-markdown-css  # re-vendor the GitHub theme (GHCSS_VERSION=x.y.z) as generated Swift
 swift run mdv --html FILE   # render to stdout without Xcode
+scripts/measure-cold-open [-f] FILE  # Release cold open to first paint, median of N launches (GUI);
+                                     # -f adds the bare-WKWebView floor (scripts/cold-open-floor.swift)
 ```
 
 `.NOTPARALLEL` is set because the user's shell exports `MAKEFLAGS=-j9`; concurrent xcodebuilds
@@ -36,27 +41,53 @@ lock the build database.
     so everything the renderer emits must be escaped by construction).
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
   - `Transforms/`: AST passes (emoji shortcodes).
+  - `Themes/`: `Theme` (CSS plus `ThemeBackground`), `ThemeRegistry` (the one place the app and
+    CLI get a theme; unknown ids fall back to GitHub), `ThemeBase` (the base layer every page
+    gets; `!important` there means protected from themes), and `ThemeLayer` (cascade layers
+    `mdv-base` → `mdv-theme` → `mdv-user`, one `<style id>` each). Bundled themes are
+    `extension Theme { static let … }` files here.
+    `Themes/Custom/`: custom theme files (#35): `CustomTheme` (header, id), `CustomThemeCSS` (the
+    safety check; `CustomThemeCSSScanner` tokenizes), `CustomThemeFolder` (reading the folder).
   - `LocalResources/`: the app's `mdv-doc://<token>/<path>` URLs (`DocumentURLScheme`), the
     allowed-root rule, `LocalImagePolicy`, which approves every local image read, and
     `RootRelativeURL` (`/docs/x.png` resolved against the allowed root, `RenderOptions.linkRoot`).
   - `RemoteImages/`: `RemoteImage` (what counts as remote), `RemoteImagePolicy`
     (`RenderOptions.remoteImages`), and the blocked-image placeholder markup.
-  - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`).
+  - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`),
+    and `CopyableLink` (what Copy Link copies; never an `mdv-doc:` URL).
   - `Outline/`: `DocumentOutline` (heading tree) and `OutlineTracker` (current section).
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
-  - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
-    never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
+  - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make html-entities`,
+    `make vendor-highlightjs`); never edit by hand. `Vendor/` holds vendored sources with a
+    MANIFEST and license.
 - `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
-  `AppDelegate`), SwiftUI for window content only. Feature folders: `Copy/`, `DefaultViewer/`,
-  `Print/`, `Zoom/` (each a small type plus its `DocumentWindowController+<Feature>.swift`).
+  `AppDelegate`), SwiftUI for window content only. Feature folders: `ContentWidth/`, `Copy/`,
+  `DefaultViewer/`, `Print/`, `Themes/`, `Zoom/` (each a small type plus its
+  `DocumentWindowController+<Feature>.swift`). `Themes/ThemeSettings` holds the theme registry
+  and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
+  `Themes/CustomThemeLibrary` watches the custom themes folder (`ThemeFolderWatcher`) and
+  replaces the registry (`ThemeSettings.apply(_:)`). A window whose picked theme isn't
+  registered shows Settings' default (`ThemeSettings.theme(forWindowThemeID:)`).
+  - `Settings/`: `SettingsWindowController` (App menu > Settings…, a toolbar-style
+    `NSTabViewController` of SwiftUI panes), `SettingsModel` (wraps the existing stores:
+    `ThemeSettings`, `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, the default
+    viewer; stores nothing itself), and `GeneralSettingsView`. A new setting is a store with
+    `init(defaults:isPersistent:)`, a property and `set…` method on the model, and a row.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
-    plus `RenderedPage`, and the remote-images variant). Every load and revert goes through
-    `setContent(_:)`, which tells each `DocumentWindowController`. `DocumentController` (the
-    shared `NSDocumentController`) finds open files by identity and skips gone files on restore.
-  - `Find/`: `FindInPage` (find state and commands, tested with a fake host) and `FindBar`
+    plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
+    on main (so open errors stay NSDocument's) and renders off the main actor
+    (`render(_:of:)`; tests await `pendingRender`), so `content` is `nil` until the first render
+    lands; a newer read, `setContent`, or `close()` drops a render in flight. Every load and
+    revert goes through `setContent(_:)`, which tells each `DocumentWindowController`.
+    `DocumentController` (the shared `NSDocumentController`) finds open files by identity,
+    skips gone files on restore, and types extensionless text files (`ExtensionlessText`) as
+    plain text; its `canOpen(_:)` is the one rule for the Open panel and drops.
+  - `Find/`: `FindInPage` (find state and commands, tested with a fake host), `SharedFindQuery`
+    (the system find pasteboard), and `FindBar`
     (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
     commands on). The page side is `App/Scripts/FindInPage.js` via `WebViewCoordinator+Find`.
-  - `LiveReload/`: `FileWatcher` (kqueue by path, debounced) and `LiveReloader` (reads and
+  - `LiveReload/`: `FileWatcher` (kqueue by path, debounced; watches the nearest existing
+    ancestor while the folder is gone) and `LiveReloader` (reads and
     renders off the main actor, drops stale renders, sets `MarkdownDocument.fileStatus`). Live
     reload bypasses `NSDocument.revert`; the window swaps content in place with
     `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
@@ -67,26 +98,46 @@ lock the build database.
     `validateMenuItem` switch in `+Outline.swift`), `DocumentWindow` (restorable state),
     `DocumentView` (SwiftUI root: find bar, file status and remote image bars, link status).
   - `WebView/`: `WebViewCoordinator` owns the `DocumentWebView` (drops, context menu trimming):
-    `load`, `updateContent`, and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,
-    `scroll(toFragment:)`). `WebViewConfiguration` holds preferences and user scripts;
+    `prepareForFirstLoad()` (a blank page while the first render runs), `load`, `updateContent`,
+    and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,
+    `scroll(toFragment:)`). `WebViewPrewarmer` starts the first window's web view at launch
+    (#40). `WebViewConfiguration` holds preferences and user scripts;
     `LocalResourceSchemeHandler` serves `mdv-doc` images; `+Navigation.swift` applies
     `LinkPolicy`.
   - `Scripts/`: bundled JS run only in `AppScripts.world`; pass values as arguments, never
     splice them into source.
+  - `Performance/`: `LaunchTiming`, launch milestones that `scripts/measure-cold-open` reads
+    (on only with `MDV_LAUNCH_TIMING` set; kept in Release, which is what it measures).
   - `Menus/`: `MainMenu` builds the menu bar in code. A feature adds a `MenuContribution` type
     in its own file plus one line in `MainMenu.contributions`. AppKit inserts Open Recent and
     the Window menu's items itself; don't build them.
 - `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
   `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
+  `AppTests/Support/`: `DocumentWindowTestCase` (windows over temp files and throwaway
+  settings), `ThrowawayDefaults` (a per-test `UserDefaults` suite in a temp folder; never use
+  `UserDefaults(suiteName:)` with a plain name, which leaves a plist in ~/Library/Preferences),
+  `MainThreadHeartbeat` (main-thread stalls by CPU time), `SnapshotImage`, `LoopbackServer`.
+  `StressTests` (+`Themes`) is the crash and hang suite; run it under ASan and TSan at each
+  milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
+- `docs/THEMES.md`: the end-user theme authoring guide, with `docs/example-theme.css` and
+  `docs/github-soft-dark.css` (an `extends: github` example).
+  `ThemeGuideTests` loads the example and checks the guide's snippets, limits, and error
+  messages; a change to custom theme behavior updates the guide.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
   `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
   a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
 - `Tests/MdvCoreTests/Fixtures/github`, `.../corpus`: GitHub reference output (refresh with
   `scripts/update-github-fixtures`, manual, needs auth) and mdv snapshots
   (`MDV_RECORD_SNAPSHOTS=1`). Corpus exceptions live in `corpus.json`.
+- `AppTests/Snapshots/macOS-<major>/`: visual regression references for the bundled themes
+  (`ThemeSnapshotTests`: showcase fixture, each theme light/dark/print, real WebKit PDFs
+  rasterized at 1 px per point). One set per macOS major (CI is macOS 26). After an intended
+  theme change, `make record-theme-snapshots` on each OS and review the PNG diff; macOS 26
+  references come from CI's `theme-snapshots` artifact (`recorded/`). Mismatches write
+  actual/reference/diff PNGs to `build/theme-snapshots/` (CI uploads it).
 - `project.yml`: XcodeGen spec. Never commit `mdv.xcodeproj`; edit `project.yml` instead.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.
@@ -114,8 +165,9 @@ lock the build database.
 - Launch hooks (`UITestHooks`, `#if DEBUG` only, compiled out of Release): `-MdvUITesting YES`
   skips the launch Open panel and suppresses first-run prompts (features with a first-run prompt
   must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` (or a
-  plist array, `launch(openingFixtures:)`) opens documents at launch. Tests never add to Open
-  Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
+  plist array, `launch(openingFixtures:)`) opens documents at launch; `-MdvUITestThemesFolder
+  <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
+  unit tests never load them). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
   `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1 make test-ui` (CI sets it).
 - The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team

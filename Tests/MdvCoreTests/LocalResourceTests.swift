@@ -245,7 +245,8 @@ struct ContentSecurityPolicyTests {
         #expect(
             ContentSecurityPolicy.standalone.header
                 == "default-src 'none'; style-src 'unsafe-inline'; img-src file: data:;")
-        #expect(HTMLDocument(title: "t", body: "").html.contains(ContentSecurityPolicy.standalone.header))
+        #expect(
+            HTMLDocument(title: "t", body: "", theme: .github).html.contains(ContentSecurityPolicy.standalone.header))
     }
 
     @Test("the viewer allows only the document scheme and data: images")
@@ -253,7 +254,7 @@ struct ContentSecurityPolicyTests {
         #expect(
             ContentSecurityPolicy.viewer.header
                 == "default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;")
-        let html = HTMLDocument(title: "t", body: "", contentSecurityPolicy: .viewer).html
+        let html = HTMLDocument(title: "t", body: "", theme: .github, contentSecurityPolicy: .viewer).html
         #expect(html.contains(ContentSecurityPolicy.viewer.header))
         #expect(!html.contains("file:"))
     }

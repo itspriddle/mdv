@@ -213,6 +213,10 @@ struct OpeningTests {
         controller.openDroppedFiles([second, third, try #require(first.fileURL)])
         try await until("both tabs") { (window.tabbedWindows?.count ?? 0) == 3 }
         opened = NSDocumentController.shared.documents.filter { $0 !== first }
+        // Titles come from the renders, which finish after the tabs appear (#32).
+        try await until("the rendered titles") {
+            (window.tabbedWindows ?? []).map(\.title) == ["First", "Second", "Third"]
+        }
         let titles = (window.tabbedWindows ?? []).map(\.title)
         #expect(titles == ["First", "Second", "Third"])
         #expect(opened.count == 2)

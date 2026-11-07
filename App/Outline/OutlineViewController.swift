@@ -9,6 +9,8 @@ import MdvCore
 /// - A re-render (`show(_:)`) keeps the sidebar's scroll position and which headings are
 ///   collapsed; an unchanged outline is not reloaded at all.
 /// - A document without headings shows "No Headings".
+/// - Expand All and Collapse All (`expandAll()`, `collapseAll()`; the View menu and the
+///   sidebar's context menu, #43) open or close every entry.
 @MainActor
 final class OutlineViewController: NSViewController {
     /// Asks the window to scroll the document to a heading.
@@ -48,6 +50,7 @@ final class OutlineViewController: NSViewController {
         outlineView.action = #selector(rowClicked(_:))
         outlineView.onActivate = { [weak self] in self?.jumpToSelectedRow() }
         outlineView.onResignFocus = { [weak self] in self?.stoppedBrowsing() }
+        outlineView.menu = makeContextMenu()
         outlineView.setAccessibilityLabel("Outline")
         outlineView.setAccessibilityIdentifier("document-outline")
 
@@ -112,6 +115,57 @@ final class OutlineViewController: NSViewController {
     /// A jump finished with the document at `line`.
     func landed(at line: Double) {
         tracker.landed(at: line)
+    }
+
+    // MARK: Expand and collapse all
+
+    /// Whether some entry is collapsed (Expand All has something to do).
+    var canExpandAll: Bool {
+        !collapsedIDs.isEmpty
+    }
+
+    /// Whether some entry with children is expanded (Collapse All has something to do).
+    var canCollapseAll: Bool {
+        itemsByID.values.contains { !$0.children.isEmpty && !collapsedIDs.contains($0.entry.id) }
+    }
+
+    /// Expands every entry.
+    func expandAll() {
+        collapsedIDs.removeAll()
+        isUpdating = true
+        outlineView.expandItem(nil, expandChildren: true)
+        isUpdating = false
+        applySelection(scrollingToSelection: true)
+    }
+
+    /// Collapses every entry, nested ones too, so expanding a top-level entry shows only its
+    /// direct children. The current section's top-level entry stays selected.
+    func collapseAll() {
+        collapsedIDs = Set(itemsByID.values.filter { !$0.children.isEmpty }.map(\.entry.id))
+        isUpdating = true
+        outlineView.collapseItem(nil, collapseChildren: true)
+        isUpdating = false
+        applySelection(scrollingToSelection: true)
+    }
+
+    @objc func expandAllEntries(_ sender: Any?) {
+        expandAll()
+    }
+
+    @objc func collapseAllEntries(_ sender: Any?) {
+        collapseAll()
+    }
+
+    private func makeContextMenu() -> NSMenu {
+        let menu = NSMenu(title: "Outline")
+        for (title, action) in [
+            ("Expand All", #selector(expandAllEntries(_:))), ("Collapse All", #selector(collapseAllEntries(_:))),
+        ] {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = self
+            menu.addItem(item)
+        }
+        return menu
     }
 
     // MARK: Reader actions
@@ -194,6 +248,16 @@ final class OutlineViewController: NSViewController {
         let isEmpty = rootItems.isEmpty
         emptyLabel.isHidden = !isEmpty
         scrollView.isHidden = isEmpty
+    }
+}
+
+extension OutlineViewController: NSMenuItemValidation {
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(expandAllEntries(_:)): canExpandAll
+        case #selector(collapseAllEntries(_:)): canCollapseAll
+        default: true
+        }
     }
 }
 

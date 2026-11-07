@@ -11,6 +11,12 @@ mdv --html README.md > README.html
 > **Status:** early development. `mdv` is a working name. See [docs/VISION.md](docs/VISION.md) and
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## Themes
+
+mdv ships GitHub, Document, and Serif themes, and any CSS file in
+`~/Library/Application Support/mdv/Themes` is a theme too. See the
+[theme authoring guide](docs/THEMES.md).
+
 ## Requirements
 
 - macOS 15 or later

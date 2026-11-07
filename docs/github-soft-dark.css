@@ -1,0 +1,54 @@
+/* mdv-theme
+   name: GitHub Soft Dark
+   background-dark: #212830
+   extends: github
+*/
+
+/* GitHub Soft Dark: github.com's "Soft dark" appearance (Primer's dark_dimmed palette), a
+   dark theme with less contrast. Light mode is the bundled GitHub theme as is.
+
+   The GitHub theme takes every color from Primer's CSS variables, so this theme only redefines
+   them for dark mode: the values from @primer/primitives 11.10.0
+   (dist/css/functional/themes/dark-dimmed.css) that differ from GitHub's dark ones. Rules
+   inside the theme layer come after the bundled theme's, so these win.
+
+   Copy it to ~/Library/Application Support/mdv/Themes/ and pick View > Theme > GitHub Soft Dark. */
+
+@media screen and (prefers-color-scheme: dark) {
+  .markdown-body {
+    --fgColor-accent: #478be6;
+    --bgColor-attention-muted: #ae7c1426;
+    --bgColor-default: #212830;
+    --bgColor-muted: #262c36;
+    --borderColor-accent-emphasis: #316dca;
+    --borderColor-attention-emphasis: #966600;
+    --borderColor-danger-emphasis: #c93c37;
+    --borderColor-done-emphasis: #8256d0;
+    --borderColor-success-emphasis: #347d39;
+    --color-prettylights-syntax-brackethighlighter-unmatched: #e5534b;
+    --color-prettylights-syntax-carriage-return-bg: #ad2e2c;
+    --color-prettylights-syntax-constant: #6cb6ff;
+    --color-prettylights-syntax-constant-other-reference-link: #96d0ff;
+    --color-prettylights-syntax-entity: #dcbdfb;
+    --color-prettylights-syntax-entity-tag: #8ddb8c;
+    --color-prettylights-syntax-keyword: #f47067;
+    --color-prettylights-syntax-markup-changed-bg: #682d0f;
+    --color-prettylights-syntax-markup-changed-text: #ffddb0;
+    --color-prettylights-syntax-markup-deleted-bg: #78191b;
+    --color-prettylights-syntax-markup-deleted-text: #ffd8d3;
+    --color-prettylights-syntax-markup-heading: #316dca;
+    --color-prettylights-syntax-markup-ignored-bg: #255ab2;
+    --color-prettylights-syntax-markup-inserted-bg: #1b4721;
+    --color-prettylights-syntax-markup-inserted-text: #b4f1b4;
+    --color-prettylights-syntax-markup-list: #eac55f;
+    --color-prettylights-syntax-meta-diff-range: #dcbdfb;
+    --color-prettylights-syntax-string: #96d0ff;
+    --color-prettylights-syntax-string-regexp: #8ddb8c;
+    --color-prettylights-syntax-variable: #f69d50;
+    --fgColor-attention: #c69026;
+    --fgColor-danger: #e5534b;
+    --fgColor-default: #d1d7e0;
+    --fgColor-done: #986ee2;
+    --fgColor-success: #57ab5a;
+  }
+}

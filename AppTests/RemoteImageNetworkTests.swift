@@ -62,7 +62,7 @@ struct RemoteImageNetworkTests {
         }
         let content = DocumentContent(
             source: Self.remoteImageDocument(http: http, https: https), fallbackTitle: "README.md")
-        try await show(html: content.page.html)
+        try await show(html: content.page.html(theme: .github))
         #expect(http.connectionCount == 0, "\(http.connections.compactMap(\.requestLine))")
         #expect(https.connectionCount == 0)
         // The blocked images show as labeled placeholders, and no <img> points anywhere remote.
@@ -111,7 +111,7 @@ struct RemoteImageNetworkTests {
             source: Self.remoteImageDocument(http: http, https: https), fallbackTitle: "README.md")
         let page = content.page(allowingRemoteImages: true)
         #expect(page.contentSecurityPolicy == .viewerAllowingRemoteImages)
-        try await show(html: page.html)
+        try await show(html: page.html(theme: .github))
         #expect(https.connectionCount > 0)
         #expect(https.connections.allSatisfy { $0.isTLS })
         #expect(http.connectionCount == 0, "\(http.connections.compactMap(\.requestLine))")

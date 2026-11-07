@@ -6,12 +6,14 @@ import AppKit
 final class MainMenu {
     /// Features that add menu items, in order. Each feature adds one line here.
     static let contributions: [any MenuContribution.Type] = [
-        DefaultViewerMenu.self, OutlineMenu.self, ZoomMenu.self, PrintMenu.self, CopyMenu.self, FindMenu.self,
+        SettingsMenu.self, OutlineMenu.self, AppearanceMenu.self, ThemeMenu.self, ZoomMenu.self, ContentWidthMenu.self,
+        PrintMenu.self,
+        CopyMenu.self, FindMenu.self,
     ]
 
     /// The top-level menus features can add to.
     enum Menu: CaseIterable {
-        /// Groups go after About (e.g. app-wide commands, until Settings exists).
+        /// Groups go after About (e.g. Settings…).
         case app
         /// Groups go after Open, Open Recent (inserted by AppKit), and Close (e.g. Print).
         case file

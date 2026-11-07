@@ -2,7 +2,10 @@
 public struct HTMLDocument: Sendable {
     public var title: String
     public var body: String
-    public var stylesheet: String
+    /// The page's theme, in the `mdv-theme` layer above the base layer (`ThemeBase`).
+    public var theme: Theme
+    /// The reader's style controls, in the `mdv-user` layer above the theme (#37).
+    public var userStyle: UserStyle
     /// Restrictive by default: no scripts, no remote loads, inline styles, local images only.
     /// The app passes `.viewer`; `mdv --html` keeps `.standalone`.
     public var contentSecurityPolicy: ContentSecurityPolicy
@@ -10,12 +13,14 @@ public struct HTMLDocument: Sendable {
     public init(
         title: String,
         body: String,
-        stylesheet: String = DefaultTheme.css,
+        theme: Theme,
+        userStyle: UserStyle = .themeDefaults,
         contentSecurityPolicy: ContentSecurityPolicy = .standalone
     ) {
         self.title = title
         self.body = body
-        self.stylesheet = stylesheet
+        self.theme = theme
+        self.userStyle = userStyle
         self.contentSecurityPolicy = contentSecurityPolicy
     }
 
@@ -28,8 +33,14 @@ public struct HTMLDocument: Sendable {
         <meta http-equiv="Content-Security-Policy" content="\(contentSecurityPolicy.header)">
         <meta name="color-scheme" content="light dark">
         <title>\(Self.escape(title))</title>
-        <style>
-        \(stylesheet)
+        <style id="\(ThemeLayer.base.name)">
+        \(ThemeBase.layerCSS)
+        </style>
+        <style id="\(ThemeLayer.theme.name)">
+        \(theme.layerCSS)
+        </style>
+        <style id="\(ThemeLayer.user.name)">
+        \(userStyle.layerCSS)
         </style>
         </head>
         <body>

@@ -83,7 +83,7 @@ final class PrintCopyTests: DocumentWindowTestCase {
     /// Prints a long document to a PDF file with no panels (the jobDisposition `save` path that
     /// Save as PDF uses), then reads the PDF: it paginates, and nothing is clipped.
     @Test("a long document prints to paginated PDF with code and tables unclipped and no anchors")
-    func printToPDF() async throws {
+    func printLongDocument() async throws {
         defer { closeAll() }
         let longLine = (1...40).map { "token\($0)" }.joined(separator: "_")
         let wideRow = "| " + (1...12).map { "column\($0)value" }.joined(separator: " | ") + " |"
@@ -95,24 +95,7 @@ final class PrintCopyTests: DocumentWindowTestCase {
         let link = "See [the site](https://example.com/printed-target)."
         let source = (["# Print Test", link, codeBlock, table] + paragraphs).joined(separator: "\n\n")
         let (document, controller) = try await open(source, name: "long.md")
-        let window = try #require(controller.window)
-
-        let pdf = folder.appending(path: "long.pdf")
-        let operation = try document.printOperation(withSettings: [
-            .jobDisposition: NSPrintInfo.JobDisposition.save, .jobSavingURL: pdf,
-        ])
-        operation.showsPrintPanel = false
-        operation.showsProgressPanel = false
-        let done = await withCheckedContinuation { continuation in
-            let delegate = PrintDelegate { continuation.resume(returning: $0) }
-            operation.runModal(
-                for: window, delegate: delegate,
-                didRun: #selector(PrintDelegate.printOperationDidRun(_:success:context:)),
-                contextInfo: Unmanaged.passRetained(delegate).toOpaque())
-        }
-        #expect(done)
-
-        let pages = try #require(PDFDocument(url: pdf))
+        let pages = try await printToPDF(document, in: controller, named: "long.pdf")
         #expect(pages.pageCount > 3, "paginated: \(pages.pageCount) pages")
         let text = (pages.string ?? "").filter { !$0.isWhitespace }
         #expect(text.contains(longLine), "the long code line wraps instead of being clipped")
@@ -120,6 +103,83 @@ final class PrintCopyTests: DocumentWindowTestCase {
         #expect(text.contains("Paragraph120ofthelongdocument."))
         #expect(text.contains("(https://example.com/printed-target)"), "external link targets are written out")
         #expect(!text.contains("#Section"), "no anchor icons")
+    }
+
+    // MARK: Copy Link (#42)
+
+    /// Opens the context menu's `contextmenu` event on the first element matching `selector`, as
+    /// a right-click does, then runs Copy Link into the test pasteboard.
+    func copyLink(onElementMatching selector: String, in controller: DocumentWindowController) async throws -> Bool {
+        _ = try await controller.coordinator.webView.callAsyncJavaScript(
+            """
+            document.querySelector(selector).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+            return true;
+            """, arguments: ["selector": selector], in: nil, contentWorld: AppScripts.world)
+        return await controller.coordinator.copyContextMenuLink(to: pasteboard)
+    }
+
+    @Test("Copy Link copies a relative link as the file: URL it names, never mdv-doc")
+    func copyRelativeLink() async throws {
+        defer { closeAll() }
+        let source = "[guide](sub/my%20guide.md#set-up) [here](#title) [site](https://example.com/page?a=b)\n\nplain"
+        let (_, controller) = try await open(source)
+
+        #expect(try await copyLink(onElementMatching: "a[href^='sub/']", in: controller))
+        let relative = try #require(pasteboard.string(forType: .string))
+        #expect(relative.hasPrefix("file:///"), "\(relative)")
+        #expect(relative.hasSuffix("/sub/my%20guide.md#set-up"), "\(relative)")
+        let file = try #require(URL(string: relative))
+        // The page is served at the folder's real path (`/private/var/...` for `/var/...`).
+        #expect(file.path(percentEncoded: false).hasSuffix("/\(folder.lastPathComponent)/sub/my guide.md"))
+        #expect(pasteboard.string(forType: .URL) == relative)
+        #expect(!(pasteboard.types ?? []).contains(.fileURL), "a link, not a file to paste in Finder")
+
+        #expect(try await copyLink(onElementMatching: "a[href='#title']", in: controller))
+        let inPage = try #require(pasteboard.string(forType: .string))
+        #expect(inPage.hasPrefix("file:///") && inPage.hasSuffix("/notes.md#title"), "\(inPage)")
+
+        #expect(try await copyLink(onElementMatching: "a[href^='https:']", in: controller))
+        #expect(pasteboard.string(forType: .string) == "https://example.com/page?a=b")
+
+        for type in pasteboard.types ?? [] {
+            #expect(pasteboard.string(forType: type)?.lowercased().contains("mdv-doc") != true, "\(type.rawValue)")
+        }
+    }
+
+    @Test("Copy Link outside a link copies nothing")
+    func copyLinkWithoutLink() async throws {
+        defer { closeAll() }
+        let (_, controller) = try await open("[guide](guide.md)\n\nplain paragraph")
+        pasteboard.clearContents()
+        pasteboard.setString("unchanged", forType: .string)
+        #expect(try await !copyLink(onElementMatching: "p:last-of-type", in: controller))
+        #expect(pasteboard.string(forType: .string) == "unchanged")
+    }
+
+    @Test("the context menu's Copy Link runs the app's copy, or is removed")
+    func copyLinkMenuItem() {
+        func menu() -> NSMenu {
+            let menu = NSMenu()
+            let item = NSMenuItem(title: "Copy Link", action: Selector(("copyLink:")), keyEquivalent: "")
+            item.identifier = NSUserInterfaceItemIdentifier(WebViewContextMenu.copyLinkIdentifier)
+            menu.addItem(item)
+            menu.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: ""))
+            return menu
+        }
+        var copied = 0
+        let target = MenuItemTarget { copied += 1 }
+        let redirected = menu()
+        WebViewContextMenu.redirectCopyLink(in: redirected, to: target)
+        let item = redirected.items[0]
+        #expect(item.target === target)
+        #expect(item.action == #selector(MenuItemTarget.performAction(_:)))
+        NSApp.sendAction(#selector(MenuItemTarget.performAction(_:)), to: item.target, from: item)
+        #expect(copied == 1)
+        #expect(redirected.items[1].target == nil, "other items keep WebKit's action")
+
+        let removed = menu()
+        WebViewContextMenu.redirectCopyLink(in: removed, to: nil)
+        #expect(removed.items.map(\.title) == ["Copy"])
     }
 
     // MARK: Context menu
@@ -151,23 +211,5 @@ final class PrintCopyTests: DocumentWindowTestCase {
             menu.items.map { $0.isSeparatorItem ? "-" : $0.title } == [
                 "Open Link", "Open Link in New Window", "Copy Link", "-", "Copy", "Look Up", "Services",
             ])
-    }
-}
-
-/// Receives `NSPrintOperation.runModal`'s completion.
-private final class PrintDelegate: NSObject {
-    let completion: (Bool) -> Void
-
-    init(completion: @escaping (Bool) -> Void) {
-        self.completion = completion
-    }
-
-    @objc func printOperationDidRun(
-        _ operation: NSPrintOperation, success: Bool, context: UnsafeMutableRawPointer?
-    ) {
-        if let context {
-            Unmanaged<PrintDelegate>.fromOpaque(context).release()
-        }
-        completion(success)
     }
 }

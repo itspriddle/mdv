@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 extension MdvUITestApp {
@@ -22,6 +23,19 @@ extension MdvUITestApp {
         if XCTWaiter.wait(for: [expectation], timeout: Self.defaultTimeout) != .completed {
             let shown = status.exists ? status.displayedText : "(none)"
             XCTFail("find status is \"\(shown)\", expected \"\(text)\"", file: file, line: line)
+        }
+    }
+
+    /// Waits until `pasteboard`'s plain text is `text`.
+    static func waitForString(
+        _ text: String, on pasteboard: NSPasteboard, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        let matches = NSPredicate { _, _ in pasteboard.string(forType: .string) == text }
+        let expectation = XCTNSPredicateExpectation(predicate: matches, object: nil)
+        if XCTWaiter.wait(for: [expectation], timeout: defaultTimeout) != .completed {
+            let shown = pasteboard.string(forType: .string) ?? "nil"
+            XCTFail(
+                "pasteboard \(pasteboard.name.rawValue) is \"\(shown)\", expected \"\(text)\"", file: file, line: line)
         }
     }
 }
