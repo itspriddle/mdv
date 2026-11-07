@@ -60,6 +60,24 @@ struct ThemeGuideTests {
         #expect(theme.layerCSS.hasPrefix("@layer \(ThemeLayer.theme.name) {"))
     }
 
+    @Test("the GitHub Soft Dark example extends GitHub and loads with its dark background")
+    func softDarkLoads() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(
+            path: "mdv-theme-guide-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let css = try String(contentsOf: Self.docs.appending(path: "github-soft-dark.css"), encoding: .utf8)
+        try Data(css.utf8).write(to: folder.appending(path: "github-soft-dark.css"))
+
+        let catalog = CustomThemeFolder(url: folder).load()
+        #expect(catalog.failures.isEmpty, "\(catalog.failures.map(\.message))")
+        let theme = try #require(catalog.themes.first)
+        #expect(theme.displayName == "GitHub Soft Dark")
+        #expect(theme.background == ThemeBackground(light: ThemeColor(0xFF_FF_FF), dark: ThemeColor(0x21_28_30)))
+        #expect(theme.stylesheet.contains(Theme.github.stylesheet), "starts from the GitHub theme")
+        #expect(theme.stylesheet.contains("--bgColor-default: #212830;"))
+    }
+
     @Test("the guide shows the example theme exactly as the file has it")
     func exampleInGuide() throws {
         let example = try Self.exampleTheme().trimmingCharacters(in: .newlines)

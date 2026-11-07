@@ -513,6 +513,16 @@ body { margin: 0; }
 }
 ```
 
+## An `extends` example: GitHub Soft Dark
+
+[`github-soft-dark.css`](github-soft-dark.css) is github.com's **Soft dark** appearance
+(Primer's `dark_dimmed` palette), written as a few lines on top of `extends: github`. The
+GitHub theme takes all of its colors, syntax colors included, from Primer's CSS variables
+(`--fgColor-default`, `--bgColor-muted`, `--color-prettylights-syntax-keyword`, …), so the
+theme redefines those for dark mode and sets `background-dark` to match `--bgColor-default`.
+Light mode stays the bundled GitHub theme. The same approach works for Primer's other
+palettes, such as high contrast or the colorblind ones.
+
 ## Checklist
 
 - [ ] The header (if any) is the very first thing in the file and starts with `mdv-theme`.

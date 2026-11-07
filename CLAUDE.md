@@ -122,7 +122,8 @@ lock the build database.
   milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
-- `docs/THEMES.md`: the end-user theme authoring guide, with `docs/example-theme.css`.
+- `docs/THEMES.md`: the end-user theme authoring guide, with `docs/example-theme.css` and
+  `docs/github-soft-dark.css` (an `extends: github` example).
   `ThemeGuideTests` loads the example and checks the guide's snippets, limits, and error
   messages; a change to custom theme behavior updates the guide.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
