@@ -79,7 +79,10 @@ editor or a browser.
   the file and its folder; `FileWatcher`), debounced 50 ms (capped at 150 ms for a steady
   stream). It handles in-place writes, atomic saves (rename over, swap, Vim's rename-to-backup),
   delete and recreate, and renames (followed, except into the Trash, which counts as a
-  deletion). Chosen over `NSFilePresenter` (#21), which `NSDocument` already is: measured, it
+  deletion). While the document's folder is missing (deleted by `git checkout` or a build
+  tool), it watches the nearest existing ancestor and follows the path back down, so the file
+  reloads when the folder comes back (#41). Chosen over `NSFilePresenter` (#21), which
+  `NSDocument` already is: measured, it
   reported edits from other processes about a second late and went silent for good after a
   delete. Reloads bypass `NSDocument.revert`, which reads on the main thread and reports a bad
   file with an alert: the file is read and rendered off the main actor (a 1 MB document renders in about 0.16 s in a
@@ -108,7 +111,10 @@ editor or a browser.
   `<bundle id>.markdown`, conforming to it (on a Mac where another app also declares them,
   Launch Services may pick that app's type, which still conforms to plain text). Plain text
   (`.txt`) opens because it conforms to `public.plain-text`, which mdv reads but never claims
-  (`LSHandlerRank None`).
+  (`LSHandlerRank None`). Extensionless files (`CHANGELOG`) are `public.data`, which mdv also
+  never declares: `DocumentController` types one as plain text (for the Open panel, drops, and
+  any other open) only when its first 4 KB is UTF-8 without NUL bytes (`ExtensionlessText`,
+  #41). Recent macOS already types a few names (`README`, `INSTALL`) as plain text.
   **The first open renders off the main thread (#32).** `NSDocument` can't be created off main
   (its init is `@MainActor` and traps there under Swift 6, so `canConcurrentlyReadDocuments` is
   out), so `read(from:ofType:)` reads and decodes the file on main, which keeps NSDocument's own
