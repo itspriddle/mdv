@@ -36,8 +36,9 @@ final class WebViewCoordinator: NSObject {
     /// Performs every link action except in-page scrolling (opening documents and URLs).
     var linkHandler: ((LinkAction, LinkOpening) -> Void)?
 
-    /// Find in page (#25, `WebViewCoordinator+Find.swift`): the find bar's state and commands.
-    private(set) lazy var find = FindInPage(host: self)
+    /// Find in page (#25, `WebViewCoordinator+Find.swift`): the find bar's state and commands,
+    /// sharing the system find pasteboard (#42).
+    private(set) lazy var find = FindInPage(host: self, pasteboard: NSPasteboard(name: .find))
 
     /// - Parameter configuration: a fresh configuration (`WebViewConfiguration.make()`); this
     ///   coordinator installs its own `mdv-doc` scheme handler on it, so it can't be reused.
@@ -58,6 +59,7 @@ final class WebViewCoordinator: NSObject {
         // so the window's theme-colored background shows instead (no white flash in dark mode).
         webView.isHidden = true
         webView.setAccessibilityIdentifier("document-web-view")
+        webView.copyLinkHandler = { [weak self] in self?.copyContextMenuLink() }
         // Hover reports from `LinkHover.js`, accepted from the app's content world only.
         webView.configuration.userContentController.add(
             LinkHoverMessageHandler(coordinator: self), contentWorld: AppScripts.world,

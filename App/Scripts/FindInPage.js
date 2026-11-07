@@ -225,5 +225,23 @@
     return (document.getSelection()?.toString() ?? "").slice(0, MAXIMUM_QUERY_LENGTH);
   }
 
-  globalThis.mdvFind = Object.freeze({ search, select, clear, selectionText });
+  // Jump to Selection: scrolls the current match (while the find bar is open) or else the
+  // selected text into view. Returns false when there is neither.
+  function revealSelection() {
+    let range = current >= 0 && current < matches.length ? matches[current] : null;
+    if (range === null) {
+      const selection = document.getSelection();
+      if (selection === null || selection.rangeCount === 0 || selection.isCollapsed) {
+        return false;
+      }
+      range = selection.getRangeAt(0);
+    }
+    if (!range.startContainer.isConnected) {
+      return false;
+    }
+    reveal(range);
+    return true;
+  }
+
+  globalThis.mdvFind = Object.freeze({ search, select, clear, selectionText, revealSelection });
 })();

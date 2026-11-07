@@ -46,7 +46,8 @@ lock the build database.
     `RootRelativeURL` (`/docs/x.png` resolved against the allowed root, `RenderOptions.linkRoot`).
   - `RemoteImages/`: `RemoteImage` (what counts as remote), `RemoteImagePolicy`
     (`RenderOptions.remoteImages`), and the blocked-image placeholder markup.
-  - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`).
+  - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`),
+    and `CopyableLink` (what Copy Link copies; never an `mdv-doc:` URL).
   - `Outline/`: `DocumentOutline` (heading tree) and `OutlineTracker` (current section).
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
@@ -58,7 +59,8 @@ lock the build database.
     plus `RenderedPage`, and the remote-images variant). Every load and revert goes through
     `setContent(_:)`, which tells each `DocumentWindowController`. `DocumentController` (the
     shared `NSDocumentController`) finds open files by identity and skips gone files on restore.
-  - `Find/`: `FindInPage` (find state and commands, tested with a fake host) and `FindBar`
+  - `Find/`: `FindInPage` (find state and commands, tested with a fake host), `SharedFindQuery`
+    (the system find pasteboard), and `FindBar`
     (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
     commands on). The page side is `App/Scripts/FindInPage.js` via `WebViewCoordinator+Find`.
   - `LiveReload/`: `FileWatcher` (kqueue by path, debounced) and `LiveReloader` (reads and

@@ -1,7 +1,8 @@
 import AppKit
 
 /// Edit > Find: the standard find commands (`performTextFinderAction(_:)`, tagged with
-/// `NSTextFinder.Action`), handled by `DocumentWindowController+Find.swift`.
+/// `NSTextFinder.Action`, and Jump to Selection, `centerSelectionInVisibleArea(_:)`), handled by
+/// `DocumentWindowController+Find.swift`.
 enum FindMenu: MenuContribution {
     static func contribute(to menu: MainMenu) {
         let find = NSMenu(title: "Find")
@@ -13,6 +14,9 @@ enum FindMenu: MenuContribution {
         ] {
             find.addItem(item)
         }
+        find.addItem(
+            NSMenuItem(
+                "Jump to Selection", action: #selector(NSResponder.centerSelectionInVisibleArea(_:)), key: "j"))
         menu.addGroup([NSMenuItem("Find", submenu: find)], to: .edit)
     }
 

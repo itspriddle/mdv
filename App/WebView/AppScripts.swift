@@ -19,7 +19,9 @@ enum AppScripts {
     }
 
     /// Bundled scripts to install, by file name (without `.js`), in order.
-    private static let bundledScriptNames = ["DocumentBridge", "LinkHover", "ScrollPosition", "FindInPage"]
+    private static let bundledScriptNames = [
+        "DocumentBridge", "LinkHover", "ScrollPosition", "FindInPage", "ContextMenuLink",
+    ]
 
     /// The source of a bundled script. A missing script is a packaging bug, not a runtime
     /// condition, so it traps rather than shipping a window without its bridge.

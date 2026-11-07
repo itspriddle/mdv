@@ -24,6 +24,17 @@ enum DocumentPasteboard {
         pasteboard.setString(html, forType: .string)
     }
 
+    /// Writes a link for Copy Link (#42): its URL as a URL and as plain text. `url` must come
+    /// from `CopyableLink` (never an internal `mdv-doc` URL). A `file:` URL is written as
+    /// `public.url` text only, not as a file reference, so pasting it in Finder doesn't copy
+    /// the file.
+    static func writeLink(_ url: URL, to pasteboard: NSPasteboard) {
+        pasteboard.clearContents()
+        pasteboard.declareTypes([.URL, .string], owner: nil)
+        pasteboard.setString(url.absoluteString, forType: .URL)
+        pasteboard.setString(url.absoluteString, forType: .string)
+    }
+
     /// The rendered body fragment Copy as HTML copies: the default render options, the same
     /// output as `mdv --html` without the page around it. No `data-source-line` annotations, and
     /// remote images are kept as written (the viewer's placeholders are display only; nothing

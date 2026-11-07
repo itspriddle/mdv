@@ -162,7 +162,8 @@ final class FindSearchFieldCell: NSSearchFieldCell {
 
 /// A field editor that leaves Edit > Find commands to the window controller. The standard field
 /// editor answers `performTextFinderAction(_:)` itself and disables every Find item (it has no
-/// find bar of its own), so Cmd-G wouldn't work while typing in the find field.
+/// find bar of its own), so Cmd-G wouldn't work while typing in the find field. Jump to
+/// Selection (`centerSelectionInVisibleArea(_:)`) goes to the page's match, not the field.
 final class FindFieldEditor: NSTextView {
     convenience init() {
         self.init(frame: .zero)
@@ -170,7 +171,9 @@ final class FindFieldEditor: NSTextView {
     }
 
     override func responds(to selector: Selector?) -> Bool {
-        if selector == #selector(NSResponder.performTextFinderAction(_:)) {
+        if selector == #selector(NSResponder.performTextFinderAction(_:))
+            || selector == #selector(NSResponder.centerSelectionInVisibleArea(_:))
+        {
             return false
         }
         return super.responds(to: selector)

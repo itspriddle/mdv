@@ -29,6 +29,11 @@ extension WebViewCoordinator: FindInPageHost {
         try await callBridge("return mdvFind.selectionText();") as? String ?? ""
     }
 
+    func revealSelection() async throws -> Bool {
+        let result = try await callBridge("return mdvFind.revealSelection();")
+        return (result as? NSNumber)?.boolValue ?? false
+    }
+
     func focusPage() {
         webView.window?.makeFirstResponder(webView)
     }
