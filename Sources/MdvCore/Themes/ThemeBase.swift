@@ -53,6 +53,7 @@ public enum ThemeBase {
             content: " (" attr(href) ")"; font-size: 0.8em; overflow-wrap: anywhere;
           }
           pre { overflow: visible !important; white-space: pre-wrap !important; overflow-wrap: anywhere !important; }
+          pre code { white-space: pre-wrap !important; }
           code { overflow-wrap: anywhere !important; }
           table { display: table !important; width: 100% !important; overflow: visible !important; }
           thead { display: table-header-group !important; }

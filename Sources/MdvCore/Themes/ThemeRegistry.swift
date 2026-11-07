@@ -1,8 +1,8 @@
 /// The themes mdv knows, by id. The one place the app and CLI ask for a theme: an id that is
 /// missing, unknown, or no longer registered (a deleted custom theme) resolves to the default.
 public struct ThemeRegistry: Sendable, Equatable {
-    /// The bundled themes, default first.
-    public static let bundled = ThemeRegistry(defaultTheme: .github)
+    /// The bundled themes, default first: GitHub, Document, Serif.
+    public static let bundled = ThemeRegistry(defaultTheme: .github, others: [.document, .serif])
 
     /// What an unknown id resolves to (GitHub for the bundled registry).
     public let defaultTheme: Theme

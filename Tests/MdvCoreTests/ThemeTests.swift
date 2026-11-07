@@ -34,7 +34,7 @@ struct ThemeTests {
     func printStylesheet() throws {
         let css = Theme.github.css
         let start = try #require(css.range(of: "@media print {", options: .backwards))
-        #expect(css[start.upperBound...].contains("a { color: inherit; text-decoration: underline; }"))
+        #expect(css[start.upperBound...].contains(".markdown-body a { color: inherit; text-decoration: underline; }"))
         #expect(css.hasSuffix("}"))
         let bare = Theme(id: "b", displayName: "B", background: Theme.github.background, stylesheet: "p {}")
         #expect(!bare.css.contains("@media print"))
@@ -42,9 +42,10 @@ struct ThemeTests {
 
     @Test("dark colors are screen only")
     func screenOnlyDark() {
-        for css in [ThemeBase.css, Theme.github.css] {
+        for css in [ThemeBase.css] + ThemeRegistry.bundled.themes.map(\.css) {
             #expect(css.contains("@media screen and (prefers-color-scheme: dark)"))
             #expect(!css.contains("@media (prefers-color-scheme: dark)"))
+            #expect(!css.contains("@media (prefers-color-scheme: light)"))
         }
     }
 
@@ -56,6 +57,8 @@ struct ThemeTests {
         for rule in [
             ".anchor { display: none !important; }",
             "pre { overflow: visible !important; white-space: pre-wrap !important;",
+            // Vendored GitHub CSS sets `pre > code { white-space: pre }`, which would clip on paper.
+            "pre code { white-space: pre-wrap !important; }",
             "table { display: table !important; width: 100% !important; overflow: visible !important; }",
             ":root { color-scheme: light !important; }", #"a[href^="https:"]::after"#,
             ".markdown-body { max-width: none !important; padding: 0 !important; }",
