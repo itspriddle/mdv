@@ -75,6 +75,9 @@ editor or a browser.
   its file (live reload hangs off it, below), per-window state restoration, tabs, recents, the
   responder chain for menu commands, and a window controller to own the web view. SwiftUI stays
   for window content (find bar, banners, link status); the outline sidebar is AppKit (below).
+  The first window's web view is created and starts its web content process first thing at
+  launch (`WebViewPrewarmer`, #40), before the document is read, so WebKit's process start
+  overlaps the rest of the launch; later windows create their own.
 - **Live reload:** each open document watches its file by path with kqueue (`DispatchSource` on
   the file and its folder; `FileWatcher`), debounced 50 ms (capped at 150 ms for a steady
   stream). It handles in-place writes, atomic saves (rename over, swap, Vim's rename-to-backup),
@@ -390,6 +393,11 @@ editor or a browser.
 
 ## Success looks like
 
-- `mdv README.md` shows a document indistinguishable from GitHub's rendering in under 200 ms.
+- `mdv README.md` shows a document indistinguishable from GitHub's rendering as fast as a
+  `WKWebView` can show it. The original goal, under 200 ms, isn't reachable with `WKWebView`
+  (#40): a bare AppKit app that loads the page into one web view first thing at launch paints
+  it in about 350 ms on a MacBook Air (ROADMAP M3), most of it WebKit starting its web content
+  process and drawing the first frames. mdv matches that floor; `scripts/measure-cold-open -f`
+  measures both.
 - Switching themes or editing the file in another app updates the window instantly.
 - A new contributor can clone, `make bootstrap && make test`, and be productive in minutes.

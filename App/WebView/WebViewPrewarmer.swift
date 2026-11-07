@@ -4,10 +4,13 @@ import AppKit
 /// while the app finishes launching and reads the document, instead of after the window is
 /// built.
 ///
-/// A web view's first load waits for WebKit to launch its web content process, which took
-/// 100-150 ms of the cold open (measured with `scripts/measure-cold-open`). Each `WKWebView` gets
-/// its own process, so warming a separate web view doesn't help the window's: the warmed one has
-/// to be the one the window shows. `prewarm()` makes a `WebViewCoordinator` and starts its
+/// A web view's first load waits for WebKit to start its web content process: about 130 ms
+/// from `loadHTMLString` to a finished page in a bare app (`scripts/measure-cold-open -f`), on
+/// the critical path when the window started it after the launch and the document read. Each
+/// `WKWebView` gets its own process, so warming a separate web view doesn't help the window's:
+/// the warmed one has to be the one the window shows.
+///
+/// If no document window opens (the Open panel is cancelled), the spare stays until one does. `prewarm()` makes a `WebViewCoordinator` and starts its
 /// preparation load (`prepareForFirstLoad()`); the first document window takes it with
 /// `takeCoordinator()`. Later windows make their own, as before.
 @MainActor
