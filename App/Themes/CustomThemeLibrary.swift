@@ -74,8 +74,8 @@ final class CustomThemeLibrary {
         watcher?.checkForChanges()
     }
 
-    /// Creates the folder if needed and shows it in Finder (not under UI tests). A hook for
-    /// Settings (#36): "Reveal Themes Folder" can call this too.
+    /// Creates the folder if needed and shows it in Finder (not under UI tests). View > Theme
+    /// and Settings > General (#36) both call this.
     func openFolder() {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
