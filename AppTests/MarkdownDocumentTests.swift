@@ -28,17 +28,19 @@ struct MarkdownDocumentTests {
     }
 
     @Test("reads and renders the file")
-    func read() throws {
+    func read() async throws {
         let url = try Self.temporaryFile("# Title\n\nBody")
         let document = try MarkdownDocument(contentsOf: url, ofType: Self.markdownType)
+        await document.pendingRender?.value
         #expect(document.content?.source == "# Title\n\nBody")
         #expect(document.content?.page.title == "Title")
     }
 
     @Test("falls back to the file name for the title")
-    func fileNameTitle() throws {
+    func fileNameTitle() async throws {
         let url = try Self.temporaryFile("no heading", name: "README.md")
         let document = try MarkdownDocument(contentsOf: url, ofType: Self.markdownType)
+        await document.pendingRender?.value
         #expect(document.content?.page.title == "README.md")
     }
 
@@ -82,6 +84,7 @@ struct MarkdownDocumentTests {
         document.makeWindowControllers()
         defer { document.close() }
         let controller = try #require(document.windowControllers.first as? DocumentWindowController)
+        await document.pendingRender?.value
         #expect(controller.window?.title == "First")
         #expect(controller.window?.contentViewController != nil)
         #expect(try await pageTitle(in: controller, becoming: "First") == "First")
@@ -95,6 +98,7 @@ struct MarkdownDocumentTests {
         // A revert is how a reload reaches the window (#21 triggers it on file changes).
         try Data("# Second".utf8).write(to: url)
         try document.revert(toContentsOf: url, ofType: Self.markdownType)
+        await document.pendingRender?.value
         #expect(document.content?.page.title == "Second")
         #expect(controller.window?.title == "Second")
         #expect(try await pageTitle(in: controller, becoming: "Second") == "Second")

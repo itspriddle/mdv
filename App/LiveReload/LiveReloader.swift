@@ -5,8 +5,10 @@ import Foundation
 /// content. Renders that a newer change overtakes are dropped. A file that can't be read or
 /// isn't UTF-8 leaves the last good render in place and sets the document's `fileStatus`.
 ///
-/// Reloads bypass `NSDocument.revert(toContentsOf:ofType:)` on purpose: NSDocument reads on the
-/// main thread, and rendering a 1 MB document there would stall the UI.
+/// Reloads bypass `NSDocument.revert(toContentsOf:ofType:)` on purpose: a revert reads on the
+/// main thread and reports a bad file with an error alert, while a reload reads off the main
+/// actor, skips an unchanged file, and reports a bad one in the window (`fileStatus`). Both
+/// render off the main actor (`MarkdownDocument.renderContent`, #32).
 @MainActor
 final class LiveReloader {
     private weak var document: MarkdownDocument?
@@ -107,15 +109,10 @@ final class LiveReloader {
     nonisolated static func render(contentsOf url: URL, unlessSourceIs currentSource: String?) throws
         -> DocumentContent?
     {
-        let data = try Data(contentsOf: url)
-        guard let source = String(bytes: data, encoding: .utf8) else {
-            throw CocoaError(.fileReadInapplicableStringEncoding)
-        }
+        let source = try DocumentContent.source(from: Data(contentsOf: url))
         if source == currentSource {
             return nil
         }
-        return DocumentContent(
-            source: source, fallbackTitle: url.lastPathComponent,
-            linkRoot: DocumentContent.linkRoot(forDocumentAt: url))
+        return MarkdownDocument.renderContent(source, of: url)
     }
 }

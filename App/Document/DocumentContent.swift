@@ -52,10 +52,18 @@ struct DocumentContent: Equatable, Sendable {
 
     /// Decodes UTF-8 file contents and renders them.
     init(data: Data, fallbackTitle: String, linkRoot: String? = nil) throws {
+        self.init(source: try Self.source(from: data), fallbackTitle: fallbackTitle, linkRoot: linkRoot)
+    }
+
+    /// Decodes file contents as UTF-8, the only encoding mdv reads. Throws
+    /// `CocoaError(.fileReadInapplicableStringEncoding)` for anything else. Cheap next to
+    /// rendering (a few milliseconds for 5 MB), so `MarkdownDocument` decodes on the main thread
+    /// and its open still fails with NSDocument's own error.
+    static func source(from data: Data) throws -> String {
         guard let source = String(bytes: data, encoding: .utf8) else {
             throw CocoaError(.fileReadInapplicableStringEncoding)
         }
-        self.init(source: source, fallbackTitle: fallbackTitle, linkRoot: linkRoot)
+        return source
     }
 
     /// The app's render options: the defaults plus `data-source-line` annotations, which the
