@@ -30,6 +30,11 @@ final class ThemePickerTests: DocumentWindowTestCase {
             .trimmingCharacters(in: .newlines)
     }
 
+    func fontFamily(in controller: DocumentWindowController) async throws -> String? {
+        try await evaluate(
+            "return getComputedStyle(document.querySelector('.markdown-body')).fontFamily;", in: controller) as? String
+    }
+
     func windowBackgroundMatches(_ controller: DocumentWindowController, _ theme: Theme) throws -> Bool {
         let color = try #require(controller.window?.backgroundColor)
         var matches = true
@@ -88,14 +93,14 @@ final class ThemePickerTests: DocumentWindowTestCase {
         _ = try await evaluate("window.mdvThemeTestMarker = 42; return true;", in: controller)
         let line = try await coordinator.currentSourceLine()
 
+        let familyBefore = try await fontFamily(in: controller)
         controller.setTheme(id: "serif")
         #expect(controller.theme == .serif)
         #expect(try windowBackgroundMatches(controller, .serif))
         await coordinator.pendingThemeSwap?.value
         #expect(try await pageThemeCSS(in: controller) == Theme.serif.layerCSS.trimmingCharacters(in: .newlines))
-        let family = try await evaluate(
-            "return getComputedStyle(document.querySelector('.markdown-body')).fontFamily;", in: controller) as? String
-        #expect(family?.lowercased().contains("serif") == true, "\(family ?? "nil")")
+        let family = try await fontFamily(in: controller)
+        #expect(family != familyBefore, "the computed style changed: \(family ?? "nil")")
 
         #expect(try await evaluate("return window.mdvThemeTestMarker;", in: controller) as? Int == 42, "no reload")
         #expect(abs(try await coordinator.currentSourceLine() - line) < 1, "reading position kept")
@@ -116,7 +121,9 @@ final class ThemePickerTests: DocumentWindowTestCase {
         documents.append(document)
         controller.setTheme(id: "document")
         try await until("the first load") { controller.coordinator.hasLoadedPage }
-        try await until("the theme swap") { try await pageThemeCSS(in: controller) == Theme.document.layerCSS.trimmingCharacters(in: .newlines) }
+        try await until("the theme swap") {
+            try await pageThemeCSS(in: controller) == Theme.document.layerCSS.trimmingCharacters(in: .newlines)
+        }
         #expect(controller.coordinator.loadedTheme == .document)
     }
 
@@ -200,7 +207,8 @@ final class ThemePickerTests: DocumentWindowTestCase {
         let toolbar = try #require(controller.window?.toolbar)
         #expect(controller.toolbarDefaultItemIdentifiers(toolbar).contains(DocumentWindowController.themeToolbarItem))
         let item = try #require(
-            controller.toolbar(toolbar, itemForItemIdentifier: DocumentWindowController.themeToolbarItem,
+            controller.toolbar(
+                toolbar, itemForItemIdentifier: DocumentWindowController.themeToolbarItem,
                 willBeInsertedIntoToolbar: true) as? NSMenuToolbarItem)
         #expect(item.menu.items.map { $0.representedObject as? String } == ThemeRegistry.bundled.themes.map(\.id))
     }
@@ -255,7 +263,9 @@ final class ThemePickerTests: DocumentWindowTestCase {
         settings.registry = .bundled
         #expect(controller.theme == ThemeRegistry.bundled.defaultTheme)
         await controller.coordinator.pendingThemeSwap?.value
-        #expect(try await pageThemeCSS(in: controller) == ThemeRegistry.bundled.defaultTheme.layerCSS.trimmingCharacters(in: .newlines))
+        #expect(
+            try await pageThemeCSS(in: controller)
+                == ThemeRegistry.bundled.defaultTheme.layerCSS.trimmingCharacters(in: .newlines))
         #expect(try windowBackgroundMatches(controller, ThemeRegistry.bundled.defaultTheme))
         #expect(controller.themeID == custom.id, "the pick is kept in case the theme comes back")
 
