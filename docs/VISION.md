@@ -133,7 +133,10 @@ editor or a browser.
   `data-source-line`, remote images as written) as HTML plus its markup as plain text; Copy
   Markdown Source copies the file as plain text and `net.daringfireball.markdown`. The web
   view's context menu drops browser items the viewer can't perform (Reload, Back/Forward,
-  downloads, "Open Image/Media/Frame in New Window").
+  downloads, "Open Image/Media/Frame in New Window"). Copy Link (#42) is taken over from
+  WebKit, which copies a relative link's internal `mdv-doc:` URL: it copies the `file:` URL
+  the link names, keeping the fragment (`CopyableLink`), and external links as written. The
+  `file:` URL, not the link as written, so the copy works outside the document's folder.
 - **Find in page (#25):** an app script in the isolated content world (`FindInPage.js`), with
   a SwiftUI find bar above the page and Edit > Find sending the standard
   `performTextFinderAction(_:)` up the responder chain. Chosen over `WKWebView.find`, which
@@ -146,7 +149,11 @@ editor or a browser.
   API (`::highlight(mdv-find)` rules in the theme), so the DOM, source-line positions, and
   in-place swaps are untouched and no style is injected. The query and options survive closing
   the bar and every reload: the search runs again after each display (in-place swap or full
-  load), keeping the current match number without scrolling.
+  load), keeping the current match number without scrolling. The query follows the system
+  find pasteboard (#42): opening the bar or Find Next/Previous takes a search made in another
+  app or window since this one last looked, and each new query (typed, or Use Selection for
+  Find) is written back. Jump to Selection (Cmd-J, `centerSelectionInVisibleArea(_:)`) scrolls
+  the current match while the bar is open, else the page's selection, into view.
 - **Default handler:** mdv declares both Markdown types with `LSHandlerRank: Alternate` and
   asks, never grabs (#23); "Make Default" covers both. `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a

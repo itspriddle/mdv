@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Observation
 
 /// The page side of find in page: what `FindInPage` needs from the window's web view
@@ -14,6 +14,9 @@ protocol FindInPageHost: AnyObject {
     func clearMatches(selectingCurrent: Bool) async throws
     /// The page's selected text.
     func selectedText() async throws -> String
+    /// Scrolls the current match, else the page's selected text, into view. Returns `false`
+    /// when there is neither.
+    func revealSelection() async throws -> Bool
     /// Gives the page keyboard focus (after the find bar closes).
     func focusPage()
 }
@@ -35,6 +38,10 @@ struct FindMatches: Equatable, Sendable {
 /// Page operations run one at a time, in order, so a search always finishes before the step
 /// that follows it. The query and options persist while the bar is closed and across reloads:
 /// `refresh()` runs the search again on new content.
+///
+/// The query follows the shared find pasteboard (`pasteboard`): showing the bar or Find
+/// Next/Previous adopts a search made elsewhere since this window last saw the pasteboard, and
+/// each new query (typed, or Use Selection for Find) is written back to it.
 @MainActor
 @Observable
 final class FindInPage {
@@ -59,11 +66,18 @@ final class FindInPage {
     static let maximumQueryLength = 1000
 
     @ObservationIgnored weak var host: (any FindInPageHost)?
+    /// The shared find pasteboard; `nil` keeps the query to this window.
+    @ObservationIgnored var pasteboard: (any FindPasteboard)? {
+        didSet { sharedQuery = SharedFindQuery(pasteboard: pasteboard) }
+    }
+    @ObservationIgnored private var sharedQuery: SharedFindQuery
     @ObservationIgnored private var lastOperation: Task<Void, Never>?
     @ObservationIgnored private var pendingSearches = 0
 
-    init(host: (any FindInPageHost)? = nil) {
+    init(host: (any FindInPageHost)? = nil, pasteboard: (any FindPasteboard)? = nil) {
         self.host = host
+        sharedQuery = SharedFindQuery(pasteboard: pasteboard)
+        self.pasteboard = pasteboard
     }
 
     /// "3 of 12", "3 of 1000+", "Not found", or nil before there is anything to report.
@@ -83,7 +97,11 @@ final class FindInPage {
     /// existing query.
     func show() {
         focusRequest += 1
+        let adopted = adoptPasteboardQuery()
         guard !isVisible else {
+            if adopted {
+                search(fromCurrent: false, reveal: true)
+            }
             return
         }
         isVisible = true
@@ -123,6 +141,7 @@ final class FindInPage {
         }
         query = newQuery
         hasSearched = false
+        publishQuery()
         if isVisible {
             search(fromCurrent: true, reveal: true)
         }
@@ -144,6 +163,16 @@ final class FindInPage {
         enqueue { [weak self] host in
             let text = try await host.selectedText()
             self?.selectionDidLoad(text)
+        }
+    }
+
+    /// Jump to Selection (Cmd-J): scrolls the current match (while the bar is open) or the
+    /// page's selected text into view. Beeps when there is neither.
+    func jumpToSelection() {
+        enqueue { host in
+            if try await !host.revealSelection() {
+                NSSound.beep()
+            }
         }
     }
 
@@ -213,12 +242,13 @@ final class FindInPage {
     // MARK: Private
 
     private func step(forward: Bool) {
+        let adopted = adoptPasteboardQuery()
         guard !Self.isBlank(query) else {
             show()
             return
         }
         isVisible = true
-        if !hasSearched && pendingSearches == 0 {
+        if adopted || (!hasSearched && pendingSearches == 0) {
             search(fromCurrent: false, reveal: true)
             return
         }
@@ -267,13 +297,33 @@ final class FindInPage {
     }
 
     private func selectionDidLoad(_ text: String) {
-        // One line of text: newlines and runs of whitespace match any whitespace anyway.
-        let text = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let text = SharedFindQuery.singleLine(text)
         guard !text.isEmpty else {
             return
         }
-        setQuery(text)
+        if text == query {
+            // Still a new search as far as other apps know.
+            publishQuery()
+        } else {
+            setQuery(text)
+        }
         focusRequest += isVisible ? 1 : 0
+    }
+
+    /// Takes a search made in another app or window since this one last looked (from the find
+    /// pasteboard) as the query. Doesn't search; returns whether the query changed.
+    private func adoptPasteboardQuery() -> Bool {
+        guard let text = sharedQuery.newSearch(), text != query else {
+            return false
+        }
+        query = text
+        hasSearched = false
+        return true
+    }
+
+    /// Shares a new query with other apps and windows.
+    private func publishQuery() {
+        sharedQuery.publish(query)
     }
 
     private func apply(_ matches: FindMatches) {
