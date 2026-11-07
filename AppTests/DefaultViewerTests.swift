@@ -142,21 +142,11 @@ struct DefaultViewerTests {
         await #expect(throws: DefaultViewer.Failure.notApplied) { try await viewer().makeDefault() }
     }
 
-    @Test("menu item is enabled until mdv is the default, then checked")
-    func menuValidation() {
-        let controller = DefaultViewerOfferController(viewer: viewer())
-        let item = NSMenuItem("Make", action: #selector(AppDelegate.makeDefaultMarkdownViewer(_:)))
-        #expect(controller.validateMenuItem(item))
-        #expect(item.state == .off)
-        workspace.setHandler("com.itspriddle.mdv")
-        #expect(!controller.validateMenuItem(item))
-        #expect(item.state == .on)
-    }
-
-    @Test("the app menu has the item")
-    func menuItem() {
-        let menu = MainMenu.build(contributions: [DefaultViewerMenu.self])
-        let item = menu.items.first?.submenu?.item(withTitle: "Make mdv the Default Markdown Viewer")
-        #expect(item?.action == #selector(AppDelegate.makeDefaultMarkdownViewer(_:)))
+    @Test("the app menu no longer has the item; Settings does (#36)")
+    func notInAppMenu() {
+        let menu = MainMenu.build()
+        let titles = menu.items.first?.submenu?.items.map(\.title) ?? []
+        #expect(!titles.contains { $0.contains("Default Markdown Viewer") })
+        #expect(titles.contains("Settings…"))
     }
 }

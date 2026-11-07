@@ -10,6 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
     /// themes folder).
     private(set) var customThemes: CustomThemeLibrary?
+    /// The Settings window, created the first time it is shown and reused after.
+    private var settingsWindowController: SettingsWindowController?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         MainMenu.install()
@@ -70,12 +72,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         false
     }
 
-    /// App menu: "Make mdv the Default Markdown Viewer" (`DefaultViewerMenu`).
-    @objc func makeDefaultMarkdownViewer(_ sender: Any?) {
-        defaultViewerOffer.makeDefaultMarkdownViewer(sender)
+    /// App menu > Settings… (`SettingsMenu`): shows the one Settings window.
+    @objc func showSettings(_ sender: Any?) {
+        let controller = settingsWindowController ?? makeSettingsWindowController()
+        settingsWindowController = controller
+        controller.show()
     }
 
-    /// View > Theme > Open Themes Folder: creates the folder if needed and shows it in Finder.
+    private func makeSettingsWindowController() -> SettingsWindowController {
+        var openThemesFolder: (@MainActor () -> Void)?
+        if let library = customThemes {
+            openThemesFolder = { library.openFolder() }
+        }
+        return SettingsWindowController(
+            model: SettingsModel(defaultViewerOffer: defaultViewerOffer, openThemesFolder: openThemesFolder))
+    }
+
+    /// View > Theme > Open Themes Folder and Settings' button: creates the folder if needed and
+    /// shows it in Finder.
     @objc func openThemesFolder(_ sender: Any?) {
         customThemes?.openFolder()
     }
@@ -84,7 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         if menuItem.action == #selector(openThemesFolder(_:)) {
             return customThemes != nil
         }
-        return defaultViewerOffer.validateMenuItem(menuItem)
+        return true
     }
 
     /// Whether the app is the host for `AppTests`, where a modal Open panel would block the run.

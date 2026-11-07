@@ -210,8 +210,8 @@ CSS themes as a first-class feature.
 
 - Theme switch (#34): in-place swap of the `mdv-theme` `<style>` text by app script (same
   `mdv.replaceStyle` as #37), keeping the reading position, find, zoom, and remote-image
-  opt-in; no reload. Theme is per window (restorable); the last pick is the default for new
-  windows until Settings (#36). Print uses the window's theme; Copy as HTML stays theme-free.
+  opt-in; no reload. Theme is per window (restorable); the default for new windows is set in
+  Settings (#36). Print uses the window's theme; Copy as HTML stays theme-free.
 - Custom theme metadata (#35): an optional leading `/* mdv-theme … */` header comment with
   `name`, `background`, `background-dark` (hex), and `extends` (a bundled id; default: base layer
   only). Ids are `custom:<file name>`. `@import`, `expression()`, non-`data:image` URLs, and
@@ -222,6 +222,13 @@ CSS themes as a first-class feature.
   dark rules screen only); bundled themes keep light code/table fills on paper and print body
   text at about 12pt (Serif 15px on paper). `<picture>` dark sources are left to WebKit, which
   prints the light one. See VISION.
+- Settings window (#36): an `NSWindowController` with a toolbar-style `NSTabViewController` of
+  SwiftUI forms (no SwiftUI `Settings` scene). General: default theme (Settings owns it; View >
+  Theme changes one window), outline in new windows, zoom, content width, Open Themes Folder,
+  Make mdv the Default Markdown Viewer (moved from the app menu). It surfaces the existing
+  stores rather than duplicating them. The remote-image opt-in is not remembered per file
+  (deferred; a stored allowlist is a privacy record and a standing exception to "no remote
+  content"). See VISION.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.

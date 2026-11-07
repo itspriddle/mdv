@@ -182,8 +182,8 @@ editor or a browser.
   asks, never grabs (#23); "Make Default" covers both. `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
   mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
   non-modal panel, when a document opens while another app is the default ("Not Now" snoozes
-  30 days, "Don't Ask Again" is permanent), and the app menu has "Make mdv the Default Markdown
-  Viewer" until Settings exists (M3).
+  30 days, "Don't Ask Again" is permanent), and Settings > General has "Make mdv the Default
+  Markdown Viewer" (#36; it was in the app menu in M2).
 - **Themes (#31):** a `Theme` (MdvCore) is plain CSS plus metadata: id, display name, a
   `ThemeBackground` per appearance (the app paints windows and the under-page area with it
   before first paint, and the page's `body` background is generated from it so they can't
@@ -235,9 +235,8 @@ editor or a browser.
   global: it's a reading preference, not a property of the document.
 - **Theme picker (#34):** each window has its own theme, picked from View > Theme or the
   toolbar's theme menu (bundled themes, then custom ones in their own section), checked in
-  the menu, and kept by window restoration (an unknown id shows the default). A pick also
-  becomes the theme for new windows (`ThemeSettings.defaultThemeID`) until Settings (#36)
-  owns that. A switch is an in-place swap, not a reload: an app script replaces the
+  the menu, and kept by window restoration (an unknown id shows the default). A pick changes
+  that window only; the theme for new windows is Settings' (#36). A switch is an in-place swap, not a reload: an app script replaces the
   `mdv-theme` `<style>` text (`mdv.replaceStyle`, shared with #37) and restores the reading
   position in the same script run, so nothing paints in between; the DOM, find highlights,
   zoom, CSP, and remote-image opt-in are untouched, and the window and under-page background
@@ -289,6 +288,20 @@ editor or a browser.
   (checked on PDF output in `AppTests/PrintThemeTests`); rewriting `<source media>` to
   `screen and (...)` was tried and rejected, because WebKit then kept the light image on
   screen after printing.
+- **Settings (#36):** App menu > Settings… (Cmd-,) opens one reusable `NSWindowController`
+  (`SettingsWindowController`) holding an `NSTabViewController` in toolbar style, one SwiftUI
+  `Form` per pane (General today); no SwiftUI `Settings` scene, since the app lifecycle is
+  AppKit. It remembers its position and isn't restored at launch. Settings stores nothing of
+  its own: `SettingsModel` reads and writes the existing stores (`ThemeSettings`,
+  `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, `DefaultViewer`), each with an
+  injectable `UserDefaults` suite and in memory under UI tests, and follows their change
+  notifications, so the View menu and Settings always agree. Zoom and content width apply to
+  every window live; the default theme and outline visibility apply to new windows; Settings
+  owns the default theme (View > Theme no longer changes it). Settings also lists custom theme
+  files that didn't load and has Open Themes Folder (#35). The remote-image opt-in stays per
+  window and is not remembered per file: a remembered list of files that may load remote
+  content is a privacy record and a standing exception to "no remote content" that the reader
+  can forget granting; deferred until there's demand.
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI

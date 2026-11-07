@@ -28,8 +28,8 @@ extension DocumentWindowController {
         applyTheme()
     }
 
-    /// Shows the theme with `id` in this window. Doesn't change the default for new windows;
-    /// `selectTheme(_:)` (the menus) does.
+    /// Shows the theme with `id` in this window. Doesn't change the default for new windows,
+    /// which only Settings (#36) sets.
     func setTheme(id: String) {
         guard id != themeID else {
             return
@@ -50,8 +50,7 @@ extension DocumentWindowController {
     // MARK: Actions
 
     /// View > Theme > <theme> and the toolbar's theme menu: the sender's `representedObject` is
-    /// the theme id. The pick also becomes the theme for new windows (until Settings, #36,
-    /// owns the default).
+    /// the theme id. Only this window changes; the theme for new windows is Settings' (#36).
     @objc func selectTheme(_ sender: Any?) {
         guard let id = (sender as? NSMenuItem)?.representedObject as? String,
             themeSettings.registry.contains(id: id)
@@ -59,7 +58,6 @@ extension DocumentWindowController {
             return
         }
         setTheme(id: id)
-        themeSettings.defaultThemeID = id
     }
 
     /// Checks the item of the theme the window shows.
