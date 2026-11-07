@@ -168,7 +168,8 @@ struct RemoteImageRenderingTests {
             """, .block)
         #expect(rendered.blockedRemoteImages.map(\.url) == ["http://a.example/d.png", "https://d.example/only.png"])
         #expect(Self.sources(in: rendered.html) == ["local.png"])
-        let optedIn = Self.render("<picture><source srcset=\"https://d.example/only.png\"><img src=\"x.png\"></picture>", .allowHTTPS)
+        let optedIn = Self.render(
+            "<picture><source srcset=\"https://d.example/only.png\"><img src=\"x.png\"></picture>", .allowHTTPS)
         #expect(optedIn.blockedRemoteImages.isEmpty)
     }
 
