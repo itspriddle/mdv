@@ -50,8 +50,8 @@ struct FileWatcherTests {
         return folder
     }
 
-    func makeWatcher() -> FileWatcher {
-        let watcher = FileWatcher(url: file) { [log] event in log.append(event) }
+    func makeWatcher(for url: URL? = nil) -> FileWatcher {
+        let watcher = FileWatcher(url: url ?? file) { [log] event in log.append(event) }
         watcher.start()
         return watcher
     }
