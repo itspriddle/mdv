@@ -113,8 +113,9 @@ final class DocumentWebView: WKWebView {
 @MainActor
 enum DocumentDrop {
     /// The file URLs on `pasteboard` that `controller` has a document class for (Markdown and
-    /// plain text, per the app's declared document types), in order. Folders and other files
-    /// are left out.
+    /// plain text, per the app's declared document types, and extensionless text files, per
+    /// `DocumentController.typeForContents(of:)`), in order. Folders and other files are left
+    /// out.
     static func openableFiles(
         on pasteboard: NSPasteboard, controller: NSDocumentController = .shared
     ) -> [URL] {

@@ -1,16 +1,22 @@
 import AppKit
+import UniformTypeIdentifiers
 
 /// The app's `NSDocumentController` (created in `main.swift`, before anything touches
 /// `NSDocumentController.shared`, so it becomes the shared controller).
 ///
 /// AppKit's defaults handle opening (Finder, Open panel, Dock drops, Open Recent) and bring an
-/// already-open document forward. This subclass tightens three of them:
+/// already-open document forward. This subclass tightens three of them and widens one:
 /// - an already-open file is found by file identity, not URL spelling (symlinks, `/private/tmp`
 ///   vs `/tmp`, case), so it focuses its window instead of opening a duplicate;
 /// - window restoration skips documents whose file is gone or in the Trash, quietly;
-/// - tests (hosted unit tests and UI tests) don't add to the user's Open Recent list.
+/// - tests (hosted unit tests and UI tests) don't add to the user's Open Recent list;
+/// - extensionless text files (`README`) open as plain text from the Open panel, drops, and
+///   every other open path, without mdv registering for them (`ExtensionlessText`, #41).
 @MainActor
 final class DocumentController: NSDocumentController {
+    /// The Open panel's delegate while the panel is up (a panel holds its delegate weakly).
+    private var openPanelFilter: OpenPanelFilter?
+
     /// Whether opened documents go in Open Recent. Off when the app runs under tests, which
     /// share the bundle ID (and so the recents list) with the user's real mdv.
     static var recordsRecentDocuments: Bool {
@@ -53,6 +59,46 @@ final class DocumentController: NSDocumentController {
             completionHandler: completionHandler)
     }
 
+    /// The file's type, as AppKit decides it, except that an extensionless text file whose
+    /// type has no document class (`public.data`) is plain text. Opening, drops
+    /// (`DocumentDrop`), and the Open panel all ask this.
+    override func typeForContents(of url: URL) throws -> String {
+        let type = try super.typeForContents(of: url)
+        guard documentClass(forType: type) == nil, ExtensionlessText.isPlainText(at: url) else {
+            return type
+        }
+        return UTType.plainText.identifier
+    }
+
+    /// Whether `url` is a file mdv opens: one whose type (`typeForContents(of:)`) has a
+    /// document class. Folders are not.
+    func canOpen(_ url: URL) -> Bool {
+        guard let type = try? typeForContents(of: url) else {
+            return false
+        }
+        return documentClass(forType: type) != nil
+    }
+
+    /// The Open panel filters by type, which leaves `README` greyed out (its type is
+    /// `public.data`). Run it unfiltered and let `canOpen(_:)` enable files instead, so the
+    /// panel accepts exactly what the other open paths accept.
+    override func beginOpenPanel(
+        _ openPanel: NSOpenPanel, forTypes inTypes: [String]?,
+        completionHandler: @escaping (Int) -> Void
+    ) {
+        let filter = OpenPanelFilter(controller: self)
+        openPanelFilter = filter
+        openPanel.delegate = filter
+        super.beginOpenPanel(openPanel, forTypes: nil) { [weak self] result in
+            MainActor.assumeIsolated {
+                if self?.openPanelFilter === filter {
+                    self?.openPanelFilter = nil
+                }
+            }
+            completionHandler(result)
+        }
+    }
+
     // MARK: Policy
 
     /// Whether two file URLs name the same file: equal file resource identifiers (which see
@@ -88,5 +134,24 @@ final class DocumentController: NSDocumentController {
 
     nonisolated private static func fileIdentifier(_ url: URL) -> (any NSObjectProtocol)? {
         (try? url.resourceValues(forKeys: [.fileResourceIdentifierKey]))?.fileResourceIdentifier
+    }
+}
+
+/// Enables the Open panel's files that `DocumentController.canOpen(_:)` accepts, and every
+/// folder (to navigate into) that isn't a package.
+@MainActor
+final class OpenPanelFilter: NSObject, NSOpenSavePanelDelegate {
+    private weak var controller: DocumentController?
+
+    init(controller: DocumentController) {
+        self.controller = controller
+    }
+
+    func panel(_ sender: Any, shouldEnable url: URL) -> Bool {
+        let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+        if values?.isDirectory == true {
+            return values?.isPackage != true
+        }
+        return controller?.canOpen(url) ?? false
     }
 }

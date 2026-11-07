@@ -63,13 +63,15 @@ lock the build database.
     (`render(_:of:)`; tests await `pendingRender`), so `content` is `nil` until the first render
     lands; a newer read, `setContent`, or `close()` drops a render in flight. Every load and
     revert goes through `setContent(_:)`, which tells each `DocumentWindowController`.
-    `DocumentController` (the shared `NSDocumentController`) finds open files by identity and
-    skips gone files on restore.
+    `DocumentController` (the shared `NSDocumentController`) finds open files by identity,
+    skips gone files on restore, and types extensionless text files (`ExtensionlessText`) as
+    plain text; its `canOpen(_:)` is the one rule for the Open panel and drops.
   - `Find/`: `FindInPage` (find state and commands, tested with a fake host), `SharedFindQuery`
     (the system find pasteboard), and `FindBar`
     (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
     commands on). The page side is `App/Scripts/FindInPage.js` via `WebViewCoordinator+Find`.
-  - `LiveReload/`: `FileWatcher` (kqueue by path, debounced) and `LiveReloader` (reads and
+  - `LiveReload/`: `FileWatcher` (kqueue by path, debounced; watches the nearest existing
+    ancestor while the folder is gone) and `LiveReloader` (reads and
     renders off the main actor, drops stale renders, sets `MarkdownDocument.fileStatus`). Live
     reload bypasses `NSDocument.revert`; the window swaps content in place with
     `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
