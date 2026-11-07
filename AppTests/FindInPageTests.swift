@@ -102,6 +102,15 @@ struct FindInPageTests {
         #expect(find.matchCount == 1)
     }
 
+    @Test("skips visually hidden .sr-only text, such as the footnotes heading (#43)")
+    func screenReaderOnlyText() async throws {
+        try await load("A note[^1] about footnotes.\n\n[^1]: The footnote body.")
+        await search("footnotes")
+        #expect(find.matchCount == 1)
+        await search("footnote")
+        #expect(find.matchCount == 2)
+    }
+
     @Test("stops counting at the limit")
     func limit() async throws {
         try await load(String(repeating: "x ", count: 1500))
