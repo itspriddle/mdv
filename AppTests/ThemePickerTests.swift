@@ -176,13 +176,16 @@ final class ThemePickerTests: DocumentWindowTestCase {
         defer { closeAll() }
         let view = try #require(MainMenu.build().item(withTitle: "View")?.submenu)
         let submenu = try #require(view.item(withTitle: "Theme")?.submenu)
-        #expect(submenu.items.map(\.title) == ThemeRegistry.bundled.themes.map(\.displayName))
-        #expect(submenu.items.map { $0.representedObject as? String } == ThemeRegistry.bundled.themes.map(\.id))
-        #expect(submenu.items.allSatisfy { $0.action == #selector(DocumentWindowController.selectTheme(_:)) })
+        // The themes, then Open Themes Folder (#35) after a separator.
+        let themeItems = Array(submenu.items.dropLast(2))
+        #expect(submenu.items.suffix(2).map(\.title) == ["", "Open Themes Folder"])
+        #expect(themeItems.map(\.title) == ThemeRegistry.bundled.themes.map(\.displayName))
+        #expect(themeItems.map { $0.representedObject as? String } == ThemeRegistry.bundled.themes.map(\.id))
+        #expect(themeItems.allSatisfy { $0.action == #selector(DocumentWindowController.selectTheme(_:)) })
 
         let (_, controller) = try await openLong(themeSettings: themeSettings())
         controller.setTheme(id: "document")
-        for item in submenu.items {
+        for item in themeItems {
             #expect(controller.validateMenuItem(item))
             #expect(item.state == (item.representedObject as? String == "document" ? .on : .off), "\(item.title)")
         }

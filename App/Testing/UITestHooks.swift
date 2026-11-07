@@ -14,6 +14,9 @@ import Foundation
 /// - `-MdvUITestOpen <path>`: open the document at an absolute path once launched, without the
 ///   Open panel. A property-list array (`-MdvUITestOpen '("/a.md", "/b.md")'`) opens several,
 ///   in order.
+/// - `-MdvUITestThemesFolder <path>`: read custom themes (#35) from this absolute path
+///   instead of `~/Library/Application Support/mdv/Themes`. Without it a UI-test launch loads
+///   no custom themes, so tests never read or create the reader's folder.
 ///
 /// UI-test launches (and hosted unit tests) never add to Open Recent (`DocumentController`).
 enum UITestHooks {
@@ -22,6 +25,8 @@ enum UITestHooks {
         static let uiTestingKey = "MdvUITesting"
         /// Launch argument (a `UserDefaults` key) with an absolute path to open at launch.
         static let openKey = "MdvUITestOpen"
+        /// Launch argument (a `UserDefaults` key) with an absolute path to the custom themes folder.
+        static let themesFolderKey = "MdvUITestThemesFolder"
     #endif
 
     /// Whether a UI test launched the app. Always `false` in Release builds.
@@ -55,6 +60,20 @@ enum UITestHooks {
             return paths.filter { $0.hasPrefix("/") }.map { URL(filePath: $0) }
         #else
             []
+        #endif
+    }
+
+    /// The custom themes folder a UI test asked for, or nil (the real folder outside UI tests,
+    /// no custom themes in them; see `CustomThemeLibrary.folderURL`). Always nil in Release.
+    static var themesFolder: URL? {
+        #if DEBUG
+            guard isUITesting, let path = UserDefaults.standard.string(forKey: themesFolderKey), path.hasPrefix("/")
+            else {
+                return nil
+            }
+            return URL(filePath: path, directoryHint: .isDirectory)
+        #else
+            nil
         #endif
     }
 }
