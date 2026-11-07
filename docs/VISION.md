@@ -187,6 +187,17 @@ editor or a browser.
   CSS is inlined with every `</` written `<\/` so it can't close its `<style>` element. A theme
   that escapes its layer with a stray `}` becomes unlayered: it then outranks user controls but
   still not the protected base rules (custom theme validation is #35).
+- **Reading controls (#37):** content width is a user control; text size is zoom. View >
+  Content Width picks one of four presets (Narrow 32em, Theme Default, Wide 72em, Full Width),
+  global and persisted like zoom, applied live to every window by swapping the `mdv-user`
+  `<style>` text in place (reading position kept, no reload). The layer sets
+  `--mdv-content-width` and `.markdown-body { max-width: var(--mdv-content-width) }`, screen
+  only, so paper is always full width; Theme Default emits nothing. Widths are in `em` of the
+  column's font, so the measure holds across themes and zoom levels. There is no separate font
+  size control: `pageZoom` (Cmd +/-) already reflows the page at a larger text size, and a CSS
+  font size would be a second "bigger text" command that differs only in leaving images,
+  padding, and code at their size. Per-window width was rejected for the same reason zoom is
+  global: it's a reading preference, not a property of the document.
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
