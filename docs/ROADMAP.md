@@ -105,7 +105,9 @@ A pleasant, Mac-native document viewer.
 - **Local resources (#18):** a `WKURLSchemeHandler` (`mdv-doc://<window token>/<absolute
   path>`), not `loadFileURL` plus a temp file; it serves only images that `LocalImagePolicy`
   approves inside the allowed root, the enclosing git work tree or else the document's folder
-  (never home or `/`); extension and sniffed format must match.
+  (never home or `/`); extension and sniffed format must match. Root-relative `/x` links and
+  images resolve against that root, as on GitHub, and `#gh-dark-mode-only` /
+  `#gh-light-mode-only` images follow the appearance (CSS).
 - **Links (#19):** one tested `LinkPolicy`; the main frame never leaves the document. Local
   Markdown opens in mdv (Cmd-click or middle-click: a new tab); other local files and folders
   are revealed in Finder, never opened; `http`/`https`/`mailto` open in the default app; other

@@ -37,7 +37,8 @@ lock the build database.
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
   - `Transforms/`: AST passes (emoji shortcodes).
   - `LocalResources/`: the app's `mdv-doc://<token>/<path>` URLs (`DocumentURLScheme`), the
-    allowed-root rule, and `LocalImagePolicy`, which approves every local image read.
+    allowed-root rule, `LocalImagePolicy`, which approves every local image read, and
+    `RootRelativeURL` (`/docs/x.png` resolved against the allowed root, `RenderOptions.linkRoot`).
   - `RemoteImages/`: `RemoteImage` (what counts as remote), `RemoteImagePolicy`
     (`RenderOptions.remoteImages`), and the blocked-image placeholder markup.
   - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`).

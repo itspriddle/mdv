@@ -195,6 +195,18 @@ editor or a browser.
   nearest folder at or above the document containing `.git`, unless that is the home folder or
   `/`. Docs in a repository use `../images/x.png` the way GitHub resolves them, the repository
   is the document's own trust domain, and only images are served from it.
+- Root-relative URLs (`/docs/x.png`, `<img src="/...">`, `<source srcset="/...">`,
+  `[x](/docs/guide.md)`) resolve against **the same allowed root**, as GitHub resolves them
+  against the repository; without a repository that is the document's folder (one rule for
+  images and links, and a leading `/` never means the file system root). The renderer rewrites
+  them to `<root>/...` (`RenderOptions.linkRoot`, `RootRelativeURL`) with `.`/`..` clamped at
+  the root, so `LocalImagePolicy` and `LinkPolicy` see ordinary `mdv-doc` URLs and stay the
+  only checks; `//host` stays remote. `mdv --html` and Copy as HTML keep them as written.
+- GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` images (and their remote-image
+  placeholders) show only in the matching appearance through `DefaultTheme` CSS
+  (`img[src$=...]` under `prefers-color-scheme`), so they follow live appearance changes; print
+  shows the light variant. `<picture><source media="(prefers-color-scheme: dark)">` works
+  as is (sanitizer and CSP allow it).
 - Page JavaScript is disabled (`allowsContentJavaScript = false`): document `<script>`s,
   inline event handlers, and `javascript:` URLs never run, with or without the CSP. The viewer's
   own behavior (scrolling, position tracking, anchor fallback, in-place content swaps) is done by
