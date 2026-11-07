@@ -53,9 +53,11 @@ class DocumentWindowTestCase {
 
     /// Opens `source` in a document window that follows `zoomSettings`, `contentWidthSettings`,
     /// and `themeSettings` (all in this suite's defaults unless given), once the page has loaded.
+    /// `appearance` is set on the window before the page loads (light or dark from the start).
     func open(
         _ source: String = source, name: String = "notes.md", zoomSettings: ZoomSettings? = nil,
-        contentWidthSettings: ContentWidthSettings? = nil, themeSettings: ThemeSettings? = nil
+        contentWidthSettings: ContentWidthSettings? = nil, themeSettings: ThemeSettings? = nil,
+        appearance: NSAppearance.Name? = nil
     ) async throws -> (MarkdownDocument, DocumentWindowController) {
         let file = folder.appending(path: name)
         try Data(source.utf8).write(to: file)
@@ -64,6 +66,9 @@ class DocumentWindowTestCase {
             zoomSettings: zoomSettings ?? settings(),
             contentWidthSettings: contentWidthSettings ?? ContentWidthSettings(defaults: defaults, isPersistent: true),
             themeSettings: themeSettings ?? self.themeSettings())
+        if let appearance {
+            controller.window?.appearance = NSAppearance(named: appearance)
+        }
         document.addWindowController(controller)
         documents.append(document)
         try await until("the first load") { controller.coordinator.hasLoadedPage }

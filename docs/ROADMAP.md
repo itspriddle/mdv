@@ -218,6 +218,10 @@ CSS themes as a first-class feature.
   unbalanced brackets reject the file (shown disabled in the picker with the reason) rather than
   being stripped; `data:image/…` URLs are allowed. Regular files only (no symlinks), 512 KB,
   UTF-8, 100 themes. kqueue folder watch, 100 ms debounce; see VISION.
+- Print themes (#38): paper always light (protected `print-color-adjust: economy` on the page,
+  dark rules screen only); bundled themes keep light code/table fills on paper and print body
+  text at about 12pt (Serif 15px on paper). `<picture>` dark sources are left to WebKit, which
+  prints the light one. See VISION.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.

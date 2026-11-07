@@ -276,6 +276,19 @@ editor or a browser.
   theme in place (#34) and fall back to the default when it is deleted or broken (keeping
   their pick for when it returns). The folder is created on demand (View > Theme > Open
   Themes Folder).
+- **Print themes (#38):** paper is always light and themed. The base layer protects the
+  light color scheme and `print-color-adjust: economy` on `:root` and `body`, so no theme
+  prints a page background; a theme's dark colors are `@media screen` only. Each bundled
+  theme's `printStylesheet` (in `@media print` at the end of its layer) keeps its light fills
+  for code, keys, marks, and tables with `print-color-adjust: exact`, so code blocks and diff
+  lines stay blocks. Custom themes write their own `@media print` rules and get the same base
+  guarantees. WebKit lays a page out at 1.25 CSS px per point of paper width, so 16px prints
+  at 12.8pt: GitHub keeps 16px, Document 11pt (about 11.7pt), and Serif drops from 19px to
+  15px (12pt) on paper. A `<picture>`'s dark `<source>` never prints: WebKit evaluates
+  `prefers-color-scheme` as light while printing and restores the screen's image afterwards
+  (checked on PDF output in `AppTests/PrintThemeTests`); rewriting `<source media>` to
+  `screen and (...)` was tried and rejected, because WebKit then kept the light image on
+  screen after printing.
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI

@@ -11,8 +11,15 @@
 ///   printed;
 /// - the blocked remote-image placeholder's visibility (#20) (its look is a default);
 /// - GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` hiding (`ColorModeImage`);
-/// - structural print rules (#26): light color scheme, full width, nothing clipped, no anchor
-///   icons, sensible page breaks. External link targets written out on paper are a default.
+/// - structural print rules (#26, #38): light color scheme, no page background, full width,
+///   nothing clipped, no anchor icons, sensible page breaks. External link targets written out
+///   on paper and widow/orphan control are defaults.
+///
+/// Print contract for themes (#38): paper is always light. Dark colors belong under
+/// `@media screen and (prefers-color-scheme: dark)`, so print uses the light ones. The page
+/// background never prints (protected `print-color-adjust: economy` on `:root` and `body`), and
+/// neither do element backgrounds unless the theme opts an element in with
+/// `print-color-adjust: exact` (bundled themes do for code, keys, marks, and tables).
 public enum ThemeBase {
     public static let css = """
         :root { color-scheme: light dark; }
@@ -39,14 +46,16 @@ public enum ThemeBase {
           ::highlight(mdv-find-current) { background-color: #ffb454 !important; color: #0d1117 !important; }
           .remote-image { color: #9198a1; background: #151b23; border-color: #3d444d; }
         }
-        /* Print (#26): full width, nothing clipped, no hover-only anchor icons, link targets
-           written out after external links. Pages break around code, rows, and images where
-           they fit, and never right after a heading. */
+        /* Print (#26, #38): light, no page background, full width, nothing clipped, no hover-only
+           anchor icons, link targets written out after external links. Pages break around code,
+           rows, and images where they fit, and never right after a heading. */
         @media print {
           ::highlight(mdv-find), ::highlight(mdv-find-current) {
             background-color: transparent !important; color: inherit !important;
           }
           :root { color-scheme: light !important; }
+          :root, body { print-color-adjust: economy !important; }
+          p { orphans: 3; widows: 3; }
           .markdown-body { max-width: none !important; padding: 0 !important; }
           .anchor { display: none !important; }
           a[href^="http:"]::after, a[href^="https:"]::after {
