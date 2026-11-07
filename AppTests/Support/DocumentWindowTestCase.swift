@@ -22,8 +22,9 @@ class DocumentWindowTestCase {
         """
 
     let folder: URL
-    let defaultsSuite = "mdv-zoom-tests-\(UUID().uuidString)"
-    let defaults: UserDefaults
+    /// Removed with the test (see `ThrowawayDefaults`).
+    let throwawayDefaults: ThrowawayDefaults
+    var defaults: UserDefaults { throwawayDefaults.defaults }
     /// A private pasteboard, so tests never touch the general one.
     let pasteboardName = NSPasteboard.Name("mdv-tests-\(UUID().uuidString)")
     var pasteboard: NSPasteboard { NSPasteboard(name: pasteboardName) }
@@ -33,12 +34,11 @@ class DocumentWindowTestCase {
         folder = FileManager.default.temporaryDirectory.appending(
             path: "mdv-zoom-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        defaults = try #require(UserDefaults(suiteName: defaultsSuite))
+        throwawayDefaults = try ThrowawayDefaults("mdv-zoom-tests")
     }
 
     deinit {
         try? FileManager.default.removeItem(at: folder)
-        UserDefaults().removePersistentDomain(forName: defaultsSuite)
         NSPasteboard(name: pasteboardName).releaseGlobally()
     }
 
