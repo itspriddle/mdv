@@ -133,14 +133,18 @@ editor or a browser.
   reach the top, each become current in turn. The selection follows scrolling except while
   the reader browses the outline with the keyboard, and a jumped-to heading stays selected
   until the reader scrolls away from where it landed.
-  Re-renders keep the sidebar's scroll position, collapsed entries, and selection. Visibility
-  is per window (restored with the window) and the last toggle is the default for new
-  windows; hidden until first shown. A document without headings shows "No Headings".
+  Re-renders keep the sidebar's scroll position, collapsed entries, and selection. Expand All
+  and Collapse All (View menu and the sidebar's context menu, #43) act on every entry, nested
+  ones included. Visibility and width are per window (restored with the window, #43 for the
+  width) and the last toggle is the default for new windows; hidden until first shown. A
+  document without headings shows "No Headings".
 - **Zoom, print, copy (#26):** zoom is global with a per-window override. Cmd-+/-/0 set one
   app-wide `pageZoom` level (Safari's steps, persisted in `UserDefaults`) that every window
   follows live, so text size is a reading preference rather than a per-file chore. Pinch is
   the window's own `WKWebView` magnification (scales without reflow, as in Safari), kept by
-  window restoration; Actual Size resets both. Print uses `WKWebView.printOperation` through
+  window restoration; Actual Size resets both. Zoom remembered per file was considered and
+  dropped (#43): it would make the same keys mean "this file" or "every file" depending on
+  history, and pinch already covers a one-off. Print uses `WKWebView.printOperation` through
   `NSDocument` (Page Setup, Save as PDF from the panel) with `@media print` rules in the theme layers:
   light colors always, full width, wrapped code and tables, no anchor icons, external link
   targets written out. Copy as HTML copies the `mdv --html` body fragment (no
