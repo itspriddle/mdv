@@ -274,7 +274,9 @@ editor or a browser.
   replaces `ThemeSettings.registry` only if something changed, so open windows swap an edited
   theme in place (#34) and fall back to the default when it is deleted or broken (keeping
   their pick for when it returns). The folder is created on demand (View > Theme > Open
-  Themes Folder).
+  Themes Folder). The end-user guide is [`docs/THEMES.md`](THEMES.md) (#44); its example theme
+  (`docs/example-theme.css`), snippets, and quoted error messages are checked by
+  `ThemeGuideTests`.
 - **Print themes (#38):** paper is always light and themed. The base layer protects the
   light color scheme and `print-color-adjust: economy` on `:root` and `body`, so no theme
   prints a page background; a theme's dark colors are `@media screen` only. Each bundled

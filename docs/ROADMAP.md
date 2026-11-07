@@ -229,6 +229,10 @@ CSS themes as a first-class feature.
   stores rather than duplicating them. The remote-image opt-in is not remembered per file
   (deferred; a stored allowlist is a privacy record and a standing exception to "no remote
   content"). See VISION.
+- Theme authoring guide (#44): `docs/THEMES.md`, linked from the README, with a complete
+  example theme in `docs/example-theme.css`. A core test (`ThemeGuideTests`) loads the example,
+  checks that the guide embeds it verbatim, runs every CSS snippet through the custom theme
+  check, and matches the quoted error messages and limits against the code.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.

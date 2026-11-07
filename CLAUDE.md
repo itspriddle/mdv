@@ -103,6 +103,9 @@ lock the build database.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
+- `docs/THEMES.md`: the end-user theme authoring guide, with `docs/example-theme.css`.
+  `ThemeGuideTests` loads the example and checks the guide's snippets, limits, and error
+  messages; a change to custom theme behavior updates the guide.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
   `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
   a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
