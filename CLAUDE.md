@@ -11,6 +11,7 @@ make generate         # regenerate mdv.xcodeproj from project.yml (run after add
 make test-core        # swift test (MdvCore), fast, no Xcode project needed
 make test             # core + app unit tests (not UI tests)
 make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
+make record-theme-snapshots  # re-record bundled theme references for this macOS version (#39)
 make build            # app + embedded CLI (signed via Config/Local.xcconfig); SIGN=0 for unsigned
 make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
 make format           # auto-format; run before committing
@@ -109,6 +110,12 @@ lock the build database.
 - `Tests/MdvCoreTests/Fixtures/github`, `.../corpus`: GitHub reference output (refresh with
   `scripts/update-github-fixtures`, manual, needs auth) and mdv snapshots
   (`MDV_RECORD_SNAPSHOTS=1`). Corpus exceptions live in `corpus.json`.
+- `AppTests/Snapshots/macOS-<major>/`: visual regression references for the bundled themes
+  (`ThemeSnapshotTests`: showcase fixture, each theme light/dark/print, real WebKit PDFs
+  rasterized at 1 px per point). One set per macOS major (CI is macOS 26). After an intended
+  theme change, `make record-theme-snapshots` on each OS and review the PNG diff; macOS 26
+  references come from CI's `theme-snapshots` artifact (`recorded/`). Mismatches write
+  actual/reference/diff PNGs to `build/theme-snapshots/` (CI uploads it).
 - `project.yml`: XcodeGen spec. Never commit `mdv.xcodeproj`; edit `project.yml` instead.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.

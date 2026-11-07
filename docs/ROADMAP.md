@@ -222,6 +222,12 @@ CSS themes as a first-class feature.
   dark rules screen only); bundled themes keep light code/table fills on paper and print body
   text at about 12pt (Serif 15px on paper). `<picture>` dark sources are left to WebKit, which
   prints the light one. See VISION.
+- Visual regression (#39): hosted `AppTests` (`ThemeSnapshotTests`) render the showcase fixture in
+  each bundled theme, light, dark, and print, as real WebKit PDFs (`WKWebView.pdf` for screen,
+  Save as PDF for print) rasterized at 1 px per point, and compare with committed PNGs per macOS
+  major (`AppTests/Snapshots/macOS-26`, `macOS-27`), with a per-pixel tolerance plus a 3x3
+  neighborhood for antialiasing and a 40-pixel budget. Re-record with
+  `make record-theme-snapshots`; CI records a missing macOS 26 set as an artifact. See VISION.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.
