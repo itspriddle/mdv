@@ -178,7 +178,7 @@ launching the WebContent process), and 100 ms to the painted frame. That misses 
 
 CSS themes as a first-class feature.
 
-- Bundled themes: GitHub (Primer, light and dark), Google Docs-style, minimal/serif
+- Bundled themes: GitHub (Primer, light and dark), a word-processor style ("Document"), minimal/serif
 - Theme model in `MdvCore`: name, stylesheet(s), light/dark variants, optional print CSS
   (print themes; M2 ships basic `@media print` rules); owns the highlight.js token CSS
 - Custom themes: CSS files in `~/Library/Application Support/mdv/Themes`, hot-reloaded
@@ -199,6 +199,10 @@ CSS themes as a first-class feature.
 - CSS layering (#31): cascade layers, `@layer mdv-base, mdv-theme, mdv-user`, one `<style>` per
   layer. The base layer's `!important` rules (find highlights, placeholders, light/dark-only
   images, structural print rules) can't be undone by any theme; see VISION.
+- GitHub theme source (#33): vendor `sindresorhus/github-markdown-css` (MIT, pinned 5.9.0,
+  `make vendor-github-markdown-css`), adjusted to screen-only dark and no `url()`; highlight.js
+  tokens use its Primer syntax variables. The Docs-style theme is named "Document" (id `document`);
+  the serif theme is "Serif" (id `serif`).
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.
@@ -258,7 +262,8 @@ Ship it.
 - Version bumping keeps `MARKETING_VERSION` and `MdvInfo.version` in sync
 - Homebrew cask
 - Make `itspriddle/<name>` public; project site / landing page; CONTRIBUTING and issue templates
-- Acknowledgements for bundled third-party code (highlight.js BSD-3 notice, gemoji data)
+- Acknowledgements for bundled third-party code (highlight.js BSD-3 notice, gemoji data,
+  github-markdown-css MIT notice)
 
 **Exit criteria:** a 1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
 updates itself to 1.0.1 via Sparkle.

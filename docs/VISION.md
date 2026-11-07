@@ -17,7 +17,7 @@ editor or a browser.
    simplicity).
 2. **Faithful rendering.** CommonMark and GitHub Flavored Markdown render the way readers expect
    them to on GitHub. Flavors are explicit, not guessed.
-3. **Themeable with plain CSS.** Bundled themes (GitHub Primer, Google Docs-style, minimal) are
+3. **Themeable with plain CSS.** Bundled themes (GitHub Primer, a word-processor style, minimal serif) are
    regular stylesheets. Custom themes are a CSS file dropped in a folder. No proprietary theme
    format.
 4. **Great from the terminal.** `mdv FILE`, `cmd | mdv`, and headless `mdv --html` are
@@ -180,6 +180,17 @@ editor or a browser.
   CSS is inlined with every `</` written `<\/` so it can't close its `<style>` element. A theme
   that escapes its layer with a stray `}` becomes unlayered: it then outranks user controls but
   still not the protected base rules (custom theme validation is #35).
+- **Bundled themes (#33):** GitHub (`github`, the default), Document (`document`, a
+  word-processor page; named to avoid Google's trademark), and Serif (`serif`, system serif
+  reading column). GitHub vendors `sindresorhus/github-markdown-css` (MIT, pinned in
+  `Vendor/github-markdown-css/MANIFEST`, regenerated as Swift by `make
+  vendor-github-markdown-css`) rather than hand-writing Primer tokens: it tracks github.com
+  closely for free and re-vendoring is one command. The script rewrites its dark block to
+  `@media screen and (prefers-color-scheme: dark)` (paper prints light), drops the anchor
+  octicon's `data:` `url()` mask, and fails if a release adds anything else to adjust.
+  highlight.js tokens map to its Primer syntax variables (`--color-prettylights-syntax-*`),
+  so code colors follow github.com in both appearances. All themes use system fonts only and
+  read `--mdv-font-size` / `--mdv-content-width` (#37) with their own defaults.
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
