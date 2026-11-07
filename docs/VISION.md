@@ -397,7 +397,7 @@ editor or a browser.
   `WKWebView` can show it. The original goal, under 200 ms, isn't reachable with `WKWebView`
   (#40): a bare AppKit app that loads the page into one web view first thing at launch paints
   it in about 350 ms on a MacBook Air (ROADMAP M3), most of it WebKit starting its web content
-  process and drawing the first frames. mdv matches that floor; `scripts/measure-cold-open -f`
-  measures both.
+  process and drawing the first frames. mdv comes within about 50 ms of that floor;
+  `scripts/measure-cold-open -f` measures both.
 - Switching themes or editing the file in another app updates the window instantly.
 - A new contributor can clone, `make bootstrap && make test`, and be productive in minutes.

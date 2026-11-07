@@ -231,8 +231,8 @@ CSS themes as a first-class feature.
   content"). See VISION.
 - 200 ms (#40): not reachable with `WKWebView`; the target is the floor instead. The floor is a
   bare AppKit app that loads the same page into one `WKWebView` (configured like mdv's) first
-  thing at launch, in one plain window (`scripts/cold-open-floor.swift`). mdv now matches it, so
-  what remains is WebKit's: the web content process takes about 130 ms from the first load to a
+  thing at launch, in one plain window (`scripts/cold-open-floor.swift`). mdv is now within
+  0-50 ms of it (run to run), and what remains is mostly WebKit's: the web content process takes about 130 ms from the first load to a
   finished page, and the first frames another 40-90 ms, after AppKit is up (about 45 ms) and the
   web view exists (about 50 ms). mdv starts its first window's web view first thing at launch
   (`WebViewPrewarmer`), so that bring-up overlaps the rest of the launch, the document read, and
@@ -256,7 +256,8 @@ README); compare within a column set, not with #27.
 
 The gain varies with how long WebKit takes to start its content process: 13-78 ms for the
 README across runs. The bare app's numbers include no menus, toolbar, sidebar, or SwiftUI;
-mdv's are within noise of it because WebKit, not mdv, is on the critical path.
+mdv's come within 0-50 ms of it (another sitting: 338 ms vs 287 ms), because WebKit, not mdv,
+is most of the critical path.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.
