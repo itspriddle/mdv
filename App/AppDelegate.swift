@@ -13,6 +13,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         LaunchTiming.mark("willFinishLaunching")
+        // First: the web view's content process launches while the rest of the launch runs
+        // (#40). Hosted unit tests make their own windows and web views.
+        if !Self.isHostingUnitTests {
+            WebViewPrewarmer.shared.prewarm()
+        }
         MainMenu.install()
         // Before restoration: restored windows showing a custom theme switch to it as soon as
         // the first load (off the main thread) lands.

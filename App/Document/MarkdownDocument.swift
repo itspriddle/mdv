@@ -42,7 +42,8 @@ final class MarkdownDocument: NSDocument {
 
     override func makeWindowControllers() {
         LaunchTiming.mark("makeWindowControllers")
-        addWindowController(DocumentWindowController())
+        // The first window of the launch gets the web view started at launch (#40).
+        addWindowController(DocumentWindowController(coordinator: WebViewPrewarmer.shared.takeCoordinator()))
         startLiveReload()
     }
 
