@@ -1,0 +1,143 @@
+import Foundation
+import Testing
+
+@testable import MdvCore
+
+/// Keeps the theme authoring guide (`docs/THEMES.md`, #44) honest: its example theme loads, its
+/// CSS snippets pass the custom theme check, and the error messages and limits it quotes are
+/// the ones mdv uses.
+@Suite("Theme authoring guide")
+struct ThemeGuideTests {
+    static let docs = URL(filePath: #filePath).deletingLastPathComponent()
+        .appending(components: "..", "..", "docs")
+
+    static func guide() throws -> String {
+        try String(contentsOf: docs.appending(path: "THEMES.md"), encoding: .utf8)
+    }
+
+    static func exampleTheme() throws -> String {
+        try String(contentsOf: docs.appending(path: "example-theme.css"), encoding: .utf8)
+    }
+
+    /// The contents of every ```css fence in `markdown`, without the fence's indentation.
+    static func cssBlocks(in markdown: String) -> [String] {
+        var blocks: [String] = []
+        var current: [Substring]?
+        var indent = 0
+        for line in markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+            let trimmed = line.drop { $0 == " " }
+            if var lines = current {
+                if trimmed.hasPrefix("```") {
+                    blocks.append(lines.joined(separator: "\n"))
+                    current = nil
+                } else {
+                    lines.append(line.dropFirst(min(indent, line.prefix { $0 == " " }.count)))
+                    current = lines
+                }
+            } else if trimmed == "```css" {
+                indent = line.count - trimmed.count
+                current = []
+            }
+        }
+        return blocks
+    }
+
+    @Test("the example theme loads from a Themes folder with its header's name and backgrounds")
+    func exampleLoads() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(
+            path: "mdv-theme-guide-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Data(try Self.exampleTheme().utf8).write(to: folder.appending(path: "Notebook.css"))
+
+        let catalog = CustomThemeFolder(url: folder).load()
+        #expect(catalog.failures.isEmpty, "\(catalog.failures.map(\.message))")
+        let theme = try #require(catalog.themes.first)
+        #expect(theme.id == "custom:Notebook.css")
+        #expect(theme.displayName == "Notebook")
+        #expect(theme.background == ThemeBackground(light: ThemeColor(0xFB_FA_F7), dark: ThemeColor(0x1C_1B_19)))
+        #expect(theme.stylesheet.contains("var(\(UserStyle.contentWidthProperty), 44em)"))
+        #expect(theme.layerCSS.hasPrefix("@layer \(ThemeLayer.theme.name) {"))
+    }
+
+    @Test("the guide shows the example theme exactly as the file has it")
+    func exampleInGuide() throws {
+        let example = try Self.exampleTheme().trimmingCharacters(in: .newlines)
+        #expect(try Self.cssBlocks(in: Self.guide()).contains(example))
+    }
+
+    @Test("every CSS snippet in the guide passes the custom theme check; themes with a header load")
+    func snippetsPass() throws {
+        let blocks = try Self.cssBlocks(in: Self.guide())
+        #expect(blocks.count >= 5)
+        for (index, css) in blocks.enumerated() {
+            do throws(CustomThemeProblem) {
+                if css.hasPrefix("/* \(CustomTheme.headerMarker)") {
+                    _ = try CustomTheme.make(fileName: "snippet-\(index).css", css: css)
+                } else {
+                    try CustomThemeCSS.validate(css)
+                }
+            } catch {
+                Issue.record("snippet \(index) is rejected: \(error)\n\(css)")
+            }
+            // Dark colors are screen only (paper prints light), as the guide tells authors.
+            #expect(
+                css.ranges(of: "prefers-color-scheme").count
+                    == css.ranges(of: "screen and (prefers-color-scheme: dark)").count,
+                "snippet \(index) has a dark rule without `screen and`")
+        }
+    }
+
+    @Test("the guide quotes mdv's own messages for rejected themes")
+    func errorMessages() throws {
+        let guide = try Self.guide()
+        func problem(_ css: String) -> CustomThemeProblem? {
+            do throws(CustomThemeProblem) {
+                _ = try CustomTheme.make(fileName: "t.css", css: css)
+                return nil
+            } catch {
+                return error
+            }
+        }
+        let problems: [CustomThemeProblem?] = [
+            problem("@import \"base.css\";"),
+            problem("p { background: url(paper.png); }"),
+            problem("p { width: expression(1); }"),
+            problem("p { color: red; } }"),
+            problem("p { color: red;"),
+            problem("/* never closed"),
+            problem("p::before { content: \"x; }"),
+            problem("/* mdv-theme\nbackground: white\n*/"),
+            problem("/* mdv-theme\ncolour: red\n*/"),
+            problem("/* mdv-theme\nname: A\nname: B\n*/"),
+            problem("/* mdv-theme\njust text\n*/"),
+            problem("/* mdv-theme\nextends: GitHub\n*/"),
+            .symbolicLink,
+            .tooLarge(bytes: 600 * 1024, limit: CustomThemeFolder.maximumFileSize),
+            .notUTF8,
+            .containsNUL,
+            .tooManyThemes(limit: CustomThemeFolder.maximumThemeCount),
+        ]
+        for problem in problems {
+            let problem = try #require(problem)
+            #expect(guide.contains("| \(problem.description) |"), "the guide doesn't quote “\(problem)”")
+        }
+    }
+
+    @Test("the limits and values the guide states match mdv's")
+    func limits() throws {
+        let guide = try Self.guide()
+        #expect(guide.contains("at most \(CustomThemeFolder.maximumFileSize / 1024) KB"))
+        #expect(guide.contains("At most \(CustomThemeFolder.maximumThemeCount) themes"))
+        #expect(guide.contains("at most \(CustomTheme.maximumNameLength) characters"))
+        #expect(guide.contains("`\(UserStyle.contentWidthProperty)`"))
+        let widths = ContentWidth.allCases.compactMap(\.cssValue).map { "`\($0)`" }
+        let last = try #require(widths.last)
+        #expect(guide.contains(widths.dropLast().joined(separator: ", ") + ", or " + last))
+        for theme in ThemeRegistry.bundled.themes {
+            #expect(guide.contains("`\(theme.id)`"))
+        }
+        #expect(guide.contains("`\(Theme.github.background.light.hex)`"))
+        #expect(guide.contains("`\(Theme.github.background.dark.hex)`"))
+    }
+}
