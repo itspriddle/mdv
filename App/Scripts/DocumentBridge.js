@@ -183,6 +183,21 @@
     return true;
   }
 
+  // Theme switch (#34): replaces the text of the theme's style element (`id`, "mdv-theme") and
+  // keeps the reading position, in one script run, so nothing paints in between. The DOM is
+  // untouched, so find highlights stay. `css` is the theme's layer CSS; assigning textContent
+  // parses it as CSS only, never as markup.
+  function replaceTheme(id, css) {
+    const style = document.getElementById(id);
+    if (!(style instanceof HTMLStyleElement) || typeof css !== "string") {
+      return false;
+    }
+    const position = readingPosition();
+    style.textContent = css;
+    restorePosition(position);
+    return true;
+  }
+
   globalThis.mdv = Object.freeze({
     currentSourceLine,
     sectionSourceLine,
@@ -192,5 +207,6 @@
     readingPosition,
     restorePosition,
     updateContent,
+    replaceTheme,
   });
 })();

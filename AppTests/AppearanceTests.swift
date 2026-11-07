@@ -23,7 +23,8 @@ struct AppearanceTests {
             (NSAppearance.Name.darkAqua, ThemeRegistry.bundled.defaultTheme.background.dark),
         ])
     func themeBackground(appearance: NSAppearance.Name, expected: ThemeColor) throws {
-        let color = try #require(try resolved(.themeBackground, in: appearance))
+        let color = try #require(
+            try resolved(.themeBackground(ThemeRegistry.bundled.defaultTheme.background), in: appearance))
         #expect(Int((color.redComponent * 255).rounded()) == Int(expected.red))
         #expect(Int((color.greenComponent * 255).rounded()) == Int(expected.green))
         #expect(Int((color.blueComponent * 255).rounded()) == Int(expected.blue))
@@ -41,8 +42,13 @@ struct AppearanceTests {
 
     @Test("document windows and web views paint the theme background before the page")
     func noWhiteFlash() throws {
-        let controller = DocumentWindowController()
-        #expect(controller.window?.backgroundColor == .themeBackground)
+        let controller = DocumentWindowController(themeSettings: ThemeSettings(isPersistent: false))
+        let background = ThemeRegistry.bundled.defaultTheme.background
+        let windowColor = try #require(controller.window?.backgroundColor)
+        for (name, expected) in [(NSAppearance.Name.aqua, background.light), (.darkAqua, background.dark)] {
+            let color = try #require(try resolved(windowColor, in: name))
+            #expect(Self.matches(color, expected), "\(name.rawValue)")
+        }
         #expect(controller.coordinator.webView.isHidden)
     }
 
@@ -56,7 +62,8 @@ struct AppearanceTests {
             [.aqua, .darkAqua],
         ])
     func underPageBackgroundFollowsAppearance(sequence: [NSAppearance.Name]) throws {
-        let webView = DocumentWindowController().coordinator.webView
+        let webView = DocumentWindowController(themeSettings: ThemeSettings(isPersistent: false)).coordinator
+            .webView
         for name in sequence {
             webView.appearance = try #require(NSAppearance(named: name))
             #expect(webView.effectiveAppearance.name == name)
@@ -73,5 +80,12 @@ struct AppearanceTests {
             #expect(Int((color.greenComponent * 255).rounded()) == Int(expected.green), "\(name.rawValue)")
             #expect(Int((color.blueComponent * 255).rounded()) == Int(expected.blue), "\(name.rawValue)")
         }
+    }
+
+    /// Whether `color` (sRGB) is `expected`, by value: windows make their own dynamic colors.
+    static func matches(_ color: NSColor, _ expected: ThemeColor) -> Bool {
+        Int((color.redComponent * 255).rounded()) == Int(expected.red)
+            && Int((color.greenComponent * 255).rounded()) == Int(expected.green)
+            && Int((color.blueComponent * 255).rounded()) == Int(expected.blue)
     }
 }

@@ -2,11 +2,9 @@ import AppKit
 import MdvCore
 
 extension NSColor {
-    /// The default theme's page background, resolved for the current appearance. Windows and
-    /// web views paint it before the page draws, and it follows system appearance changes live.
-    static let themeBackground = themeBackground(ThemeRegistry.bundled.defaultTheme.background)
-
     /// A theme's page background (`Theme.background`), resolved for the current appearance.
+    /// Windows and web views paint their theme's before the page draws (#34: each window's
+    /// own), and it follows system appearance changes live.
     static func themeBackground(_ background: ThemeBackground) -> NSColor {
         NSColor(name: "mdvThemeBackground") { appearance in
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua

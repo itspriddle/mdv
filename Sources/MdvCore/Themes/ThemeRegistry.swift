@@ -36,6 +36,15 @@ public struct ThemeRegistry: Sendable, Equatable {
         ThemeRegistry(defaultTheme: defaultTheme, others: Array(self.themes.dropFirst()) + themes)
     }
 
+    /// The themes as the theme picker lists them: the ones `base` also registers (the bundled
+    /// themes), then the rest (added later: custom themes, #35), each group in registry order.
+    /// Empty groups are left out, so a registry of bundled themes is one group.
+    public func pickerSections(base: ThemeRegistry = .bundled) -> [[Theme]] {
+        let bundled = themes.filter { base.contains(id: $0.id) }
+        let added = themes.filter { !base.contains(id: $0.id) }
+        return [bundled, added].filter { !$0.isEmpty }
+    }
+
     private static func unique(_ themes: [Theme]) -> [Theme] {
         var seen: Set<String> = []
         return themes.filter { seen.insert($0.id).inserted }

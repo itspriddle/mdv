@@ -27,6 +27,17 @@ final class WebViewCoordinator: NSObject {
 
     private var pendingLoads: [ObjectIdentifier: CheckedContinuation<Void, any Error>] = [:]
 
+    // MARK: Theme (#34)
+
+    /// The theme this web view shows: every full load embeds it, and `show(_:)` swaps a new one
+    /// into the loaded page in place. Paints the under-page area.
+    private(set) var theme: Theme
+    /// The theme in the loaded page's `mdv-theme` style element; nil for a page that isn't a
+    /// rendered document (the first-load preparation page, test pages).
+    private(set) var loadedTheme: Theme?
+    /// The in-place swap `show(_:)` started, if any (for tests).
+    private(set) var pendingThemeSwap: Task<Void, Never>?
+
     // MARK: Links (#19, `WebViewCoordinator+Navigation.swift`)
 
     /// What the window's link status overlay shows (hovered link, link messages).
@@ -42,7 +53,11 @@ final class WebViewCoordinator: NSObject {
 
     /// - Parameter configuration: a fresh configuration (`WebViewConfiguration.make()`); this
     ///   coordinator installs its own `mdv-doc` scheme handler on it, so it can't be reused.
-    init(configuration: WKWebViewConfiguration = WebViewConfiguration.make()) {
+    init(
+        configuration: WKWebViewConfiguration = WebViewConfiguration.make(),
+        theme: Theme = ThemeRegistry.bundled.defaultTheme
+    ) {
+        self.theme = theme
         let localResources = LocalResourceSchemeHandler()
         configuration.setURLSchemeHandler(localResources, forURLScheme: DocumentURLScheme.name)
         self.localResources = localResources
@@ -54,7 +69,7 @@ final class WebViewCoordinator: NSObject {
         // Pinch-to-zoom: each window's own magnification (#26).
         webView.allowsMagnification = true
         // Behind and around the page (rubber-band overscroll): the theme background.
-        webView.themeUnderPageBackgroundColor = .themeBackground
+        webView.themeUnderPageBackgroundColor = .themeBackground(theme.background)
         // A fresh WKWebView paints white until its first page draws. Keep it hidden until then,
         // so the window's theme-colored background shows instead (no white flash in dark mode).
         webView.isHidden = true
@@ -99,13 +114,22 @@ final class WebViewCoordinator: NSObject {
     ///
     /// - Parameter baseURL: resolves relative URLs in the page: the document's
     ///   `documentURL(forFileAt:)`.
+    ///
+    /// The page gets the current `theme`. If `show(_:)` picked another theme while it loaded,
+    /// that theme is swapped in before this returns. The page text is put together off the main
+    /// actor: for a large document, joining it with the theme takes milliseconds (#32).
     func load(_ page: RenderedPage, baseURL: URL?) async throws {
-        try await load(html: page.html, baseURL: baseURL)
+        let theme = theme
+        let html = await Task.detached(priority: .userInitiated) { page.html(theme: theme) }.value
+        try await load(html: html, baseURL: baseURL)
+        loadedTheme = theme
+        try await swapThemeIfNeeded()
     }
 
     /// Loads a complete HTML page and waits for it to finish. `html` must be a page built by
     /// `HTMLDocument` (CSP, theme); tests also use it for hand-written hostile pages.
     func load(html: String, baseURL: URL?) async throws {
+        loadedTheme = nil
         expectedLoadURL = baseURL ?? URL(string: "about:blank")
         guard let navigation = webView.loadHTMLString(html, baseURL: baseURL) else {
             return
@@ -115,6 +139,34 @@ final class WebViewCoordinator: NSObject {
         }
         hasLoadedPage = true
         webView.isHidden = false
+    }
+
+    /// Shows `theme`: paints the under-page area at once and swaps the theme into the loaded
+    /// page in place (`DocumentBridge.js` `replaceTheme`), keeping the reading position, the
+    /// find highlights, the zoom, and the page's CSP. No reload. Without a loaded page, the next
+    /// `load` uses it.
+    func show(_ theme: Theme) {
+        guard theme != self.theme else {
+            return
+        }
+        self.theme = theme
+        webView.themeUnderPageBackgroundColor = .themeBackground(theme.background)
+        pendingThemeSwap = Task { [weak self] in
+            try? await self?.swapThemeIfNeeded()
+        }
+    }
+
+    /// Swaps `theme` into the loaded page if the page has another one. Runs after every load
+    /// and theme change, so whichever finishes last, the page ends with the current theme.
+    private func swapThemeIfNeeded() async throws {
+        guard hasLoadedPage, let loadedTheme, loadedTheme != theme else {
+            return
+        }
+        let theme = theme
+        let swapped = try await replaceTheme(css: theme.layerCSS)
+        if swapped {
+            self.loadedTheme = theme
+        }
     }
 
     enum LoadError: Error, Equatable {

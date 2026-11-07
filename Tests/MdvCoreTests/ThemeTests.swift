@@ -164,4 +164,13 @@ struct ThemeRegistryTests {
         // A removed theme (a deleted custom file) falls back to the default.
         #expect(registry.theme(id: "c").id == "a")
     }
+
+    @Test("the picker lists bundled themes, then added ones, in separate sections")
+    func pickerSections() {
+        let base = ThemeRegistry(defaultTheme: theme("a"), others: [theme("b")])
+        #expect(base.pickerSections(base: base).map { $0.map(\.id) } == [["a", "b"]])
+        let added = base.adding([theme("c"), theme("d")])
+        #expect(added.pickerSections(base: base).map { $0.map(\.id) } == [["a", "b"], ["c", "d"]])
+        #expect(ThemeRegistry.bundled.pickerSections() == [ThemeRegistry.bundled.themes])
+    }
 }

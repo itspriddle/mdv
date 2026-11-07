@@ -79,12 +79,10 @@ struct DocumentContent: Equatable, Sendable {
     }
 }
 
-/// A rendered document as the window shows it.
+/// A rendered document as the window shows it, without a theme (`html(theme:)`).
 struct RenderedPage: Equatable, Sendable {
     /// Shown as the window title and the page `<title>`.
     let title: String
-    /// The complete HTML page (`HTMLDocument`: the CSP, theme, body).
-    let html: String
     /// The page's CSP: `.viewer`, or `.viewerAllowingRemoteImages` after the window opted in.
     /// Changing it needs a full `load`; `replaceContent` keeps the loaded page's CSP.
     let contentSecurityPolicy: ContentSecurityPolicy
@@ -100,16 +98,17 @@ struct RenderedPage: Equatable, Sendable {
     init(
         rendered: RenderedDocument, fallbackTitle: String, contentSecurityPolicy: ContentSecurityPolicy = .viewer
     ) {
-        let title = rendered.title ?? fallbackTitle
-        self.title = title
-        self.html =
-            HTMLDocument(
-                title: title, body: rendered.html, theme: ThemeRegistry.bundled.defaultTheme,
-                contentSecurityPolicy: contentSecurityPolicy
-            ).html
+        self.title = rendered.title ?? fallbackTitle
         self.contentSecurityPolicy = contentSecurityPolicy
         self.body = rendered.html
         self.headings = rendered.headings
         self.blockedRemoteImages = rendered.blockedRemoteImages
+    }
+
+    /// The complete HTML page (`HTMLDocument`: the CSP, `theme`, body). The rendered content is
+    /// the document's, shared by its windows; the theme is each window's own (#34), so the page
+    /// is put together when a window loads it.
+    func html(theme: Theme) -> String {
+        HTMLDocument(title: title, body: body, theme: theme, contentSecurityPolicy: contentSecurityPolicy).html
     }
 }
