@@ -25,10 +25,19 @@ extension DocumentWindowController {
     func setOutlineVisible(_ visible: Bool, animated: Bool) {
         wantsOutline = visible
         if let outlineSidebarItem, outlineSidebarItem.isCollapsed == visible {
+            // Showing resizes the pane (recording its width); put back the saved one after.
+            let width = visible ? outlineWidth : nil
             if animated {
-                outlineSidebarItem.animator().isCollapsed = !visible
+                NSAnimationContext.runAnimationGroup { _ in
+                    outlineSidebarItem.animator().isCollapsed = !visible
+                } completionHandler: { [weak self] in
+                    MainActor.assumeIsolated {
+                        if let width { self?.applyOutlineWidth(width) }
+                    }
+                }
             } else {
                 outlineSidebarItem.isCollapsed = !visible
+                if let width { applyOutlineWidth(width) }
             }
         }
         window?.invalidateRestorableState()
@@ -97,13 +106,20 @@ extension DocumentWindowController {
             outlineWidth = width
             return
         }
-        let width = min(max(width, outlineSidebarItem.minimumThickness), outlineSidebarItem.maximumThickness)
-        outlineWidth = width
         if outlineSidebarItem.isCollapsed {
-            outlineSidebarItem.viewController.view.frame.size.width = width
-        } else {
-            splitView.setPosition(width, ofDividerAt: 0)
+            // Applied when shown (`setOutlineVisible`): the pane's inset is only known then.
+            outlineWidth = min(max(width, outlineSidebarItem.minimumThickness), outlineSidebarItem.maximumThickness)
+            return
         }
+        // `width` is the pane's (the divider position). The sidebar view can be inset inside its
+        // pane (8 pt on macOS 26), and AppKit holds the view to `minimumThickness`, so the
+        // narrowest pane is that plus the inset.
+        let pane = splitView.arrangedSubviews.first?.frame.width ?? 0
+        let inset = max(0, pane - outlineSidebarItem.viewController.view.frame.width)
+        let width = min(
+            max(width, outlineSidebarItem.minimumThickness + inset), outlineSidebarItem.maximumThickness)
+        outlineWidth = width
+        splitView.setPosition(width, ofDividerAt: 0)
     }
 
     /// View > Expand All Headings: every outline entry (#43).

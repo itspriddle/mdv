@@ -140,6 +140,9 @@ extension OutlineTests {
         controller.applyOutlineWidth(5000)
         #expect(sidebarWidth(controller) == 420)
         controller.applyOutlineWidth(10)
-        #expect(sidebarWidth(controller) == 160)
+        // The view is held to 160; the pane adds the view's inset (0, or 8 pt on macOS 26).
+        let view = try #require(controller.outlineSidebarItem?.viewController.view)
+        #expect(view.frame.width == 160)
+        #expect(sidebarWidth(controller) == controller.outlineWidth)
     }
 }

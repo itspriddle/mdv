@@ -58,7 +58,9 @@ final class ThemesUITests: XCTestCase {
             .completed, "\(label) kept its width \(before.width)")
         // Same paragraph at the top of the view: the stylesheet was swapped, not the page reloaded.
         XCTAssertTrue(paragraph.exists)
-        XCTAssertEqual(paragraph.frame.minY, before.minY, accuracy: 8, "\(label) moved")
+        // Within about a line: the new font reflows the paragraph around the kept source line
+        // (9 pt off on macOS 26); a reload would put Paragraph 1 at the top instead.
+        XCTAssertEqual(paragraph.frame.minY, before.minY, accuracy: 24, "\(label) moved")
     }
 
     /// Custom themes (#35): a CSS file in the themes folder is listed in View > Theme; editing
