@@ -81,8 +81,8 @@ editor or a browser.
   delete and recreate, and renames (followed, except into the Trash, which counts as a
   deletion). Chosen over `NSFilePresenter` (#21), which `NSDocument` already is: measured, it
   reported edits from other processes about a second late and went silent for good after a
-  delete. Reloads bypass `NSDocument.revert` because NSDocument reads on the main thread: the
-  file is read and rendered off the main actor (a 1 MB document renders in about 0.16 s in a
+  delete. Reloads bypass `NSDocument.revert`, which reads on the main thread and reports a bad
+  file with an alert: the file is read and rendered off the main actor (a 1 MB document renders in about 0.16 s in a
   Release build, 0.5 s in Debug), stale renders are dropped, and the window swaps the new body
   into the loaded page in place with an app script that keeps the reading position (the top
   source line, or the bottom if the reader was there) in the same script run. Measured on 1 MB:
@@ -109,8 +109,20 @@ editor or a browser.
   Launch Services may pick that app's type, which still conforms to plain text). Plain text
   (`.txt`) opens because it conforms to `public.plain-text`, which mdv reads but never claims
   (`LSHandlerRank None`).
-  The first open reads and renders on the main thread (NSDocument's read path); live reloads
-  don't.
+  **The first open renders off the main thread (#32).** `NSDocument` can't be created off main
+  (its init is `@MainActor` and traps there under Swift 6, so `canConcurrentlyReadDocuments` is
+  out), so `read(from:ofType:)` reads and decodes the file on main, which keeps NSDocument's own
+  errors for unreadable and non-UTF-8 files and costs about 1 ms for 5 MB, then renders off the
+  main actor. The window appears at once with the theme background (the web view stays hidden
+  until its first page loads), titled with the file name until the render names it; while it
+  renders, the web view loads an empty page under a `default-src 'none'` CSP, which pays a web
+  view's fixed first-load cost (15-30 ms on main, attaching its WebContent process) in parallel
+  with the render. A newer read (revert), a live reload, or closing the window drops a render in
+  flight. Measured in Debug on a 5 MB document: the render takes about 2.2 s off main and the
+  main thread never stalls more than 5 ms (a hang-detector test asserts under one frame); with
+  the outline sidebar shown, its first fill adds an AppKit layout of about 15-20 ms when the
+  render lands. `Read` and `Render` signposts mark the open path in Instruments' Points of
+  Interest.
 - **Outline sidebar (#24):** an AppKit sidebar split item (`NSOutlineView`, nested by heading
   level) beside the document, from `RenderedDocument.headings` (raw HTML headings included).
   A click or Return jumps by anchor (`slug`), with the source line as fallback. The current

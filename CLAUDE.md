@@ -50,9 +50,13 @@ lock the build database.
   `AppDelegate`), SwiftUI for window content only. Feature folders: `Copy/`, `DefaultViewer/`,
   `Print/`, `Zoom/` (each a small type plus its `DocumentWindowController+<Feature>.swift`).
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
-    plus `RenderedPage`, and the remote-images variant). Every load and revert goes through
-    `setContent(_:)`, which tells each `DocumentWindowController`. `DocumentController` (the
-    shared `NSDocumentController`) finds open files by identity and skips gone files on restore.
+    plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
+    on main (so open errors stay NSDocument's) and renders off the main actor
+    (`render(_:of:)`; tests await `pendingRender`), so `content` is `nil` until the first render
+    lands; a newer read, `setContent`, or `close()` drops a render in flight. Every load and
+    revert goes through `setContent(_:)`, which tells each `DocumentWindowController`.
+    `DocumentController` (the shared `NSDocumentController`) finds open files by identity and
+    skips gone files on restore.
   - `Find/`: `FindInPage` (find state and commands, tested with a fake host) and `FindBar`
     (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
     commands on). The page side is `App/Scripts/FindInPage.js` via `WebViewCoordinator+Find`.
@@ -67,7 +71,8 @@ lock the build database.
     `validateMenuItem` switch in `+Outline.swift`), `DocumentWindow` (restorable state),
     `DocumentView` (SwiftUI root: find bar, file status and remote image bars, link status).
   - `WebView/`: `WebViewCoordinator` owns the `DocumentWebView` (drops, context menu trimming):
-    `load`, `updateContent`, and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,
+    `prepareForFirstLoad()` (a blank page while the first render runs), `load`, `updateContent`,
+    and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,
     `scroll(toFragment:)`). `WebViewConfiguration` holds preferences and user scripts;
     `LocalResourceSchemeHandler` serves `mdv-doc` images; `+Navigation.swift` applies
     `LinkPolicy`.
