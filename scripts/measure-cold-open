@@ -4,11 +4,16 @@
 # the kernel started the process. The app reports its own milestones (`LaunchTiming`, enabled by
 # MDV_LAUNCH_TIMING); "painted" is two animation frames after the first page load finished.
 #
-# Usage: scripts/measure-cold-open [-n RUNS] [-s] [-o] FILE...
+# Usage: scripts/measure-cold-open [-n RUNS] [-s] [-a APP] [-o] [-b MS] FILE...
 #   -n RUNS  launches per file (default 10)
 #   -s       skip the build and measure the existing Release build
+#   -a APP   measure this mdv.app instead (implies -s), e.g. a copy of an older build
 #   -o       show the outline sidebar (default: hidden; the reader's own setting is ignored)
+#   -b MS    exit 1 if a file's median first paint is over MS (a local regression check)
+#   -f       also measure the floor: scripts/cold-open-floor.swift, a bare AppKit app with one
+#            WKWebView configured like mdv's, loading the file's `mdv --html` page at launch
 #
+# The machine's load moves every number: compare builds in one sitting, or interleaved.
 # Every launch ignores saved windows (-ApplePersistenceIgnoreState) and the default viewer offer.
 # It launches the binary directly (not through Launch Services), so another running mdv doesn't
 # matter, but it opens windows: run it while nothing else drives the GUI.
@@ -17,23 +22,29 @@ set -euo pipefail
 runs=10
 build=1
 outline=NO
-while getopts "n:so" opt; do
+budget=""
+app=""
+floor=0
+while getopts "n:sa:ob:f" opt; do
   case "$opt" in
     n) runs="$OPTARG" ;;
     s) build=0 ;;
+    a) app="$OPTARG" build=0 ;;
     o) outline=YES ;;
-    *) sed -n '2,14p' "$0"; exit 2 ;;
+    b) budget="$OPTARG" ;;
+    f) floor=1 ;;
+    *) sed -n '2,19p' "$0"; exit 2 ;;
   esac
 done
 shift $((OPTIND - 1))
 if [ $# -eq 0 ]; then
-  sed -n '2,14p' "$0"
+  sed -n '2,19p' "$0"
   exit 2
 fi
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 derived="$root/build/DerivedDataRelease"
-app="$derived/Build/Products/Release/mdv.app"
+app="${app:-$derived/Build/Products/Release/mdv.app}"
 
 if [ "$build" -eq 1 ]; then
   (cd "$root" && xcodegen generate --quiet)
@@ -46,16 +57,32 @@ if [ ! -x "$app/Contents/MacOS/mdv" ]; then
   exit 1
 fi
 
-for file in "$@"; do
-  path="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+probe="$root/build/ColdOpenFloor.app"
+if [ "$floor" -eq 1 ]; then
+  mkdir -p "$probe/Contents/MacOS"
+  swiftc -O -swift-version 5 "$root/scripts/cold-open-floor.swift" -o "$probe/Contents/MacOS/ColdOpenFloor"
+  printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
+    '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+    '<plist version="1.0"><dict>' \
+    '<key>CFBundleExecutable</key><string>ColdOpenFloor</string>' \
+    '<key>CFBundleIdentifier</key><string>com.itspriddle.mdv.cold-open-floor</string>' \
+    '<key>CFBundlePackageType</key><string>APPL</string>' \
+    '<key>NSPrincipalClass</key><string>NSApplication</string>' \
+    '</dict></plist>' >"$probe/Contents/Info.plist"
+  codesign --force --sign - "$probe" 2>/dev/null
+fi
+
+# measure LABEL FILE COMMAND...: runs COMMAND $runs times and summarizes its timing reports.
+measure() {
+  local label="$1" file="$2"
+  shift 2
+  local results log
   results="$(mktemp)"
   log="$(mktemp)"
   for ((run = 0; run < runs; run++)); do
     # Report and quit; give up on a launch that hasn't painted in 20 s.
-    MDV_LAUNCH_TIMING=exit "$app/Contents/MacOS/mdv" \
-      -ApplePersistenceIgnoreState YES -OutlineVisible "$outline" \
-      -DefaultViewerOfferDeclined YES "$path" >/dev/null 2>"$log" &
-    pid=$!
+    MDV_LAUNCH_TIMING=exit "$@" >/dev/null 2>"$log" &
+    local pid=$!
     for _ in $(seq 200); do
       kill -0 "$pid" 2>/dev/null || break
       sleep 0.1
@@ -68,8 +95,9 @@ for file in "$@"; do
     sed -n 's/^mdv-launch-timing //p' "$log" >>"$results"
     sleep 1
   done
-  printf '%s (%s bytes, %s launches)\n' "$file" "$(wc -c <"$path" | tr -d ' ')" "$(wc -l <"$results" | tr -d ' ')"
-  python3 -I - "$results" <<'PY'
+  printf '%s: %s (%s bytes, %s launches)\n' "$label" "$file" "$(wc -c <"$file" | tr -d ' ')" \
+    "$(wc -l <"$results" | tr -d ' ')"
+  python3 -I - "$results" "$budget" <<'PY' || status=1
 import json, statistics, sys
 rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
 if not rows:
@@ -78,6 +106,23 @@ names = sorted({k for r in rows for k in r}, key=lambda k: statistics.median(r[k
 for name in names:
     values = sorted(r[name] for r in rows if name in r)
     print(f"  {name:22} median {statistics.median(values):7.1f}  min {values[0]:7.1f}  max {values[-1]:7.1f}")
+painted = statistics.median(r["painted"] for r in rows)
+if sys.argv[2] and painted > float(sys.argv[2]):
+    sys.exit(f"  over budget: median first paint {painted:.1f} ms > {sys.argv[2]} ms")
 PY
   rm -f "$results" "$log"
+}
+
+status=0
+for file in "$@"; do
+  path="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+  measure mdv "$path" "$app/Contents/MacOS/mdv" -ApplePersistenceIgnoreState YES \
+    -OutlineVisible "$outline" -DefaultViewerOfferDeclined YES "$path"
+  if [ "$floor" -eq 1 ]; then
+    html="$(mktemp).html"
+    "$app/Contents/Helpers/mdv" --html "$path" >"$html"
+    budget="" measure floor "$path" "$probe/Contents/MacOS/ColdOpenFloor" "$html"
+    rm -f "$html"
+  fi
 done
+exit "$status"
