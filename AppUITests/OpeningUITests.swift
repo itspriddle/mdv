@@ -99,8 +99,11 @@ final class OpeningUITests: XCTestCase {
         XCTAssertTrue(restoredLast.waitForHittable(timeout: 5), "the reading position is restored")
         XCTAssertFalse(second.renderedText("Restoration paragraph 1.", in: restored).isHittable)
 
-        // Leave no restorable windows behind.
-        second.app.typeKey("w", modifierFlags: .command)
+        // Leave no restorable windows behind, including any a Debug mdv used day to day left in
+        // the shared saved state (otherwise they come back on every run).
+        for _ in 0..<10 where second.app.windows.firstMatch.exists {
+            second.app.typeKey("w", modifierFlags: .command)
+        }
         second.waitForWindowCount(0)
         second.app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(second.app.wait(for: .notRunning, timeout: MdvUITestApp.defaultTimeout))
