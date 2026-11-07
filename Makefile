@@ -31,7 +31,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: help bootstrap generate build test test-core test-app test-ui lint format emoji html-entities vendor-highlightjs vendor-github-markdown-css clean
+.PHONY: help bootstrap generate build test test-core test-app test-ui record-theme-snapshots lint format emoji html-entities vendor-highlightjs vendor-github-markdown-css clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -52,6 +52,9 @@ test-core: ## Run MdvCore package tests
 
 test-app: generate ## Run app unit tests (hosted, no UI automation)
 	$(XCODEBUILD) test -only-testing:AppTests
+
+record-theme-snapshots: generate ## Re-record the bundled theme references for this macOS version
+	TEST_RUNNER_MDV_RECORD_SNAPSHOTS=1 $(XCODEBUILD) test -only-testing:AppTests/ThemeSnapshotTests
 
 test-ui: generate ## Run UI tests (always signed; see CLAUDE.md)
 	rm -rf $(UI_RESULT)
