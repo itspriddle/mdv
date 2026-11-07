@@ -4,9 +4,10 @@ import MdvCore
 /// The window's theme (#34): View > Theme and the toolbar's theme menu pick it, the switch is
 /// in place (`WebViewCoordinator.show(_:)`, no reload), and window restoration keeps it.
 ///
-/// The window shows `themeSettings.registry.theme(id: themeID)`, so an unknown or removed id
-/// (a deleted custom theme, #35) falls back to the registry's default, and a custom theme
-/// whose CSS changed is swapped in when the registry is replaced.
+/// The window shows `themeSettings.theme(forWindowThemeID: themeID)`: an unknown or removed id
+/// (a deleted or broken custom theme, #35) falls back to Settings' default theme (#45), and a
+/// custom theme whose CSS changed is swapped in when the registry is replaced. `themeID` keeps
+/// the pick, so the theme comes back when its file does.
 extension DocumentWindowController {
     static let themeToolbarItem = NSToolbarItem.Identifier("theme")
 
@@ -42,7 +43,7 @@ extension DocumentWindowController {
     /// Resolves `themeID` in the registry and shows the result: window background, under-page
     /// area, and the page (swapped in place). Does nothing when it is already shown.
     func applyTheme() {
-        let theme = themeSettings.registry.theme(id: themeID)
+        let theme = themeSettings.theme(forWindowThemeID: themeID)
         window?.backgroundColor = .themeBackground(theme.background)
         coordinator.show(theme)
     }

@@ -45,9 +45,10 @@ write everything yourself, leave `extends` out and start from the
 - **At most 100 themes** load, in Finder's name order; the rest are reported as not loaded.
 - **Identity:** a custom theme is known by its file name (internally `custom:<file name>`).
   Windows and Settings remember a theme by that name, so renaming the file is like deleting
-  the theme and adding a new one: windows using the old name show GitHub, the built-in
-  default, until a file with that name comes back. Custom themes can't replace bundled ones; they are
-  listed in their own section of the picker.
+  the theme and adding a new one: windows using the old name show the default theme from
+  **Settings > General** (GitHub if that is missing too) until a file with that name comes
+  back. Custom themes can't replace bundled ones; they are listed in their own section of the
+  picker.
 
 ## The header
 
@@ -360,8 +361,8 @@ The check understands CSS comments, strings, and escapes, and ignores case, so
 A file that can't be used isn't an alert: it's listed, disabled, at the end of
 **View > Theme** (and the toolbar's theme menu) as its name and the reason, and under
 **Settings > General**. Fix the file and save; it loads at once. While it's broken, windows
-that were showing it fall back to GitHub, the built-in default, and switch back when it loads
-again.
+that were showing it fall back to the default theme set in **Settings > General** (GitHub, the
+built-in default, if that one is missing or broken too), and switch back when it loads again.
 
 | Problem | What mdv says |
 | --- | --- |
@@ -394,11 +395,11 @@ fraction of a second of a change:
 - an **edited file** updates every window showing it, in place: no reload, no flash, same
   scroll position (atomic saves from editors are fine);
 - a **deleted or broken file** disappears from the picker (or shows as not loaded), and
-  windows showing it fall back to GitHub. They keep their choice, so the theme comes back
-  when the file does.
+  windows showing it fall back to the Settings default theme (GitHub if that one is missing
+  too). They keep their choice, so the theme comes back when the file does.
 
-A save that's briefly invalid while you're typing (an unclosed `{`) shows GitHub until the
-next valid save.
+A save that's briefly invalid while you're typing (an unclosed `{`) shows the Settings default
+theme until the next valid save.
 
 ## A complete example
 
