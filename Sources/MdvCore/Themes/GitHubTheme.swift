@@ -1,92 +1,72 @@
 extension Theme {
-    /// The default theme. Until the bundled Primer theme (#33) replaces its CSS, this is M2's
-    /// placeholder look (GitHub's colors on a simple layout); the id stays `github`.
+    /// The default theme: github.com's Markdown file view (Primer), light and dark. The vendored
+    /// github-markdown-css (`GitHubMarkdownCSS`, `make vendor-github-markdown-css`) plus mdv's
+    /// page layout, heading anchors, and highlight.js token colors from Primer's syntax palette.
     public static let github = Theme(
         id: "github",
         displayName: "GitHub",
+        // Primer `--bgColor-default`, light and dark.
         background: ThemeBackground(light: ThemeColor(0xFF_FF_FF), dark: ThemeColor(0x0D_11_17)),
-        stylesheet: GitHubTheme.stylesheet,
+        stylesheet: GitHubMarkdownCSS.stylesheet + "\n" + GitHubTheme.stylesheet,
         highlightStylesheet: GitHubTheme.highlightStylesheet,
         printStylesheet: GitHubTheme.printStylesheet)
 }
 
-private enum GitHubTheme {
+enum GitHubTheme {
+    /// mdv's additions after the vendored CSS. github-markdown-css styles `.markdown-body` only
+    /// and leaves the page layout to the host; this is github.com's README column. The page
+    /// background comes from `Theme.background`, so `.markdown-body` is transparent over it.
     static let stylesheet = """
-        body {
-          margin: 0;
-          font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-          color: #1f2328;
+        body { margin: 0; }
+        .markdown-body {
+          box-sizing: border-box; min-width: 200px; max-width: var(--mdv-content-width, 980px); margin: 0 auto;
+          padding: 32px 45px; font-size: var(--mdv-font-size, 16px); background-color: transparent;
         }
-        .markdown-body { max-width: 860px; margin: 0 auto; padding: 32px; }
-        pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875em; }
-        pre { padding: 16px; overflow: auto; border-radius: 6px; background: #f6f8fa; }
-        a { color: #0969da; }
-        table { border-collapse: collapse; display: block; max-width: 100%; overflow: auto; }
-        th, td { padding: 6px 13px; border: 1px solid #d1d9e0; }
-        th { font-weight: 600; }
-        .task-list-item { list-style-type: none; }
-        .task-list-item-checkbox { margin: 0 0.2em 0.25em -1.4em; vertical-align: middle; }
-        .footnotes { margin-top: 2em; padding-top: 1em; border-top: 1px solid #d1d9e0; font-size: 0.875em; }
-        h1, h2, h3, h4, h5, h6 { position: relative; }
-        .anchor {
-          position: absolute; left: -1em; width: 1em; text-align: center; text-decoration: none; opacity: 0;
+        /* Heading anchors: mdv writes an empty `a.anchor` (no octicon SVG, and theme CSS can't use a
+           data: URL for its mask), so a "#" glyph stands in, shown on hover or focus. */
+        .markdown-body h1, .markdown-body h2, .markdown-body h3,
+        .markdown-body h4, .markdown-body h5, .markdown-body h6 { position: relative; }
+        .markdown-body .anchor {
+          position: absolute; left: -1em; float: none; width: 1em; margin: 0; padding: 0;
+          line-height: inherit; text-align: center; color: var(--fgColor-muted); opacity: 0;
         }
-        .anchor::before { content: "#"; }
-        h1:hover .anchor, h2:hover .anchor, h3:hover .anchor,
-        h4:hover .anchor, h5:hover .anchor, h6:hover .anchor, .anchor:focus { opacity: 1; }
-        table.frontmatter { margin-bottom: 16px; font-size: 0.875em; }
-        .frontmatter th, .frontmatter td {
-          padding: 4px 8px; text-align: left; vertical-align: top;
-        }
-        @media screen and (prefers-color-scheme: dark) {
-          body { color: #e6edf3; }
-          pre { background: #161b22; }
-          a { color: #4493f8; }
-          th, td, .footnotes { border-color: #3d444d; }
+        .markdown-body .anchor::before { content: "#"; }
+        .markdown-body h1:hover .anchor, .markdown-body h2:hover .anchor, .markdown-body h3:hover .anchor,
+        .markdown-body h4:hover .anchor, .markdown-body h5:hover .anchor, .markdown-body h6:hover .anchor,
+        .markdown-body .anchor:focus { opacity: 1; }
+        /* The frontmatter table (FrontmatterDisplay.table), as github.com shows it. */
+        .markdown-body table.frontmatter th, .markdown-body table.frontmatter td {
+          text-align: left; vertical-align: top;
         }
         """
 
-    /// highlight.js 11 `github.css` and `github-dark.css` token colors.
-    static let highlightStylesheet = """
-        /* Syntax highlighting: highlight.js 11 `github.css` and `github-dark.css` token colors
-           (BSD-3-Clause, (c) 2006 Ivan Sagalaev and contributors; theme by @Hirse). */
-        .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag,
-        .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #d73a49; }
-        .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #6f42c1; }
-        .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable,
-        .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: #005cc5; }
-        .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #032f62; }
-        .hljs-built_in, .hljs-symbol { color: #e36209; }
-        .hljs-comment, .hljs-code, .hljs-formula { color: #6a737d; }
-        .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #22863a; }
-        .hljs-subst { color: #24292e; }
-        .hljs-section { color: #005cc5; font-weight: bold; }
-        .hljs-bullet { color: #735c0f; }
-        .hljs-emphasis { color: #24292e; font-style: italic; }
-        .hljs-strong { color: #24292e; font-weight: bold; }
-        .hljs-addition { color: #22863a; background-color: #f0fff4; }
-        .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
-        @media screen and (prefers-color-scheme: dark) {
-          .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag,
-          .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #ff7b72; }
-          .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: #d2a8ff; }
-          .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable,
-          .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: #79c0ff; }
-          .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #a5d6ff; }
-          .hljs-built_in, .hljs-symbol { color: #ffa657; }
-          .hljs-comment, .hljs-code, .hljs-formula { color: #8b949e; }
-          .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #7ee787; }
-          .hljs-subst, .hljs-emphasis, .hljs-strong { color: #c9d1d9; }
-          .hljs-section { color: #1f6feb; }
-          .hljs-bullet { color: #f2cc60; }
-          .hljs-addition { color: #aff5b4; background-color: #033a16; }
-          .hljs-deletion { color: #ffdcd7; background-color: #67060c; }
-        }
-        """
+    /// highlight.js tokens in Primer's syntax colors (`--color-prettylights-syntax-*`, which
+    /// github.com uses for code), grouped as highlight.js's `github.css` groups them. The
+    /// variables are github-markdown-css's, redefined for dark mode there, so one palette covers
+    /// both appearances.
+    static let highlightStylesheet = HighlightPalette.stylesheet(
+        light: HighlightPalette(
+            keyword: prettylights("keyword"),
+            title: prettylights("entity"),
+            constant: prettylights("constant"),
+            string: prettylights("string"),
+            builtIn: prettylights("variable"),
+            comment: prettylights("comment"),
+            tag: prettylights("entity-tag"),
+            plain: "var(--fgColor-default)",
+            section: prettylights("markup-heading"),
+            bullet: prettylights("markup-list"),
+            addition: (prettylights("markup-inserted-text"), prettylights("markup-inserted-bg")),
+            deletion: (prettylights("markup-deleted-text"), prettylights("markup-deleted-bg"))),
+        dark: nil)
 
     /// Paper: no page background, links in the text color and underlined.
     static let printStylesheet = """
         body { background: none; }
-        a { color: inherit; text-decoration: underline; }
+        .markdown-body a { color: inherit; text-decoration: underline; }
         """
+
+    private static func prettylights(_ name: String) -> String {
+        "var(--color-prettylights-syntax-\(name))"
+    }
 }
