@@ -31,14 +31,19 @@ final class ContentWidthTests: DocumentWindowTestCase {
                 in: coordinator) as? String)
     }
 
-    /// `ems` (in `em`) in pixels of the column's own font size, as the computed `max-width` writes it.
-    func pixels(_ ems: Double, in coordinator: WebViewCoordinator) async throws -> String {
+    /// `ems` (in `em`) in pixels of the column's own font size.
+    func pixels(_ ems: Double, in coordinator: WebViewCoordinator) async throws -> Double {
         let fontSize = try #require(
             try await evaluate(
                 "return parseFloat(getComputedStyle(document.querySelector('article.markdown-body')).fontSize);",
                 in: coordinator) as? NSNumber)
-        let value = ems * fontSize.doubleValue
-        return value == value.rounded() ? "\(Int(value))px" : "\(value)px"
+        return ems * fontSize.doubleValue
+    }
+
+    /// Whether a computed `max-width` is `pixels`, allowing for WebKit's rounding of fractional px.
+    func isWidth(_ computed: String, is pixels: Double) -> Bool {
+        guard computed.hasSuffix("px"), let value = Double(computed.dropLast(2)) else { return false }
+        return abs(value - pixels) < 0.01
     }
 
     /// An item in View > Content Width.
@@ -99,8 +104,12 @@ final class ContentWidthTests: DocumentWindowTestCase {
         let narrowWidth = try await pixels(32, in: first.coordinator)
         first.setContentWidth(narrow)
         #expect(settings.width == .narrow)
-        try await until("the first window narrows") { try await maxWidth(in: first.coordinator) == narrowWidth }
-        try await until("the second window narrows") { try await maxWidth(in: second.coordinator) == narrowWidth }
+        try await until("the first window narrows") {
+            isWidth(try await maxWidth(in: first.coordinator), is: narrowWidth)
+        }
+        try await until("the second window narrows") {
+            isWidth(try await maxWidth(in: second.coordinator), is: narrowWidth)
+        }
         let narrowHeight = try #require(
             try await evaluate("return document.documentElement.scrollHeight;", in: first.coordinator) as? NSNumber)
         #expect(narrowHeight.doubleValue > height.doubleValue, "the column reflowed")
@@ -114,10 +123,10 @@ final class ContentWidthTests: DocumentWindowTestCase {
         // A new window and a full reload start with the current preset.
         settings.width = .wide
         let (document, third) = try await open(name: "third.md", contentWidthSettings: settings)
-        #expect(try await maxWidth(in: third.coordinator) == (try await pixels(72, in: third.coordinator)))
+        #expect(isWidth(try await maxWidth(in: third.coordinator), is: try await pixels(72, in: third.coordinator)))
         settings.width = .narrow
         try await third.coordinator.load(try #require(document.content).page, baseURL: nil)
-        #expect(try await maxWidth(in: third.coordinator) == narrowWidth)
+        #expect(isWidth(try await maxWidth(in: third.coordinator), is: narrowWidth))
     }
 
     @Test("the current preset is checked in the menu")
@@ -163,8 +172,14 @@ final class ContentWidthTests: DocumentWindowTestCase {
                     contentSecurityPolicy: .viewer
                 ).html
                 try await coordinator.load(html: html, baseURL: nil)
-                let expected = if let ems { try await pixels(ems, in: coordinator) } else { "none" }
-                #expect(try await maxWidth(in: coordinator) == expected, "\(theme.id) \(appearance.rawValue)")
+                let actual = try await maxWidth(in: coordinator)
+                let label = "\(theme.id) \(appearance.rawValue) \(width.rawValue): \(actual)"
+                if let ems {
+                    let expected = try await pixels(ems, in: coordinator)
+                    #expect(isWidth(actual, is: expected), "\(label), expected \(expected)px")
+                } else {
+                    #expect(actual == "none", "\(label)")
+                }
             }
         }
     }
