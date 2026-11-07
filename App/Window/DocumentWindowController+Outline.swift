@@ -64,6 +64,16 @@ extension DocumentWindowController {
         return splitViewController
     }
 
+    /// View > Expand All Headings: every outline entry (#43).
+    @objc func expandAllOutlineEntries(_ sender: Any?) {
+        outlineController.expandAll()
+    }
+
+    /// View > Collapse All Headings: every outline entry (#43).
+    @objc func collapseAllOutlineEntries(_ sender: Any?) {
+        outlineController.collapseAll()
+    }
+
     /// Scrolls to `heading` by its anchor (`slug`), or by its source line if no element has
     /// that id, then tells the outline where the jump landed.
     func jump(to heading: Heading) {
@@ -118,6 +128,10 @@ extension DocumentWindowController: NSMenuItemValidation {
         case #selector(toggleOutline(_:)):
             menuItem.title = isOutlineVisible ? "Hide Outline" : "Show Outline"
             return true
+        case #selector(expandAllOutlineEntries(_:)):
+            return isOutlineVisible && outlineController.canExpandAll
+        case #selector(collapseAllOutlineEntries(_:)):
+            return isOutlineVisible && outlineController.canCollapseAll
         case #selector(zoomInDocument(_:)), #selector(zoomOutDocument(_:)), #selector(resetDocumentZoom(_:)):
             return validateZoomItem(menuItem)
         case #selector(setContentWidth(_:)):

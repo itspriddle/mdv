@@ -1,7 +1,7 @@
 import XCTest
 
 /// The outline sidebar (#24): toggled from the View menu shortcut, a click on a heading scrolls
-/// the document to it.
+/// the document to it; Expand All and Collapse All from the View menu and the context menu (#43).
 @MainActor
 final class OutlineUITests: XCTestCase {
     private var mdv: MdvUITestApp?
@@ -43,5 +43,24 @@ final class OutlineUITests: XCTestCase {
         window.typeKey("s", modifierFlags: [.command, .control])
         let hidden = expectation(for: NSPredicate(format: "isHittable == false"), evaluatedWith: final)
         wait(for: [hidden], timeout: MdvUITestApp.defaultTimeout)
+    }
+
+    func testCollapseAllAndExpandAll() throws {
+        let mdv = try MdvUITestApp.launch(openingFixture: "outline.md", arguments: ["-OutlineVisible", "YES"])
+        self.mdv = mdv
+        let window = mdv.waitForWindow(titled: "Outline Fixture")
+        let middle = mdv.outlineText("Middle Section", in: window)
+        XCTAssertTrue(middle.waitForExistence(timeout: MdvUITestApp.defaultTimeout))
+
+        // View > Collapse All Headings hides the nested entries.
+        mdv.app.menuBars.menuBarItems["View"].click()
+        mdv.app.menuBars.menuBarItems["View"].menuItems["Collapse All Headings"].click()
+        let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: middle)
+        wait(for: [gone], timeout: MdvUITestApp.defaultTimeout)
+
+        // The sidebar's context menu > Expand All shows them again.
+        mdv.outlineText("Outline Fixture", in: window).rightClick()
+        mdv.outline(in: window).menuItems["Expand All"].click()
+        XCTAssertTrue(middle.waitForExistence(timeout: MdvUITestApp.defaultTimeout))
     }
 }
