@@ -186,20 +186,49 @@ final class OutlineTests {
         #expect(selectedID(outline) == "two")
     }
 
-    @Test("a jump to a short last section keeps it selected until the reader scrolls")
+    @Test("a jump to a short section near the end keeps it selected until the reader scrolls")
     func jumpToLastSection() async throws {
         defer { close() }
-        let (_, controller) = try await open(Self.sections)
+        let (_, controller) = try await open(Self.sections + "\n\n# Four\n\nShort too.")
         let outline = controller.outlineController
         controller.window?.makeFirstResponder(outline.outlineView)
         outline.outlineView.selectRowIndexes(IndexSet(integer: row("three", in: outline)), byExtendingSelection: false)
         outline.outlineView.onActivate?()
-        try await until("the jump landed") { outline.tracker.currentSection == "two" }
-        // The page is at the bottom: "Three" can't reach the top of the view.
+        // The page is at the bottom: "Three" can't reach the top of the view, and the section
+        // at the bottom of the page is "Four".
+        try await until("the jump landed") { outline.tracker.currentSection == "four" }
         try await Task.sleep(for: .milliseconds(300))
         #expect(selectedID(outline) == "three")
         try await controller.coordinator.scroll(toFragment: "one")
         try await until("section one") { selectedID(outline) == "one" }
+    }
+
+    @Test("scrolling to the end makes each short last section current in turn (#43)")
+    func shortLastSections() async throws {
+        defer { close() }
+        let (_, controller) = try await open(Self.sections + "\n\n# Four\n\nShort too.")
+        let outline = controller.outlineController
+        try await until("section one at the top") { selectedID(outline) == "one" }
+        try await scroll(controller, toBottomMinus: 0)
+        try await until("the last section at the bottom") { selectedID(outline) == "four" }
+        // Scrolling back up from the bottom, 20 px at a time: the current section goes through
+        // every trailing section, in order.
+        var sections: [String] = []
+        for step in 0...40 {
+            try await scroll(controller, toBottomMinus: Double(step * 20))
+            let line = try await controller.coordinator.sectionSourceLine()
+            if let section = outline.tracker.outline.section(atSourceLine: line), sections.last != section {
+                sections.append(section)
+            }
+        }
+        #expect(sections == ["four", "three", "two"])
+    }
+
+    /// Scrolls to `distance` CSS pixels above the bottom of the page.
+    func scroll(_ controller: DocumentWindowController, toBottomMinus distance: Double) async throws {
+        _ = try await controller.coordinator.webView.callAsyncJavaScript(
+            "window.scrollTo(0, document.documentElement.scrollHeight - window.innerHeight - distance); return true;",
+            arguments: ["distance": distance], in: nil, contentWorld: AppScripts.world)
     }
 
     @Test("a heading without a matching element falls back to its source line")

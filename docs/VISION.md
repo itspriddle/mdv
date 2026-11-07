@@ -128,9 +128,11 @@ editor or a browser.
   A click or Return jumps by anchor (`slug`), with the source line as fallback. The current
   section is the last heading at or before the reading position, read a few pixels below the
   top of the view after each `ScrollPosition.js` report (one app-world scroll observer serves
-  both restoration and the outline). The selection follows scrolling except while the reader
-  browses the outline with the keyboard, and a jumped-to heading stays selected until the
-  reader scrolls away from where it landed (a short last section can't reach the top).
+  both restoration and the outline). Over the last viewport height of scrolling that reading
+  line moves down to the bottom of the view (#43), so short trailing sections, which can't
+  reach the top, each become current in turn. The selection follows scrolling except while
+  the reader browses the outline with the keyboard, and a jumped-to heading stays selected
+  until the reader scrolls away from where it landed.
   Re-renders keep the sidebar's scroll position, collapsed entries, and selection. Visibility
   is per window (restored with the window) and the last toggle is the default for new
   windows; hidden until first shown. A document without headings shows "No Headings".

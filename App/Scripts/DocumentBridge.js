@@ -66,8 +66,22 @@
 
   // The source line the outline's current section is read at (after each ScrollPosition.js
   // report; see DocumentWindowController+Outline.swift).
+  //
+  // Normally just below the top of the viewport. Sections near the end of a page can't scroll
+  // to the top, so over the last viewport height of scrolling the reading line moves down with
+  // the scroll position and reaches the bottom of the viewport at the end of the page: each
+  // short trailing section becomes current in turn, and the last one at the bottom. A page
+  // that doesn't scroll keeps the line at the top.
   function sectionSourceLine() {
-    return currentSourceLine(SECTION_OFFSET);
+    const maximum = maximumScrollY();
+    let offset = SECTION_OFFSET;
+    if (maximum > 0) {
+      const span = Math.min(window.innerHeight, maximum);
+      const remaining = Math.max(0, maximum - window.scrollY);
+      const progress = 1 - Math.min(1, remaining / span);
+      offset += progress * Math.max(0, window.innerHeight - SECTION_OFFSET - 1);
+    }
+    return currentSourceLine(offset);
   }
 
   // Scrolls so `line` is at the top of the viewport. Lines before the first block scroll to
