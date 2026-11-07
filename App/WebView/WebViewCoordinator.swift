@@ -46,6 +46,8 @@ final class WebViewCoordinator: NSObject {
     var documentFileURL: URL?
     /// Performs every link action except in-page scrolling (opening documents and URLs).
     var linkHandler: ((LinkAction, LinkOpening) -> Void)?
+    /// The link and image under the last context menu (`ContextMenuLink.js`), for Share.
+    var contextMenuTarget = ContextMenuTarget()
 
     /// The reader's style controls (#37) every page this coordinator loads starts with. Set it
     /// before the first load; after a change, `applyUserStyleToPage()`
@@ -80,6 +82,13 @@ final class WebViewCoordinator: NSObject {
         webView.isHidden = true
         webView.setAccessibilityIdentifier("document-web-view")
         webView.copyLinkHandler = { [weak self] in self?.copyContextMenuLink() }
+        webView.copyImageHandler = { [weak self] in self?.copyContextMenuImage() }
+        webView.isLocalImageUnderContextMenu = { [weak self] in self?.contextMenuLocalImage != nil }
+        webView.shareItemsHandler = { [weak self] in self?.contextMenuShareItems() ?? [] }
+        webView.dragPasteboardHandler = { [weak self] pasteboard in self?.rewriteDocumentLinks(on: pasteboard) }
+        webView.configuration.userContentController.add(
+            ContextMenuTargetMessageHandler(coordinator: self), contentWorld: AppScripts.world,
+            name: ContextMenuTargetMessageHandler.name)
         // Hover reports from `LinkHover.js`, accepted from the app's content world only.
         webView.configuration.userContentController.add(
             LinkHoverMessageHandler(coordinator: self), contentWorld: AppScripts.world,

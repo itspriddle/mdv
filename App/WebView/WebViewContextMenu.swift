@@ -4,9 +4,9 @@ import AppKit
 /// browser items that the navigation policy cancels (Reload, Back, Forward), that need
 /// downloads (Download Linked File / Image / Media), or that would open a resource as a page
 /// (Open Image / Media / Frame in New Window). Everything else stays: Copy, Copy Link (performed
-/// by the app, `redirectCopyLink`), Copy Image, Open Link and Open Link in New Window (both
-/// routed through the link policy), Look Up, Translate, Search With, Share, Speech, Services,
-/// Writing Tools.
+/// by the app, `redirectCopyLink`), Copy Image (the app's for local images), Open Link and Open Link in New Window (both
+/// routed through the link policy), Look Up, Translate, Search With, Share (the app's for local
+/// links and images, `replaceShare`), Speech, Services, Writing Tools.
 ///
 /// A blocklist rather than an allowlist, so system items added in later macOS releases keep
 /// working. WebKit's identifiers are `WKMenuItemIdentifier…` strings (SPI constants; values
@@ -33,11 +33,43 @@ enum WebViewContextMenu {
     /// for a relative link.
     static let copyLinkIdentifier = "WKMenuItemIdentifierCopyLink"
 
+    /// WebKit's Share submenu item, which shares the link's or image's resolved URL.
+    static let shareIdentifier = "WKMenuItemIdentifierShareMenu"
+
+    /// Replaces Share with one that shares `items` (the `file:` URLs of a local link or image),
+    /// or removes it when `items` is empty. `nil` keeps WebKit's item (nothing local to share).
+    @MainActor
+    static func replaceShare(in menu: NSMenu, sharing items: [URL]?) {
+        guard let items else {
+            return
+        }
+        for item in menu.items where item.identifier?.rawValue == shareIdentifier {
+            let index = menu.index(of: item)
+            menu.removeItem(item)
+            guard !items.isEmpty else {
+                continue
+            }
+            let share = NSSharingServicePicker(items: items).standardShareMenuItem
+            share.identifier = item.identifier
+            menu.insertItem(share, at: index)
+        }
+    }
+
     /// Makes Copy Link perform `target` (`MenuItemTarget.performAction(_:)`) instead of WebKit's
     /// action, or removes it when `target` is nil, so it never copies an `mdv-doc` URL (#42).
     @MainActor
     static func redirectCopyLink(in menu: NSMenu, to target: MenuItemTarget?) {
-        for item in menu.items where item.identifier?.rawValue == copyLinkIdentifier {
+        redirect(copyLinkIdentifier, in: menu, to: target)
+    }
+
+    /// WebKit's Copy Image item.
+    static let copyImageIdentifier = "WKMenuItemIdentifierCopyImage"
+
+    /// Makes the item `identifier` perform `target` (`MenuItemTarget.performAction(_:)`) instead
+    /// of WebKit's action, or removes it when `target` is nil.
+    @MainActor
+    static func redirect(_ identifier: String, in menu: NSMenu, to target: MenuItemTarget?) {
+        for item in menu.items where item.identifier?.rawValue == identifier {
             if let target {
                 item.target = target
                 item.action = #selector(MenuItemTarget.performAction(_:))

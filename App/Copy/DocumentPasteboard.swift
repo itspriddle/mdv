@@ -35,6 +35,28 @@ enum DocumentPasteboard {
         pasteboard.setString(url.absoluteString, forType: .string)
     }
 
+    /// Writes an image for Copy Image: the file's own bytes under its type, and a PNG of it
+    /// (drawn by the page) for apps that take only bitmaps, or for an SVG. A PNG file is
+    /// written once, as is. No URL and no HTML, so no internal `mdv-doc` URL.
+    static func writeImage(original: LocalImage?, png: Data?, to pasteboard: NSPasteboard) {
+        var entries: [(type: NSPasteboard.PasteboardType, data: Data)] = []
+        if let original, original.format == .png {
+            entries.append((.png, original.data))
+        } else {
+            if let png {
+                entries.append((.png, png))
+            }
+            if let original {
+                entries.append((NSPasteboard.PasteboardType(original.format.typeIdentifier), original.data))
+            }
+        }
+        pasteboard.clearContents()
+        pasteboard.declareTypes(entries.map(\.type), owner: nil)
+        for entry in entries {
+            pasteboard.setData(entry.data, forType: entry.type)
+        }
+    }
+
     /// The rendered body fragment Copy as HTML copies: the default render options, the same
     /// output as `mdv --html` without the page around it. No `data-source-line` annotations, and
     /// remote images are kept as written (the viewer's placeholders are display only; nothing

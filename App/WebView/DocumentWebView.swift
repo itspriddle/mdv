@@ -14,6 +14,26 @@ final class DocumentWebView: WKWebView {
     /// removed from the menu.
     var copyLinkHandler: (() -> Void)?
 
+    /// Takes `mdv-doc` URLs off a drag's pasteboard before the drag starts (a dragged link or
+    /// image). Set by the coordinator.
+    var dragPasteboardHandler: ((NSPasteboard) -> Void)?
+
+    /// What the context menu's Share shares in place of WebKit's item, which would share the
+    /// internal `mdv-doc` URL of a relative link or local image: `nil` keeps WebKit's item, an
+    /// empty list removes it. Set by the coordinator; without it, Share is removed.
+    var shareItemsHandler: (() -> [URL]?)?
+
+    /// Performs Copy Image for a local image in place of WebKit, which copies nothing for an SVG
+    /// and writes HTML with the image's `mdv-doc` URL. Used only when
+    /// `isLocalImageUnderContextMenu` says so; other images keep WebKit's Copy Image. Set by the
+    /// coordinator.
+    var copyImageHandler: (() -> Void)?
+    var isLocalImageUnderContextMenu: (() -> Bool)?
+
+    private lazy var copyImageTarget = MenuItemTarget { [weak self] in
+        self?.copyImageHandler?()
+    }
+
     /// The context menu's Copy Link target (menu item targets are weak).
     private lazy var copyLinkTarget = MenuItemTarget { [weak self] in
         self?.copyLinkHandler?()
@@ -77,6 +97,11 @@ final class DocumentWebView: WKWebView {
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         super.willOpenMenu(menu, with: event)
         WebViewContextMenu.redirectCopyLink(in: menu, to: copyLinkHandler == nil ? nil : copyLinkTarget)
+        if isLocalImageUnderContextMenu?() == true {
+            WebViewContextMenu.redirect(
+                WebViewContextMenu.copyImageIdentifier, in: menu, to: copyImageHandler == nil ? nil : copyImageTarget)
+        }
+        WebViewContextMenu.replaceShare(in: menu, sharing: shareItemsHandler.map { $0() } ?? [])
         WebViewContextMenu.trim(menu)
     }
 
@@ -98,6 +123,26 @@ final class DocumentWebView: WKWebView {
     override func smartMagnify(with event: NSEvent) {
         super.smartMagnify(with: event)
         window?.invalidateRestorableState()
+    }
+
+    // MARK: Dragging out
+
+    /// The drag source callback AppKit sends when any drag from the page starts, after WebKit
+    /// has written the pasteboard and before anything can be dropped: the rewrite goes here.
+    /// `WKWebView` implements it without declaring it (WebKit starts link and image drags with
+    /// `dragImage(…)`, which Swift can't override), so this replaces it by selector and then
+    /// calls WebKit's implementation.
+    @objc(draggingSession:willBeginAtPoint:)
+    func documentDraggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
+        dragPasteboardHandler?(session.draggingPasteboard)
+        let selector = #selector(documentDraggingSession(_:willBeginAt:))
+        guard WKWebView.instancesRespond(to: selector),
+            let implementation = class_getMethodImplementation(WKWebView.self, selector)
+        else {
+            return
+        }
+        typealias WillBegin = @convention(c) (AnyObject, Selector, NSDraggingSession, NSPoint) -> Void
+        unsafeBitCast(implementation, to: WillBegin.self)(self, selector, session, screenPoint)
     }
 
     private func dropOperation(for sender: any NSDraggingInfo) -> NSDragOperation {
