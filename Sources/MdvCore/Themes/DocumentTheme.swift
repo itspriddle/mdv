@@ -120,10 +120,14 @@ enum DocumentTheme {
             comment: "#7f8c98", tag: "#5dd8ff", plain: "inherit", section: "#5dd8ff", bullet: "#fd8f3f",
             addition: ("#9ce0a9", "#1d3a24"), deletion: ("#ffb3ad", "#4a1f1f")))
 
-    /// Paper is the page: no desk, no shadow, links in the text color.
+    /// Paper is the page: no desk, no shadow, links in the text color, light fills kept. The
+    /// body stays 11pt (a little under 12pt on paper).
     static let printStylesheet = """
-        body { background: none; }
         .markdown-body { margin: 0; background: none; box-shadow: none; }
         .markdown-body a { color: inherit; }
+        /* Code, keys, highlights, and tables keep their light fills (WebKit leaves backgrounds off
+           on paper otherwise), so code blocks and diff lines still read as blocks. */
+        .markdown-body pre, .markdown-body code, .markdown-body kbd, .markdown-body mark,
+        .markdown-body table { print-color-adjust: exact; }
         """
 }
