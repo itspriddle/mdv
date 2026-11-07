@@ -1,5 +1,7 @@
 import AppKit
 
+LaunchTiming.mark("main")
+
 // The first NSDocumentController created becomes `NSDocumentController.shared`, so create ours
 // before anything asks for the shared one.
 let documentController = DocumentController()

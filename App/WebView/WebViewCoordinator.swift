@@ -144,6 +144,7 @@ final class WebViewCoordinator: NSObject {
     func load(html: String, baseURL: URL?) async throws {
         loadedTheme = nil
         expectedLoadURL = baseURL ?? URL(string: "about:blank")
+        LaunchTiming.mark("loadStarted")
         guard let navigation = webView.loadHTMLString(html, baseURL: baseURL) else {
             return
         }

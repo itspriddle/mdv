@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private(set) var customThemes: CustomThemeLibrary?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        LaunchTiming.mark("willFinishLaunching")
         MainMenu.install()
         // Before restoration: restored windows showing a custom theme switch to it as soon as
         // the first load (off the main thread) lands.
@@ -28,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        LaunchTiming.mark("didFinishLaunching")
         if !Self.isHostingUnitTests {
             defaultViewerOffer.start()
         }

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Measures cold open to first paint (#40): builds mdv in Release, then launches it N times with
+# each document as an argument and reports the median of each milestone, in milliseconds since
+# the kernel started the process. The app reports its own milestones (`LaunchTiming`, enabled by
+# MDV_LAUNCH_TIMING); "painted" is two animation frames after the first page load finished.
+#
+# Usage: scripts/measure-cold-open [-n RUNS] [-s] [-o] FILE...
+#   -n RUNS  launches per file (default 10)
+#   -s       skip the build and measure the existing Release build
+#   -o       show the outline sidebar (default: hidden; the reader's own setting is ignored)
+#
+# Every launch ignores saved windows (-ApplePersistenceIgnoreState) and the default viewer offer.
+# It launches the binary directly (not through Launch Services), so another running mdv doesn't
+# matter, but it opens windows: run it while nothing else drives the GUI.
+set -euo pipefail
+
+runs=10
+build=1
+outline=NO
+while getopts "n:so" opt; do
+  case "$opt" in
+    n) runs="$OPTARG" ;;
+    s) build=0 ;;
+    o) outline=YES ;;
+    *) sed -n '2,14p' "$0"; exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
+if [ $# -eq 0 ]; then
+  sed -n '2,14p' "$0"
+  exit 2
+fi
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+derived="$root/build/DerivedDataRelease"
+app="$derived/Build/Products/Release/mdv.app"
+
+if [ "$build" -eq 1 ]; then
+  (cd "$root" && xcodegen generate --quiet)
+  xcodebuild -project "$root/mdv.xcodeproj" -scheme mdv -configuration Release \
+    -destination 'platform=macOS' -derivedDataPath "$derived" CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES \
+    build -quiet
+fi
+if [ ! -x "$app/Contents/MacOS/mdv" ]; then
+  echo "No Release build at $app; run without -s." >&2
+  exit 1
+fi
+
+for file in "$@"; do
+  path="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+  results="$(mktemp)"
+  log="$(mktemp)"
+  for ((run = 0; run < runs; run++)); do
+    # Report and quit; give up on a launch that hasn't painted in 20 s.
+    MDV_LAUNCH_TIMING=exit "$app/Contents/MacOS/mdv" \
+      -ApplePersistenceIgnoreState YES -OutlineVisible "$outline" \
+      -DefaultViewerOfferDeclined YES "$path" >/dev/null 2>"$log" &
+    pid=$!
+    for _ in $(seq 200); do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.1
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" || true
+      echo "launch timed out" >&2
+    fi
+    wait "$pid" || true
+    sed -n 's/^mdv-launch-timing //p' "$log" >>"$results"
+    sleep 1
+  done
+  printf '%s (%s bytes, %s launches)\n' "$file" "$(wc -c <"$path" | tr -d ' ')" "$(wc -l <"$results" | tr -d ' ')"
+  python3 -I - "$results" <<'PY'
+import json, statistics, sys
+rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+if not rows:
+    sys.exit("no timings reported")
+names = sorted({k for r in rows for k in r}, key=lambda k: statistics.median(r[k] for r in rows if k in r))
+for name in names:
+    values = sorted(r[name] for r in rows if name in r)
+    print(f"  {name:22} median {statistics.median(values):7.1f}  min {values[0]:7.1f}  max {values[-1]:7.1f}")
+PY
+  rm -f "$results" "$log"
+done

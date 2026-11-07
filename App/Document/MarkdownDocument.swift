@@ -41,8 +41,14 @@ final class MarkdownDocument: NSDocument {
         subsystem: Bundle.main.bundleIdentifier ?? "mdv", category: .pointsOfInterest)
 
     override func makeWindowControllers() {
+        LaunchTiming.mark("makeWindowControllers")
         addWindowController(DocumentWindowController())
         startLiveReload()
+    }
+
+    override func showWindows() {
+        super.showWindows()
+        LaunchTiming.mark("windowShown")
     }
 
     override func close() {
@@ -62,6 +68,7 @@ final class MarkdownDocument: NSDocument {
     /// file still fails the open (or revert) with the error NSDocument presents. They take a few
     /// milliseconds for 5 MB; rendering is what took hundreds (#27).
     override nonisolated func read(from url: URL, ofType typeName: String) throws {
+        LaunchTiming.mark("read")
         let interval = Self.signposter.beginInterval("Read", id: Self.signposter.makeSignpostID())
         defer { Self.signposter.endInterval("Read", interval) }
         let source = try DocumentContent.source(from: Data(contentsOf: url))
@@ -111,6 +118,7 @@ final class MarkdownDocument: NSDocument {
     /// goes through. A render still in flight from an earlier read is older than `content`
     /// and is dropped.
     func setContent(_ content: DocumentContent) {
+        LaunchTiming.mark("rendered")
         contentGeneration += 1
         self.content = content
         fileStatus = .current
