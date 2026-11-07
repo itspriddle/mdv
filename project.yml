@@ -124,6 +124,9 @@ targets:
     platform: macOS
     sources:
       - path: AppTests
+        excludes:
+          # Visual regression references (#39), read from the source tree, not the bundle.
+          - Snapshots
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).tests

@@ -38,6 +38,19 @@ jobs:
         run: make test-core
       - name: Build and test app
         run: make build test-app SIGN=0
+        env:
+          # Theme snapshots (#39): a reference missing for this macOS version is recorded into
+          # build/theme-snapshots/recorded/ (uploaded below) instead of failing. Remove once
+          # AppTests/Snapshots/macOS-26 is committed, so a missing reference fails CI.
+          TEST_RUNNER_MDV_RECORD_MISSING_SNAPSHOTS: "1"
+      - name: Upload theme snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: theme-snapshots
+          path: build/theme-snapshots
+          if-no-files-found: ignore
+          retention-days: 7
 
   # Separate job: runs in parallel with `test`, and a UI flake doesn't hide core/app results.
   # Signs ad hoc (no Config/Local.xcconfig in CI); see `make test-ui`.

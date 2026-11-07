@@ -302,6 +302,24 @@ editor or a browser.
   window and is not remembered per file: a remembered list of files that may load remote
   content is a privacy record and a standing exception to "no remote content" that the reader
   can forget granting; deferred until there's demand.
+- **Visual regression (#39):** `AppTests/ThemeSnapshotTests` opens the showcase fixture
+  (`AppUITests/Fixtures/themes/showcase.md`) in each bundled theme in a 900 pt wide window
+  (outline hidden, default zoom and width) and captures it light, dark, and printed: screen
+  modes with `WKWebView.pdf(configuration:)`, which draws the whole page as the screen shows it
+  in the window's appearance, and print through the Save as PDF path. The PDFs are rasterized
+  at 1 px per point into sRGB, so the image doesn't depend on the display's scale factor or on
+  the window being on screen, and repeated runs are byte-identical. A pixel matches when each
+  channel is within 24 of the reference, or (antialiasing, subpixel glyph placement) when it
+  and the reference pixel each have a match in the other's 3x3 neighborhood; more than 40
+  mismatched pixels, or a different size, fails (a link color or a 1px border width change is
+  hundreds). References are per macOS major version (`AppTests/Snapshots/macOS-<major>/`):
+  system fonts and text rendering differ between releases, so one tolerance loose enough for
+  both would miss real changes, and running only on CI would leave nothing to check locally.
+  macOS 26 references are recorded on CI, never on another OS: with
+  `MDV_RECORD_MISSING_SNAPSHOTS=1` a missing reference is written to
+  `build/theme-snapshots/recorded/` (uploaded as an artifact) and the case passes. Rejected:
+  UI test screenshots (window chrome, display scale, and a GUI session that UI tests must
+  share) and `takeSnapshot` (visible area only, at the display's scale).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
