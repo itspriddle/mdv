@@ -20,7 +20,7 @@ enum GitHubTheme {
         body { margin: 0; }
         .markdown-body {
           box-sizing: border-box; min-width: 200px; max-width: var(--mdv-content-width, 980px); margin: 0 auto;
-          padding: 32px 45px; font-size: var(--mdv-font-size, 16px); background-color: transparent;
+          padding: 32px 45px; font-size: 16px; background-color: transparent;
         }
         /* Heading anchors: mdv writes an empty `a.anchor` (no octicon SVG, and theme CSS can't use a
            data: URL for its mask), so a "#" glyph stands in, shown on hover or focus. */

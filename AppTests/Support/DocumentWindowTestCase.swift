@@ -45,14 +45,18 @@ class DocumentWindowTestCase {
         ZoomSettings(defaults: defaults, isPersistent: true)
     }
 
-    /// Opens `source` in a document window that follows `zoomSettings`, once the page has loaded.
+    /// Opens `source` in a document window that follows `zoomSettings` and
+    /// `contentWidthSettings` (both in this suite's defaults unless given), once the page has loaded.
     func open(
-        _ source: String = source, name: String = "notes.md", zoomSettings: ZoomSettings? = nil
+        _ source: String = source, name: String = "notes.md", zoomSettings: ZoomSettings? = nil,
+        contentWidthSettings: ContentWidthSettings? = nil
     ) async throws -> (MarkdownDocument, DocumentWindowController) {
         let file = folder.appending(path: name)
         try Data(source.utf8).write(to: file)
         let document = try MarkdownDocument(contentsOf: file, ofType: Self.markdownType)
-        let controller = DocumentWindowController(zoomSettings: zoomSettings ?? settings())
+        let controller = DocumentWindowController(
+            zoomSettings: zoomSettings ?? settings(),
+            contentWidthSettings: contentWidthSettings ?? ContentWidthSettings(defaults: defaults, isPersistent: true))
         document.addWindowController(controller)
         documents.append(document)
         try await until("the first load") { controller.coordinator.hasLoadedPage }

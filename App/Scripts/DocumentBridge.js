@@ -183,6 +183,27 @@
     return true;
   }
 
+  // Replaces the text of one of the page's layer <style> elements in <head> (`id` is a
+  // ThemeLayer name, e.g. "mdv-user"), keeping the reading position across the reflow. One
+  // script run, so nothing is painted in between. Only <head> is searched, so an element in
+  // the document body can't stand in for it. Returns whether the element was found.
+  function replaceStyle(id, css) {
+    if (typeof id !== "string" || typeof css !== "string" || document.head === null) {
+      return false;
+    }
+    const style = [...document.head.querySelectorAll("style")].find((element) => element.id === id);
+    if (style === undefined) {
+      return false;
+    }
+    if (style.textContent === css) {
+      return true;
+    }
+    const position = readingPosition();
+    style.textContent = css;
+    restorePosition(position);
+    return true;
+  }
+
   globalThis.mdv = Object.freeze({
     currentSourceLine,
     sectionSourceLine,
@@ -192,5 +213,6 @@
     readingPosition,
     restorePosition,
     updateContent,
+    replaceStyle,
   });
 })();

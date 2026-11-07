@@ -73,9 +73,8 @@ struct BundledThemeTests {
         }
     }
 
-    @Test("font size and content width read the user-control variables (#37)", arguments: themes)
+    @Test("content width reads the user-control variable (#37)", arguments: themes)
     func userControlVariables(theme: Theme) {
-        #expect(theme.stylesheet.contains("font-size: var(--mdv-font-size, "))
         #expect(theme.stylesheet.contains("max-width: var(--mdv-content-width, "))
     }
 

@@ -44,14 +44,19 @@ final class DocumentWindowController: NSWindowController {
     /// The app-wide page zoom this window follows (#26, `DocumentWindowController+Zoom.swift`).
     let zoomSettings: ZoomSettings
 
+    /// The app-wide content width this window follows (#37, `+ContentWidth.swift`).
+    let contentWidthSettings: ContentWidthSettings
+
     init(
         coordinator: WebViewCoordinator = WebViewCoordinator(),
         outlinePreference: OutlinePreference = OutlinePreference(),
-        zoomSettings: ZoomSettings = .shared
+        zoomSettings: ZoomSettings = .shared,
+        contentWidthSettings: ContentWidthSettings = .shared
     ) {
         self.coordinator = coordinator
         self.outlinePreference = outlinePreference
         self.zoomSettings = zoomSettings
+        self.contentWidthSettings = contentWidthSettings
         wantsOutline = outlinePreference.showsOutlineInNewWindows
         let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
@@ -68,6 +73,7 @@ final class DocumentWindowController: NSWindowController {
         installScrollTracking()
         installOutline()
         installZoom()
+        installContentWidth()
     }
 
     @available(*, unavailable)

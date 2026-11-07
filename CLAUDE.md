@@ -53,8 +53,8 @@ lock the build database.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make vendor-highlightjs`);
     never edit by hand. `Vendor/` holds vendored sources with a MANIFEST and license.
 - `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
-  `AppDelegate`), SwiftUI for window content only. Feature folders: `Copy/`, `DefaultViewer/`,
-  `Print/`, `Zoom/` (each a small type plus its `DocumentWindowController+<Feature>.swift`).
+  `AppDelegate`), SwiftUI for window content only. Feature folders: `ContentWidth/`, `Copy/`,
+  `DefaultViewer/`, `Print/`, `Zoom/` (each a small type plus its `DocumentWindowController+<Feature>.swift`).
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor

@@ -183,7 +183,7 @@ CSS themes as a first-class feature.
   (print themes; M2 ships basic `@media print` rules); owns the highlight.js token CSS
 - Custom themes: CSS files in `~/Library/Application Support/mdv/Themes`, hot-reloaded
 - Theme picker per window plus a global default in a Settings window
-- Font size and content width controls layered on top of any theme
+- Content width controls layered on top of any theme (font size dropped: zoom covers it, #37)
 - Theme authoring guide (the only doc written for end users before 1.0)
 - Viewer follow-ups from M2:
   - Settings window: theme default, outline default, zoom; move "Make mdv the Default
@@ -203,6 +203,10 @@ CSS themes as a first-class feature.
   `make vendor-github-markdown-css`), adjusted to screen-only dark and no `url()`; highlight.js
   tokens use its Primer syntax variables. The Docs-style theme is named "Document" (id `document`);
   the serif theme is "Serif" (id `serif`).
+- Font size vs zoom (#37): no font size control; zoom (Cmd +/-, reflowing `pageZoom`) is the
+  text size control. Content width is four presets (narrow, theme default, wide, full) in
+  View > Content Width, global and persisted, applied live via the `mdv-user` layer
+  (`--mdv-content-width`); print ignores it. See VISION.
 
 **Exit criteria:** switching themes is instant; a custom CSS file appears and updates without
 restart; bundled themes pass a visual regression check.

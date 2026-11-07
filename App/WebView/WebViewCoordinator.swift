@@ -36,6 +36,11 @@ final class WebViewCoordinator: NSObject {
     /// Performs every link action except in-page scrolling (opening documents and URLs).
     var linkHandler: ((LinkAction, LinkOpening) -> Void)?
 
+    /// The reader's style controls (#37) every page this coordinator loads starts with. Set it
+    /// before the first load; after a change, `applyUserStyleToPage()`
+    /// (`WebViewCoordinator+UserStyle.swift`) updates the loaded page in place.
+    var userStyle = UserStyle.themeDefaults
+
     /// Find in page (#25, `WebViewCoordinator+Find.swift`): the find bar's state and commands,
     /// sharing the system find pasteboard (#42).
     private(set) lazy var find = FindInPage(host: self, pasteboard: NSPasteboard(name: .find))
@@ -100,7 +105,21 @@ final class WebViewCoordinator: NSObject {
     /// - Parameter baseURL: resolves relative URLs in the page: the document's
     ///   `documentURL(forFileAt:)`.
     func load(_ page: RenderedPage, baseURL: URL?) async throws {
-        try await load(html: page.html, baseURL: baseURL)
+        let style = userStyle
+        try await load(html: html(for: page), baseURL: baseURL)
+        // The style changed while the page was loading.
+        if userStyle != style {
+            try await applyUserStyleToPage()
+        }
+    }
+
+    /// `page` as a complete HTML page with this window's `userStyle`, so a load never paints
+    /// the theme's width first and then jumps.
+    func html(for page: RenderedPage) -> String {
+        HTMLDocument(
+            title: page.title, body: page.body, theme: ThemeRegistry.bundled.defaultTheme, userStyle: userStyle,
+            contentSecurityPolicy: page.contentSecurityPolicy
+        ).html
     }
 
     /// Loads a complete HTML page and waits for it to finish. `html` must be a page built by
