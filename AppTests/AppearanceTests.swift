@@ -88,4 +88,60 @@ struct AppearanceTests {
             && Int((color.greenComponent * 255).rounded()) == Int(expected.green)
             && Int((color.blueComponent * 255).rounded()) == Int(expected.blue)
     }
+
+    // MARK: View > Appearance
+
+    /// View > Appearance's items, as built for the menu bar.
+    static func appearanceItems() throws -> [NSMenuItem] {
+        let view = try #require(MainMenu.build().item(withTitle: "View")?.submenu)
+        let submenu = try #require(view.item(withTitle: "Appearance")?.submenu)
+        return submenu.items
+    }
+
+    @Test("View > Appearance lists System, then Light and Dark, sent to the app delegate")
+    func appearanceMenu() throws {
+        let items = try Self.appearanceItems()
+        #expect(items.map { $0.isSeparatorItem ? "-" : $0.title } == ["System", "-", "Light", "Dark"])
+        for item in items where !item.isSeparatorItem {
+            #expect(item.action == #selector(AppDelegate.chooseAppearance(_:)))
+            #expect(item.target == nil)
+        }
+    }
+
+    /// The action travels the responder chain, so nothing before the app delegate may answer it
+    /// (`setAppearance:` would: it's the setter for `NSView.appearance` and `NSWindow.appearance`).
+    @Test("View > Appearance reaches the app delegate through a document window's responder chain")
+    func appearanceActionReachesDelegate() throws {
+        let action = #selector(AppDelegate.chooseAppearance(_:))
+        let controller = DocumentWindowController(themeSettings: ThemeSettings(isPersistent: false))
+        let window = try #require(controller.window)
+        var responder: NSResponder? = controller.coordinator.webView
+        while let current = responder {
+            #expect(!current.responds(to: action), "\(type(of: current)) answers \(action)")
+            responder = current.nextResponder
+        }
+        #expect(!window.responds(to: action))
+        #expect(!NSApplication.shared.responds(to: action))
+        #expect(AppDelegate().responds(to: action))
+    }
+
+    @Test("View > Appearance sets the mode and checks the current one")
+    func appearanceMenuAction() throws {
+        let throwaway = try ThrowawayDefaults("mdv-appearance-tests")
+        let settings = AppearanceSettings(defaults: throwaway.defaults, isPersistent: true)
+        let delegate = AppDelegate(appearanceSettings: settings)
+        let items = try Self.appearanceItems().filter { !$0.isSeparatorItem }
+        let dark = try #require(items.first { $0.title == "Dark" })
+
+        delegate.chooseAppearance(dark)
+        #expect(settings.mode == .dark)
+        for item in items {
+            #expect(delegate.validateMenuItem(item))
+            #expect(item.state == (item === dark ? .on : .off), "\(item.title)")
+        }
+
+        // A sender that isn't a mode item changes nothing.
+        delegate.chooseAppearance(nil)
+        #expect(settings.mode == .dark)
+    }
 }

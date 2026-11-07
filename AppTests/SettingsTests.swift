@@ -13,7 +13,8 @@ final class SettingsTests: DocumentWindowTestCase {
     let workspace = FakeWorkspace()
 
     func model(
-        themeSettings: ThemeSettings? = nil, zoomSettings: ZoomSettings? = nil,
+        appearanceSettings: AppearanceSettings? = nil, themeSettings: ThemeSettings? = nil,
+        zoomSettings: ZoomSettings? = nil,
         contentWidthSettings: ContentWidthSettings? = nil, openThemesFolder: (@MainActor () -> Void)? = nil
     ) -> SettingsModel {
         workspace.setHandler("com.example.other")
@@ -21,6 +22,7 @@ final class SettingsTests: DocumentWindowTestCase {
             workspace: workspace, defaults: defaults, applicationURL: URL(filePath: "/Applications/mdv.app"),
             bundleIdentifier: "com.itspriddle.mdv", isSuppressed: true)
         return SettingsModel(
+            appearanceSettings: appearanceSettings ?? AppearanceSettings(defaults: defaults, isPersistent: true),
             themeSettings: themeSettings ?? self.themeSettings(),
             zoomSettings: zoomSettings ?? settings(),
             contentWidthSettings: contentWidthSettings ?? ContentWidthSettings(defaults: defaults, isPersistent: true),
@@ -33,6 +35,7 @@ final class SettingsTests: DocumentWindowTestCase {
     @Test("starts from the stores' values")
     func initialValues() {
         let model = model()
+        #expect(model.appearanceMode == .system)
         #expect(model.themeSections.map { $0.map(\.id) } == [["github", "document", "serif"]])
         #expect(model.defaultThemeID == "github")
         #expect(model.zoomLevel == 1)
@@ -44,11 +47,13 @@ final class SettingsTests: DocumentWindowTestCase {
     @Test("changes persist in the stores' defaults")
     func persists() {
         let model = model()
+        model.setAppearanceMode(.dark)
         model.setDefaultTheme(id: "serif")
         model.setZoomLevel(1.25)
         model.setContentWidth(.wide)
         model.setShowsOutlineInNewWindows(true)
 
+        #expect(defaults.string(forKey: AppearanceSettings.key) == "dark")
         #expect(defaults.string(forKey: ThemeSettings.defaultThemeKey) == "serif")
         #expect(defaults.double(forKey: ZoomSettings.key) == 1.25)
         #expect(defaults.string(forKey: ContentWidthSettings.key) == "wide")
@@ -56,6 +61,7 @@ final class SettingsTests: DocumentWindowTestCase {
 
         // A fresh model over the same defaults (a relaunch) reads them back.
         let reread = self.model()
+        #expect(reread.appearanceMode == .dark)
         #expect(reread.defaultThemeID == "serif")
         #expect(reread.zoomLevel == 1.25)
         #expect(reread.contentWidth == .wide)
@@ -112,6 +118,67 @@ final class SettingsTests: DocumentWindowTestCase {
         model.openThemesFolder()
         #expect(opened == 1)
         #expect(!self.model().canOpenThemesFolder)
+    }
+
+    @Test("appearance: System is the default and stores nothing; a bad stored value reads as System")
+    func appearanceStore() {
+        let appearance = AppearanceSettings(defaults: defaults, isPersistent: true)
+        let model = model(appearanceSettings: appearance)
+        model.setAppearanceMode(.light)
+        #expect(defaults.string(forKey: AppearanceSettings.key) == "light")
+        model.setAppearanceMode(.system)
+        #expect(defaults.object(forKey: AppearanceSettings.key) == nil)
+
+        defaults.set("sepia", forKey: AppearanceSettings.key)
+        #expect(appearance.mode == .system)
+
+        // Changes made elsewhere show in Settings.
+        appearance.mode = .dark
+        #expect(model.appearanceMode == .dark)
+    }
+
+    @Test("appearance: in memory under UI tests, never touching the defaults")
+    func appearanceInMemory() {
+        let appearance = AppearanceSettings(defaults: defaults, isPersistent: false)
+        appearance.mode = .dark
+        #expect(appearance.mode == .dark)
+        #expect(defaults.object(forKey: AppearanceSettings.key) == nil)
+    }
+
+    @Test(
+        "appearance applies its NSAppearance, System clears the override",
+        arguments: [
+            (AppearanceMode.light, NSAppearance.Name?.some(.aqua)),
+            (.dark, .darkAqua),
+            (.system, nil),
+        ])
+    func appearanceApplies(mode: AppearanceMode, expected: NSAppearance.Name?) {
+        let appearance = AppearanceSettings(defaults: defaults, isPersistent: true)
+        let window = NSWindow(contentRect: .zero, styleMask: [], backing: .buffered, defer: true)
+        window.appearance = NSAppearance(named: .vibrantDark)
+        appearance.mode = mode
+        appearance.apply(to: window)
+        #expect(window.appearance?.name == expected)
+    }
+
+    /// The page and the window background follow the window's effective appearance, which an
+    /// app-level override (`NSApp.appearance`) sets for windows without their own.
+    @Test("a dark override turns an open window's page dark")
+    func appearanceAppliesToPage() async throws {
+        defer { closeAll() }
+        let (_, controller) = try await open()
+        let window = try #require(controller.window)
+        let appearance = AppearanceSettings(defaults: defaults, isPersistent: true)
+        for (mode, scheme) in [(AppearanceMode.dark, "dark"), (.light, "light")] {
+            appearance.mode = mode
+            appearance.apply(to: window)
+            try await until("prefers-color-scheme: \(scheme)") {
+                let result = try await controller.coordinator.webView.callAsyncJavaScript(
+                    "return matchMedia('(prefers-color-scheme: dark)').matches", arguments: [:], in: nil,
+                    contentWorld: AppScripts.world)
+                return (result as? Bool) == (mode == .dark)
+            }
+        }
     }
 
     @Test("zoom snaps to the nearest level and shows as a percentage")

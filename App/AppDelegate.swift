@@ -7,17 +7,26 @@ import MdvCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
+    /// The app-wide appearance (Settings and View > Appearance); injectable for tests.
+    let appearanceSettings: AppearanceSettings
     /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
     /// themes folder).
     private(set) var customThemes: CustomThemeLibrary?
     /// The Settings window, created the first time it is shown and reused after.
     private var settingsWindowController: SettingsWindowController?
 
+    init(appearanceSettings: AppearanceSettings = .shared) {
+        self.appearanceSettings = appearanceSettings
+        super.init()
+    }
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         LaunchTiming.mark("willFinishLaunching")
         // First: the web view's content process launches while the rest of the launch runs
-        // (#40). Hosted unit tests make their own windows and web views.
+        // (#40). Hosted unit tests make their own windows and web views, and set their own
+        // appearances, so they never read the reader's.
         if !Self.isHostingUnitTests {
+            followAppearanceSettings()
             WebViewPrewarmer.shared.prewarm()
         }
         MainMenu.install()
@@ -92,7 +101,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             openThemesFolder = { library.openFolder() }
         }
         return SettingsWindowController(
-            model: SettingsModel(defaultViewerOffer: defaultViewerOffer, openThemesFolder: openThemesFolder))
+            model: SettingsModel(
+                appearanceSettings: appearanceSettings, defaultViewerOffer: defaultViewerOffer,
+                openThemesFolder: openThemesFolder))
     }
 
     /// View > Theme > Open Themes Folder and Settings' button: creates the folder if needed and
@@ -102,10 +113,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        if menuItem.action == #selector(openThemesFolder(_:)) {
+        switch menuItem.action {
+        case #selector(openThemesFolder(_:)):
             return customThemes != nil
+        case #selector(chooseAppearance(_:)):
+            return validateAppearanceItem(menuItem)
+        default:
+            return true
         }
-        return true
     }
 
     /// Whether the app is the host for `AppTests`, where a modal Open panel would block the run.

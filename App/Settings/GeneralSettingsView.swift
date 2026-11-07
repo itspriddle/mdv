@@ -4,7 +4,8 @@ import SwiftUI
 /// Settings > General (#36). Each control reads `SettingsModel` and changes the setting through
 /// its `set…` method; the identifiers (`settings-*`) are for UI tests.
 ///
-/// Sections: Themes (the default theme, custom theme files that didn't load, and Open Themes
+/// Sections: Appearance (System, Light, or Dark; applies to every window at once), Themes (the
+/// default theme, custom theme files that didn't load, and Open Themes
 /// Folder, #35), Windows (outline default), Reading (zoom and content width, which apply
 /// to every window at once, as View > Zoom and View > Content Width do), and Default Viewer.
 struct GeneralSettingsView: View {
@@ -12,6 +13,16 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
+            Section {
+                Picker("Appearance:", selection: binding(\.appearanceMode, model.setAppearanceMode)) {
+                    ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .accessibilityIdentifier("settings-appearance")
+                note("System follows the macOS appearance. Printing is always light.")
+            }
+
             Section {
                 Picker("Default theme:", selection: binding(\.defaultThemeID, model.setDefaultTheme(id:))) {
                     ForEach(Array(model.themeSections.enumerated()), id: \.offset) { index, section in

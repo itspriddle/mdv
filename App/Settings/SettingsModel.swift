@@ -6,6 +6,7 @@ import MdvCore
 ///
 /// | Setting | Store | Applies |
 /// | --- | --- | --- |
+/// | Appearance | `AppearanceSettings.mode` | the whole app, live |
 /// | Default theme | `ThemeSettings.defaultThemeID` | new windows |
 /// | (Open Themes Folder) | `CustomThemeLibrary.openFolder()` (#35) | Finder |
 /// | Show outline in new windows | `OutlinePreference` | new windows |
@@ -26,6 +27,7 @@ import MdvCore
 @MainActor
 @Observable
 final class SettingsModel: NSObject {
+    @ObservationIgnored let appearanceSettings: AppearanceSettings
     @ObservationIgnored let themeSettings: ThemeSettings
     @ObservationIgnored let zoomSettings: ZoomSettings
     @ObservationIgnored let contentWidthSettings: ContentWidthSettings
@@ -35,6 +37,7 @@ final class SettingsModel: NSObject {
     /// Folder); nil where custom themes are off (hosted tests, UI tests without a folder).
     @ObservationIgnored let openThemesFolderAction: (@MainActor () -> Void)?
 
+    private(set) var appearanceMode = AppearanceMode.system
     /// The themes the default-theme picker lists: bundled, then custom (#35), as View > Theme.
     private(set) var themeSections: [[Theme]] = []
     /// The id of the theme new windows use: the stored default, resolved in the registry (a
@@ -51,6 +54,7 @@ final class SettingsModel: NSObject {
     private(set) var isMakingDefaultViewer = false
 
     init(
+        appearanceSettings: AppearanceSettings = .shared,
         themeSettings: ThemeSettings = .shared,
         zoomSettings: ZoomSettings = .shared,
         contentWidthSettings: ContentWidthSettings = .shared,
@@ -58,6 +62,7 @@ final class SettingsModel: NSObject {
         defaultViewerOffer: DefaultViewerOfferController,
         openThemesFolder: (@MainActor () -> Void)? = nil
     ) {
+        self.appearanceSettings = appearanceSettings
         self.themeSettings = themeSettings
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
@@ -68,6 +73,9 @@ final class SettingsModel: NSObject {
         refresh()
         let center = NotificationCenter.default
         let refreshSelector = #selector(storeDidChange(_:))
+        center.addObserver(
+            self, selector: refreshSelector, name: AppearanceSettings.didChangeNotification,
+            object: appearanceSettings)
         center.addObserver(
             self, selector: refreshSelector, name: ThemeSettings.didChangeNotification, object: themeSettings)
         center.addObserver(
@@ -83,6 +91,7 @@ final class SettingsModel: NSObject {
 
     /// Reads every setting from its store again.
     func refresh() {
+        appearanceMode = appearanceSettings.mode
         let registry = themeSettings.registry
         themeSections = registry.pickerSections()
         defaultThemeID = themeSettings.defaultTheme.id
@@ -94,6 +103,12 @@ final class SettingsModel: NSObject {
     }
 
     // MARK: Changes
+
+    /// Every window (and Settings) follows the new appearance at once.
+    func setAppearanceMode(_ mode: AppearanceMode) {
+        appearanceSettings.mode = mode
+        refresh()
+    }
 
     /// New windows open in the theme with `id`. Open windows keep theirs.
     func setDefaultTheme(id: String) {

@@ -239,7 +239,7 @@ was blocked.
 
 ## Light and dark
 
-mdv follows the system appearance live. Write the light colors first and the dark ones under
+mdv follows the system appearance live (or the one picked in Settings > Appearance). Write the light colors first and the dark ones under
 `@media screen and (prefers-color-scheme: dark)`:
 
 ```css

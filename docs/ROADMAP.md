@@ -226,7 +226,8 @@ CSS themes as a first-class feature.
   text at about 12pt (Serif 15px on paper). `<picture>` dark sources are left to WebKit, which
   prints the light one. See VISION.
 - Settings window (#36): an `NSWindowController` with a toolbar-style `NSTabViewController` of
-  SwiftUI forms (no SwiftUI `Settings` scene). General: default theme (Settings owns it; View >
+  SwiftUI forms (no SwiftUI `Settings` scene). General: appearance (System, Light, or Dark,
+  app-wide via `NSApp.appearance`; also View > Appearance), default theme (Settings owns it; View >
   Theme changes one window), outline in new windows, zoom, content width, Open Themes Folder,
   Make mdv the Default Markdown Viewer (moved from the app menu). It surfaces the existing
   stores rather than duplicating them. The remote-image opt-in is not remembered per file

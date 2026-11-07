@@ -29,6 +29,7 @@ final class SettingsUITests: XCTestCase {
 
         let settings = mdv.openSettings()
         XCTAssertEqual(settings.title, "General")
+        XCTAssertTrue(settings.popUpButtons["settings-appearance"].exists)
         XCTAssertTrue(settings.popUpButtons["settings-zoom"].exists)
         XCTAssertTrue(settings.popUpButtons["settings-content-width"].exists)
         XCTAssertTrue(settings.checkBoxes["settings-outline"].exists)
