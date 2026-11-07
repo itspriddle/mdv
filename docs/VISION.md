@@ -221,6 +221,22 @@ editor or a browser.
   font size would be a second "bigger text" command that differs only in leaving images,
   padding, and code at their size. Per-window width was rejected for the same reason zoom is
   global: it's a reading preference, not a property of the document.
+- **Theme picker (#34):** each window has its own theme, picked from View > Theme or the
+  toolbar's theme menu (bundled themes, then custom ones in their own section), checked in
+  the menu, and kept by window restoration (an unknown id shows the default). A pick also
+  becomes the theme for new windows (`ThemeSettings.defaultThemeID`) until Settings (#36)
+  owns that. A switch is an in-place swap, not a reload: an app script replaces the
+  `mdv-theme` `<style>` text (`mdv.replaceStyle`, shared with #37) and restores the reading
+  position in the same script run, so nothing paints in between; the DOM, find highlights,
+  zoom, CSP, and remote-image opt-in are untouched, and the window and under-page background
+  change with it. Rejected: reloading the page with the new theme, which loses scroll state
+  for a moment, re-runs image loads, and flashes. The rendered content is theme-free
+  (`RenderedPage`, shared by a document's windows); each window joins it with its theme
+  when it loads a page (off the main actor), and a theme picked mid-load is swapped in when
+  the load finishes. Windows resolve their theme id in `ThemeSettings.registry` again
+  whenever it changes, so a custom theme edited or deleted on disk (#35) updates or falls
+  back to the default live. Print prints the window's web view, so it uses the window's
+  theme; Copy as HTML stays a theme-free fragment.
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
