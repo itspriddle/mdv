@@ -166,13 +166,17 @@ final class DocumentWindowController: NSWindowController {
         }
     }
 
-    /// The web content process exited (crash, or the system reclaimed it): load the page again.
-    /// Once per content change, so a page that crashes WebKit can't loop.
+    /// The web content process exited (crash, or the system reclaimed it): load the page again
+    /// at the last reported reading position (the page that knew it is gone). Once per content
+    /// change, so a page that crashes WebKit can't loop.
     private func webContentProcessDidTerminate() {
         guard canRecoverFromCrash else {
             return
         }
         canRecoverFromCrash = false
+        if pendingSourceLine == nil {
+            pendingSourceLine = lastSourceLine
+        }
         display()
     }
 
