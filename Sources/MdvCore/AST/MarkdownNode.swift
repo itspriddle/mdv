@@ -73,6 +73,20 @@ extension MarkdownNode {
         /// An emoji shortcode such as `:tada:`, replaced by `EmojiShortcodes` (#10). `shortcode`
         /// is the alias without colons; `character` is the emoji it stands for.
         case emoji(shortcode: String, character: String)
+        /// A GitHub alert (`> [!NOTE]`), made from a top-level block quote by `GitHubAlerts`
+        /// (#52). Children are the body blocks, without the marker; the renderer writes the title.
+        case alert(GitHubAlert)
+    }
+}
+
+extension MarkdownNode.Kind {
+    /// Whether this node's children are blocks (block quotes, lists, items, footnotes, alerts):
+    /// the containers tree passes descend into to reach nested blocks.
+    var isBlockContainer: Bool {
+        switch self {
+        case .document, .blockQuote, .list, .item, .taskItem, .footnoteDefinition, .alert: true
+        default: false
+        }
     }
 }
 

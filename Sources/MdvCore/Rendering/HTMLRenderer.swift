@@ -196,7 +196,7 @@ extension HTMLRenderer {
         case .codeBlock, .htmlBlock, .thematicBreak, .text, .softBreak, .lineBreak, .code, .htmlInline, .emoji:
             renderLeaf(node, into: &output)
             return false
-        case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition:
+        case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition, .alert:
             renderExtensionEnter(node, context, into: &output)
         }
         return true
@@ -233,7 +233,7 @@ extension HTMLRenderer {
             }
         case .link:
             output.raw("</a>")
-        case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition:
+        case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition, .alert:
             renderExtensionExit(node, context, into: &output)
         default:
             break

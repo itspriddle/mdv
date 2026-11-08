@@ -49,7 +49,9 @@ lock the build database.
   - `Transforms/`: AST passes. `MarkdownTransform` (enum; declaration order is run order:
     alerts, wiki links, emoji) names each pass; its implementation conforms to
     `MarkdownTreeTransform`. Enabled by `Flavor.transforms` or
-    `RenderOptions.builtInPreprocessors`. Emoji shortcodes live here.
+    `RenderOptions.builtInPreprocessors`. Emoji shortcodes and GitHub alerts (`GitHubAlerts`,
+    top-level `> [!NOTE]` quotes to `MarkdownNode.Kind.alert`; markup and Octicons in
+    `Rendering/HTMLRenderer+Alerts.swift`) live here.
   - `Preprocessor/`: the custom preprocessor runner (#56; VISION's security model has the
     contract and limits). `CustomPreprocessor.run(input:documentURL:)` is async and
     cancellable. `PreprocessorConfiguration` validates the executable and
@@ -150,6 +152,9 @@ lock the build database.
 - `Tests/MdvCoreTests/Fixtures/flavors/<id>/`: per-flavor corpus (`FlavorCorpusTests`), `.md`
   inputs and recorded `.html` (`MDV_RECORD_SNAPSHOTS=1`); one folder per registered flavor. A
   feature that changes a flavor's output adds fixtures to it.
+- `Tests/MdvCoreTests/Fixtures/flavors/<id>`: per-flavor corpus (`FlavorCorpusTests`,
+  `MDV_RECORD_SNAPSHOTS=1`). `Fixtures/github/alerts.md` is github.com's alert rules from
+  `gh api markdown` (mode gfm), compared normalized (see that folder's README).
 - `Tests/MdvCoreTests/Fixtures/github`, `.../corpus`: GitHub reference output (refresh with
   `scripts/update-github-fixtures`, manual, needs auth) and mdv snapshots
   (`MDV_RECORD_SNAPSHOTS=1`). Corpus exceptions live in `corpus.json`.

@@ -72,6 +72,11 @@ editor or a browser.
   and Markdown's escaping and code rules aren't re-implemented in a second parser. Nodes they
   add keep the source range of the text they replace, and `HTMLRenderer` writes them, so new
   markup is escaped by construction. Only the custom preprocessor sees raw text.
+  **GitHub alerts (#52)** follow github.com's rules, verified against its renderer (see
+  `GitHubAlerts`): a top-level block quote whose first line is `[!NOTE]`, `[!TIP]`,
+  `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` alone (any case), with a body after it,
+  becomes GitHub's `div.markdown-alert` markup. The title and Octicon SVG are renderer
+  constants, so they are trusted output and need no CSP change.
   **`data-source-line` after a custom preprocessor** refers to lines of the preprocessor's
   output, the text the parser saw, not the file on disk: scroll sync, the outline, and the
   reading position kept across reloads all use those lines consistently. A preprocessor that
@@ -81,7 +86,7 @@ editor or a browser.
 - **Flavors (#51):** a `Flavor` (MdvCore, `Flavors/`) is an id, a display name, the cmark-gfm
   extensions it enables, and the AST transforms it always runs. Bundled: `gfm` (GitHub Flavored
   Markdown, the default: tables, strikethrough, extended autolinks, task lists, footnotes,
-  emoji shortcodes, and alerts from #52) and `commonmark` (strict: no extensions, no
+  emoji shortcodes, and GitHub alerts) and `commonmark` (strict: no extensions, no
   transforms). `FlavorRegistry` resolves ids from settings and frontmatter, like
   `ThemeRegistry`: unknown or missing ids are GFM. **A flavor owns syntax only.** Viewer and
   safety features are independent of it and stay on `RenderOptions`: heading anchors,

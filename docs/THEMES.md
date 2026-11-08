@@ -171,7 +171,8 @@ appear in code blocks. Typical output:
 | Headings | `h1`–`h6` with an `id` (the slug used in `#fragment` links) and an empty first child `<a class="anchor" aria-hidden="true" href="#slug"></a>` |
 | Lists | `ul`, `ol`, `li`. A loose list item wraps its text in `p`. |
 | Task lists | `<ul class="contains-task-list">` → `<li class="task-list-item">` → `<input type="checkbox" disabled class="task-list-item-checkbox">` (`checked` when done) then the text |
-| Block quotes | `blockquote`, nested for nested quotes. GitHub alerts (`> [!NOTE]`) are plain block quotes for now. |
+| Block quotes | `blockquote`, nested for nested quotes |
+| Alerts | GitHub alerts (`> [!NOTE]`, GFM flavor): `<div class="markdown-alert markdown-alert-note">` (also `markdown-alert-tip`, `markdown-alert-important`, `markdown-alert-warning`, `markdown-alert-caution`) holding `<p class="markdown-alert-title">` (an `<svg class="octicon">` icon, then the title) and the body blocks. The base layer gives them a left rule in the text color and lays out the title; colors are yours. |
 | Code blocks | `<pre><code class="language-swift">` (no class without a language) with highlight.js token spans inside |
 | Inline code, keys | `code`, `kbd` (from raw HTML) |
 | Tables | `table` → `thead`/`tbody` → `tr` → `th`/`td`; column alignment is an `align` attribute (`th[align="right"]`) |

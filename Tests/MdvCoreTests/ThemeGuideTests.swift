@@ -142,6 +142,19 @@ struct ThemeGuideTests {
         }
     }
 
+    @Test("the element table documents the alert markup mdv writes (#52)")
+    func alertMarkup() throws {
+        let guide = try Self.guide()
+        let rendered = HTMLRenderer().render("> [!NOTE]\n> Body.\n").html
+        #expect(guide.contains("`<div class=\"markdown-alert markdown-alert-note\">`"))
+        #expect(
+            rendered.hasPrefix(
+                "<div class=\"markdown-alert markdown-alert-note\"><p class=\"markdown-alert-title\"><svg"))
+        for type in GitHubAlert.allCases {
+            #expect(guide.contains("`\(type.className)`") || guide.contains("\(type.className)\">`"), "\(type)")
+        }
+    }
+
     @Test("the limits and values the guide states match mdv's")
     func limits() throws {
         let guide = try Self.guide()

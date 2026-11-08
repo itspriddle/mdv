@@ -11,7 +11,8 @@ extension HTMLRenderer {
     ///   past it), and a CRLF or CR line ending counts as one line break, like LF. AST
     ///   transforms keep these lines: nodes they add carry the range of the text they replace.
     /// - Annotated elements: `p`, `h1`–`h6`, `blockquote`, `ul`/`ol`, `li` (list, task, and
-    ///   footnote items), `pre`, `table`, `tr`, and `hr`. Values never decrease in document
+    ///   footnote items), `pre`, `table`, `tr`, `hr`, and a GitHub alert's `div` (the block
+    ///   quote's line; its title paragraph is renderer output and has none, #52). Values never decrease in document
     ///   order before the footnotes section, so a reader can binary-search them there. Footnote
     ///   items come last, in number order (first reference), wherever they were defined, so
     ///   their lines can go back.
