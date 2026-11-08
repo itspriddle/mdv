@@ -1,5 +1,6 @@
 import AppKit
 import MdvCore
+import os
 
 /// Custom themes (#35): the `.css` files in `~/Library/Application Support/mdv/Themes`,
 /// loaded at launch and again whenever the folder changes, without a restart.
@@ -18,6 +19,8 @@ final class CustomThemeLibrary {
     /// The folder under Application Support that holds mdv's files. The app's working name;
     /// rename with the app (before M6).
     static let applicationSupportFolderName = "mdv"
+
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "mdv", category: "themes")
     /// The themes folder's name inside it.
     static let themesFolderName = "Themes"
 
@@ -92,7 +95,9 @@ final class CustomThemeLibrary {
     private func apply(_ catalog: CustomThemeCatalog) {
         let known = Set(settings.customThemeFailures.map(\.message))
         for failure in catalog.failures where !known.contains(failure.message) {
-            NSLog("mdv: custom theme %@ not loaded: %@", failure.fileName, failure.problem.description)
+            let name = failure.fileName
+            let problem = failure.problem.description
+            Self.logger.error("Custom theme \(name, privacy: .public) not loaded: \(problem, privacy: .public)")
         }
         settings.apply(catalog)
     }

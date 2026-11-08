@@ -50,6 +50,15 @@ lock the build database.
     alerts, wiki links, emoji) names each pass; its implementation conforms to
     `MarkdownTreeTransform`. Enabled by `Flavor.transforms` or
     `RenderOptions.builtInPreprocessors`. Emoji shortcodes live here.
+  - `Preprocessor/`: the custom preprocessor runner (#56; VISION's security model has the
+    contract and limits). `CustomPreprocessor.run(input:documentURL:)` is async and
+    cancellable. `PreprocessorConfiguration` validates the executable and
+    `PreprocessorLimits` holds the bounds; failures are `PreprocessorError`.
+    `PreprocessorEnvironment` builds the env and working directory, `PreprocessorProcess`
+    calls `posix_spawn`, and `PreprocessorSession` is the kqueue I/O loop on a dedicated
+    thread. `for(documentURL:)` is the pipeline's `SourcePreprocessor`. Every descriptor goes
+    through `PreprocessorDescriptors`, which the leak tests count. Fixture scripts are in
+    `Tests/MdvCoreTests/Fixtures/preprocessors`.
   - `Themes/`: `Theme` (CSS plus `ThemeBackground`), `ThemeRegistry` (the one place the app and
     CLI get a theme; unknown ids fall back to GitHub), `ThemeBase` (the base layer every page
     gets; `!important` there means protected from themes), and `ThemeLayer` (cascade layers

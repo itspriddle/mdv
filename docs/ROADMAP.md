@@ -415,6 +415,15 @@ huge output) cannot hang or crash the app.
 - Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
   `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
   against github.com by the README corpus.
+- Custom preprocessor runner (#56): `CustomPreprocessor` in `MdvCore`. The document's path is
+  passed in `MDV_DOCUMENT_PATH`, never as an argument. The working directory is the document's
+  folder (`/` without a file). The environment is fixed (`PATH` with Homebrew's folders,
+  `HOME`, `TMPDIR`, `LANG`). The executable is an absolute path, never looked up on `PATH`,
+  and it is validated when configured and again before each run (links followed only for
+  the check). Limits: 5 s, 10 MB in, 10 MB out, a 64 KB stderr tail, and `SIGTERM` to the
+  process group, then `SIGKILL` 0.5 s later. Its stage 1 adapter is `for(documentURL:)`
+  (`SourcePreprocessor`). Fixture scripts cover each misbehavior, and the tests check that no
+  process or descriptor leaks. See VISION's security model.
 
 ## M5: CLI
 
