@@ -11,7 +11,7 @@ extension CustomPreprocessorTests {
         let fixtures = try PreprocessorFixtures()
         let pidFile = fixtures.pidFile()
         var limits = PreprocessorFixtures.shortLimits
-        limits.timeout = .seconds(30)
+        limits.timeout = .seconds(60)
         let preprocessor = try fixtures.preprocessor("hang", arguments: [pidFile], limits: limits)
         let task = Task { try await preprocessor.run(input: PreprocessorFixtures.document, documentURL: nil) }
         let pid = try #require(try await PreprocessorFixtures.pids(in: pidFile).first)
@@ -19,7 +19,9 @@ extension CustomPreprocessorTests {
         let start = ContinuousClock.now
         task.cancel()
         await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(start.duration(to: .now) < .seconds(2))
+        // Well under the timeout, so cancellation didn't wait it out. The margin is wide because
+        // a starved CI runner once took 9.5 s here (locally it is about the grace period).
+        #expect(start.duration(to: .now) < .seconds(20))
         #expect(try await PreprocessorFixtures.processesGone(group: pid, pids: [pid]))
         #expect(PreprocessorDescriptors.openCount == 0)
     }
