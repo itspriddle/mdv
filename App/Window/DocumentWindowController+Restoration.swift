@@ -71,13 +71,14 @@ extension DocumentWindowController {
 }
 
 /// A document window: saves and restores its controller's reading position, outline, zoom,
-/// and theme with its own restorable state.
+/// content width, and theme with its own restorable state.
 final class DocumentWindow: NSWindow {
     override func encodeRestorableState(with coder: NSCoder) {
         super.encodeRestorableState(with: coder)
         (windowController as? DocumentWindowController)?.encodeReadingPosition(with: coder)
         (windowController as? DocumentWindowController)?.encodeOutlineState(with: coder)
         (windowController as? DocumentWindowController)?.encodeZoomState(with: coder)
+        (windowController as? DocumentWindowController)?.encodeContentWidthState(with: coder)
         (windowController as? DocumentWindowController)?.encodeThemeState(with: coder)
     }
 
@@ -86,6 +87,7 @@ final class DocumentWindow: NSWindow {
         (windowController as? DocumentWindowController)?.restoreReadingPosition(with: coder)
         (windowController as? DocumentWindowController)?.restoreOutlineState(with: coder)
         (windowController as? DocumentWindowController)?.restoreZoomState(with: coder)
+        (windowController as? DocumentWindowController)?.restoreContentWidthState(with: coder)
         (windowController as? DocumentWindowController)?.restoreThemeState(with: coder)
     }
 }

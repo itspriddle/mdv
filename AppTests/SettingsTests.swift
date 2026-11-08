@@ -81,15 +81,15 @@ final class SettingsTests: DocumentWindowTestCase {
         #expect(themes.defaultThemeID == "deleted-custom-theme")
     }
 
-    @Test("follows changes made elsewhere: menus, custom themes")
+    @Test("follows changes to the stores: defaults, custom themes")
     func followsStores() {
         let themes = themeSettings()
         let zoom = settings()
         let width = ContentWidthSettings(defaults: defaults, isPersistent: true)
         let model = model(themeSettings: themes, zoomSettings: zoom, contentWidthSettings: width)
 
-        zoom.level = 1.5
-        width.width = .narrow
+        zoom.defaultLevel = 1.5
+        width.defaultWidth = .narrow
         let custom = Theme(
             id: "custom:mine.css", displayName: "Mine", background: Theme.github.background, stylesheet: "")
         let failure = CustomThemeFailure(fileName: "broken.css", problem: .symbolicLink)
@@ -201,8 +201,8 @@ final class SettingsTests: DocumentWindowTestCase {
 
     // MARK: Windows
 
-    @Test("zoom and width apply to open windows; the default theme to new windows only")
-    func appliesToWindows() async throws {
+    @Test("zoom, width, and theme defaults apply to new windows only; the menus to one window")
+    func appliesToNewWindows() async throws {
         defer { closeAll() }
         let themes = themeSettings()
         let zoom = settings()
@@ -213,14 +213,25 @@ final class SettingsTests: DocumentWindowTestCase {
         model.setZoomLevel(1.5)
         model.setContentWidth(.narrow)
         model.setDefaultTheme(id: "serif")
-        #expect(open.coordinator.webView.pageZoom == 1.5)
-        #expect(open.coordinator.userStyle.contentWidth == .narrow)
+        #expect(open.coordinator.webView.pageZoom == 1)
+        #expect(open.coordinator.userStyle.contentWidth == .theme)
         #expect(open.theme == .github)
 
         let (_, new) = try await self.open(
             name: "new.md", zoomSettings: zoom, contentWidthSettings: width, themeSettings: themes)
         #expect(new.theme == .serif)
+        #expect(new.zoomLevel == 1.5)
         #expect(new.coordinator.webView.pageZoom == 1.5)
+        #expect(new.contentWidth == .narrow)
+        #expect(new.coordinator.userStyle.contentWidth == .narrow)
+
+        // A window's own changes leave Settings (and so later windows) alone.
+        new.zoomInDocument(nil)
+        new.setContentWidth(to: .full)
+        #expect(model.zoomLevel == 1.5)
+        #expect(model.contentWidth == .narrow)
+        #expect(zoom.defaultLevel == 1.5)
+        #expect(width.defaultWidth == .narrow)
     }
 
     @Test("the window: one General pane titled like the window, not restorable")

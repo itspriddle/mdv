@@ -43,11 +43,17 @@ final class DocumentWindowController: NSWindowController {
     var outlineWidth: CGFloat?
     let outlinePreference: OutlinePreference
 
-    /// The app-wide page zoom this window follows (#26, `DocumentWindowController+Zoom.swift`).
-    let zoomSettings: ZoomSettings
+    // MARK: Zoom and content width (#26, #37, #47: `+Zoom.swift`, `+ContentWidth.swift`)
 
-    /// The app-wide content width this window follows (#37, `+ContentWidth.swift`).
+    /// The zoom new windows start at; this window's level is `zoomLevel`.
+    let zoomSettings: ZoomSettings
+    /// This window's page zoom (restorable). Starts at Settings' default.
+    var zoomLevel: Double
+
+    /// The content width new windows start with; this window's preset is `contentWidth`.
     let contentWidthSettings: ContentWidthSettings
+    /// This window's content width (restorable). Starts at Settings' default.
+    var contentWidth: ContentWidth
 
     // MARK: Theme (#34, `DocumentWindowController+Theme.swift`)
 
@@ -71,6 +77,8 @@ final class DocumentWindowController: NSWindowController {
         self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
         themeID = themeSettings.defaultThemeIDForNewWindows
+        zoomLevel = zoomSettings.defaultLevel
+        contentWidth = contentWidthSettings.defaultWidth
         wantsOutline = outlinePreference.showsOutlineInNewWindows
         let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
