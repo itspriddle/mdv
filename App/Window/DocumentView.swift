@@ -7,10 +7,12 @@ struct DocumentView: View {
     let document: MarkdownDocument
     let coordinator: WebViewCoordinator
     let remoteImages: RemoteImageOptIn
+    let renderProgress: RenderProgress
     let loadRemoteImages: () -> Void
 
     var body: some View {
         MarkdownWebView(coordinator: coordinator)
+            .overlay { RenderProgressIndicator(progress: renderProgress) }
             .frame(minWidth: 480, minHeight: 360)
             .safeAreaInset(edge: .top, spacing: 0) { FileStatusBanner(status: document.fileStatus) }
             .safeAreaInset(edge: .top, spacing: 0) {

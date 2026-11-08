@@ -8,7 +8,8 @@ import MdvCore
 ///   (`scrolled(to:)`) except while the reader browses the outline with the keyboard.
 /// - A re-render (`show(_:)`) keeps the sidebar's scroll position and which headings are
 ///   collapsed; an unchanged outline is not reloaded at all.
-/// - A document without headings shows "No Headings".
+/// - A document without headings shows "No Headings"; before the first `show(_:)` (still
+///   rendering, or the first page not painted yet, #58) the sidebar is blank.
 /// - Expand All and Collapse All (`expandAll()`, `collapseAll()`; the View menu and the
 ///   sidebar's context menu, #43) open or close every entry.
 @MainActor
@@ -26,6 +27,8 @@ final class OutlineViewController: NSViewController {
     private let emptyLabel = NSTextField(labelWithString: "No Headings")
     private var rootItems: [OutlineItem] = []
     private var itemsByID: [String: OutlineItem] = [:]
+    /// Whether `show(_:)` has been called: until then there is no outline to call empty.
+    private(set) var hasOutline = false
     /// Set while the outline changes rows or selection itself, so delegate callbacks for those
     /// changes aren't mistaken for the reader's.
     private var isUpdating = false
@@ -87,9 +90,10 @@ final class OutlineViewController: NSViewController {
     /// their headings remain.
     func show(_ outline: DocumentOutline) {
         loadViewIfNeeded()
-        guard outline != tracker.outline else {
+        guard outline != tracker.outline || !hasOutline else {
             return
         }
+        hasOutline = true
         tracker.update(outline)
         let origin = scrollView.contentView.bounds.origin
         isUpdating = true
@@ -246,7 +250,7 @@ final class OutlineViewController: NSViewController {
 
     private func updateEmptyState() {
         let isEmpty = rootItems.isEmpty
-        emptyLabel.isHidden = !isEmpty
+        emptyLabel.isHidden = !isEmpty || !hasOutline
         scrollView.isHidden = isEmpty
     }
 }

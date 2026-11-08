@@ -50,9 +50,14 @@ final class LiveReloader {
         watcher?.stop()
         watcher = nil
         cancelReload()
+        document?.updateRenderActivity()
     }
 
-    /// Drops the reload in flight (cancelling its custom preprocessor run).
+    /// Whether a reload is in flight (the document's `isRendering`, #58).
+    var isReloading: Bool { pendingReloadInput != nil }
+
+    /// Drops the reload in flight (cancelling its custom preprocessor run). Callers tell the
+    /// document (`updateRenderActivity()`) once they're done.
     private func cancelReload() {
         generation += 1
         reloadTask?.cancel()
@@ -87,6 +92,7 @@ final class LiveReloader {
             reload(force: false)
         case .deleted:
             cancelReload()
+            document.updateRenderActivity()
             document.fileStatus = .deleted
         case .moved(let url):
             document.fileURL = url
@@ -107,6 +113,7 @@ final class LiveReloader {
         let currentSource = force ? nil : document.content?.source
         let preferences = document.renderPreferences
         pendingReloadInput = (preferences, force)
+        document.updateRenderActivity()
         reloadTask = Task { [weak self] in
             let result: Result<DocumentContent?, any Error>
             do {
@@ -121,6 +128,7 @@ final class LiveReloader {
                 return
             }
             pendingReloadInput = nil
+            document.updateRenderActivity()
             switch result {
             case .success(let content?):
                 document.setContent(content)

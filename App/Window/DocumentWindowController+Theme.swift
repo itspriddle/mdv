@@ -76,6 +76,7 @@ extension DocumentWindowController {
     func applyTheme() {
         let theme = themeSettings.theme(forWindowThemeID: themeID)
         window?.backgroundColor = .themeBackground(theme.background)
+        renderProgress.background = theme.background
         coordinator.show(theme)
     }
 
