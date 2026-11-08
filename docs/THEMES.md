@@ -425,6 +425,33 @@ fraction of a second of a change:
 A save that's briefly invalid while you're typing (an unclosed `{`) shows the Settings default
 theme until the next valid save.
 
+## Choosing a theme per document
+
+A Markdown file can name the theme it should open in, in its YAML frontmatter under `mdv:`:
+
+```yaml
+---
+title: Release notes
+mdv:
+  theme: custom:Release Notes.css
+---
+```
+
+- **Ids:** a bundled theme by id (`github`, `document`, `serif`; case doesn't matter) or a
+  custom one as `custom:<file name>` (exactly as the file is named, `.css` included).
+- **Precedence:** a theme you pick for that window in **View > Theme** wins over the
+  document's, and the document's wins over the **Settings > General** default. **View > Theme >
+  Document's Theme** drops your pick and goes back to the document's theme.
+- **Missing themes** fall back like a deleted custom theme: an id that isn't loaded (yet) shows
+  the Settings default, and the document's theme appears as soon as its file loads.
+- **Editing the frontmatter** while the file is open swaps the theme in place, like a theme
+  edit. Window restoration only remembers your own pick, so a changed `mdv.theme` applies the
+  next time the document opens too.
+- `mdv --html` uses a bundled theme the document names; anything else gets GitHub.
+
+The same block can set the document's Markdown flavor; see the
+[README](../README.md#per-document-settings) for every key and what a document can't change.
+
 ## A complete example
 
 [`example-theme.css`](example-theme.css) is a whole theme written without `extends`: light and

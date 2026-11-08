@@ -17,6 +17,10 @@ public struct RenderOptions: Sendable, Equatable {
     public var detectsFrontmatter = true
     /// How detected frontmatter is shown (#8).
     public var frontmatterDisplay = FrontmatterDisplay.hidden
+    /// Read the frontmatter's `mdv:` mapping and apply it (#54, `DocumentOverrides`): a document
+    /// can pick its flavor (which beats `flavor`) and, in the app, its theme. Presentation only;
+    /// no safety setting can be overridden.
+    public var appliesDocumentOverrides = true
     /// Markup for GFM extensions whose HTML differs between GitHub and cmark (task lists and
     /// footnotes). `RenderOptions.spec` switches to `.cmark`.
     public var gfmMarkup: GFMMarkup = .github
@@ -83,16 +87,20 @@ public struct RenderedDocument: Sendable, Equatable {
     /// Remote images replaced with placeholders under `RenderOptions.remoteImages` (#20):
     /// Markdown images in document order, then raw-HTML images in document order.
     public var blockedRemoteImages: [RemoteImage]
+    /// The frontmatter's `mdv:` overrides (#54), with what was ignored and why. The flavor is
+    /// already applied; the theme is the caller's to resolve.
+    public var overrides: DocumentOverrides
 
     public init(
         html: String, title: String? = nil, headings: [Heading] = [], frontmatter: Frontmatter? = nil,
-        blockedRemoteImages: [RemoteImage] = []
+        blockedRemoteImages: [RemoteImage] = [], overrides: DocumentOverrides = .none
     ) {
         self.html = html
         self.title = title
         self.headings = headings
         self.frontmatter = frontmatter
         self.blockedRemoteImages = blockedRemoteImages
+        self.overrides = overrides
     }
 }
 

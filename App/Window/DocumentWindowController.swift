@@ -59,10 +59,16 @@ final class DocumentWindowController: NSWindowController {
 
     /// The registry and default theme this window follows.
     let themeSettings: ThemeSettings
-    /// The id of the theme picked for this window (restorable). It may name a theme that is no
-    /// longer registered (a deleted custom theme); the window then shows the default
-    /// (`theme`), and shows the picked one again if it comes back.
-    var themeID: String
+    /// The theme the reader picked for this window with View > Theme (restorable), or nil to
+    /// follow the document's theme (#54). It may name a theme that is no longer registered (a
+    /// deleted custom theme); the window then shows the default (`theme`), and shows the picked
+    /// one again if it comes back.
+    var pickedThemeID: String?
+    /// The theme the document's frontmatter names (`mdv.theme`, #54), from its latest render.
+    var documentThemeID: String?
+    /// Settings' default theme when the window opened: what it shows with neither a pick nor a
+    /// document theme. A later change to the default applies to new windows only.
+    let newWindowThemeID: String
 
     init(
         coordinator: WebViewCoordinator = WebViewCoordinator(),
@@ -76,7 +82,7 @@ final class DocumentWindowController: NSWindowController {
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
-        themeID = themeSettings.defaultThemeIDForNewWindows
+        newWindowThemeID = themeSettings.defaultThemeIDForNewWindows
         zoomLevel = zoomSettings.defaultLevel
         contentWidth = contentWidthSettings.defaultWidth
         wantsOutline = outlinePreference.showsOutlineInNewWindows
@@ -143,6 +149,9 @@ final class DocumentWindowController: NSWindowController {
             return
         }
         synchronizeWindowTitleWithDocumentName()
+        // Before the page loads (or swaps), so a first load uses the document's theme and a live
+        // reload that changed `mdv.theme` swaps the stylesheet in place.
+        documentThemeDidChange(page.documentThemeID)
         outlineController.show(DocumentOutline(headings: page.headings))
         coordinator.documentFileURL = markdownDocument.fileURL
         // mdv-doc://<window>/<path>: relative images resolve against the document and are

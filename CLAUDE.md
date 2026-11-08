@@ -46,6 +46,10 @@ lock the build database.
   - `Sanitizing/`: `HTMLSanitizer` allowlist for raw-HTML nodes only (renderer output is trusted,
     so everything the renderer emits must be escaped by construction).
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
+  - `Overrides/`: `DocumentOverrides` (#54), the frontmatter's `mdv:` mapping (`flavor`,
+    `theme`, `wikilinks`), with ignored keys reported in `RenderedDocument.overrides`.
+    `RenderOptions.applying(_:)` is the one place it changes a render (the flavor only, plus
+    #53's wiki links): never route a safety setting through it.
   - `Transforms/`: AST passes. `MarkdownTransform` (enum; declaration order is run order:
     alerts, wiki links, emoji) names each pass; its implementation conforms to
     `MarkdownTreeTransform`. Enabled by `Flavor.transforms` or
@@ -87,7 +91,10 @@ lock the build database.
   and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
   `Themes/CustomThemeLibrary` watches the custom themes folder (`ThemeFolderWatcher`) and
   replaces the registry (`ThemeSettings.apply(_:)`). A window whose picked theme isn't
-  registered shows Settings' default (`ThemeSettings.theme(forWindowThemeID:)`).
+  registered shows Settings' default (`ThemeSettings.theme(forWindowThemeID:)`). The window
+  resolves `themeID`: its View > Theme pick (`pickedThemeID`, the only theme restoration saves),
+  else the document's `mdv.theme` (`documentThemeID`, from `RenderedPage`), else Settings'
+  default when it opened (`newWindowThemeID`).
   - `Settings/`: `SettingsWindowController` (App menu > Settings…, a toolbar-style
     `NSTabViewController` of SwiftUI panes), `SettingsModel` (wraps the existing stores:
     `ThemeSettings`, `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, the default

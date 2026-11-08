@@ -47,8 +47,10 @@ struct MdvCommand: ParsableCommand {
             }
         for source in sources {
             let rendered = renderer.render(source.markdown)
+            // A frontmatter `mdv.theme` (#54) picks a bundled theme; anything else is GitHub.
             let document = HTMLDocument(
-                title: rendered.title ?? source.title, body: rendered.html, theme: ThemeRegistry.bundled.defaultTheme)
+                title: rendered.title ?? source.title, body: rendered.html,
+                theme: ThemeRegistry.bundled.theme(id: rendered.overrides.theme))
             print(document.html)
         }
     }

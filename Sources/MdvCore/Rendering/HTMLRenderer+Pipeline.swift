@@ -6,8 +6,8 @@ extension HTMLRenderer {
     /// 1. Custom preprocessor (#56, opt-in, whole file): runs *before* this method; its output is
     ///    `markdown` (`render(_:preprocessor:)`). Everything below sees only that output.
     /// 2. Frontmatter extraction (`options.detectsFrontmatter`), for every flavor.
-    /// 3. Flavor resolution (`resolvedFlavor(for:)`): `options.flavor` today; frontmatter
-    ///    `mdv.flavor` (#54) is applied here, so it can change how the body parses.
+    /// 3. Document overrides (#54, `DocumentOverrides`): the frontmatter's `mdv.flavor` beats
+    ///    `options.flavor`, so it changes how the body parses (`RenderOptions.applying(_:)`).
     /// 4. Parse the body with the flavor's extensions (`MarkdownParser`).
     /// 5. AST transforms: the flavor's and `options.builtInPreprocessors`, in `MarkdownTransform`
     ///    order.
@@ -17,8 +17,10 @@ extension HTMLRenderer {
         let frontmatter = extracted?.frontmatter
         let body = extracted.map { String($0.body) } ?? markdown
 
+        let overrides =
+            options.appliesDocumentOverrides ? DocumentOverrides(frontmatter: frontmatter) : DocumentOverrides.none
         var renderer = self
-        renderer.options.flavor = resolvedFlavor(for: frontmatter)
+        renderer.options = options.applying(overrides)
 
         let tree = MarkdownParser(extensions: renderer.options.flavor.extensions)
             .parse(body, lineOffset: frontmatter?.lineCount ?? 0)
@@ -34,7 +36,8 @@ extension HTMLRenderer {
             title: Self.title(frontmatter: frontmatter, headings: headings),
             headings: headings,
             frontmatter: frontmatter,
-            blockedRemoteImages: blockedRemoteImages
+            blockedRemoteImages: blockedRemoteImages,
+            overrides: overrides
         )
     }
 
@@ -45,13 +48,6 @@ extension HTMLRenderer {
         var output = HTMLOutput()
         render(node, into: &output)
         return output.string
-    }
-
-    /// Stage 3: the flavor a document renders with. `options.flavor` until #54 reads the
-    /// frontmatter's `mdv.flavor` here through `FlavorRegistry`; an id it doesn't register should
-    /// fall back to `options.flavor` (the reader's default), not to the registry's default.
-    func resolvedFlavor(for frontmatter: Frontmatter?) -> Flavor {
-        options.flavor
     }
 
     /// Stage 5: the AST transforms `options` enables, in pipeline order, before headings are

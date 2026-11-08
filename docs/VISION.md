@@ -57,9 +57,10 @@ editor or a browser.
      `render(_:preprocessor:)` runs it, then the rest). Its output replaces the source for
      every later stage.
   2. **Frontmatter extraction** (`detectsFrontmatter`), in every flavor.
-  3. **Flavor resolution:** `RenderOptions.flavor` (the app's default, Settings > Markdown,
-     #55), or the frontmatter's `mdv.flavor` (#54) through `FlavorRegistry`, so frontmatter
-     can change how the body parses.
+  3. **Document overrides and flavor resolution (#54):** the frontmatter's `mdv:` mapping
+     (`DocumentOverrides`) is applied with `RenderOptions.applying(_:)`: a registered
+     `mdv.flavor` beats `RenderOptions.flavor` (the app's default, Settings > Markdown, #55), so
+     frontmatter can change how the body parses; an unknown one leaves `RenderOptions.flavor`.
   4. **Parse** the body with the flavor's cmark-gfm extensions.
   5. **AST transforms** (`MarkdownTransform`), the flavor's plus the built-in preprocessors
      turned on in `RenderOptions.builtInPreprocessors`, in one fixed order whatever enabled
@@ -99,6 +100,18 @@ editor or a browser.
   its own fixture corpus (`Tests/MdvCoreTests/Fixtures/flavors/<id>/`); GFM is also checked
   against github.com by the README corpus. The spec suite uses `Flavor.spec` (every extension,
   no transforms), which isn't registered.
+- **Per-document overrides (#54):** a document can set `flavor`, `theme`, and `wikilinks`
+  (#53) in an `mdv:` mapping in its YAML frontmatter (`DocumentOverrides`, MdvCore,
+  `Overrides/`). Presentation only; see the security model. Each key is read into a typed
+  field (ids trimmed; flavor and bundled theme ids lowercased, `custom:` ids kept as written;
+  `wikilinks` takes YAML 1.2 `true`/`false`), and `RenderOptions.applying(_:)` is the one place
+  a field changes a render. Unknown keys and wrong types are ignored, never an error page, and
+  reported in `RenderedDocument.overrides.ignored` with a reason. The flavor is applied in
+  MdvCore before parsing, so `mdv --html` gets it too; the theme is reported for the caller to
+  resolve (the app below; `mdv --html` takes a bundled id and otherwise GitHub, and M5's
+  `--theme` will beat it). **TOML `[mdv]` is unsupported** (documented): TOML frontmatter isn't
+  parsed (no TOML parser, and none added for this); a TOML block that mentions `mdv` is reported
+  as ignored. `RenderOptions.appliesDocumentOverrides` turns overrides off (spec mode does).
 - **Parsing:** [`swiftlang/swift-cmark`](https://github.com/swiftlang/swift-cmark) (cmark-gfm, the
   engine GitHub uses), called directly through its C API. `MarkdownParser` enables GFM extensions
   and footnotes per the flavor (`RenderOptions.flavor`), never enables smart punctuation, and
@@ -308,6 +321,23 @@ editor or a browser.
   is missing too (`ThemeSettings.theme(forWindowThemeID:)`, #45); the window keeps its pick and
   shows it again when it returns. Print prints the window's web view, so it uses the window's
   theme; Copy as HTML stays a theme-free fragment.
+- **Frontmatter theme (#54):** a document's `mdv.theme` resolves like a window's pick (bundled
+  or `custom:<file>` ids through `ThemeSettings.registry`, same fallback). Precedence: the
+  reader's View > Theme pick for that window, then the document's theme, then Settings' default
+  as it was when the window opened (`DocumentWindowController.themeID`). The reader chose
+  explicitly for that window, so the pick wins; a document's theme is the author's suggestion
+  and beats only the general default. **Restoration remembers only the explicit pick**, so a
+  frontmatter theme edited while the app was closed applies on relaunch, and a window that
+  followed the document keeps following it. **Live reload:** the theme id travels with the
+  rendered page (`RenderedPage.documentThemeID`, shared by the document's windows), and a
+  reload that changes it swaps the stylesheet in place (#34's path), unless the window has a
+  pick; a changed `mdv.flavor` re-renders like any edit. **View > Theme** checks the theme the
+  window shows, whatever chose it, and starts with "Document's Theme (<name>)", enabled while a
+  pick hides the document's theme, which drops the pick. Rejected: a frontmatter theme beating
+  the reader's pick (the reader couldn't override a document they dislike), and restoring the
+  shown theme (a stale frontmatter theme would stick after the file changed). The first paint
+  of a window uses Settings' default background until the first render lands with the
+  document's theme (a frame or two, while the web view is still hidden).
 - **Custom themes (#35):** each `*.css` file in `~/Library/Application Support/mdv/Themes` is a
   theme, id `custom:<file name>` (a namespace no bundled id uses, so it can't shadow one),
   listed in the picker's own section. Metadata is an optional header comment, the first thing
@@ -485,6 +515,16 @@ editor or a browser.
   script whose message handler exists only in the app's content world; its message is display
   text and never acted on. Find in page passes the query to its app script as a value and
   matches it as literal text; page content never reaches script source.
+- **Documents can't raise their own privileges (#54).** Frontmatter overrides choose among
+  presentation options only: `flavor` (a registered flavor), `theme`, and `wikilinks`. There is
+  no generic mapping from frontmatter keys to `RenderOptions`; `RenderOptions.applying(_:)`
+  changes the flavor (and #53's wiki links toggle) and nothing else, so sanitizing, the remote
+  image policy, `linkRoot`, source lines, and every other setting stay as the reader's app set
+  them. The custom preprocessor isn't a render option at all: it is configured only in Settings
+  and runs before frontmatter is read. Any other key under `mdv:` (`sanitize`, `remoteImages`,
+  `preprocessor`, ...) is ignored and reported; unregistered flavors (such as the spec suite's)
+  can't be chosen; a theme id is only looked up in the registry, never read as a path. Tests
+  (`DocumentOverridesSecurityTests`) render a document that tries each of these.
 - Custom preprocessor scripts run only when the user configures them (#57), and they are the
   first stage of the render pipeline (#51), so their output is still parsed, transformed, and
   sanitized like any file. The runner is `CustomPreprocessor` in `MdvCore` (#56):
