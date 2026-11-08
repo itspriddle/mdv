@@ -62,11 +62,15 @@ struct DocumentContentTests {
         let gfm = DocumentContent(source: source, fallbackTitle: "a.md").page.body
         #expect(gfm.contains("<table data-source-line=\"1\">"))
         #expect(gfm.contains("🎉"))
-        let commonmark = DocumentContent(source: source, fallbackTitle: "a.md", flavor: .commonmark).page.body
+        let commonmark = DocumentContent(
+            source: source, fallbackTitle: "a.md", preferences: MarkdownPreferences(flavor: .commonmark)
+        ).page.body
         #expect(!commonmark.contains("<table"))
         #expect(commonmark.contains("<p data-source-line=\"4\">:tada:</p>"))
         #expect(DocumentContent.renderOptions().flavor == .gfm)
-        #expect(DocumentPasteboard.copyableHTML(for: source, flavor: .commonmark).contains("| a |"))
+        #expect(
+            DocumentPasteboard.copyableHTML(for: source, preferences: MarkdownPreferences(flavor: .commonmark))
+                .contains("| a |"))
     }
 
     @Test("decodes UTF-8 and rejects other encodings")

@@ -57,9 +57,9 @@ editor or a browser.
      `render(_:preprocessor:)` runs it, then the rest). Its output replaces the source for
      every later stage.
   2. **Frontmatter extraction** (`detectsFrontmatter`), in every flavor.
-  3. **Flavor resolution:** `RenderOptions.flavor` (the app's default; Settings in #55), or the
-     frontmatter's `mdv.flavor` (#54) through `FlavorRegistry`, so frontmatter can change how
-     the body parses.
+  3. **Flavor resolution:** `RenderOptions.flavor` (the app's default, Settings > Markdown,
+     #55), or the frontmatter's `mdv.flavor` (#54) through `FlavorRegistry`, so frontmatter
+     can change how the body parses.
   4. **Parse** the body with the flavor's cmark-gfm extensions.
   5. **AST transforms** (`MarkdownTransform`), the flavor's plus the built-in preprocessors
      turned on in `RenderOptions.builtInPreprocessors`, in one fixed order whatever enabled
@@ -355,7 +355,7 @@ editor or a browser.
   screen after printing.
 - **Settings (#36):** App menu > Settings… (Cmd-,) opens one reusable `NSWindowController`
   (`SettingsWindowController`) holding an `NSTabViewController` in toolbar style, one SwiftUI
-  `Form` per pane (General today); no SwiftUI `Settings` scene, since the app lifecycle is
+  `Form` per pane (General, and Markdown since #55); no SwiftUI `Settings` scene, since the app lifecycle is
   AppKit. It remembers its position and isn't restored at launch. Settings stores nothing of
   its own: `SettingsModel` reads and writes the existing stores (`ThemeSettings`,
   `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, `DefaultViewer`), each with an
@@ -367,6 +367,24 @@ editor or a browser.
   window and is not remembered per file: a remembered list of files that may load remote
   content is a privacy record and a standing exception to "no remote content" that the reader
   can forget granting; deferred until there's demand.
+- **Settings > Markdown (#55):** a second Settings pane (`MarkdownSettingsView`) for how
+  documents are read: the default flavor (from `FlavorRegistry`), frontmatter hidden or shown
+  as a table (`FrontmatterDisplay`), and opt-in built-in preprocessors (wiki links, #53; the
+  section is hidden while none is offered), with room below for the custom preprocessor (#57).
+  One store, `MarkdownSettings`, holds all three and posts one change notification; a render
+  gets them as a `MarkdownPreferences` value read on the main actor, never by reading the store
+  off it. Unlike the window defaults above, these apply to **open documents at once**: each
+  `MarkdownDocument` renders its source again off the main actor and its windows swap the
+  result in place like a live reload (no page load, reading position kept). `DocumentContent`
+  records the preferences it was rendered with, so a first render or live reload that started
+  before a change is rendered again when it lands. The default flavor is only
+  `RenderOptions.flavor`; a document's frontmatter `mdv.flavor` (#54) overrides it in MdvCore.
+  Copy as HTML uses the preferences the window's page was rendered with.
+  **No per-window flavor menu** (no View > Flavor): the flavor describes how a file was written,
+  not how the reader likes to read it, so it belongs to the file (frontmatter, #54) or to the
+  reader's one default; a third, per-window level would need restoration, another precedence
+  rule against frontmatter, and would make two windows on one document disagree about its
+  syntax (flavor is per document, themes are per window).
 - **Visual regression (#39):** `AppTests/ThemeSnapshotTests` opens the showcase fixture
   (`AppUITests/Fixtures/themes/showcase.md`) in each bundled theme in a 900 pt wide window
   (outline hidden, default zoom and width) and captures it light, dark, and printed: screen

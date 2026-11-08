@@ -424,6 +424,13 @@ huge output) cannot hang or crash the app.
   they fit. Known divergence: a quote between raw HTML tags (`<details>` … `</details>` in
   separate HTML blocks) is top level in mdv's tree, so it becomes an alert; github.com keeps it
   a block quote.
+- Settings > Markdown (#55): default flavor, frontmatter display (hidden or a table), and
+  opt-in built-in preprocessors in one `MarkdownSettings` store; changes re-render open
+  documents in place (the live reload swap, reading position kept), and frontmatter
+  `mdv.flavor` (#54) still wins. No per-window flavor menu: flavor belongs to the file
+  (frontmatter) or the reader's one default, and is per document, not per window. The bundled
+  themes already style `table.frontmatter` and `pre.frontmatter` (light, dark, print); no theme
+  CSS or snapshot change. See VISION.
 - Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
   `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
   against github.com by the README corpus.

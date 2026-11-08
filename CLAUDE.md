@@ -93,12 +93,21 @@ lock the build database.
     `ThemeSettings`, `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, the default
     viewer; stores nothing itself), and `GeneralSettingsView`. A new setting is a store with
     `init(defaults:isPersistent:)`, a property and `set…` method on the model, and a row.
+    `MarkdownSettingsView` (#55) is Settings > Markdown: default flavor, frontmatter display,
+    built-in preprocessors (one row per `MarkdownSettings.optionalPreprocessors` entry), then
+    room for the custom preprocessor (#57).
+  - `MarkdownSettings/`: `MarkdownSettings` (the store: default flavor id, frontmatter
+    display, built-in preprocessors; one change notification) and `MarkdownPreferences` (the
+    value a render takes; `apply(to:)` sets `RenderOptions`). Unlike window defaults these
+    apply to open documents: `MarkdownDocument` follows the store and re-renders in place, and
+    `DocumentContent.preferences` records what a page was rendered with.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
     (`render(_:of:)`; tests await `pendingRender`), so `content` is `nil` until the first render
     lands; a newer read, `setContent`, or `close()` drops a render in flight. Every load and
-    revert goes through `setContent(_:)`, which tells each `DocumentWindowController`.
+    revert goes through `setContent(_:)`, which tells each `DocumentWindowController`
+    (and re-renders content made with outdated Markdown settings, #55).
     `DocumentController` (the shared `NSDocumentController`) finds open files by identity,
     skips gone files on restore, and types extensionless text files (`ExtensionlessText`) as
     plain text; its `canOpen(_:)` is the one rule for the Open panel and drops.

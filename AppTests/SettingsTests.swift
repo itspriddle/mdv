@@ -15,7 +15,8 @@ final class SettingsTests: DocumentWindowTestCase {
     func model(
         appearanceSettings: AppearanceSettings? = nil, themeSettings: ThemeSettings? = nil,
         zoomSettings: ZoomSettings? = nil,
-        contentWidthSettings: ContentWidthSettings? = nil, openThemesFolder: (@MainActor () -> Void)? = nil
+        contentWidthSettings: ContentWidthSettings? = nil, markdownSettings: MarkdownSettings? = nil,
+        openThemesFolder: (@MainActor () -> Void)? = nil
     ) -> SettingsModel {
         workspace.setHandler("com.example.other")
         let viewer = DefaultViewer(
@@ -27,6 +28,7 @@ final class SettingsTests: DocumentWindowTestCase {
             zoomSettings: zoomSettings ?? settings(),
             contentWidthSettings: contentWidthSettings ?? ContentWidthSettings(defaults: defaults, isPersistent: true),
             outlinePreference: OutlinePreference(defaults: defaults, isPersistent: true),
+            markdownSettings: markdownSettings ?? MarkdownSettings(defaults: defaults, isPersistent: true),
             defaultViewerOffer: DefaultViewerOfferController(viewer: viewer), openThemesFolder: openThemesFolder)
     }
 
@@ -234,7 +236,7 @@ final class SettingsTests: DocumentWindowTestCase {
         #expect(width.defaultWidth == .narrow)
     }
 
-    @Test("the window: one General pane titled like the window, not restorable")
+    @Test("the window: General and Markdown panes, titled like the window, not restorable")
     func window() throws {
         let controller = SettingsWindowController(model: model(), savesFrame: false)
         defer { controller.close() }
@@ -243,7 +245,7 @@ final class SettingsTests: DocumentWindowTestCase {
         #expect(!window.isRestorable)
         let tabs = try #require(window.contentViewController as? NSTabViewController)
         #expect(tabs.tabStyle == .toolbar)
-        #expect(tabs.tabViewItems.map(\.label) == ["General"])
+        #expect(tabs.tabViewItems.map(\.label) == ["General", "Markdown"])
 
         controller.show()
         #expect(window.isVisible)

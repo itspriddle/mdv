@@ -13,6 +13,11 @@ import os
 /// the open with NSDocument's own error) and renders it off the main actor (#32): the window
 /// appears right away, painted with the theme background, and the page loads when the render
 /// finishes.
+///
+/// Settings > Markdown (#55) applies to open documents: the document follows
+/// `MarkdownSettings.didChangeNotification` and renders its source again with the new
+/// preferences, and each window swaps the result in place like a live reload (keeping the
+/// reading position).
 /// Registered as `NSDocumentClass` for the document types declared in project.yml.
 @Observable
 final class MarkdownDocument: NSDocument {
@@ -32,6 +37,21 @@ final class MarkdownDocument: NSDocument {
 
     /// Watches the file while the document has windows (live reload).
     @ObservationIgnored private var liveReloader: LiveReloader?
+
+    /// The Markdown settings (#55) this document renders with. Changing them (or the store)
+    /// renders the document again. Tests set their own store right after opening.
+    @ObservationIgnored var markdownSettings: MarkdownSettings = .shared {
+        didSet {
+            renderIfSettingsChanged()
+        }
+    }
+
+    override init() {
+        super.init()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(markdownSettingsDidChange(_:)), name: MarkdownSettings.didChangeNotification,
+            object: nil)
+    }
 
     override static var autosavesInPlace: Bool { false }
 
@@ -55,6 +75,8 @@ final class MarkdownDocument: NSDocument {
     override func close() {
         liveReloader?.stop()
         liveReloader = nil
+        // A closed document no longer follows Settings > Markdown.
+        NotificationCenter.default.removeObserver(self, name: MarkdownSettings.didChangeNotification, object: nil)
         dropPendingRender()
         super.close()
     }
@@ -87,9 +109,10 @@ final class MarkdownDocument: NSDocument {
     func render(_ source: String, of url: URL) {
         dropPendingRender()
         let generation = contentGeneration
+        let preferences = markdownSettings.preferences
         pendingRender = Task { [weak self] in
             let content = await Task.detached(priority: .userInitiated) {
-                Self.renderContent(source, of: url)
+                Self.renderContent(source, of: url, preferences: preferences)
             }.value
             guard let self, generation == self.contentGeneration else {
                 return
@@ -98,13 +121,16 @@ final class MarkdownDocument: NSDocument {
         }
     }
 
-    /// Renders a document's content. Runs off the main actor.
-    nonisolated static func renderContent(_ source: String, of url: URL) -> DocumentContent {
+    /// Renders a document's content with Settings > Markdown's `preferences` (read on the main
+    /// actor by the caller). Runs off the main actor.
+    nonisolated static func renderContent(
+        _ source: String, of url: URL, preferences: MarkdownPreferences
+    ) -> DocumentContent {
         let interval = signposter.beginInterval("Render", id: signposter.makeSignpostID(), "\(source.utf8.count) bytes")
         defer { signposter.endInterval("Render", interval) }
         return DocumentContent(
             source: source, fallbackTitle: url.lastPathComponent,
-            linkRoot: DocumentContent.linkRoot(forDocumentAt: url))
+            linkRoot: DocumentContent.linkRoot(forDocumentAt: url), preferences: preferences)
     }
 
     /// Marks the render in flight, if any, as stale. Its work finishes in the background (the
@@ -118,6 +144,9 @@ final class MarkdownDocument: NSDocument {
     /// Replaces the content and tells each window to show it. The single path every (re)load
     /// goes through. A render still in flight from an earlier read is older than `content`
     /// and is dropped.
+    ///
+    /// Content rendered before Settings > Markdown changed (a first render or live reload that
+    /// was already running) is shown, then rendered again with the current preferences.
     func setContent(_ content: DocumentContent) {
         LaunchTiming.mark("rendered")
         contentGeneration += 1
@@ -126,6 +155,26 @@ final class MarkdownDocument: NSDocument {
         for case let controller as DocumentWindowController in windowControllers {
             controller.documentContentDidChange()
         }
+        renderIfSettingsChanged()
+    }
+
+    // MARK: Markdown settings (#55)
+
+    @objc private func markdownSettingsDidChange(_ notification: Notification) {
+        guard notification.object as AnyObject? === markdownSettings else {
+            return
+        }
+        renderIfSettingsChanged()
+    }
+
+    /// Renders the current source again if it was rendered with other preferences than
+    /// `markdownSettings` has now. The windows swap the result in place (`setContent(_:)`). With
+    /// no content yet, the first render's `setContent(_:)` checks again when it lands.
+    private func renderIfSettingsChanged() {
+        guard let content, let fileURL, content.preferences != markdownSettings.preferences else {
+            return
+        }
+        render(content.source, of: fileURL)
     }
 
     // MARK: Live reload

@@ -76,8 +76,9 @@ public indirect enum FrontmatterValue: Sendable, Equatable {
     case table([FrontmatterEntry])
 }
 
-/// How `HTMLRenderer` shows detected frontmatter.
-public enum FrontmatterDisplay: Sendable, Equatable {
+/// How `HTMLRenderer` shows detected frontmatter. The raw values are stable (the app stores
+/// them as a setting, #55).
+public enum FrontmatterDisplay: String, CaseIterable, Sendable, Equatable {
     /// Stripped from the output (the default).
     case hidden
     /// Rendered before the body: parsed YAML as a table, TOML as a code block.

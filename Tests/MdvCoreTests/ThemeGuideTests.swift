@@ -171,4 +171,28 @@ struct ThemeGuideTests {
         #expect(guide.contains("`\(Theme.github.background.light.hex)`"))
         #expect(guide.contains("`\(Theme.github.background.dark.hex)`"))
     }
+
+    /// The ```html fences in `markdown`.
+    static func htmlBlocks(in markdown: String) -> [String] {
+        markdown.components(separatedBy: "```html\n").dropFirst().compactMap {
+            $0.components(separatedBy: "\n```").first
+        }
+    }
+
+    @Test("the frontmatter markup the guide shows is what mdv renders (#55)")
+    func frontmatterMarkup() throws {
+        var options = RenderOptions()
+        options.frontmatterDisplay = .table
+        let renderer = HTMLRenderer(options: options)
+        let yaml = renderer.render("---\ntitle: Release notes\n---\n").html
+        let toml = renderer.render("+++\ntitle = \"Release notes\"\n+++\n").html
+        // The guide unescapes quotes and drops the TOML block's trailing newline, for reading.
+        let expected =
+            yaml + "\n"
+            + toml.replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "\n</code>", with: "</code>")
+        let blocks = Self.htmlBlocks(in: try Self.guide())
+        #expect(blocks.contains(expected.trimmingCharacters(in: .newlines)), "\(expected)")
+        #expect(try Self.guide().contains("Settings > Markdown > Frontmatter > Shown as a Table"))
+    }
 }

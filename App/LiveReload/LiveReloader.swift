@@ -85,10 +85,11 @@ final class LiveReloader {
         generation += 1
         let generation = generation
         let currentSource = force ? nil : document.content?.source
+        let preferences = document.markdownSettings.preferences
         reloadTask?.cancel()
         reloadTask = Task { [weak self] in
             let result = await Task.detached(priority: .userInitiated) {
-                Result { try Self.render(contentsOf: url, unlessSourceIs: currentSource) }
+                Result { try Self.render(contentsOf: url, unlessSourceIs: currentSource, preferences: preferences) }
             }.value
             guard let self, generation == self.generation, let document = self.document else {
                 return
@@ -104,15 +105,15 @@ final class LiveReloader {
         }
     }
 
-    /// Reads and renders `url`; `nil` when its text equals `currentSource`. Runs off the main
-    /// actor.
-    nonisolated static func render(contentsOf url: URL, unlessSourceIs currentSource: String?) throws
-        -> DocumentContent?
-    {
+    /// Reads and renders `url` with `preferences` (Settings > Markdown, #55); `nil` when its
+    /// text equals `currentSource`. Runs off the main actor.
+    nonisolated static func render(
+        contentsOf url: URL, unlessSourceIs currentSource: String?, preferences: MarkdownPreferences = .default
+    ) throws -> DocumentContent? {
         let source = try DocumentContent.source(from: Data(contentsOf: url))
         if source == currentSource {
             return nil
         }
-        return MarkdownDocument.renderContent(source, of: url)
+        return MarkdownDocument.renderContent(source, of: url, preferences: preferences)
     }
 }
