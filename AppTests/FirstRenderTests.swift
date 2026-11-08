@@ -139,7 +139,9 @@ struct FirstRenderTests {
         let readTime = ContinuousClock.now - readStart
         defer { document.close() }
         let windowStart = ContinuousClock.now
-        let controller = DocumentWindowController(outlinePreference: outlinePreference)
+        // EXPERIMENT: indicator never shows during the measured render.
+        let controller = DocumentWindowController(
+            outlinePreference: outlinePreference, renderProgress: RenderProgress(delay: .seconds(600)))
         document.addWindowController(controller)
         document.showWindows()
         let windowTime = ContinuousClock.now - windowStart
