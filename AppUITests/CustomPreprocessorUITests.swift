@@ -70,9 +70,11 @@ final class CustomPreprocessorUITests: XCTestCase {
 
         // On: the warning first; Cancel keeps it off.
         toggle.click()
-        let turnOn = mdv.app.buttons["Turn On"].firstMatch
+        // Scoped to the Settings window: on CI the Touch Bar mirrors the alert's buttons, and
+        // an app-wide query can match the Touch Bar copy, which can't be clicked.
+        let turnOn = settings.buttons["settings-custom-preprocessor-confirm"].firstMatch
         XCTAssertTrue(turnOn.waitForExistence(timeout: MdvUITestApp.defaultTimeout), "the warning")
-        mdv.app.buttons["Cancel"].firstMatch.click()
+        settings.buttons["Cancel"].firstMatch.click()
         XCTAssertTrue(turnOn.waitForNonExistence(timeout: MdvUITestApp.defaultTimeout))
         XCTAssertEqual(toggle.value as? Int, 0)
 

@@ -63,7 +63,10 @@ extension CustomPreprocessorTests {
     func forkedChildOutlivesScript() async throws {
         let fixtures = try PreprocessorFixtures()
         let pidFile = fixtures.pidFile()
-        let limits = PreprocessorFixtures.shortLimits
+        // A timeout far above the grace period, so a slow CI runner can't make the run look
+        // like a timeout (it once took 402 ms against a 400 ms timeout).
+        var limits = PreprocessorFixtures.shortLimits
+        limits.timeout = .seconds(5)
         let start = ContinuousClock.now
         let output = try await fixtures.preprocessor("fork-child", arguments: [pidFile, "exit"], limits: limits)
             .run(input: PreprocessorFixtures.document, documentURL: nil)
