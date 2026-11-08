@@ -177,3 +177,16 @@ struct CustomPreprocessorTests {
         #expect(PreprocessorDescriptors.openCount == 0)
     }
 }
+
+extension CustomPreprocessorTests {
+    @Test("the runner is the render pipeline's stage 1")
+    func rendersThroughPipeline() async throws {
+        let fixtures = try PreprocessorFixtures()
+        let preprocessor = try fixtures.preprocessor("upcase", limits: .standard)
+        let document = fixtures.folder.appending(path: "doc.md")
+        let rendered = try await HTMLRenderer().render(
+            "# hello\n", preprocessor: preprocessor.for(documentURL: document))
+        #expect(rendered.html.contains("HELLO"))
+        #expect(!rendered.html.contains(">hello"))  // the slug is lower-case either way
+    }
+}
