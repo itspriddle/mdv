@@ -99,6 +99,9 @@ struct RenderedPage: Equatable, Sendable {
     /// Remote images shown as placeholders (#20); the remote images bar offers to load the
     /// `https:` ones.
     let blockedRemoteImages: [RemoteImage]
+    /// The theme the document's frontmatter names (`mdv.theme`, #54), unresolved. Each window
+    /// resolves it like a pick, below the reader's own pick (`DocumentWindowController.themeID`).
+    let documentThemeID: String?
 
     init(
         rendered: RenderedDocument, fallbackTitle: String, contentSecurityPolicy: ContentSecurityPolicy = .viewer
@@ -108,6 +111,7 @@ struct RenderedPage: Equatable, Sendable {
         self.body = rendered.html
         self.headings = rendered.headings
         self.blockedRemoteImages = rendered.blockedRemoteImages
+        self.documentThemeID = rendered.overrides.theme
     }
 
     /// The complete HTML page (`HTMLDocument`: the CSP, `theme`, `userStyle`, body). The

@@ -216,6 +216,8 @@ extension DocumentWindowController: NSMenuItemValidation {
             return validateFindItem(menuItem)
         case #selector(selectTheme(_:)):
             return validateThemeItem(menuItem)
+        case #selector(useDocumentTheme(_:)):
+            return validateDocumentThemeItem(menuItem)
         default:
             return true
         }

@@ -182,8 +182,9 @@ final class ThemePickerTests: DocumentWindowTestCase {
         defer { closeAll() }
         let view = try #require(MainMenu.build().item(withTitle: "View")?.submenu)
         let submenu = try #require(view.item(withTitle: "Theme")?.submenu)
-        // The themes, then Open Themes Folder (#35) after a separator.
-        let themeItems = Array(submenu.items.dropLast(2))
+        // Document's Theme (#54) and a separator, the themes, then Open Themes Folder (#35)
+        // after a separator.
+        let themeItems = Array(submenu.items.dropFirst(2).dropLast(2))
         #expect(submenu.items.suffix(2).map(\.title) == ["", "Open Themes Folder"])
         #expect(themeItems.map(\.title) == ThemeRegistry.bundled.themes.map(\.displayName))
         #expect(themeItems.map { $0.representedObject as? String } == ThemeRegistry.bundled.themes.map(\.id))
