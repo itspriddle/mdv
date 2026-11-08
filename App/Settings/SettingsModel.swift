@@ -16,6 +16,7 @@ import MdvCore
 /// | Default flavor | `MarkdownSettings.defaultFlavorID` | every document, live (#55) |
 /// | Frontmatter display | `MarkdownSettings.frontmatterDisplay` | every document, live (#55) |
 /// | Built-in preprocessors | `MarkdownSettings.builtInPreprocessors` | every document, live (#55) |
+/// | Custom preprocessor | `CustomPreprocessorSettings`, via `customPreprocessor` | every document, live (#57) |
 ///
 /// Every store takes an injectable `UserDefaults` suite and is in memory under UI tests, so
 /// hosted tests build the model over throwaway stores. The model mirrors the stores in
@@ -37,6 +38,8 @@ final class SettingsModel: NSObject {
     @ObservationIgnored let outlinePreference: OutlinePreference
     @ObservationIgnored let markdownSettings: MarkdownSettings
     @ObservationIgnored let defaultViewerOffer: DefaultViewerOfferController
+    /// Settings > Markdown > Custom preprocessor (#57), with its own model and store.
+    @ObservationIgnored let customPreprocessor: CustomPreprocessorModel
     /// Opens the custom themes folder (#35, the same action as View > Theme > Open Themes
     /// Folder); nil where custom themes are off (hosted tests, UI tests without a folder).
     @ObservationIgnored let openThemesFolderAction: (@MainActor () -> Void)?
@@ -72,9 +75,11 @@ final class SettingsModel: NSObject {
         contentWidthSettings: ContentWidthSettings = .shared,
         outlinePreference: OutlinePreference = OutlinePreference(),
         markdownSettings: MarkdownSettings = .shared,
+        customPreprocessor: CustomPreprocessorModel? = nil,
         defaultViewerOffer: DefaultViewerOfferController,
         openThemesFolder: (@MainActor () -> Void)? = nil
     ) {
+        self.customPreprocessor = customPreprocessor ?? CustomPreprocessorModel()
         self.appearanceSettings = appearanceSettings
         self.themeSettings = themeSettings
         self.zoomSettings = zoomSettings
@@ -120,6 +125,7 @@ final class SettingsModel: NSObject {
         defaultFlavorID = markdownSettings.defaultFlavorID
         frontmatterDisplay = markdownSettings.frontmatterDisplay
         builtInPreprocessors = markdownSettings.builtInPreprocessors
+        customPreprocessor.refresh()
     }
 
     // MARK: Changes

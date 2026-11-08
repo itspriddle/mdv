@@ -9,6 +9,10 @@ import Foundation
 /// main thread and reports a bad file with an error alert, while a reload reads off the main
 /// actor, skips an unchanged file, and reports a bad one in the window (`fileStatus`). Both
 /// render off the main actor (`MarkdownDocument.renderContent`, #32).
+///
+/// Each reload runs the custom preprocessor again when it's on (#57). A newer change, `stop()`
+/// (the document closing), or a Settings change while the reload runs (`restartIfOutdated`)
+/// cancels the reload in flight, which stops the script's process group.
 @MainActor
 final class LiveReloader {
     private weak var document: MarkdownDocument?
@@ -17,6 +21,8 @@ final class LiveReloader {
     /// Bumped by every event; a render finishing under an older generation is stale.
     private var generation = 0
     private var reloadTask: Task<Void, Never>?
+    /// The preferences and `force` of the reload in flight; `nil` when none is.
+    private var pendingReloadInput: (preferences: MarkdownPreferences, force: Bool)?
 
     init(document: MarkdownDocument, timing: FileWatcher.Timing = FileWatcher.Timing()) {
         self.document = document
@@ -43,9 +49,24 @@ final class LiveReloader {
     func stop() {
         watcher?.stop()
         watcher = nil
+        cancelReload()
+    }
+
+    /// Drops the reload in flight (cancelling its custom preprocessor run).
+    private func cancelReload() {
         generation += 1
         reloadTask?.cancel()
         reloadTask = nil
+        pendingReloadInput = nil
+    }
+
+    /// Starts the reload in flight again if it renders with other preferences than
+    /// `preferences` (Settings changed while it ran, #57).
+    func restartIfOutdated(preferences: MarkdownPreferences) {
+        guard let pending = pendingReloadInput, pending.preferences != preferences else {
+            return
+        }
+        reload(force: pending.force)
     }
 
     /// A hint that the file may have changed (an `NSFilePresenter` callback). The watcher checks
@@ -65,8 +86,7 @@ final class LiveReloader {
         case .changed:
             reload(force: false)
         case .deleted:
-            generation += 1
-            reloadTask?.cancel()
+            cancelReload()
             document.fileStatus = .deleted
         case .moved(let url):
             document.fileURL = url
@@ -82,18 +102,25 @@ final class LiveReloader {
         guard let document, let url = document.fileURL else {
             return
         }
-        generation += 1
+        cancelReload()
         let generation = generation
         let currentSource = force ? nil : document.content?.source
-        let preferences = document.markdownSettings.preferences
-        reloadTask?.cancel()
+        let preferences = document.renderPreferences
+        pendingReloadInput = (preferences, force)
         reloadTask = Task { [weak self] in
-            let result = await Task.detached(priority: .userInitiated) {
-                Result { try Self.render(contentsOf: url, unlessSourceIs: currentSource, preferences: preferences) }
-            }.value
+            let result: Result<DocumentContent?, any Error>
+            do {
+                result = .success(
+                    try await Self.render(contentsOf: url, unlessSourceIs: currentSource, preferences: preferences))
+            } catch is CancellationError {
+                return
+            } catch {
+                result = .failure(error)
+            }
             guard let self, generation == self.generation, let document = self.document else {
                 return
             }
+            pendingReloadInput = nil
             switch result {
             case .success(let content?):
                 document.setContent(content)
@@ -105,15 +132,19 @@ final class LiveReloader {
         }
     }
 
-    /// Reads and renders `url` with `preferences` (Settings > Markdown, #55); `nil` when its
-    /// text equals `currentSource`. Runs off the main actor.
+    /// Reads and renders `url` with `preferences` (Settings > Markdown, #55, and the custom
+    /// preprocessor, #57) off the main actor; `nil` when its text equals `currentSource`.
+    /// Cancelling the calling task stops a preprocessor run and throws `CancellationError`.
     nonisolated static func render(
         contentsOf url: URL, unlessSourceIs currentSource: String?, preferences: MarkdownPreferences = .default
-    ) throws -> DocumentContent? {
-        let source = try DocumentContent.source(from: Data(contentsOf: url))
+    ) async throws -> DocumentContent? {
+        let read = Task.detached(priority: .userInitiated) {
+            try DocumentContent.source(from: Data(contentsOf: url))
+        }
+        let source = try await read.value
         if source == currentSource {
             return nil
         }
-        return MarkdownDocument.renderContent(source, of: url, preferences: preferences)
+        return try await MarkdownDocument.renderContent(source, of: url, preferences: preferences)
     }
 }

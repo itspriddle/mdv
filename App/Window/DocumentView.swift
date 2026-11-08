@@ -14,6 +14,11 @@ struct DocumentView: View {
             .frame(minWidth: 480, minHeight: 360)
             .safeAreaInset(edge: .top, spacing: 0) { FileStatusBanner(status: document.fileStatus) }
             .safeAreaInset(edge: .top, spacing: 0) {
+                if let error = document.content?.preprocessorError {
+                    PreprocessorFailureBar(error: error)
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
                 if let summary = remoteImages.bar(for: document.content?.page) {
                     RemoteImageBar(summary: summary, load: loadRemoteImages)
                 }

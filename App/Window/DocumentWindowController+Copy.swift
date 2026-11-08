@@ -27,8 +27,9 @@ extension DocumentWindowController {
         guard let content = markdownDocument?.content else {
             return
         }
-        // What the window shows: the preferences its page was rendered with.
-        let source = content.source
+        // What the window shows: the Markdown its page was rendered from (the custom
+        // preprocessor's output, #57) and the preferences it was rendered with.
+        let source = content.renderedSource
         let preferences = content.preferences
         let documentURL = markdownDocument?.fileURL
         let html = await Task.detached(priority: .userInitiated) {

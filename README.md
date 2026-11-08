@@ -45,6 +45,21 @@ mdv:
 - Only YAML frontmatter (`---`) is read. TOML frontmatter (`+++`) is detected and hidden but not
   parsed, so `[mdv]` in TOML has no effect.
 
+## Custom preprocessor
+
+mdv can run a program of your choice on every document before rendering it, for formats or
+conventions it doesn't know. It is off by default. Turn it on in Settings > Markdown > Custom
+preprocessor: choose the program with Choose… and add any arguments, one per field.
+
+- The program gets the document on standard input and writes Markdown to standard output; exit
+  status 0 means success. The document's path is in `MDV_DOCUMENT_PATH`, and it runs in the
+  document's folder with a minimal environment. Arguments are passed as given, with no shell.
+- It runs as you, with your access to files, on every document you open. Only use a program you
+  trust. A document can't turn it on or change it.
+- It has 5 seconds and 10 MB of output. If it fails, the window shows the document without it
+  and a bar with the reason; Show Details has what the program wrote to standard error.
+- It runs again on every live reload, and open windows update when you change it in Settings.
+
 ## Requirements
 
 - macOS 15 or later

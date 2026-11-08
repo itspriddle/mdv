@@ -4,7 +4,14 @@ import MdvCore
 /// A document's source text and its rendered page: what `MarkdownDocument` holds after a read.
 /// A plain value, so it can be built off the main thread and tested without AppKit.
 struct DocumentContent: Equatable, Sendable {
+    /// The file's text.
     let source: String
+    /// The Markdown the pages were rendered from: the custom preprocessor's output (#57), else
+    /// `source`. Copy as HTML renders it again.
+    let renderedSource: String
+    /// Why the custom preprocessor failed, when it did: the pages are then `source` rendered
+    /// without it, and the window shows a bar with the reason (`PreprocessorFailureBar`).
+    let preprocessorError: PreprocessorError?
     /// The page with remote images blocked (placeholders, `.viewer` CSP): what every window
     /// shows until the user opts in (#20).
     let page: RenderedPage
@@ -26,21 +33,39 @@ struct DocumentContent: Equatable, Sendable {
     /// and built-in preprocessors. Wiki links (#53), when Settings or the document's frontmatter
     /// turn them on, are resolved now, from `documentURL`'s folder and `linkRoot`
     /// (`DocumentWikiLinks`); without a `documentURL` every page link is missing.
+    ///
+    /// This never runs the custom preprocessor (`preferences.customPreprocessor`); that is
+    /// asynchronous, in `rendering(_:of:preferences:)`.
     init(
         source: String, fallbackTitle: String, linkRoot: String? = nil, preferences: MarkdownPreferences = .default,
         documentURL: URL? = nil
     ) {
+        self.init(
+            source: source, renderedSource: source, preprocessorError: nil, fallbackTitle: fallbackTitle,
+            linkRoot: linkRoot, preferences: preferences, documentURL: documentURL)
+    }
+
+    /// Renders `renderedSource` (the custom preprocessor's output, or `source`) as the content of
+    /// a file whose text is `source`.
+    init(
+        source: String, renderedSource: String, preprocessorError: PreprocessorError?, fallbackTitle: String,
+        linkRoot: String?, preferences: MarkdownPreferences, documentURL: URL?
+    ) {
         self.source = source
+        self.renderedSource = renderedSource
+        self.preprocessorError = preprocessorError
         self.preferences = preferences
         let options = Self.renderOptions(preferences: preferences, linkRoot: linkRoot)
         let resolver = DocumentWikiLinks.resolver(forDocumentAt: documentURL, linkRoot: linkRoot)
         let page = Self.render(
-            source, fallbackTitle: fallbackTitle, options: options, resolver: resolver, allowingRemoteImages: false)
+            renderedSource, fallbackTitle: fallbackTitle, options: options, resolver: resolver,
+            allowingRemoteImages: false)
         self.page = page
         remoteImagesPage =
             page.blockedRemoteImages.contains(where: \.isHTTPS)
             ? Self.render(
-                source, fallbackTitle: fallbackTitle, options: options, resolver: resolver, allowingRemoteImages: true)
+                renderedSource, fallbackTitle: fallbackTitle, options: options, resolver: resolver,
+                allowingRemoteImages: true)
             : nil
     }
 
