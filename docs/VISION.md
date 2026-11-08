@@ -191,10 +191,23 @@ editor or a browser.
   view's fixed first-load cost (15-30 ms on main, attaching its WebContent process) in parallel
   with the render. A newer read (revert), a live reload, or closing the window drops a render in
   flight. Measured in Debug on a 5 MB document: the render takes about 2.2 s off main and the
-  main thread never stalls more than 5 ms (a hang-detector test asserts under one frame); with
-  the outline sidebar shown, its first fill adds an AppKit layout of about 15-20 ms when the
-  render lands. `Read` and `Render` signposts mark the open path in Instruments' Points of
-  Interest.
+  main thread never stalls more than 5 ms (a hang-detector test asserts under one frame), with
+  the outline sidebar shown or hidden. `Read` and `Render` signposts mark the open path in
+  Instruments' Points of Interest.
+  **Feedback for slow renders (#58).** A wait that outlasts 300 ms shows an indeterminate
+  progress indicator (`RenderProgress`, a SwiftUI overlay on the web view); shorter waits never
+  flash it. Before a window's first page loads, it sits in the middle of the blank page on the
+  theme's background, drawn in the appearance that contrasts with that background
+  (`ThemeColor.isDark`), and goes the moment the page loads. A re-render over a shown page (a
+  live reload, a Settings change, a slow custom preprocessor) never blanks the window: the old
+  page stays, readable and scrollable, with a small indicator on a material circle in its top
+  corner until the new page lands. That one is subtle on purpose: a reader editing a large file
+  or using a slow script should see that the window is behind, without anything covering the
+  text or taking clicks. The outline sidebar's first fill (an AppKit layout of about 15-20 ms on
+  main for a 5 MB document with the sidebar shown) runs after the first page has painted (two
+  animation frames, or 100 ms for a window WebKit isn't drawing), not when the render lands, so
+  it is off the first paint's critical path; the sidebar is blank, not "No Headings", until
+  then. Later renders fill it as they are shown.
 - **Outline sidebar (#24):** an AppKit sidebar split item (`NSOutlineView`, nested by heading
   level) beside the document, from `RenderedDocument.headings` (raw HTML headings included).
   A click or Return jumps by anchor (`slug`), with the source line as fallback. The current
@@ -586,7 +599,8 @@ editor or a browser.
     Settings shows the last run of the session (succeeded, or failed and why) instead of a "Test
     on…" button: opening a document is the test, and its window says what went wrong.
   - **Lifecycle:** the first render of an open waits for the script (up to the 5.5 s worst
-    case; the window shows its blank, theme-colored page meanwhile). Each live reload runs it
+    case; the window shows its blank, theme-colored page meanwhile, with the progress indicator
+    after 300 ms, #58). Each live reload runs it
     again off the main actor. A newer render, `setContent`, a newer reload, or closing the
     document cancels the run in flight, which stops its process group. Turning it off, or
     changing the program or arguments, re-renders open documents in place; a render or reload

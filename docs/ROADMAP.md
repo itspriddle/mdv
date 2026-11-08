@@ -355,10 +355,10 @@ with the sidebar shown) is still there; deferred, below.
 - Settings: remembering the remote-image opt-in per file (decided against for now, #36); no
   Settings UI for restoration or for resetting the default viewer offer; no UI test for the
   Settings window's position; no manual VoiceOver pass.
-- Performance: the outline's first fill (about 20 ms on main for a 5 MB document with the
+- Performance: ~~the outline's first fill (about 20 ms on main for a 5 MB document with the
   sidebar shown; options: fill after the first load, or lazily while collapsed); no progress
-  indicator for long first renders (about 0.4 s of an empty window at 5 MB); no performance
-  check in CI (needs a GUI session and Release; CI timing is too noisy); the prewarmed web
+  indicator for long first renders (about 0.4 s of an empty window at 5 MB)~~ done in M4
+  (#58); no performance check in CI (needs a GUI session and Release; CI timing is too noisy); the prewarmed web
   view lingers if no document window ever opens.
 - Opening and links: the find pasteboard isn't re-read on app
   activation while the bar is open; dropping an extensionless file from Finder and `mdv
@@ -476,6 +476,42 @@ huge output) cannot hang or crash the app.
   renders, `setContent`, and closing cancel the run in flight; Settings changes re-render open
   documents and restart outdated runs. Frontmatter can't enable it. `StressTests+Preprocessor`
   covers hang, crash, flood, fork, reload storms, and closing mid-run. See VISION.
+- Feedback for slow renders (#58): a wait over 300 ms (`RenderProgress.defaultDelay`, injected
+  in tests) shows an indeterminate indicator; shorter ones never flash it. Before the first page
+  loads it sits in the middle of the blank page on the theme's background (drawn in the
+  appearance that contrasts with it) and goes when the page loads. Re-renders (live reload,
+  Settings changes, a slow preprocessor) keep the old page, never blanking it, and show a small
+  indicator in the top corner: decided yes, but subtle (a material circle, no clicks taken),
+  since a reload of a large file or a slow script otherwise looks like nothing happened. The
+  outline's first fill runs after the first page paints (two animation frames, or 100 ms when
+  WebKit isn't drawing the window), and the sidebar is blank rather than "No Headings" until
+  then. `MarkdownDocument.isRendering` covers both a render and a live reload in flight. See
+  VISION.
+
+**Performance (#58):** the #45 harness (`scripts/measure-cold-open -f`, Release, MacBook Air,
+macOS 27.2), before (#57's merge, 2c6c400) and after #58 launched interleaved with the floor in
+one sitting: three rounds of 4 launches (3 for the large files), the median of the rounds'
+medians. The synthetic documents are `FirstRenderTests.largeSource(bytes:)`, as in #40 and #45.
+**The machine wasn't idle:** no other agents ran, but load averaged 4-9 (a system daemon,
+`duetexpertd`, held one core throughout, and load rose in the third round), so compare within
+this table, not with #45's.
+
+| Document | Size | Before #58 | After #58 | Floor (bare `WKWebView`) | After minus floor |
+| -------- | ---- | ---------- | --------- | ------------------------ | ----------------- |
+| mdv README | 4.4 KB | 336 ms | 335 ms | 298 ms | +37 ms |
+| `bat` README (corpus) | 34 KB | 358 ms | 357 ms | 320 ms | +37 ms |
+| Synthetic | 1 MB | 654 ms | 643 ms | | |
+| Synthetic | 5 MB | 2126 ms | 2200 ms | | |
+| Synthetic, outline shown | 5 MB | 2150 ms | 2162 ms | | |
+
+README-sized opens are unchanged and within the agreed 0-50 ms of the floor. At 5 MB the rounds
+spread by 100-450 ms under this load, so the cold-open harness can't resolve the outline's
+~20 ms either way; the hosted measurement does (`FirstRenderTests`, Debug, same sitting, two
+runs each): with the outline shown, the longest main-thread busy stretch between the render
+landing and the page load was 19.1-19.4 ms before and 1.5 ms after (the fill now comes after
+the first paint), the same as with the outline hidden. The test's bound with the outline shown
+dropped from 50 ms to 17 ms. Re-measure 1 MB and 5 MB on a quieter machine at the close-out if
+absolute numbers are wanted.
 
 ## M5: CLI
 
