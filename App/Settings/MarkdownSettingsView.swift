@@ -91,6 +91,7 @@ extension MarkdownTransform {
     /// so the switch stays exhaustive.
     var settingsTitle: String {
         switch self {
+        case .alerts: "GitHub alerts"
         case .emojiShortcodes: "Emoji shortcodes"
         }
     }
@@ -98,6 +99,7 @@ extension MarkdownTransform {
     /// The note under the toggle.
     var settingsNote: String {
         switch self {
+        case .alerts: "Renders > [!NOTE] quotes as callouts. Part of GitHub Flavored Markdown."
         case .emojiShortcodes: "Turns :tada: into 🎉. Part of GitHub Flavored Markdown."
         }
     }
