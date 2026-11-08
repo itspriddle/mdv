@@ -1,15 +1,16 @@
 import Foundation
 import MdvCore
 
-/// The app-wide content width (#37): one preset for every document window, persisted in
-/// `UserDefaults`. View > Content Width changes it, and every window follows the change live
-/// (`DocumentWindowController+ContentWidth`). There is no per-window override.
+/// The content width new document windows start with (#37, #47), persisted in `UserDefaults`.
+/// Only Settings sets it; each window then keeps its own preset
+/// (`DocumentWindowController.contentWidth`), which View > Content Width changes and window
+/// restoration keeps.
 @MainActor
 final class ContentWidthSettings {
     /// The app's settings. UI tests get an in-memory width that starts at the theme default.
     static let shared = ContentWidthSettings()
 
-    /// Posted (object: the settings) after `width` changes.
+    /// Posted (object: the settings) after `defaultWidth` changes.
     static let didChangeNotification = Notification.Name("MdvContentWidthSettingsDidChange")
 
     /// The `UserDefaults` key: a `ContentWidth` raw value, absent at the default.
@@ -25,9 +26,9 @@ final class ContentWidthSettings {
         self.isPersistent = isPersistent
     }
 
-    /// The preset. A stored value that isn't one (preferences are untrusted input) reads as
+    /// The preset new windows start with. A stored value that isn't one (preferences are untrusted input) reads as
     /// the default.
-    var width: ContentWidth {
+    var defaultWidth: ContentWidth {
         get {
             guard isPersistent else {
                 return memoryWidth
@@ -35,7 +36,7 @@ final class ContentWidthSettings {
             return defaults.string(forKey: Self.key).flatMap(ContentWidth.init(rawValue:)) ?? .default
         }
         set {
-            guard newValue != width else {
+            guard newValue != defaultWidth else {
                 return
             }
             if isPersistent {
@@ -49,10 +50,5 @@ final class ContentWidthSettings {
             }
             NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
         }
-    }
-
-    /// The page's user layer for the current settings.
-    var userStyle: UserStyle {
-        UserStyle(contentWidth: width)
     }
 }

@@ -36,15 +36,15 @@ enum PageZoom {
     }
 }
 
-/// The app-wide page zoom: one level for every document window, persisted in `UserDefaults`.
-/// Zoom In, Zoom Out, and Actual Size change it, and every window follows the change. Pinch
-/// magnification is each window's own override on top of it (`DocumentWindowController+Zoom`).
+/// The page zoom new document windows start at (#47), persisted in `UserDefaults`. Only Settings
+/// sets it; each window then keeps its own level (`DocumentWindowController.zoomLevel`), which
+/// View > Zoom In, Zoom Out, and Actual Size change, and window restoration keeps.
 @MainActor
 final class ZoomSettings {
     /// The app's settings. UI tests get an in-memory level that starts at actual size.
     static let shared = ZoomSettings()
 
-    /// Posted (object: the settings) after `level` changes.
+    /// Posted (object: the settings) after `defaultLevel` changes.
     static let didChangeNotification = Notification.Name("MdvZoomSettingsDidChange")
 
     /// The `UserDefaults` key: a `Double`, absent at actual size.
@@ -60,7 +60,8 @@ final class ZoomSettings {
         self.isPersistent = isPersistent
     }
 
-    var level: Double {
+    /// The level new windows start at.
+    var defaultLevel: Double {
         get {
             guard isPersistent else {
                 return memoryLevel
@@ -69,7 +70,7 @@ final class ZoomSettings {
         }
         set {
             let level = PageZoom.valid(newValue) ?? PageZoom.actualSize
-            guard level != self.level else {
+            guard level != defaultLevel else {
                 return
             }
             if isPersistent {

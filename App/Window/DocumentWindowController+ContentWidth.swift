@@ -1,28 +1,35 @@
 import AppKit
 import MdvCore
 
-/// Content width (#37). View > Content Width picks the app-wide preset (`ContentWidthSettings`,
-/// persisted), and every window follows it live: the page's user layer is swapped in place,
-/// keeping the reading position.
+/// Content width (#37, per window since #47). View > Content Width picks this window's preset
+/// (`contentWidth`); a new window starts with Settings' default (`ContentWidthSettings`). The
+/// page's user layer is swapped in place, keeping the reading position, and window restoration
+/// keeps the preset.
 extension DocumentWindowController {
-    /// Starts pages with the app-wide width and follows its changes. Called once from `init`,
-    /// before the first load.
+    /// The restorable-state key for the window's preset (a `ContentWidth` raw value, always
+    /// written; absent only in state saved before #47, which then keeps Settings' default).
+    static let contentWidthStateKey = "mdvContentWidth"
+
+    /// Starts pages with the window's width. Called once from `init`, before the first load.
     func installContentWidth() {
-        coordinator.userStyle = contentWidthSettings.userStyle
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(contentWidthSettingsDidChange(_:)),
-            name: ContentWidthSettings.didChangeNotification, object: contentWidthSettings)
+        coordinator.userStyle = UserStyle(contentWidth: contentWidth)
     }
 
-    @objc private func contentWidthSettingsDidChange(_ notification: Notification) {
+    /// Sets this window's preset. Other windows and the default for new windows don't change.
+    func setContentWidth(to width: ContentWidth) {
+        guard width != contentWidth else {
+            return
+        }
+        contentWidth = width
         applyUserStyle()
+        window?.invalidateRestorableState()
     }
 
-    /// Applies the current settings: pages loaded from now on start with them, and the loaded
-    /// page is updated in place. A load already under way applies them when it finishes
+    /// Applies `contentWidth`: pages loaded from now on start with it, and the loaded page is
+    /// updated in place. A load already under way applies it when it finishes
     /// (`WebViewCoordinator.load`); live reload swaps only the body, so the style stays.
     private func applyUserStyle() {
-        coordinator.userStyle = contentWidthSettings.userStyle
+        coordinator.userStyle = UserStyle(contentWidth: contentWidth)
         Task { [coordinator] in
             // Fails only without a page to update (the web content process exited); the reload
             // that follows starts with `userStyle`.
@@ -39,13 +46,30 @@ extension DocumentWindowController {
         else {
             return
         }
-        contentWidthSettings.width = width
+        setContentWidth(to: width)
     }
 
-    /// Checks the current preset.
+    /// Checks this window's preset.
     func validateContentWidthItem(_ menuItem: NSMenuItem) -> Bool {
         let rawValue = menuItem.representedObject as? String
-        menuItem.state = rawValue == contentWidthSettings.width.rawValue ? .on : .off
+        menuItem.state = rawValue == contentWidth.rawValue ? .on : .off
         return true
+    }
+
+    // MARK: Restoration
+
+    func encodeContentWidthState(with coder: NSCoder) {
+        coder.encode(contentWidth.rawValue as NSString, forKey: Self.contentWidthStateKey)
+    }
+
+    /// Restores the preset. Restorable state is untrusted input: anything but a preset's raw
+    /// value is ignored.
+    func restoreContentWidthState(with coder: NSCoder) {
+        guard let rawValue = coder.decodeObject(of: NSString.self, forKey: Self.contentWidthStateKey) as String?,
+            let width = ContentWidth(rawValue: rawValue)
+        else {
+            return
+        }
+        setContentWidth(to: width)
     }
 }

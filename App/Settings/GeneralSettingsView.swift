@@ -6,8 +6,9 @@ import SwiftUI
 ///
 /// Sections: Appearance (System, Light, or Dark; applies to every window at once), Themes (the
 /// default theme, custom theme files that didn't load, and Open Themes
-/// Folder, #35), Windows (outline default), Reading (zoom and content width, which apply
-/// to every window at once, as View > Zoom and View > Content Width do), and Default Viewer.
+/// Folder, #35), Windows (outline default), Reading (the zoom and content width new windows
+/// start with; View > Zoom and View > Content Width change one window, #47), and Default
+/// Viewer.
 struct GeneralSettingsView: View {
     let model: SettingsModel
 
@@ -72,7 +73,7 @@ struct GeneralSettingsView: View {
                     }
                 }
                 .accessibilityIdentifier("settings-content-width")
-                note("Zoom and content width apply to every window.")
+                note("New windows open at this zoom and width. The View menu changes one window.")
             }
 
             Section {

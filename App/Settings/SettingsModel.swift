@@ -10,14 +10,14 @@ import MdvCore
 /// | Default theme | `ThemeSettings.defaultThemeID` | new windows |
 /// | (Open Themes Folder) | `CustomThemeLibrary.openFolder()` (#35) | Finder |
 /// | Show outline in new windows | `OutlinePreference` | new windows |
-/// | Zoom | `ZoomSettings.level` | every window, live |
-/// | Content width | `ContentWidthSettings.width` | every window, live |
+/// | Zoom | `ZoomSettings.defaultLevel` | new windows (#47) |
+/// | Content width | `ContentWidthSettings.defaultWidth` | new windows (#47) |
 /// | Default Markdown viewer | `DefaultViewer` (Launch Services) | system-wide |
 ///
 /// Every store takes an injectable `UserDefaults` suite and is in memory under UI tests, so
 /// hosted tests build the model over throwaway stores. The model mirrors the stores in
 /// observable properties and refreshes them when a store posts its change notification (View >
-/// Theme registry changes, zoom and width changed from the menus) and when the Settings window
+/// Theme registry changes) and when the Settings window
 /// becomes key (`refresh()`, for the outline preference and Launch Services, which post
 /// nothing). Change a setting with its `set…` method, never the property.
 ///
@@ -45,8 +45,9 @@ final class SettingsModel: NSObject {
     private(set) var defaultThemeID = ""
     /// Custom theme files that didn't load, one line each ("Name: why").
     private(set) var themeFailures: [String] = []
-    /// The app-wide zoom, snapped to the nearest `PageZoom.levels` entry.
+    /// The zoom new windows start at, snapped to the nearest `PageZoom.levels` entry.
     private(set) var zoomLevel = PageZoom.actualSize
+    /// The content width new windows start with.
     private(set) var contentWidth = ContentWidth.default
     private(set) var showsOutlineInNewWindows = false
     private(set) var isDefaultViewer = false
@@ -96,8 +97,8 @@ final class SettingsModel: NSObject {
         themeSections = registry.pickerSections()
         defaultThemeID = themeSettings.defaultTheme.id
         themeFailures = themeSettings.customThemeFailures.map(\.message)
-        zoomLevel = Self.nearestZoomLevel(to: zoomSettings.level)
-        contentWidth = contentWidthSettings.width
+        zoomLevel = Self.nearestZoomLevel(to: zoomSettings.defaultLevel)
+        contentWidth = contentWidthSettings.defaultWidth
         showsOutlineInNewWindows = outlinePreference.showsOutlineInNewWindows
         isDefaultViewer = defaultViewerOffer.viewer.isDefault
     }
@@ -127,15 +128,15 @@ final class SettingsModel: NSObject {
         openThemesFolderAction?()
     }
 
-    /// Every window follows the new zoom level at once.
+    /// New windows open at `level`. Open windows keep theirs.
     func setZoomLevel(_ level: Double) {
-        zoomSettings.level = level
+        zoomSettings.defaultLevel = level
         refresh()
     }
 
-    /// Every window follows the new width at once.
+    /// New windows open with `width`. Open windows keep theirs.
     func setContentWidth(_ width: ContentWidth) {
-        contentWidthSettings.width = width
+        contentWidthSettings.defaultWidth = width
         refresh()
     }
 

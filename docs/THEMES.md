@@ -265,8 +265,8 @@ and give only `background` in the header (it's used in both appearances).
 
 ## Content width
 
-**View > Content Width** (and **Settings**) lets the reader pick Narrow, Theme Default, Wide,
-or Full Width for every window. "Theme Default" is whatever your theme sets.
+**View > Content Width** lets the reader pick Narrow, Theme Default, Wide, or Full Width for
+a window (**Settings** picks it for new windows). "Theme Default" is whatever your theme sets.
 
 - Limit width on `.markdown-body` and you need to do nothing: for the other choices mdv sets
   `.markdown-body`'s `max-width` itself, above your theme.

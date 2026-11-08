@@ -147,11 +147,14 @@ editor or a browser.
   ones included. Visibility and width are per window (restored with the window, #43 for the
   width) and the last toggle is the default for new windows; hidden until first shown. A
   document without headings shows "No Headings".
-- **Zoom, print, copy (#26):** zoom is global with a per-window override. Cmd-+/-/0 set one
-  app-wide `pageZoom` level (Safari's steps, persisted in `UserDefaults`) that every window
-  follows live, so text size is a reading preference rather than a per-file chore. Pinch is
-  the window's own `WKWebView` magnification (scales without reflow, as in Safari), kept by
-  window restoration; Actual Size resets both. Zoom remembered per file was considered and
+- **Zoom, print, copy (#26, #47):** zoom is per window. Cmd-+/-/0 set the window's
+  `pageZoom` level (Safari's steps), kept by window restoration; a new window starts at
+  Settings' default zoom (persisted in `UserDefaults`), so text size is still a reading
+  preference rather than a per-file chore. Pinch is the window's `WKWebView` magnification on
+  top of it (scales without reflow, as in Safari), also restored; Actual Size resets both, to
+  100% rather than Settings' default. Zoom was app-wide in M2 and M3, every window following
+  Cmd-+/- live; #47 made it per window because one change re-laid out every open window at
+  once, which was jarring. Zoom remembered per file was considered and
   dropped (#43): it would make the same keys mean "this file" or "every file" depending on
   history, and pinch already covers a one-off. Print uses `WKWebView.printOperation` through
   `NSDocument` (Page Setup, Save as PDF from the panel) with `@media print` rules in the theme layers:
@@ -227,15 +230,17 @@ editor or a browser.
   leave `.markdown-body` width to the `mdv-user` layer (#37).
 - **Reading controls (#37):** content width is a user control; text size is zoom. View >
   Content Width picks one of four presets (Narrow 32em, Theme Default, Wide 72em, Full Width),
-  global and persisted like zoom, applied live to every window by swapping the `mdv-user`
-  `<style>` text in place (reading position kept, no reload). The layer sets
+  per window like zoom (#47: restored with the window; Settings sets the default for new
+  windows), applied live by swapping the `mdv-user` `<style>` text in place (reading position
+  kept, no reload). The layer sets
   `--mdv-content-width` and `.markdown-body { max-width: var(--mdv-content-width) }`, screen
   only, so paper is always full width; Theme Default emits nothing. Widths are in `em` of the
   column's font, so the measure holds across themes and zoom levels. There is no separate font
   size control: `pageZoom` (Cmd +/-) already reflows the page at a larger text size, and a CSS
   font size would be a second "bigger text" command that differs only in leaving images,
-  padding, and code at their size. Per-window width was rejected for the same reason zoom is
-  global: it's a reading preference, not a property of the document.
+  padding, and code at their size. #37 made width global because it's a reading preference,
+  not a property of the document; #47 reversed that (and zoom with it): changing it re-laid out
+  every open window at once. The preference lives on as Settings' default for new windows.
 - **Theme picker (#34):** each window has its own theme, picked from View > Theme (bundled themes, then custom ones in their own section), checked in
   the menu, and kept by window restoration (an unknown id shows the default). A pick changes
   that window only; the theme for new windows is Settings' (#36). A switch is an in-place swap, not a reload: an app script replaces the
@@ -305,8 +310,8 @@ editor or a browser.
   its own: `SettingsModel` reads and writes the existing stores (`ThemeSettings`,
   `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, `DefaultViewer`), each with an
   injectable `UserDefaults` suite and in memory under UI tests, and follows their change
-  notifications, so the View menu and Settings always agree. Zoom and content width apply to
-  every window live; the default theme and outline visibility apply to new windows; Settings
+  notifications, so the View menu and Settings always agree. The default theme, zoom, content
+  width (#47), and outline visibility apply to new windows; the View menu changes one window; Settings
   owns the default theme (View > Theme no longer changes it). Settings also lists custom theme
   files that didn't load and has Open Themes Folder (#35). The remote-image opt-in stays per
   window and is not remembered per file: a remembered list of files that may load remote

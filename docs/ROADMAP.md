@@ -211,8 +211,8 @@ CSS themes as a first-class feature.
   View > Content Width, global and persisted, applied live via the `mdv-user` layer
   (`--mdv-content-width`); print ignores it. See VISION. **Reversed after M3 (#47):** zoom and
   content width move to per window, like themes, with Settings setting the default for new
-  windows. A global change re-laid out every open window at once, which was jarring. VISION's
-  #37 entry changes when #47 lands.
+  windows. A global change re-laid out every open window at once, which was jarring. Landed;
+  VISION's #26 and #37 entries record it.
 
 - Theme switch (#34): in-place swap of the `mdv-theme` `<style>` text by app script (same
   `mdv.replaceStyle` as #37), keeping the reading position, find, zoom, and remote-image
@@ -390,8 +390,8 @@ Control how source becomes Markdown.
   `table.frontmatter`/`pre.frontmatter` in `docs/THEMES.md` real (update the guide)
 - GitHub alerts (`> [!NOTE]`) in the GFM flavor (rendered as plain block quotes in M1)
 - Settings UI for flavors and preprocessors
-- Carried over from M3: per-window zoom and content width, with Settings setting the default
-  for new windows (#47). Restoration keeps each window's values.
+- ~~Carried over from M3: per-window zoom and content width, with Settings setting the default
+  for new windows (#47). Restoration keeps each window's values.~~ Done (#47, ahead of M4).
 
 **Exit criteria:** each flavor has its own test corpus; a misbehaving script (hang, crash,
 huge output) cannot hang or crash the app.

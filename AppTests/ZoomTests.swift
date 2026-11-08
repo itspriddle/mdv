@@ -3,7 +3,8 @@ import Testing
 
 @testable import MdvApp
 
-/// Zoom (#26): the app-wide level, windows following it, pinch magnification, and the menus.
+/// Zoom (#26, per window since #47): the default for new windows, each window's own level,
+/// pinch magnification, restoration, and the menus.
 @MainActor
 @Suite("Zoom", .serialized, .timeLimit(.minutes(1)))
 final class ZoomTests: DocumentWindowTestCase {
@@ -24,40 +25,40 @@ final class ZoomTests: DocumentWindowTestCase {
         #expect(PageZoom.valid(1.25) == 1.25)
     }
 
-    @Test("the app-wide level persists, ignores bad stored values, and posts changes")
+    @Test("the default level persists, ignores bad stored values, and posts changes")
     func settingsPersist() {
         let zoom = settings()
-        #expect(zoom.level == 1)
+        #expect(zoom.defaultLevel == 1)
         var posts = 0
         let token = NotificationCenter.default.addObserver(
             forName: ZoomSettings.didChangeNotification, object: zoom, queue: nil
         ) { _ in posts += 1 }
         defer { NotificationCenter.default.removeObserver(token) }
-        zoom.level = 1.5
+        zoom.defaultLevel = 1.5
         #expect(defaults.double(forKey: ZoomSettings.key) == 1.5)
-        #expect(settings().level == 1.5, "a new instance reads the persisted level")
-        zoom.level = 1.5
+        #expect(settings().defaultLevel == 1.5, "a new instance reads the persisted level")
+        zoom.defaultLevel = 1.5
         #expect(posts == 1, "setting the same level posts nothing")
-        zoom.level = 1
+        zoom.defaultLevel = 1
         #expect(defaults.object(forKey: ZoomSettings.key) == nil, "actual size removes the key")
         defaults.set(99.0, forKey: ZoomSettings.key)
-        #expect(zoom.level == 1)
+        #expect(zoom.defaultLevel == 1)
         defaults.set("big", forKey: ZoomSettings.key)
-        #expect(zoom.level == 1)
+        #expect(zoom.defaultLevel == 1)
     }
 
     @Test("UI-test settings stay in memory")
     func settingsInMemory() {
         let zoom = ZoomSettings(defaults: defaults, isPersistent: false)
-        zoom.level = 2
-        #expect(zoom.level == 2)
+        zoom.defaultLevel = 2
+        #expect(zoom.defaultLevel == 2)
         #expect(defaults.object(forKey: ZoomSettings.key) == nil)
     }
 
     // MARK: Zoom in windows
 
-    @Test("zoom commands change every window, survive a reload, and Actual Size resets pinch")
-    func windowsFollow() async throws {
+    @Test("zoom commands change only their window; new windows start at the default; reloads keep it")
+    func windowsAreIndependent() async throws {
         defer { closeAll() }
         let zoom = settings()
         let (_, first) = try await open(zoomSettings: zoom)
@@ -67,11 +68,14 @@ final class ZoomTests: DocumentWindowTestCase {
 
         first.zoomInDocument(nil)
         first.zoomInDocument(nil)
-        #expect(zoom.level == 1.25)
+        #expect(first.zoomLevel == 1.25)
         #expect(first.coordinator.webView.pageZoom == 1.25)
-        #expect(second.coordinator.webView.pageZoom == 1.25)
+        #expect(second.coordinator.webView.pageZoom == 1, "the other window keeps its zoom")
+        #expect(zoom.defaultLevel == 1, "the default for new windows is Settings'")
         second.zoomOutDocument(nil)
-        #expect(first.coordinator.webView.pageZoom == 1.1)
+        #expect(second.coordinator.webView.pageZoom == 0.9)
+        #expect(first.coordinator.webView.pageZoom == 1.25)
+        first.zoomOutDocument(nil)
 
         // The zoom reflows the page: the CSS viewport narrows.
         let width = try #require(
@@ -79,19 +83,26 @@ final class ZoomTests: DocumentWindowTestCase {
                 "return window.innerWidth;", arguments: [:], in: nil, contentWorld: AppScripts.world) as? NSNumber)
         #expect(abs(width.doubleValue - first.coordinator.webView.bounds.width / 1.1) < 2)
 
-        // A new window starts at the app-wide level; a full reload keeps it.
+        // A new default leaves open windows alone; a new window starts at it, and a full
+        // reload keeps the window's level.
+        zoom.defaultLevel = 1.5
+        #expect(first.coordinator.webView.pageZoom == 1.1)
         let (document, third) = try await open(name: "third.md", zoomSettings: zoom)
-        #expect(third.coordinator.webView.pageZoom == 1.1)
+        #expect(third.zoomLevel == 1.5)
+        #expect(third.coordinator.webView.pageZoom == 1.5)
+        third.zoomInDocument(nil)
         try await third.coordinator.load(try #require(document.content).page, baseURL: nil)
-        #expect(third.coordinator.webView.pageZoom == 1.1)
+        #expect(third.coordinator.webView.pageZoom == 1.75)
 
-        // Pinch is the window's own: Actual Size clears it along with the app-wide level.
+        // Pinch is the window's own: Actual Size clears it and goes to 100%, not the default.
         first.coordinator.webView.magnification = 2
         #expect(second.coordinator.webView.magnification == 1)
         first.resetDocumentZoom(nil)
         #expect(first.coordinator.webView.magnification == 1)
-        #expect(zoom.level == 1)
-        #expect(second.coordinator.webView.pageZoom == 1)
+        #expect(first.zoomLevel == 1)
+        #expect(first.coordinator.webView.pageZoom == 1)
+        #expect(second.coordinator.webView.pageZoom == 0.9)
+        #expect(zoom.defaultLevel == 1.5)
     }
 
     @Test("zoom items are disabled at the ends and Actual Size at actual size")
@@ -105,28 +116,36 @@ final class ZoomTests: DocumentWindowTestCase {
         #expect(controller.validateMenuItem(zoomIn))
         #expect(controller.validateMenuItem(zoomOut))
         #expect(!controller.validateMenuItem(actualSize))
-        zoom.level = 3
+        zoom.defaultLevel = 2
+        #expect(!controller.validateMenuItem(actualSize), "Settings' default doesn't change the window")
+        controller.setZoomLevel(3)
         #expect(!controller.validateMenuItem(zoomIn))
         #expect(controller.validateMenuItem(actualSize))
-        zoom.level = 0.5
+        controller.setZoomLevel(0.5)
         #expect(!controller.validateMenuItem(zoomOut))
-        zoom.level = 1
+        controller.setZoomLevel(1)
         controller.coordinator.webView.magnification = 1.5
         #expect(controller.validateMenuItem(actualSize))
     }
 
-    @Test("window restoration keeps the pinch magnification and rejects bad values")
-    func magnificationRestoration() async throws {
+    @Test("window restoration keeps the page zoom and pinch magnification and rejects bad values")
+    func zoomRestoration() async throws {
         defer { closeAll() }
-        let (_, controller) = try await open()
+        let zoom = settings()
+        let (_, controller) = try await open(zoomSettings: zoom)
+        controller.setZoomLevel(1.25)
         controller.coordinator.webView.magnification = 1.5
         let archiver = NSKeyedArchiver(requiringSecureCoding: true)
         controller.encodeZoomState(with: archiver)
         archiver.finishEncoding()
 
-        let (_, restored) = try await open(name: "restored.md")
+        zoom.defaultLevel = 2
+        let (_, restored) = try await open(name: "restored.md", zoomSettings: zoom)
+        #expect(restored.zoomLevel == 2)
         let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
         restored.restoreZoomState(with: unarchiver)
+        #expect(restored.zoomLevel == 1.25)
+        #expect(restored.coordinator.webView.pageZoom == 1.25)
         #expect(restored.coordinator.webView.magnification == 1.5)
 
         #expect(DocumentWindowController.validMagnification(.nan) == nil)
@@ -134,12 +153,28 @@ final class ZoomTests: DocumentWindowTestCase {
         #expect(DocumentWindowController.validMagnification(0) == nil)
         #expect(DocumentWindowController.validMagnification(2) == 2)
 
+        // Actual size is still written (so it isn't mistaken for state saved before #47); no
+        // magnification is written at 1.
         let unchanged = NSKeyedArchiver(requiringSecureCoding: true)
+        restored.setZoomLevel(1)
         restored.coordinator.webView.magnification = 1
         restored.encodeZoomState(with: unchanged)
         unchanged.finishEncoding()
         let reader = try NSKeyedUnarchiver(forReadingFrom: unchanged.encodedData)
+        #expect(reader.decodeDouble(forKey: DocumentWindowController.pageZoomStateKey) == 1)
         #expect(!reader.containsValue(forKey: DocumentWindowController.magnificationStateKey))
+
+        // Out-of-range levels and state saved before #47 (no key) keep Settings' default.
+        for value: Double? in [.nan, 100, 0, nil] {
+            let bad = NSKeyedArchiver(requiringSecureCoding: true)
+            if let value {
+                bad.encode(value, forKey: DocumentWindowController.pageZoomStateKey)
+            }
+            bad.finishEncoding()
+            let (_, window) = try await open(name: "bad.md", zoomSettings: zoom)
+            window.restoreZoomState(with: try NSKeyedUnarchiver(forReadingFrom: bad.encodedData))
+            #expect(window.zoomLevel == 2, "\(String(describing: value))")
+        }
     }
 
     // MARK: Menus

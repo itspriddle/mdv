@@ -5,8 +5,9 @@ import WebKit
 
 @testable import MdvApp
 
-/// Content width (#37): the app-wide preset, windows following it live without a reload, the
-/// menu, and the user layer over every bundled theme in real WebKit.
+/// Content width (#37, per window since #47): the default for new windows, each window's own
+/// preset applied live without a reload, restoration, the menu, and the user layer over every
+/// bundled theme in real WebKit.
 @MainActor
 @Suite("Content width", .serialized, .timeLimit(.minutes(1)))
 final class ContentWidthTests: DocumentWindowTestCase {
@@ -57,37 +58,37 @@ final class ContentWidthTests: DocumentWindowTestCase {
     @Test("the preset persists, ignores bad stored values, and posts changes")
     func settingsPersist() {
         let settings = widthSettings()
-        #expect(settings.width == .theme)
+        #expect(settings.defaultWidth == .theme)
         var posts = 0
         let token = NotificationCenter.default.addObserver(
             forName: ContentWidthSettings.didChangeNotification, object: settings, queue: nil
         ) { _ in posts += 1 }
         defer { NotificationCenter.default.removeObserver(token) }
-        settings.width = .narrow
+        settings.defaultWidth = .narrow
         #expect(defaults.string(forKey: ContentWidthSettings.key) == "narrow")
-        #expect(widthSettings().width == .narrow, "a new instance reads the persisted preset")
-        settings.width = .narrow
+        #expect(widthSettings().defaultWidth == .narrow, "a new instance reads the persisted preset")
+        settings.defaultWidth = .narrow
         #expect(posts == 1, "setting the same preset posts nothing")
-        settings.width = .theme
+        settings.defaultWidth = .theme
         #expect(defaults.object(forKey: ContentWidthSettings.key) == nil, "the default removes the key")
         defaults.set("100px; } body { display: none", forKey: ContentWidthSettings.key)
-        #expect(settings.width == .theme)
+        #expect(settings.defaultWidth == .theme)
         defaults.set(42, forKey: ContentWidthSettings.key)
-        #expect(settings.width == .theme)
+        #expect(settings.defaultWidth == .theme)
     }
 
     @Test("UI-test settings stay in memory")
     func settingsInMemory() {
         let settings = ContentWidthSettings(defaults: defaults, isPersistent: false)
-        settings.width = .full
-        #expect(settings.width == .full)
+        settings.defaultWidth = .full
+        #expect(settings.defaultWidth == .full)
         #expect(defaults.object(forKey: ContentWidthSettings.key) == nil)
     }
 
     // MARK: Windows
 
-    @Test("every window follows the preset live, keeping its reading position, and loads keep it")
-    func windowsFollow() async throws {
+    @Test("a preset changes only its window, live, keeping its reading position; loads keep it")
+    func windowsAreIndependent() async throws {
         defer { closeAll() }
         let settings = widthSettings()
         let (_, first) = try await open(Self.longSource, contentWidthSettings: settings)
@@ -103,33 +104,35 @@ final class ContentWidthTests: DocumentWindowTestCase {
         let narrow = try #require(widthItem("Narrow"))
         let narrowWidth = try await pixels(32, in: first.coordinator)
         first.setContentWidth(narrow)
-        #expect(settings.width == .narrow)
+        #expect(first.contentWidth == .narrow)
+        #expect(settings.defaultWidth == .theme, "the default for new windows is Settings'")
         try await until("the first window narrows") {
             isWidth(try await maxWidth(in: first.coordinator), is: narrowWidth)
-        }
-        try await until("the second window narrows") {
-            isWidth(try await maxWidth(in: second.coordinator), is: narrowWidth)
         }
         let narrowHeight = try #require(
             try await evaluate("return document.documentElement.scrollHeight;", in: first.coordinator) as? NSNumber)
         #expect(narrowHeight.doubleValue > height.doubleValue, "the column reflowed")
         #expect(abs(try await first.coordinator.currentSourceLine() - line) < 1, "the reading position is kept")
+        #expect(second.contentWidth == .theme)
+        #expect(try await maxWidth(in: second.coordinator) == themeWidth, "the other window keeps its width")
 
-        settings.width = .full
+        first.setContentWidth(to: .full)
         try await until("full width") { try await maxWidth(in: first.coordinator) == "none" }
-        settings.width = .theme
+        first.setContentWidth(to: .theme)
         try await until("the theme's width") { try await maxWidth(in: first.coordinator) == themeWidth }
 
-        // A new window and a full reload start with the current preset.
-        settings.width = .wide
+        // A new window starts with Settings' default; a full reload keeps the window's preset.
+        settings.defaultWidth = .wide
+        #expect(first.contentWidth == .theme, "a new default leaves open windows alone")
         let (document, third) = try await open(name: "third.md", contentWidthSettings: settings)
+        #expect(third.contentWidth == .wide)
         #expect(isWidth(try await maxWidth(in: third.coordinator), is: try await pixels(72, in: third.coordinator)))
-        settings.width = .narrow
+        third.setContentWidth(to: .narrow)
         try await third.coordinator.load(try #require(document.content).page, baseURL: nil)
         #expect(isWidth(try await maxWidth(in: third.coordinator), is: narrowWidth))
     }
 
-    @Test("the current preset is checked in the menu")
+    @Test("the window's preset is checked in the menu")
     func validation() async throws {
         defer { closeAll() }
         let settings = widthSettings()
@@ -139,9 +142,43 @@ final class ContentWidthTests: DocumentWindowTestCase {
             #expect(controller.validateMenuItem(item))
         }
         #expect(items.map(\.state) == [.off, .on, .off, .off])
-        settings.width = .full
+        controller.setContentWidth(to: .full)
         _ = items.map(controller.validateMenuItem)
         #expect(items.map(\.state) == [.off, .off, .off, .on])
+        settings.defaultWidth = .narrow
+        _ = items.map(controller.validateMenuItem)
+        #expect(items.map(\.state) == [.off, .off, .off, .on], "Settings' default doesn't change the window")
+    }
+
+    @Test("window restoration keeps the preset and ignores bad values")
+    func restoration() async throws {
+        defer { closeAll() }
+        let settings = widthSettings()
+        let (_, controller) = try await open(contentWidthSettings: settings)
+        controller.setContentWidth(to: .wide)
+        let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+        controller.encodeContentWidthState(with: archiver)
+        archiver.finishEncoding()
+
+        settings.defaultWidth = .narrow
+        let (_, restored) = try await open(name: "restored.md", contentWidthSettings: settings)
+        #expect(restored.contentWidth == .narrow)
+        restored.restoreContentWidthState(with: try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData))
+        #expect(restored.contentWidth == .wide)
+        #expect(restored.coordinator.userStyle.contentWidth == .wide)
+
+        // Untrusted values (not a preset, not a string) and state saved before #47 (no key)
+        // leave the window at Settings' default.
+        for value: Any? in ["100px; } body { display: none", 42, nil] {
+            let bad = NSKeyedArchiver(requiringSecureCoding: true)
+            if let value {
+                bad.encode(value, forKey: DocumentWindowController.contentWidthStateKey)
+            }
+            bad.finishEncoding()
+            let (_, window) = try await open(name: "bad.md", contentWidthSettings: settings)
+            window.restoreContentWidthState(with: try NSKeyedUnarchiver(forReadingFrom: bad.encodedData))
+            #expect(window.contentWidth == .narrow, "\(String(describing: value))")
+        }
     }
 
     @Test("View > Content Width lists the presets")
