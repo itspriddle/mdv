@@ -455,6 +455,15 @@ huge output) cannot hang or crash the app.
   process group, then `SIGKILL` 0.5 s later. Its stage 1 adapter is `for(documentURL:)`
   (`SourcePreprocessor`). Fixture scripts cover each misbehavior, and the tests check that no
   process or descriptor leaks. See VISION's security model.
+- Custom preprocessor in the app (#57): off by default, turned on only in Settings > Markdown
+  after a warning, with the program chosen in an Open panel and arguments as a list
+  (`CustomPreprocessorSettings`, `MarkdownPreferences.customPreprocessor`). It runs on every
+  document the app opens (no extension filter). A failure renders the document without it plus a
+  bar with the reason and a Show Details stderr disclosure (no alert, no error page). Settings
+  shows the session's last run instead of a "Test on…" button. Live reload reruns it; newer
+  renders, `setContent`, and closing cancel the run in flight; Settings changes re-render open
+  documents and restart outdated runs. Frontmatter can't enable it. `StressTests+Preprocessor`
+  covers hang, crash, flood, fork, reload storms, and closing mid-run. See VISION.
 
 ## M5: CLI
 

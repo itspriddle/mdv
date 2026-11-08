@@ -108,11 +108,21 @@ lock the build database.
     value a render takes; `apply(to:)` sets `RenderOptions`). Unlike window defaults these
     apply to open documents: `MarkdownDocument` follows the store and re-renders in place, and
     `DocumentContent.preferences` records what a page was rendered with.
+  - `CustomPreprocessor/` (#57): `CustomPreprocessorSettings` (store: on/off, executable,
+    arguments, the session's `lastRun`; `shared` in memory under tests, or set by
+    `-MdvUITestPreprocessor`), `CustomPreprocessorModel` (Settings' model: the enable warning,
+    the Open panel), `DocumentContent.rendering(_:of:preferences:)` (the async render: runs the
+    preprocessor, falls back to the unprocessed source with `preprocessorError`), and
+    `PreprocessorFailureBar`. The setting reaches renders as
+    `MarkdownPreferences.customPreprocessor` (`MarkdownDocument.renderPreferences`), so a change
+    re-renders open documents like any Settings > Markdown change. The section view is
+    `Settings/CustomPreprocessorSection`.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
     (`render(_:of:)`; tests await `pendingRender`), so `content` is `nil` until the first render
-    lands; a newer read, `setContent`, or `close()` drops a render in flight. Every load and
+    lands; a newer read, `setContent`, or `close()` drops and cancels a render in flight
+    (stopping a custom preprocessor run). Every load and
     revert goes through `setContent(_:)`, which tells each `DocumentWindowController`
     (and re-renders content made with outdated Markdown settings, #55).
     `DocumentController` (the shared `NSDocumentController`) finds open files by identity,
@@ -153,9 +163,10 @@ lock the build database.
   `AppTests/Support/`: `DocumentWindowTestCase` (windows over temp files and throwaway
   settings), `ThrowawayDefaults` (a per-test `UserDefaults` suite in a temp folder; never use
   `UserDefaults(suiteName:)` with a plain name, which leaves a plist in ~/Library/Preferences),
-  `MainThreadHeartbeat` (main-thread stalls by CPU time), `SnapshotImage`, `LoopbackServer`.
-  `StressTests` (+`Themes`) is the crash and hang suite; run it under ASan and TSan at each
-  milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
+  `MainThreadHeartbeat` (main-thread stalls by CPU time), `SnapshotImage`, `LoopbackServer`,
+  `PreprocessorScripts` (custom preprocessor scripts plus a leaked-process check).
+  `StressTests` (+`Themes`, `ZoomWidth`, `Preprocessor`) is the crash and hang suite; run it
+  under ASan and TSan at each milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
 - `docs/THEMES.md`: the end-user theme authoring guide, with `docs/example-theme.css` and
@@ -209,7 +220,9 @@ lock the build database.
   must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` (or a
   plist array, `launch(openingFixtures:)`) opens documents at launch; `-MdvUITestThemesFolder
   <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
-  unit tests never load them). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
+  unit tests never load them); `-MdvUITestPreprocessor <abs path>` starts with that custom
+  preprocessor on. Preprocessor scripts are executable fixtures (`Fixtures/preprocessors/`):
+  files the sandboxed runner writes are quarantined and won't execute (`EPERM`). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
   `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1 make test-ui` (CI sets it).
 - The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team

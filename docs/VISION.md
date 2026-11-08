@@ -527,7 +527,39 @@ editor or a browser.
   (`DocumentOverridesSecurityTests`) render a document that tries each of these.
 - Custom preprocessor scripts run only when the user configures them (#57), and they are the
   first stage of the render pipeline (#51), so their output is still parsed, transformed, and
-  sanitized like any file. The runner is `CustomPreprocessor` in `MdvCore` (#56):
+  sanitized like any file.
+  - **Opt-in (#57):** off by default. Settings > Markdown > Custom preprocessor is the only
+    way to turn it on (`CustomPreprocessorSettings`): the program is chosen with an Open panel
+    (never a typed path; links are kept as chosen, not resolved) and stored as an absolute path,
+    a choice that isn't an executable file is refused with the reason, and the toggle turns it
+    on only after a warning that mdv will run that program on every document it opens, as the
+    reader, with the reader's access. Arguments are a list of fields, passed verbatim (empty
+    ones dropped). Frontmatter can't turn it on, choose a program, or pass arguments (tested,
+    `CustomPreprocessorTests.frontmatterCantEnable`), and the only launch argument for it,
+    `-MdvUITestPreprocessor`, is compiled into Debug UI-test builds only. UI tests and hosted
+    tests keep the setting in memory.
+  - **Which documents:** every document the app opens while it is on; no extension filter
+    (mdv only opens Markdown and plain text, and a script can check `MDV_DOCUMENT_PATH` and pass
+    a file through unchanged). The file must still be UTF-8 (the open fails otherwise, as
+    without a preprocessor), and the script gets its exact bytes. `mdv --html` doesn't run it
+    (M5 decides).
+  - **Failures render the document without it, plus a bar** (`PreprocessorFailureBar`), never an
+    alert and never an error page: "Preprocessor failed", the reason (`PreprocessorError.message`),
+    and a Show Details disclosure with the stderr tail, shown verbatim. A program that was
+    deleted or lost its execute bit is such a failure, not a silent unprocessed render.
+    Settings shows the last run of the session (succeeded, or failed and why) instead of a "Test
+    on…" button: opening a document is the test, and its window says what went wrong.
+  - **Lifecycle:** the first render of an open waits for the script (up to the 5.5 s worst
+    case; the window shows its blank, theme-colored page meanwhile). Each live reload runs it
+    again off the main actor. A newer render, `setContent`, a newer reload, or closing the
+    document cancels the run in flight, which stops its process group. Turning it off, or
+    changing the program or arguments, re-renders open documents in place; a render or reload
+    still running with the old setting starts over at once rather than waiting for the script.
+  - **Stress suite** (`StressTests+Preprocessor`): windows over scripts that hang, crash, flood
+    stdout, or leave children; reload storms; windows closed mid-run. The main thread doesn't
+    stall and no process (script, child, or zombie) is left.
+
+  The runner is `CustomPreprocessor` in `MdvCore` (#56):
   - **Contract:** the document's bytes on stdin, Markdown as UTF-8 on stdout, exit status 0
     for success. Output that isn't UTF-8 or contains a NUL byte is an error. A non-zero exit
     discards stdout.
