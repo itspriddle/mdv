@@ -97,6 +97,21 @@ final class MarkdownSettingsTests: DocumentWindowTestCase {
         #expect(defaults.object(forKey: MarkdownSettings.flavorKey) == nil)
         store.builtInPreprocessors = [.emojiShortcodes]
         #expect(store.builtInPreprocessors.isEmpty)
+        defaults.set(["emoji", "wikiLinks", "nope"], forKey: MarkdownSettings.preprocessorsKey)
+        #expect(store.builtInPreprocessors == [.wikiLinks])
+    }
+
+    @Test("wiki links are the one built-in preprocessor offered; turning them on persists")
+    func wikiLinksPersist() {
+        #expect(MarkdownSettings.optionalPreprocessors == [.wikiLinks])
+        let store = store()
+        store.builtInPreprocessors = [.wikiLinks, .alerts]
+        #expect(store.builtInPreprocessors == [.wikiLinks])
+        #expect(defaults.stringArray(forKey: MarkdownSettings.preprocessorsKey) == ["wikiLinks"])
+        #expect(self.store().preferences.builtInPreprocessors == [.wikiLinks])
+        #expect(DocumentContent.renderOptions(preferences: store.preferences).builtInPreprocessors == [.wikiLinks])
+        store.builtInPreprocessors = []
+        #expect(defaults.object(forKey: MarkdownSettings.preprocessorsKey) == nil)
     }
 
     @Test("in memory under UI tests, never touching the defaults")
@@ -141,6 +156,11 @@ final class MarkdownSettingsTests: DocumentWindowTestCase {
         #expect(model.defaultFlavorID == "gfm")
         model.setBuiltInPreprocessor(.emojiShortcodes, isOn: true)
         #expect(model.builtInPreprocessors.isEmpty)
+        model.setBuiltInPreprocessor(.wikiLinks, isOn: true)
+        #expect(model.builtInPreprocessors == [.wikiLinks])
+        #expect(store.builtInPreprocessors == [.wikiLinks])
+        model.setBuiltInPreprocessor(.wikiLinks, isOn: false)
+        #expect(store.builtInPreprocessors.isEmpty)
     }
 
     // MARK: Open documents

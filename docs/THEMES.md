@@ -173,6 +173,7 @@ appear in code blocks. Typical output:
 | Task lists | `<ul class="contains-task-list">` → `<li class="task-list-item">` → `<input type="checkbox" disabled class="task-list-item-checkbox">` (`checked` when done) then the text |
 | Block quotes | `blockquote`, nested for nested quotes |
 | Alerts | GitHub alerts (`> [!NOTE]`, GFM flavor): `<div class="markdown-alert markdown-alert-note">` (also `markdown-alert-tip`, `markdown-alert-important`, `markdown-alert-warning`, `markdown-alert-caution`) holding `<p class="markdown-alert-title">` (an `<svg class="octicon">` icon, then the title) and the body blocks. The base layer gives them a left rule in the text color and lays out the title; colors are yours. |
+| Wiki links | `[[Page]]` when the reader turns wiki links on: `<a class="wikilink" href="Page.md">` for a page that exists, `<a class="wikilink wikilink-missing">` (no `href`) for one that doesn't. See [Wiki links](#wiki-links). |
 | Code blocks | `<pre><code class="language-swift">` (no class without a language) with highlight.js token spans inside |
 | Inline code, keys | `code`, `kbd` (from raw HTML) |
 | Tables | `table` → `thead`/`tbody` → `tr` → `th`/`td`; column alignment is an `align` attribute (`th[align="right"]`) |
@@ -242,6 +243,26 @@ example:
 .markdown-body table.frontmatter { font-size: 0.875em; }
 .markdown-body table.frontmatter th,
 .markdown-body table.frontmatter td { text-align: left; vertical-align: top; }
+```
+
+### Wiki links
+
+With wiki links on (Settings > Markdown, or `wikilinks: true` in a document's `mdv:`
+frontmatter), `[[Page Name]]` becomes a link to the page's file, and a page mdv can't find
+becomes a link with no `href`:
+
+```html
+<a class="wikilink" href="Page-Name.md">Page Name</a>
+<a class="wikilink wikilink-missing">Missing Page</a>
+```
+
+A found wiki link is an ordinary link, so your `a` styles cover it. A missing one has no
+`href`, and themes usually style `a:not([href])` as plain text (GitHub's does), so the base
+layer gives `.wikilink-missing` a dashed underline (`border-bottom`) and a plain pointer.
+Restyle it with `.markdown-body .wikilink-missing`, for example:
+
+```css
+.markdown-body .wikilink-missing { color: #cf222e; border-bottom-style: dotted; }
 ```
 
 ### Blocked remote images

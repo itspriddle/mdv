@@ -106,8 +106,8 @@ struct DocumentOverridesSecurityTests {
         #expect(hostile.blockedRemoteImages == clean.blockedRemoteImages)
     }
 
-    @Test("applying any overrides changes nothing but the flavor")
-    func applyingTouchesOnlyFlavor() {
+    @Test("applying any overrides changes nothing but the flavor and wiki links")
+    func applyingTouchesOnlyFlavorAndWikiLinks() {
         let options = Self.viewerOptions
         for overrides in [
             DocumentOverrides(flavor: "commonmark", theme: "serif", wikiLinks: false),
@@ -117,6 +117,9 @@ struct DocumentOverridesSecurityTests {
             var expected = options
             if let id = overrides.flavor, FlavorRegistry.bundled.contains(id: id) {
                 expected.flavor = FlavorRegistry.bundled.flavor(id: id)
+            }
+            if let wikiLinks = overrides.wikiLinks {
+                expected.builtInPreprocessors = wikiLinks ? [.wikiLinks] : []
             }
             #expect(options.applying(overrides) == expected, "\(overrides)")
         }

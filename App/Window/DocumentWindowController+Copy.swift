@@ -30,8 +30,9 @@ extension DocumentWindowController {
         // What the window shows: the preferences its page was rendered with.
         let source = content.source
         let preferences = content.preferences
+        let documentURL = markdownDocument?.fileURL
         let html = await Task.detached(priority: .userInitiated) {
-            DocumentPasteboard.copyableHTML(for: source, preferences: preferences)
+            DocumentPasteboard.copyableHTML(for: source, preferences: preferences, documentURL: documentURL)
         }.value
         DocumentPasteboard.writeHTML(html, to: pasteboard)
     }

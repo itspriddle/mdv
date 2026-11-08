@@ -130,7 +130,8 @@ final class MarkdownDocument: NSDocument {
         defer { signposter.endInterval("Render", interval) }
         return DocumentContent(
             source: source, fallbackTitle: url.lastPathComponent,
-            linkRoot: DocumentContent.linkRoot(forDocumentAt: url), preferences: preferences)
+            linkRoot: DocumentContent.linkRoot(forDocumentAt: url), preferences: preferences,
+            documentURL: url)
     }
 
     /// Marks the render in flight, if any, as stale. Its work finishes in the background (the

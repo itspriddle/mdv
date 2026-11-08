@@ -24,7 +24,7 @@ extension HTMLRenderer {
 
         let tree = MarkdownParser(extensions: renderer.options.flavor.extensions)
             .parse(body, lineOffset: frontmatter?.lineCount ?? 0)
-        let document = renderer.transformed(tree)
+        let document = renderer.transformed(tree, source: markdown)
 
         var output = HTMLOutput(capacity: markdown.utf8.count + markdown.utf8.count / 4)
         if let frontmatter, options.frontmatterDisplay == .table {
@@ -52,8 +52,11 @@ extension HTMLRenderer {
 
     /// Stage 5: the AST transforms `options` enables, in pipeline order, before headings are
     /// collected so heading text and slugs see their result.
-    fileprivate func transformed(_ node: MarkdownNode) -> MarkdownNode {
-        MarkdownTransform.apply(to: node, context: TransformContext(options: options))
+    /// `source` is the text the tree's source ranges refer to (wiki links check their brackets
+    /// against it); `nil` for a tree parsed elsewhere.
+    fileprivate func transformed(_ node: MarkdownNode, source: String? = nil) -> MarkdownNode {
+        MarkdownTransform.apply(
+            to: node, context: TransformContext(options: options, source: source, wikiLinkResolver: wikiLinkResolver))
     }
 
     /// The document title: frontmatter `title` first, then the first non-empty `h1`.

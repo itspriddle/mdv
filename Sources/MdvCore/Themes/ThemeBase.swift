@@ -47,6 +47,9 @@ public enum ThemeBase {
         .markdown-alert > :last-child { margin-bottom: 0; }
         .markdown-alert-title { display: flex; align-items: center; font-weight: 600; line-height: 1.25; }
         .markdown-alert-title svg { flex: none; margin-right: 0.5em; fill: currentColor; }
+        /* Wiki links (#53) to a missing page have no href, so themes style them as plain text
+           (`a:not([href])`); a dashed underline keeps them distinguishable. */
+        .wikilink-missing { border-bottom: 1px dashed; cursor: default; }
         /* Find in page (the app's find bar): every match, and the current one. Never printed. */
         ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.4) !important; }
         ::highlight(mdv-find-current) { background-color: #ff9632 !important; color: #1f2328 !important; }

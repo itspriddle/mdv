@@ -20,3 +20,8 @@ MDV_RECORD_SNAPSHOTS=1 swift test --filter FlavorCorpusTests
 
 A feature that changes a flavor's output adds fixtures to that flavor's folder (and, for syntax
 the other flavor leaves literal, to that folder too).
+
+Wiki links (#53) are an opt-in built-in preprocessor, not flavor syntax, so their fixtures sit in
+every flavor's folder: `wiki-links*.md` render with `.wikiLinks` on and a fake resolver over
+`FlavorCorpusTests.wikiLinkPages` (no file system), and `wiki-links-off.md` renders with the
+defaults to show the output is unchanged when they're off.
