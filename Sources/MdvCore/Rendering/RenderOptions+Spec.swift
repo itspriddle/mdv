@@ -14,6 +14,7 @@ extension RenderOptions {
     public static var spec: RenderOptions {
         var options = RenderOptions(flavor: .spec)
         // Features: add `options.<toggle> = <off>` lines here.
+        options.appliesDocumentOverrides = false
         options.builtInPreprocessors = []
         options.detectsFrontmatter = false
         options.gfmMarkup = .cmark
