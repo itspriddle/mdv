@@ -23,18 +23,25 @@ struct DocumentContent: Equatable, Sendable {
     /// (`/docs/x.png`) resolve against `linkRoot`, the document's allowed root
     /// (`linkRoot(forDocumentAt:)`), as GitHub resolves them against the repository.
     /// `preferences` are Settings > Markdown's (#55): the default flavor, frontmatter display,
-    /// and built-in preprocessors.
+    /// and built-in preprocessors. Wiki links (#53), when Settings or the document's frontmatter
+    /// turn them on, are resolved now, from `documentURL`'s folder and `linkRoot`
+    /// (`DocumentWikiLinks`); without a `documentURL` every page link is missing.
     init(
-        source: String, fallbackTitle: String, linkRoot: String? = nil, preferences: MarkdownPreferences = .default
+        source: String, fallbackTitle: String, linkRoot: String? = nil, preferences: MarkdownPreferences = .default,
+        documentURL: URL? = nil
     ) {
         self.source = source
         self.preferences = preferences
         let options = Self.renderOptions(preferences: preferences, linkRoot: linkRoot)
-        let page = Self.render(source, fallbackTitle: fallbackTitle, options: options, allowingRemoteImages: false)
+        let resolver = DocumentWikiLinks.resolver(forDocumentAt: documentURL, linkRoot: linkRoot)
+        let page = Self.render(
+            source, fallbackTitle: fallbackTitle, options: options, resolver: resolver, allowingRemoteImages: false)
         self.page = page
         remoteImagesPage =
             page.blockedRemoteImages.contains(where: \.isHTTPS)
-            ? Self.render(source, fallbackTitle: fallbackTitle, options: options, allowingRemoteImages: true) : nil
+            ? Self.render(
+                source, fallbackTitle: fallbackTitle, options: options, resolver: resolver, allowingRemoteImages: true)
+            : nil
     }
 
     /// The folder root-relative URLs resolve against for the document at `fileURL`: the same
@@ -50,12 +57,14 @@ struct DocumentContent: Equatable, Sendable {
     }
 
     private static func render(
-        _ source: String, fallbackTitle: String, options: RenderOptions, allowingRemoteImages: Bool
+        _ source: String, fallbackTitle: String, options: RenderOptions, resolver: (any WikiLinkResolver)?,
+        allowingRemoteImages: Bool
     ) -> RenderedPage {
         var options = options
         options.remoteImages = allowingRemoteImages ? .allowHTTPS : .block
         return RenderedPage(
-            rendered: HTMLRenderer(options: options).render(source), fallbackTitle: fallbackTitle,
+            rendered: HTMLRenderer(options: options, wikiLinkResolver: resolver).render(source),
+            fallbackTitle: fallbackTitle,
             contentSecurityPolicy: allowingRemoteImages ? .viewerAllowingRemoteImages : .viewer)
     }
 

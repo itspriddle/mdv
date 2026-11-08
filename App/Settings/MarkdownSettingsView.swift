@@ -92,6 +92,7 @@ extension MarkdownTransform {
     var settingsTitle: String {
         switch self {
         case .alerts: "GitHub alerts"
+        case .wikiLinks: "Wiki links"
         case .emojiShortcodes: "Emoji shortcodes"
         }
     }
@@ -100,6 +101,9 @@ extension MarkdownTransform {
     var settingsNote: String {
         switch self {
         case .alerts: "Renders > [!NOTE] quotes as callouts. Part of GitHub Flavored Markdown."
+        case .wikiLinks:
+            "Turns [[Page Name]] into a link to Page-Name.md, found in the document's folder, then its repository. "
+                + "A document's frontmatter can turn them on or off."
         case .emojiShortcodes: "Turns :tada: into 🎉. Part of GitHub Flavored Markdown."
         }
     }
