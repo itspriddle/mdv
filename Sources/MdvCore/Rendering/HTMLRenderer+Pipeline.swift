@@ -48,8 +48,8 @@ extension HTMLRenderer {
     }
 
     /// Stage 3: the flavor a document renders with. `options.flavor` until #54 reads the
-    /// frontmatter's `mdv.flavor` here (through `FlavorRegistry`, falling back to
-    /// `options.flavor`, never to a flavor the frontmatter can't name).
+    /// frontmatter's `mdv.flavor` here through `FlavorRegistry`; an id it doesn't register should
+    /// fall back to `options.flavor` (the reader's default), not to the registry's default.
     func resolvedFlavor(for frontmatter: Frontmatter?) -> Flavor {
         options.flavor
     }
