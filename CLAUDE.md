@@ -180,7 +180,7 @@ lock the build database.
   `UserDefaults(suiteName:)` with a plain name, which leaves a plist in ~/Library/Preferences),
   `MainThreadHeartbeat` (main-thread stalls by CPU time), `SnapshotImage`, `LoopbackServer`,
   `PreprocessorScripts` (custom preprocessor scripts plus a leaked-process check).
-  `StressTests` (+`Themes`, `ZoomWidth`, `Preprocessor`) is the crash and hang suite; run it
+  `StressTests` (+`Themes`, `ZoomWidth`, `Preprocessor`, `Markdown`) is the crash and hang suite; run it
   under ASan and TSan at each milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
@@ -236,8 +236,10 @@ lock the build database.
   plist array, `launch(openingFixtures:)`) opens documents at launch; `-MdvUITestThemesFolder
   <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
   unit tests never load them); `-MdvUITestPreprocessor <abs path>` starts with that custom
-  preprocessor on. Preprocessor scripts are executable fixtures (`Fixtures/preprocessors/`):
-  files the sandboxed runner writes are quarantined and won't execute (`EPERM`). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
+  preprocessor on; `-MdvUITestRenderDelay <seconds>` holds up every render (to see the
+  slow-render indicator without a slow script). Preprocessor scripts are executable fixtures
+  (`Fixtures/preprocessors/`): files the sandboxed runner writes are quarantined and won't
+  execute (`EPERM`). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
   `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1 make test-ui` (CI sets it).
 - The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team
@@ -257,7 +259,7 @@ lock the build database.
 
 ## Workflow
 
-- GitHub: `itspriddle/mdv` (private until 1.0). Each roadmap milestone is a GitHub milestone with
+- GitHub: `itspriddle/mdv` (public). Each roadmap milestone is a GitHub milestone with
   issues.
 - One branch per issue (Conventional Branch, e.g. `feature/gfm-tables`), Conventional Commits
   (see `.claude/skills`). Issue branches merge into a milestone integration branch

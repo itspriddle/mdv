@@ -585,7 +585,8 @@ editor or a browser.
     reader, with the reader's access. Arguments are a list of fields, passed verbatim (empty
     ones dropped). Frontmatter can't turn it on, choose a program, or pass arguments (tested,
     `CustomPreprocessorTests.frontmatterCantEnable`), and the only launch argument for it,
-    `-MdvUITestPreprocessor`, is compiled into Debug UI-test builds only. UI tests and hosted
+    `-MdvUITestPreprocessor`, is compiled into Debug UI-test builds only (as is
+    `-MdvUITestRenderDelay`, which holds up renders so UI tests can see the progress indicator). UI tests and hosted
     tests keep the setting in memory.
   - **Which documents:** every document the app opens while it is on; no extension filter
     (mdv only opens Markdown and plain text, and a script can check `MDV_DOCUMENT_PATH` and pass
@@ -595,7 +596,13 @@ editor or a browser.
   - **Failures render the document without it, plus a bar** (`PreprocessorFailureBar`), never an
     alert and never an error page: "Preprocessor failed", the reason (`PreprocessorError.message`),
     and a Show Details disclosure with the stderr tail, shown verbatim. A program that was
-    deleted or lost its execute bit is such a failure, not a silent unprocessed render.
+    deleted or lost its execute bit is such a failure, not a silent unprocessed render. When
+    macOS refuses to start a program that passed the executable check (`EPERM` or `EACCES` from
+    `posix_spawn`), the reason adds a likely cause without claiming it (#59): the file may be
+    quarantined (downloaded, or saved by a sandboxed app), with `xattr -d com.apple.quarantine`
+    and System Settings > Privacy & Security as the fixes to try. Seen with scripts the
+    sandboxed UI test runner writes; not reproduced with a quarantined script run from a
+    terminal, so the cause isn't confirmed for downloads.
     Settings shows the last run of the session (succeeded, or failed and why) instead of a "Test
     on…" button: opening a document is the test, and its window says what went wrong.
   - **Lifecycle:** the first render of an open waits for the script (up to the 5.5 s worst
@@ -605,9 +612,12 @@ editor or a browser.
     document cancels the run in flight, which stops its process group. Turning it off, or
     changing the program or arguments, re-renders open documents in place; a render or reload
     still running with the old setting starts over at once rather than waiting for the script.
-  - **Stress suite** (`StressTests+Preprocessor`): windows over scripts that hang, crash, flood
-    stdout, or leave children; reload storms; windows closed mid-run. The main thread doesn't
-    stall and no process (script, child, or zombie) is left.
+  - **Stress suite** (`StressTests+Preprocessor`, `+Markdown`): windows over scripts that hang,
+    crash, flood stdout, or leave children; reload storms; windows closed mid-run; one script
+    switching between hanging, crashing, flooding, and failing as live reload changes the file,
+    with its settings changing mid-run (#59). The main thread doesn't stall and no process
+    (script, child, or zombie) is left. The suite passes under the Address and Thread
+    Sanitizers (M4 close-out).
 
   The runner is `CustomPreprocessor` in `MdvCore` (#56):
   - **Contract:** the document's bytes on stdin, Markdown as UTF-8 on stdout, exit status 0
