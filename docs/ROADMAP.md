@@ -415,6 +415,18 @@ huge output) cannot hang or crash the app.
 - Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
   `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
   against github.com by the README corpus.
+- Per-document overrides (#54): `DocumentOverrides` (MdvCore) reads `flavor`, `theme`, and
+  `wikilinks` from the YAML frontmatter's `mdv:` mapping; other keys and wrong types are
+  ignored and reported in `RenderedDocument.overrides`. Presentation only: frontmatter can't
+  enable the custom preprocessor, turn off sanitizing, allow remote images, or change any other
+  setting (`RenderOptions.applying(_:)` touches only the flavor; tests prove each). The flavor
+  beats `RenderOptions.flavor` before parsing (`mdv --html` too); an unknown one keeps the
+  reader's default. Theme precedence: the window's View > Theme pick, then the document's
+  theme, then Settings' default; same fallback as a pick. Restoration saves only the pick. A
+  live reload that changes `mdv.theme` swaps the theme in place. View > Theme checks the shown
+  theme and has "Document's Theme" to drop the pick. TOML `[mdv]` is unsupported (documented,
+  reported as ignored); no TOML parser. `mdv --html` uses a bundled frontmatter theme. See
+  VISION.
 - Custom preprocessor runner (#56): `CustomPreprocessor` in `MdvCore`. The document's path is
   passed in `MDV_DOCUMENT_PATH`, never as an argument. The working directory is the document's
   folder (`/` without a file). The environment is fixed (`PATH` with Homebrew's folders,
