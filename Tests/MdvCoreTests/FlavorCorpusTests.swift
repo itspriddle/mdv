@@ -49,8 +49,13 @@ struct FlavorCorpusTests {
     func matchesRecording(_ fixture: Fixture) throws {
         let folder = try Self.rootURL().appending(path: fixture.flavorID)
         let markdown = try String(contentsOf: folder.appending(path: "\(fixture.name).md"), encoding: .utf8)
-        let options = RenderOptions(flavor: FlavorRegistry.bundled.flavor(id: fixture.flavorID))
-        let html = HTMLRenderer(options: options).render(markdown).html
+        var options = RenderOptions(flavor: FlavorRegistry.bundled.flavor(id: fixture.flavorID))
+        var renderer = HTMLRenderer(options: options)
+        if fixture.name.hasPrefix("wiki-links"), !fixture.name.hasSuffix("-off") {
+            options.builtInPreprocessors = [.wikiLinks]
+            renderer = HTMLRenderer(options: options, wikiLinkResolver: FakeWikiLinkResolver(Self.wikiLinkPages))
+        }
+        let html = renderer.render(markdown).html
         if ProcessInfo.processInfo.environment["MDV_RECORD_SNAPSHOTS"] != nil {
             let source = URL(filePath: #filePath).deletingLastPathComponent()
                 .appending(components: "Fixtures", "flavors", fixture.flavorID, "\(fixture.name).html")
@@ -60,6 +65,10 @@ struct FlavorCorpusTests {
         let recorded = try String(contentsOf: folder.appending(path: "\(fixture.name).html"), encoding: .utf8)
         #expect(html == recorded, "\(fixture): \(CorpusNormalizer.firstDifference(html, recorded))")
     }
+
+    /// The pages `wiki-links*.md` fixtures resolve against (`.wikiLinks` on). A `-off` fixture
+    /// renders with the defaults, wiki links off.
+    static let wikiLinkPages = ["Home.md", "Page-Name.md", "guides/Setup.md", "../notes/Other Page.markdown"]
 
     @Test("CommonMark leaves every GFM construct literal")
     func commonMarkIsStrict() throws {

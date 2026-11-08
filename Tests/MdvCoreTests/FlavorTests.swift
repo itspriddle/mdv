@@ -80,6 +80,8 @@ struct MarkdownTransformTests {
         #expect(options.transforms == [.emojiShortcodes])
         options.flavor = .gfm
         #expect(options.transforms == [.alerts, .emojiShortcodes])
+        options.builtInPreprocessors = [.emojiShortcodes, .wikiLinks]
+        #expect(options.transforms == [.alerts, .wikiLinks, .emojiShortcodes])
     }
 
     @Test("a built-in preprocessor works in any flavor")

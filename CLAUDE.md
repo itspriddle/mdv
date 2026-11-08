@@ -48,14 +48,20 @@ lock the build database.
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
   - `Overrides/`: `DocumentOverrides` (#54), the frontmatter's `mdv:` mapping (`flavor`,
     `theme`, `wikilinks`), with ignored keys reported in `RenderedDocument.overrides`.
-    `RenderOptions.applying(_:)` is the one place it changes a render (the flavor only, plus
-    #53's wiki links): never route a safety setting through it.
+    `RenderOptions.applying(_:)` is the one place it changes a render (the flavor and the
+    `.wikiLinks` built-in preprocessor only): never route a safety setting through it.
   - `Transforms/`: AST passes. `MarkdownTransform` (enum; declaration order is run order:
     alerts, wiki links, emoji) names each pass; its implementation conforms to
     `MarkdownTreeTransform`. Enabled by `Flavor.transforms` or
     `RenderOptions.builtInPreprocessors`. Emoji shortcodes and GitHub alerts (`GitHubAlerts`,
     top-level `> [!NOTE]` quotes to `MarkdownNode.Kind.alert`; markup and Octicons in
-    `Rendering/HTMLRenderer+Alerts.swift`) live here.
+    `Rendering/HTMLRenderer+Alerts.swift`) live here, and so do wiki links (`WikiLinks`, #53:
+    `[[Page]]` text to `MarkdownNode.Kind.wikiLink`; markup in `HTMLRenderer+WikiLinks.swift`).
+  - `WikiLinks/`: wiki link pages and resolution (#53). `WikiPage` (the naming rule),
+    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; MdvCore never reads the
+    disk for it), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
+    an injected `WikiLinkFolderReader`), and `SourceLines` (which bracket bytes were written as
+    is rather than escaped).
   - `Preprocessor/`: the custom preprocessor runner (#56; VISION's security model has the
     contract and limits). `CustomPreprocessor.run(input:documentURL:)` is async and
     cancellable. `PreprocessorConfiguration` validates the executable and
@@ -103,6 +109,9 @@ lock the build database.
     `MarkdownSettingsView` (#55) is Settings > Markdown: default flavor, frontmatter display,
     built-in preprocessors (one row per `MarkdownSettings.optionalPreprocessors` entry), then
     room for the custom preprocessor (#57).
+  - `WikiLinks/`: `DocumentWikiLinks` (a per-render `FolderWikiLinkResolver` for a document,
+    used by `DocumentContent` and Copy as HTML) and `FileSystemFolderReader` (regular files and
+    folders only; no symbolic links or packages).
   - `MarkdownSettings/`: `MarkdownSettings` (the store: default flavor id, frontmatter
     display, built-in preprocessors; one change notification) and `MarkdownPreferences` (the
     value a render takes; `apply(to:)` sets `RenderOptions`). Unlike window defaults these

@@ -22,7 +22,8 @@ extension DocumentContent {
         let linkRoot = linkRoot(forDocumentAt: url)
         guard let preference = preferences.customPreprocessor else {
             return DocumentContent(
-                source: source, fallbackTitle: fallbackTitle, linkRoot: linkRoot, preferences: preferences)
+                source: source, fallbackTitle: fallbackTitle, linkRoot: linkRoot, preferences: preferences,
+                documentURL: url)
         }
         let renderedSource: String
         let preprocessorError: PreprocessorError?
@@ -42,6 +43,6 @@ extension DocumentContent {
         try Task.checkCancellation()
         return DocumentContent(
             source: source, renderedSource: renderedSource, preprocessorError: preprocessorError,
-            fallbackTitle: fallbackTitle, linkRoot: linkRoot, preferences: preferences)
+            fallbackTitle: fallbackTitle, linkRoot: linkRoot, preferences: preferences, documentURL: url)
     }
 }

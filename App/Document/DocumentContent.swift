@@ -30,35 +30,42 @@ struct DocumentContent: Equatable, Sendable {
     /// (`/docs/x.png`) resolve against `linkRoot`, the document's allowed root
     /// (`linkRoot(forDocumentAt:)`), as GitHub resolves them against the repository.
     /// `preferences` are Settings > Markdown's (#55): the default flavor, frontmatter display,
-    /// and built-in preprocessors.
+    /// and built-in preprocessors. Wiki links (#53), when Settings or the document's frontmatter
+    /// turn them on, are resolved now, from `documentURL`'s folder and `linkRoot`
+    /// (`DocumentWikiLinks`); without a `documentURL` every page link is missing.
     ///
     /// This never runs the custom preprocessor (`preferences.customPreprocessor`); that is
     /// asynchronous, in `rendering(_:of:preferences:)`.
     init(
-        source: String, fallbackTitle: String, linkRoot: String? = nil, preferences: MarkdownPreferences = .default
+        source: String, fallbackTitle: String, linkRoot: String? = nil, preferences: MarkdownPreferences = .default,
+        documentURL: URL? = nil
     ) {
         self.init(
             source: source, renderedSource: source, preprocessorError: nil, fallbackTitle: fallbackTitle,
-            linkRoot: linkRoot, preferences: preferences)
+            linkRoot: linkRoot, preferences: preferences, documentURL: documentURL)
     }
 
     /// Renders `renderedSource` (the custom preprocessor's output, or `source`) as the content of
     /// a file whose text is `source`.
     init(
         source: String, renderedSource: String, preprocessorError: PreprocessorError?, fallbackTitle: String,
-        linkRoot: String?, preferences: MarkdownPreferences
+        linkRoot: String?, preferences: MarkdownPreferences, documentURL: URL?
     ) {
         self.source = source
         self.renderedSource = renderedSource
         self.preprocessorError = preprocessorError
         self.preferences = preferences
         let options = Self.renderOptions(preferences: preferences, linkRoot: linkRoot)
+        let resolver = DocumentWikiLinks.resolver(forDocumentAt: documentURL, linkRoot: linkRoot)
         let page = Self.render(
-            renderedSource, fallbackTitle: fallbackTitle, options: options, allowingRemoteImages: false)
+            renderedSource, fallbackTitle: fallbackTitle, options: options, resolver: resolver,
+            allowingRemoteImages: false)
         self.page = page
         remoteImagesPage =
             page.blockedRemoteImages.contains(where: \.isHTTPS)
-            ? Self.render(renderedSource, fallbackTitle: fallbackTitle, options: options, allowingRemoteImages: true)
+            ? Self.render(
+                renderedSource, fallbackTitle: fallbackTitle, options: options, resolver: resolver,
+                allowingRemoteImages: true)
             : nil
     }
 
@@ -75,12 +82,14 @@ struct DocumentContent: Equatable, Sendable {
     }
 
     private static func render(
-        _ source: String, fallbackTitle: String, options: RenderOptions, allowingRemoteImages: Bool
+        _ source: String, fallbackTitle: String, options: RenderOptions, resolver: (any WikiLinkResolver)?,
+        allowingRemoteImages: Bool
     ) -> RenderedPage {
         var options = options
         options.remoteImages = allowingRemoteImages ? .allowHTTPS : .block
         return RenderedPage(
-            rendered: HTMLRenderer(options: options).render(source), fallbackTitle: fallbackTitle,
+            rendered: HTMLRenderer(options: options, wikiLinkResolver: resolver).render(source),
+            fallbackTitle: fallbackTitle,
             contentSecurityPolicy: allowingRemoteImages ? .viewerAllowingRemoteImages : .viewer)
     }
 

@@ -52,9 +52,9 @@ final class MarkdownSettings {
     static let preprocessorsKey = "BuiltInPreprocessors"
 
     /// The built-in preprocessors Settings offers, in the order it lists them: opt-in
-    /// `MarkdownTransform`s, never flavor-owned ones (emoji, alerts). Empty until wiki links
-    /// (#53) add `.wikiLinks`; Settings > Markdown hides the section while it's empty.
-    static let optionalPreprocessors: [MarkdownTransform] = []
+    /// `MarkdownTransform`s, never flavor-owned ones (emoji, alerts). Settings > Markdown hides
+    /// the section if it's ever empty.
+    static let optionalPreprocessors: [MarkdownTransform] = [.wikiLinks]
 
     /// The flavors the default-flavor picker lists.
     let registry: FlavorRegistry

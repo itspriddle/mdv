@@ -377,7 +377,7 @@ Control how source becomes Markdown.
 
 - Flavor presets: CommonMark (strict), GFM (default), plus room for others; each a defined set of
   parser options and AST transforms
-- Built-in preprocessors (e.g. frontmatter stripping, wiki-links `[[Page]]`, include/transclusion
+- Built-in preprocessors (e.g. frontmatter stripping, ~~wiki-links `[[Page]]`~~ done (#53), include/transclusion
   TBD)
 - Custom preprocessor: user-configured executable, document on stdin, Markdown on stdout,
   timeout and size limits, explicit opt-in with a clear warning
@@ -431,6 +431,18 @@ huge output) cannot hang or crash the app.
   (frontmatter) or the reader's one default, and is per document, not per window. The bundled
   themes already style `table.frontmatter` and `pre.frontmatter` (light, dark, print); no theme
   CSS or snapshot change. See VISION.
+- Wiki links (#53): an opt-in built-in preprocessor (Settings > Markdown, or `mdv.wikilinks`,
+  which beats Settings both ways), independent of the flavor. `[[Page]]`, `[[Page|label]]`
+  (label second, unlike Gollum), `[[Page#Heading]]`, `[[#Heading]]`; plain text only, brackets
+  written as is (`\[[` stays literal, checked against the source line). GitHub wiki naming
+  (`Page Name` → `Page-Name.md`, case-insensitive, space = hyphen, Markdown extensions only).
+  Searched in the document's folder, then the allowed root breadth first, never outside it,
+  skipping hidden entries and symbolic links, capped at 10,000 entries. MdvCore takes an
+  injected `WikiLinkResolver` (`FolderWikiLinkResolver` over an injected folder reader; the app
+  reads the disk). Found: a relative, percent-encoded `a.wikilink` through `LinkPolicy`;
+  missing: `a.wikilink.wikilink-missing` with no `href` (dashed underline from the base
+  layer, no theme CSS or snapshot change). Resolved at render time only; `mdv --html` has no
+  resolver yet (M5). Fixtures `Fixtures/flavors/*/wiki-links*.md`. See VISION.
 - Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
   `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
   against github.com by the README corpus.

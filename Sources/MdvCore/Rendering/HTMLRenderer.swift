@@ -10,15 +10,20 @@ public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
     /// Highlights fenced code blocks when `options.highlighting` is on; `nil` renders them plain.
     public var highlighter: (any SyntaxHighlighter)?
+    /// Finds the files wiki links name when `.wikiLinks` is on (#53). `nil` (the default, and
+    /// `mdv --html`) renders every page link as missing; same-document `[[#Heading]]` links work.
+    public var wikiLinkResolver: (any WikiLinkResolver)?
     /// Per-render state: the footnote ids of the tree being rendered (set in `render(_:into:)`).
     private(set) var footnoteIDs = FootnoteIDs()
 
     public init(
         options: RenderOptions = RenderOptions(),
-        highlighter: (any SyntaxHighlighter)? = HighlightJSHighlighter.shared
+        highlighter: (any SyntaxHighlighter)? = HighlightJSHighlighter.shared,
+        wikiLinkResolver: (any WikiLinkResolver)? = nil
     ) {
         self.options = options
         self.highlighter = highlighter
+        self.wikiLinkResolver = wikiLinkResolver
     }
 
     /// Renders `root` and returns its headings in document order and the remote images
@@ -193,6 +198,8 @@ extension HTMLRenderer {
         case .image(let source, let title):
             renderImage(node, source: source, title: title, into: &output)
             return false
+        case .wikiLink(let link):
+            renderWikiLinkStart(link, into: &output)
         case .codeBlock, .htmlBlock, .thematicBreak, .text, .softBreak, .lineBreak, .code, .htmlInline, .emoji:
             renderLeaf(node, into: &output)
             return false
@@ -231,7 +238,7 @@ extension HTMLRenderer {
             if !context.parentIsStrong {
                 output.raw("</strong>")
             }
-        case .link:
+        case .link, .wikiLink:
             output.raw("</a>")
         case .table, .tableRow, .tableCell, .strikethrough, .taskItem, .footnoteReference, .footnoteDefinition, .alert:
             renderExtensionExit(node, context, into: &output)

@@ -26,6 +26,10 @@ public enum MarkdownTransform: String, CaseIterable, Sendable, Hashable {
     /// GitHub alerts (`> [!NOTE]`) in top-level block quotes become `alert` nodes (#52). GFM only.
     case alerts
 
+    /// Wiki links (`[[Page]]`) in text become links to the page's file (#53). An opt-in built-in
+    /// preprocessor, independent of the flavor; resolved by `HTMLRenderer.wikiLinkResolver`.
+    case wikiLinks
+
     /// GitHub emoji shortcodes (`:tada:`) in text become emoji (#10). GFM only.
     case emojiShortcodes = "emoji"
 
@@ -33,6 +37,7 @@ public enum MarkdownTransform: String, CaseIterable, Sendable, Hashable {
     var implementation: any MarkdownTreeTransform.Type {
         switch self {
         case .alerts: GitHubAlerts.self
+        case .wikiLinks: WikiLinks.self
         case .emojiShortcodes: EmojiShortcodes.self
         }
     }
@@ -67,8 +72,19 @@ protocol MarkdownTreeTransform {
 }
 
 /// What a transform may read besides the tree. Built by `HTMLRenderer` for each render; add
-/// fields here (e.g. #53's wiki link resolver) rather than reaching for globals.
+/// fields here rather than reaching for globals.
 struct TransformContext: Sendable {
     /// The options of the render in progress (with the flavor resolved for this document).
     var options: RenderOptions
+    /// The text the tree was parsed from (the whole file, so source range lines match), or `nil`
+    /// for a tree built elsewhere (`HTMLRenderer.html(for:)`).
+    var source: String?
+    /// Finds wiki link pages (#53); `nil` renders every page link as missing.
+    var wikiLinkResolver: (any WikiLinkResolver)?
+
+    init(options: RenderOptions, source: String? = nil, wikiLinkResolver: (any WikiLinkResolver)? = nil) {
+        self.options = options
+        self.source = source
+        self.wikiLinkResolver = wikiLinkResolver
+    }
 }

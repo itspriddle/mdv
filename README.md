@@ -26,7 +26,7 @@ A document can choose how it is shown with an `mdv:` mapping in its YAML frontma
 mdv:
   flavor: commonmark   # or gfm (the default)
   theme: serif         # a bundled id, or custom:<file name>
-  wikilinks: true      # [[Page]] links, once wiki links ship (#53)
+  wikilinks: true      # [[Page]] links (#53)
 ---
 ```
 
@@ -35,6 +35,9 @@ mdv:
 - `theme` beats the default theme from Settings, but a theme you pick for the window in View >
   Theme beats it (View > Theme > Document's Theme goes back). See the
   [theme guide](docs/THEMES.md#choosing-a-theme-per-document).
+- `wikilinks` turns `[[Page]]` links on or off for that document, whatever Settings > Markdown
+  says. `[[Page Name]]` opens `Page-Name.md` (or `Page Name.md`, any case), looked for in the
+  document's folder, then anywhere in its repository (or folder).
 - **What a document can't do:** these are the only keys. A document is untrusted input, so it
   can only choose among presentation options. It can't turn on the custom preprocessor, turn
   off HTML sanitizing, load remote images, or change any other safety setting. Other keys and
