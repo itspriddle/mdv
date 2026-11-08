@@ -184,10 +184,22 @@ struct DocumentOverridesTests {
         #expect(RenderOptions.spec.applying(DocumentOverrides(flavor: "commonmark")) == .spec)
     }
 
-    @Test("wikilinks is stored but changes nothing until wiki links exist (#53)")
-    func wikiLinksStored() {
-        let options = RenderOptions()
-        #expect(options.applying(DocumentOverrides(wikiLinks: true)) == options)
+    @Test("wikilinks turns wiki links on or off, beating the reader's setting")
+    func wikiLinksApplied() {
+        var options = RenderOptions()
+        #expect(options.applying(DocumentOverrides(wikiLinks: true)).builtInPreprocessors == [.wikiLinks])
+        #expect(options.applying(DocumentOverrides(wikiLinks: false)) == options)
+        options.builtInPreprocessors = [.wikiLinks]
+        #expect(options.applying(DocumentOverrides(wikiLinks: false)).builtInPreprocessors.isEmpty)
+        #expect(options.applying(DocumentOverrides()) == options)
         #expect(HTMLRenderer().render("---\nmdv: { wikilinks: true }\n---\nx").overrides.wikiLinks == true)
+        #expect(
+            HTMLRenderer().render("---\nmdv: { wikilinks: true }\n---\n[[#Top]]").html
+                == "<p><a class=\"wikilink\" href=\"#top\">#Top</a></p>\n")
+        var enabled = RenderOptions()
+        enabled.builtInPreprocessors = [.wikiLinks]
+        #expect(
+            HTMLRenderer(options: enabled).render("---\nmdv: { wikilinks: false }\n---\n[[#Top]]").html
+                == "<p>[[#Top]]</p>\n")
     }
 }

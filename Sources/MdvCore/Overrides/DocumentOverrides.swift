@@ -25,8 +25,8 @@
 ///   as written). Not resolved here: the app resolves it in its theme registry like a window's
 ///   pick (`ThemeSettings`), and `mdv --html` in `ThemeRegistry.bundled`. It is only ever looked
 ///   up by id, never read as a path.
-/// - `wikilinks`: `true` or `false`, turning wiki links (#53) on or off for this document. Parsed
-///   and stored; applying it is #53's (`RenderOptions.applying(_:)`).
+/// - `wikilinks`: `true` or `false`, turning wiki links (#53) on or off for this document. It beats
+///   Settings' built-in preprocessors in both directions (`RenderOptions.applying(_:)`).
 ///
 /// Only YAML frontmatter is read. TOML frontmatter (`+++`) isn't parsed at all (no TOML parser,
 /// by decision), so a TOML `[mdv]` table is reported as ignored rather than silently dropped.
@@ -266,6 +266,13 @@ extension RenderOptions {
         var options = self
         if let id = overrides.flavor, FlavorRegistry.bundled.contains(id: id) {
             options.flavor = FlavorRegistry.bundled.flavor(id: id)
+        }
+        if let wikiLinks = overrides.wikiLinks {
+            if wikiLinks {
+                options.builtInPreprocessors.insert(.wikiLinks)
+            } else {
+                options.builtInPreprocessors.remove(.wikiLinks)
+            }
         }
         return options
     }

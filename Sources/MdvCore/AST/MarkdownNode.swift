@@ -76,6 +76,9 @@ extension MarkdownNode {
         /// A GitHub alert (`> [!NOTE]`), made from a top-level block quote by `GitHubAlerts`
         /// (#52). Children are the body blocks, without the marker; the renderer writes the title.
         case alert(GitHubAlert)
+        /// A wiki link (`[[Page]]`, `[[Page#Heading|label]]`), made from text by `WikiLinks` (#53).
+        /// Children are the label (text); `WikiLink.destination` is `nil` for a missing page.
+        case wikiLink(WikiLink)
     }
 }
 
