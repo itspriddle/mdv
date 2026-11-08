@@ -462,9 +462,48 @@ editor or a browser.
   script whose message handler exists only in the app's content world; its message is display
   text and never acted on. Find in page passes the query to its app script as a value and
   matches it as literal text; page content never reaches script source.
-- Custom preprocessor scripts run only when the user configures them, with a timeout, no shell
-  interpolation, and the document passed via stdin. They are the first stage of the render
-  pipeline (#51), so their output is still parsed, transformed, and sanitized like any file.
+- Custom preprocessor scripts run only when the user configures them (#57), and they are the
+  first stage of the render pipeline (#51), so their output is still parsed, transformed, and
+  sanitized like any file. The runner is `CustomPreprocessor` in `MdvCore` (#56):
+  - **Contract:** the document's bytes on stdin, Markdown as UTF-8 on stdout, exit status 0
+    for success. Output that isn't UTF-8 or contains a NUL byte is an error. A non-zero exit
+    discards stdout.
+  - **Executable:** an absolute path, standardized and stored as given. It is never looked up
+    on `PATH`. Symbolic links are followed only to check the target, so a Homebrew upgrade
+    that moves the target keeps working. It must exist, be a regular file, and be executable
+    by the user, checked when configured and again before every run.
+  - **Arguments:** a fixed list from configuration, passed as an argv array to `posix_spawn`:
+    no shell, no expansion. Nothing from the document is ever added to the command line. The
+    document's path goes in `MDV_DOCUMENT_PATH`, never as an argument that could be read as an
+    option.
+  - **Environment:** only `PATH` (fixed:
+    `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`, the same from Finder or a
+    terminal), `HOME`, `TMPDIR`, `LANG=en_US.UTF-8`, and `MDV_DOCUMENT_PATH` (when there is a
+    file). None of the app's own environment is passed on.
+  - **Working directory:** the document's folder, so relative paths mean what they mean to the
+    reader. With no file (piped input), it is `/`.
+  - **Descriptors and signals:** the child gets only the three pipes
+    (`POSIX_SPAWN_CLOEXEC_DEFAULT`) and default signal handling. mdv's stdin pipe has
+    `F_SETNOSIGPIPE`, so a script that closes stdin can't raise `SIGPIPE` in mdv.
+  - **Limits** (`PreprocessorLimits.standard`): 5 s wall clock, 10 MB of input (a larger
+    document doesn't run), 10 MB of stdout, and the last 64 KB of stderr kept for the error
+    message. More stderr is drained and dropped.
+  - **Stopping:** the script runs in its own process group. On timeout, too much output, or
+    cancellation (a newer render cancels the task), the whole group gets `SIGTERM`, then
+    `SIGKILL` after a 0.5 s grace period, so children it started die too. When the script
+    exits on its own, anything left in its group is stopped the same way. The script is reaped
+    only after the group's final `SIGKILL`, so its group id can't be reused by another process
+    in the meantime.
+  - **No deadlocks, no blocked threads:** one kqueue loop on a dedicated thread (never the
+    Swift cooperative pool) writes stdin and reads stdout and stderr together. It also watches
+    for the exit, the deadline, and cancellation. A script that never reads stdin, or fills a
+    pipe, can't stall mdv. The worst case is the timeout plus the grace period.
+  - **Failures** are a typed `PreprocessorError`: input too large, executable unusable, launch
+    failed, timed out, output too large, exit status, signal, not UTF-8, or NUL, each with a
+    user-presentable message and the stderr tail. Each failure is logged with `os.Logger`.
+  - **Not a sandbox:** the script runs as the user, with the user's file access. A process that
+    leaves the group (`setsid`) is out of reach, though mdv stops reading its pipes after the
+    grace period. Opting in means trusting the executable.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
 
 ## Success looks like
