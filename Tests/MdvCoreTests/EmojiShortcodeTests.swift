@@ -141,13 +141,11 @@ struct EmojiShortcodeTests {
         #expect(html.contains("<td>😄</td>"))
     }
 
-    @Test("off in spec mode and when disabled")
+    @Test("GFM only: off in CommonMark and spec mode")
     func disabled() {
-        var options = RenderOptions()
-        options.emoji = false
-        #expect(paragraph(":tada:", options: options) == ":tada:")
+        #expect(paragraph(":tada:", options: RenderOptions(flavor: .commonmark)) == ":tada:")
         #expect(HTMLRenderer(options: .spec).render(":tada:").html == "<p>:tada:</p>\n")
-        #expect(RenderOptions().emoji)
+        #expect(RenderOptions().transforms == [.emojiShortcodes])
     }
 
     @Test("emoji characters are written escaped")
@@ -186,9 +184,7 @@ struct EmojiHeadingTests {
 
     @Test("slugs are the same with emoji off")
     func slugWithoutEmoji() {
-        var options = RenderOptions()
-        options.emoji = false
-        let document = HTMLRenderer(options: options).render("# :tada: Release\n")
+        let document = HTMLRenderer(options: RenderOptions(flavor: .commonmark)).render("# :tada: Release\n")
         #expect(document.headings.map(\.slug) == ["tada-release"])
         #expect(document.title == ":tada: Release")
     }

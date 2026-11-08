@@ -30,7 +30,7 @@ enum SpecSuite {
     static func options(for example: SpecExample) -> RenderOptions {
         var options = RenderOptions.spec
         if example.file != "extensions.txt" {
-            options.extensions = Set(example.tags.compactMap { extensionsByTag[$0] })
+            options.flavor.extensions = Set(example.tags.compactMap { extensionsByTag[$0] })
         }
         return options
     }

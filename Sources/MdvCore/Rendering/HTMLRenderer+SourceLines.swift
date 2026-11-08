@@ -5,9 +5,11 @@ extension HTMLRenderer {
     ///
     /// Contract for the app's scroll sync and position-preserving reload (M2):
     ///
-    /// - `N` is the 1-based line, in the original file, where the block's Markdown starts.
-    ///   Frontmatter lines count (the parser already offsets body lines past it), and a CRLF or
-    ///   CR line ending counts as one line break, like LF.
+    /// - `N` is the 1-based line, in the text `render(_:)` was given, where the block's Markdown
+    ///   starts: the file, or the custom preprocessor's output when one ran (#51; see
+    ///   `SourcePreprocessor`). Frontmatter lines count (the parser already offsets body lines
+    ///   past it), and a CRLF or CR line ending counts as one line break, like LF. AST
+    ///   transforms keep these lines: nodes they add carry the range of the text they replace.
     /// - Annotated elements: `p`, `h1`–`h6`, `blockquote`, `ul`/`ol`, `li` (list, task, and
     ///   footnote items), `pre`, `table`, `tr`, and `hr`. Values never decrease in document
     ///   order before the footnotes section, so a reader can binary-search them there. Footnote

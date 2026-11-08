@@ -16,7 +16,11 @@ func anchoredHeading(_ level: Int, _ slug: String, _ content: String) -> String 
     "<h\(level) id=\"\(slug)\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#\(slug)\"></a>\(content)</h\(level)>"
 }
 
-private let allExtensions = RenderOptions(extensions: Set(MarkdownExtension.allCases))
+private let allExtensions: RenderOptions = {
+    var options = RenderOptions()
+    options.flavor.extensions = Set(MarkdownExtension.allCases)
+    return options
+}()
 
 private func headings(_ markdown: String, options: RenderOptions = allExtensions) -> [Heading] {
     HTMLRenderer(options: options).render(markdown).headings

@@ -209,3 +209,9 @@ extension MarkdownNode.Kind {
         return false
     }
 }
+
+extension EmojiShortcodes: MarkdownTreeTransform {
+    static func apply(to root: MarkdownNode, context: TransformContext) -> MarkdownNode {
+        replace(in: root)
+    }
+}

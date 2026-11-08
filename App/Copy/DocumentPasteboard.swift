@@ -57,11 +57,11 @@ enum DocumentPasteboard {
         }
     }
 
-    /// The rendered body fragment Copy as HTML copies: the default render options, the same
-    /// output as `mdv --html` without the page around it. No `data-source-line` annotations, and
-    /// remote images are kept as written (the viewer's placeholders are display only; nothing
-    /// is loaded by copying).
-    nonisolated static func copyableHTML(for source: String) -> String {
-        HTMLRenderer(options: RenderOptions()).render(source).html
+    /// The rendered body fragment Copy as HTML copies: the default render options with the
+    /// window's `flavor`, the same output as `mdv --html` without the page around it. No
+    /// `data-source-line` annotations, and remote images are kept as written (the viewer's
+    /// placeholders are display only; nothing is loaded by copying).
+    nonisolated static func copyableHTML(for source: String, flavor: Flavor = .gfm) -> String {
+        HTMLRenderer(options: RenderOptions(flavor: flavor)).render(source).html
     }
 }

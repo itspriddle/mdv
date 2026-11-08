@@ -215,12 +215,13 @@ struct HTMLRendererAPITests {
 
     @Test("GFM syntax is literal text when its extension is off")
     func extensionsOff() {
-        #expect(HTMLRenderer(options: RenderOptions(extensions: [])).render("~~x~~").html == "<p>~~x~~</p>\n")
+        #expect(HTMLRenderer(options: RenderOptions(flavor: .commonmark)).render("~~x~~").html == "<p>~~x~~</p>\n")
     }
 
     @Test("default options render GFM with GitHub markup")
     func defaults() {
-        #expect(RenderOptions().extensions == MarkdownExtension.gfm)
+        #expect(RenderOptions().flavor == .gfm)
+        #expect(Flavor.gfm.extensions == MarkdownExtension.gfm)
         #expect(MarkdownExtension.gfm == Set(MarkdownExtension.allCases))
         #expect(RenderOptions().gfmMarkup == .github)
         #expect(RenderOptions.spec.gfmMarkup == .cmark)
