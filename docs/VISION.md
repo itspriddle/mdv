@@ -397,10 +397,46 @@ editor or a browser.
   window and is not remembered per file: a remembered list of files that may load remote
   content is a privacy record and a standing exception to "no remote content" that the reader
   can forget granting; deferred until there's demand.
+- **Wiki links (#53):** an opt-in built-in preprocessor (`WikiLinks`, an AST transform), off
+  by default and turned on by Settings > Markdown or a document's `mdv.wikilinks`, which beats
+  Settings both ways. Independent of the flavor. Settled rules:
+  - **Syntax:** `[[Page]]`, `[[Page|label]]`, `[[Page#Heading]]`, `[[Page#Heading|label]]`,
+    and `[[#Heading]]` (same document). Label after the first `|` (the Obsidian and MediaWiki
+    order; GitHub's Gollum puts the label first, which mdv doesn't follow), heading after the
+    first `#`; `\|` in table cells. Only in plain text, all within one run: never in code, raw
+    HTML, link text, autolinks, or alt text, and not across emphasis. The brackets must be
+    written as is: `\[[`, `[\[`, `\]]`, and `&#91;[` stay literal. cmark merges escaped and
+    plain text into one node, so the transform lines each candidate node up with its source
+    line (`SourceLines`); a node it can't line up keeps its brackets literal (a missed link,
+    never an escape ignored). Targets over 1,024 bytes stay literal.
+  - **Naming (GitHub wiki rules):** `Page Name` is `Page-Name.md`; case-insensitive, and a space
+    matches a hyphen, so `Page Name.md` (note apps) works too. Only Markdown extensions
+    (`LinkPolicy.markdownExtensions`). `[[Page.md]]` names that file. Folders in the name
+    (`[[guides/Setup]]`) must match the file's folders; empty parts, `.`, `..`, a leading `/`,
+    and control characters name nothing.
+  - **Search scope:** the document's folder first, then every folder under the allowed root
+    (`LocalResourceRoot`: the git work tree, else the document's folder) breadth first, so the
+    match nearest the root wins; never outside the root. Hidden entries and symbolic links are
+    skipped, entries are taken in name order, and the root search stops after 10,000 entries
+    (`FolderWikiLinkResolver.defaultEntryLimit`), so a huge repository can't stall a render.
+    MdvCore stays filesystem-free: the renderer takes an injected `WikiLinkResolver`, the search
+    rules are `FolderWikiLinkResolver` over an injected `WikiLinkFolderReader`, and the app
+    supplies the file system reader (`DocumentWikiLinks`). `mdv --html` has no resolver, so
+    every page link is missing there (M5 can add one).
+  - **Output:** a found page is `<a class="wikilink" href="Page-Name.md#slug">`, its path
+    relative to the document with every part percent-encoded (nothing in a name can add a
+    scheme, query, or attribute), so it goes through `LinkPolicy` like any relative link (opens
+    in mdv, Cmd-click in a new tab) and Copy as HTML stays portable. The heading maps to
+    `HeadingSlug` of its text (the target's first heading with that text). A missing page is
+    `<a class="wikilink wikilink-missing">` with no `href`, so it can't navigate; the base layer
+    gives it a dashed underline. The label is text, escaped by `HTMLRenderer`.
+  - **Resolved at render time only:** a target appearing or disappearing doesn't re-render the
+    linking document; the next render (an edit, a Settings change, a reopen) picks it up. A
+    resolver is made per render and caches only within it.
 - **Settings > Markdown (#55):** a second Settings pane (`MarkdownSettingsView`) for how
   documents are read: the default flavor (from `FlavorRegistry`), frontmatter hidden or shown
-  as a table (`FrontmatterDisplay`), and opt-in built-in preprocessors (wiki links, #53; the
-  section is hidden while none is offered), with room below for the custom preprocessor (#57).
+  as a table (`FrontmatterDisplay`), and opt-in built-in preprocessors (the Wiki links toggle,
+  #53; the section is hidden if none is offered), with room below for the custom preprocessor (#57).
   One store, `MarkdownSettings`, holds all three and posts one change notification; a render
   gets them as a `MarkdownPreferences` value read on the main actor, never by reading the store
   off it. Unlike the window defaults above, these apply to **open documents at once**: each

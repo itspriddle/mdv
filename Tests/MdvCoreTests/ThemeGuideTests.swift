@@ -155,6 +155,19 @@ struct ThemeGuideTests {
         }
     }
 
+    @Test("the guide's wiki link markup is what mdv writes (#53)")
+    func wikiLinkMarkup() throws {
+        let guide = try Self.guide()
+        var options = RenderOptions()
+        options.builtInPreprocessors = [.wikiLinks]
+        let resolver = FakeWikiLinkResolver(["Page-Name.md"])
+        let rendered = HTMLRenderer(options: options, wikiLinkResolver: resolver)
+            .render("[[Page Name]]\n[[Missing Page]]").html
+        let block = try #require(Self.htmlBlocks(in: guide).first { $0.contains("wikilink") })
+        #expect("<p>" + block + "</p>\n" == rendered)
+        #expect(ThemeBase.css.contains(".wikilink-missing {"))
+    }
+
     @Test("the limits and values the guide states match mdv's")
     func limits() throws {
         let guide = try Self.guide()
