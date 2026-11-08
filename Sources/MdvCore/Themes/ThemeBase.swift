@@ -1,15 +1,18 @@
 /// The base layer every page gets under its theme: the rules viewer features depend on.
 ///
 /// It sits in the first cascade layer (`ThemeLayer.base`). Ordinary declarations here are
-/// defaults any theme may override. Declarations marked `!important` are protected: an
-/// important declaration in an earlier layer beats important declarations in later layers and
-/// unlayered CSS, so no theme (bundled or custom, layered or not) can undo them. The sanitizer
-/// strips `style` attributes, so element-attached styles can't either. Protected:
+/// defaults any theme may override (such as GitHub alerts' left rule and title layout, #52, so a
+/// custom theme without `extends` still shows them as callouts). Declarations marked
+/// `!important` are protected: an important declaration in an earlier layer beats important
+/// declarations in later layers and unlayered CSS, so no theme (bundled or custom, layered or
+/// not) can undo them. The sanitizer strips `style` attributes, so element-attached styles can't
+/// either. Protected:
 ///
 /// - `.sr-only` (visually hidden text for assistive technology);
 /// - find highlights (`::highlight(mdv-find)`, `::highlight(mdv-find-current)`, #25), never
 ///   printed;
 /// - the blocked remote-image placeholder's visibility (#20) (its look is a default);
+
 /// - GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` hiding (`ColorModeImage`);
 /// - structural print rules (#26, #38): light color scheme, no page background, full width,
 ///   nothing clipped, no anchor icons, sensible page breaks. External link targets written out
@@ -37,6 +40,13 @@ public enum ThemeBase {
         }
         .remote-image { display: inline-flex !important; visibility: visible !important; }
         .remote-image-host { opacity: 0.75; }
+        /* GitHub alerts (#52): a left rule and the icon beside the title, so they read as callouts in
+           a theme that doesn't style them. Colors are the theme's (the rule and icon follow the text). */
+        .markdown-alert { margin: 0 0 1em; padding: 0 1em; border-left: 0.25em solid; }
+        .markdown-alert > :first-child { margin-top: 0; }
+        .markdown-alert > :last-child { margin-bottom: 0; }
+        .markdown-alert-title { display: flex; align-items: center; font-weight: 600; line-height: 1.25; }
+        .markdown-alert-title svg { flex: none; margin-right: 0.5em; fill: currentColor; }
         /* Find in page (the app's find bar): every match, and the current one. Never printed. */
         ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.4) !important; }
         ::highlight(mdv-find-current) { background-color: #ff9632 !important; color: #1f2328 !important; }
@@ -48,7 +58,7 @@ public enum ThemeBase {
         }
         /* Print (#26, #38): light, no page background, full width, nothing clipped, no hover-only
            anchor icons, link targets written out after external links. Pages break around code,
-           rows, and images where they fit, and never right after a heading. */
+           rows, images, and alerts where they fit, and never right after a heading. */
         @media print {
           ::highlight(mdv-find), ::highlight(mdv-find-current) {
             background-color: transparent !important; color: inherit !important;
@@ -70,6 +80,8 @@ public enum ThemeBase {
           tr, img, .remote-image { break-inside: avoid !important; }
           img { max-width: 100% !important; }
           h1, h2, h3, h4, h5, h6 { break-after: avoid !important; }
+          .markdown-alert { break-inside: avoid; }
+          .markdown-alert-title { break-after: avoid; }
         }
         /* GitHub's theme-specific images (`ColorModeImage`), and their remote-image placeholders:
            `#gh-dark-mode-only` shows only in dark mode, `#gh-light-mode-only` only in light mode
