@@ -55,20 +55,45 @@ extension StressTests {
                 document.close()
             }
         }
-        // Measured from here: opening the windows above is the test's own main-thread work.
-        let heartbeat = MainThreadHeartbeat()
-        heartbeat.start()
-        defer { heartbeat.stop() }
+        // First renders: each window waits for its script, then loads the page without it (or
+        // with the forking script's output). Not timed: starting twelve web content processes
+        // at once stalls the main thread for seconds on a slow CI runner (WebKit's launch, not
+        // the scripts; #59), which says nothing about the preprocessor.
         // The hanging scripts take the whole timeout plus the grace period (5.5 s).
         for (script, (document, controller)) in windows {
             try await until("\(script.name) loads", timeout: .seconds(20)) { controller.coordinator.hasLoadedPage }
-            let content = try #require(document.content)
-            #expect(content.preprocessorError?.reason.kindName == script.failure, "\(script.name)")
-            #expect(try await bodyText(controller).contains("Body of \(script.name)."), "\(script.name)")
+            try await expectRendered(script, version: "", in: (document, controller))
+        }
+        #expect(try await scripts.processesGone(), "no script, child, or zombie left: \(scripts.pids())")
+
+        // Timed: every script runs again on a live reload while the windows are up, and each
+        // window swaps the result in place. The main thread does only the swaps.
+        let heartbeat = MainThreadHeartbeat()
+        heartbeat.start()
+        defer { heartbeat.stop() }
+        for (script, (document, _)) in windows {
+            let url = try #require(document.fileURL)
+            try Data("# \(script.name) again\n\nBody of \(script.name) v2.\n".utf8).write(to: url)
+        }
+        for (script, window) in windows {
+            try await until("\(script.name) reloads", timeout: .seconds(20)) {
+                try await bodyText(window.1).contains("Body of \(script.name) v2.") && !window.0.isRendering
+            }
+            try await expectRendered(script, version: " v2", in: window)
         }
         #expect(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
         #expect(heartbeat.longestGap < .milliseconds(500), "longest main-thread gap \(heartbeat.longestGap)")
         #expect(try await scripts.processesGone(), "no script, child, or zombie left: \(scripts.pids())")
+    }
+
+    /// Checks that `window` shows the document (without the script's output on a failure) and
+    /// the failure `script` should earn.
+    func expectRendered(
+        _ script: MisbehavingScript, version: String, in window: (MarkdownDocument, DocumentWindowController)
+    ) async throws {
+        let content = try #require(window.0.content)
+        #expect(content.preprocessorError?.reason.kindName == script.failure, "\(script.name)")
+        #expect(try await bodyText(window.1).contains("Body of \(script.name)\(version)."), "\(script.name)")
     }
 
     @Test("live reload storms while a slow script runs end on the newest content, with no stale runs left")
@@ -83,6 +108,10 @@ extension StressTests {
             for (document, _) in windows {
                 document.close()
             }
+        }
+        // Timed once the windows are up, as in `misbehavingPreprocessors`.
+        for (_, controller) in windows {
+            try await until("first load", timeout: .seconds(15)) { controller.coordinator.hasLoadedPage }
         }
         let heartbeat = MainThreadHeartbeat()
         heartbeat.start()
@@ -112,10 +141,12 @@ extension StressTests {
         let scripts = PreprocessorScripts(folder: folder)
         let hang = PreprocessorScripts.settings(running: try scripts.hang(), defaults: defaults.defaults)
         let fork = PreprocessorScripts.settings(running: try scripts.fork(), defaults: defaults.defaults)
-        let heartbeat = MainThreadHeartbeat()
-        heartbeat.start()
-        defer { heartbeat.stop() }
         weak var lastDocument: MarkdownDocument?
+        // Each close is timed on its own, not with a heartbeat: opening 18 windows (and starting
+        // their web content processes) is the test's own main-thread work, seconds of it on a
+        // slow CI runner (#59). A close that waited for its script would take at least the
+        // 0.5 s grace period a TERM-ignoring script gets before `SIGKILL`.
+        var longestClose = Duration.zero
         for round in 0..<3 {
             for index in 0..<6 {
                 let url = try write("# Closing \(index)", to: "closing-\(round)-\(index).md")
@@ -123,20 +154,19 @@ extension StressTests {
                 // Close at once, after a turn, or once the script is running.
                 switch (index + round) % 3 {
                 case 0:
-                    document.close()
+                    break
                 case 1:
                     await Task.yield()
-                    document.close()
                 default:
                     try await Task.sleep(for: .milliseconds(150))
-                    document.close()
                 }
+                longestClose = max(longestClose, ContinuousClock().measure { document.close() })
                 #expect(document.pendingRender == nil)
                 #expect(document.pendingReload == nil)
                 lastDocument = document
             }
         }
-        #expect(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
+        #expect(longestClose < .milliseconds(400), "longest close \(longestClose)")
         #expect(try await scripts.processesGone(), "no script, child, or zombie left: \(scripts.pids())")
         try await until("the closed document is freed") { lastDocument == nil }
     }
