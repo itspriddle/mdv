@@ -174,7 +174,16 @@ struct CustomPreprocessorTests {
             try await fixtures.preprocessor("upcase").run(input: PreprocessorFixtures.document, documentURL: document)
         }
         #expect(error?.reason == .launchFailed(errno: ENOENT))
+        #expect(error?.message.contains("quarantine") == false)
         #expect(PreprocessorDescriptors.openCount == 0)
+    }
+
+    @Test("a refused launch suggests quarantine as a likely cause", arguments: [EPERM, EACCES])
+    func refusedLaunchHint(code: Int32) {
+        let message = PreprocessorError(.launchFailed(errno: code)).message
+        #expect(message.hasPrefix("The preprocessor couldn’t start: \(String(cString: strerror(code))). "))
+        #expect(message.contains("may be blocking it"))
+        #expect(message.contains("xattr -d com.apple.quarantine"))
     }
 }
 
