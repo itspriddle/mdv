@@ -396,6 +396,26 @@ Control how source becomes Markdown.
 **Exit criteria:** each flavor has its own test corpus; a misbehaving script (hang, crash,
 huge output) cannot hang or crash the app.
 
+**Decisions:**
+
+- Flavor vs feature split (#51): a `Flavor` owns syntax only, its cmark-gfm extensions and the
+  AST transforms it always runs. Bundled: `gfm` (default; every extension, emoji shortcodes,
+  alerts from #52) and `commonmark` (none). Emoji shortcodes are GFM-only. Heading anchors,
+  highlighting, source lines, sanitizing, remote images, `linkRoot`, markup style, and
+  frontmatter detection and display stay `RenderOptions` features independent of the flavor;
+  CommonMark keeps frontmatter detection (metadata, not syntax). Opt-in built-in preprocessors
+  (wiki links, #53) are `RenderOptions.builtInPreprocessors`, also independent of the flavor.
+  `FlavorRegistry` resolves ids; unknown ids are GFM. See VISION.
+- Render pipeline (#51): custom preprocessor (whole file, opt-in) → frontmatter extraction →
+  flavor resolution (frontmatter `mdv.flavor`, #54) → parse → AST transforms → HTML, in
+  `HTMLRenderer.render(_:)`. Built-in preprocessors are AST transforms over text nodes, not text
+  passes, so code and raw HTML are never rewritten. Transforms (`MarkdownTransform`) run in one
+  fixed order, whatever enabled them: alerts, wiki links, emoji. After a custom preprocessor,
+  `data-source-line` refers to the preprocessor's output. See VISION.
+- Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
+  `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
+  against github.com by the README corpus.
+
 ## M5: CLI
 
 Make the terminal workflow excellent.

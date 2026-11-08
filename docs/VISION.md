@@ -40,23 +40,68 @@ editor or a browser.
 ## Architecture overview
 
 ```
- file / stdin ──► Preprocessors ──► MdvCore renderer ──► HTMLDocument ──► WKWebView
-                  (frontmatter,      (swift-cmark →        (theme CSS,      (app window,
-                   built-in, user     MarkdownNode AST →    CSP, base URL)   print/PDF)
-                   script)            HTMLRenderer)
+ file / stdin ──► custom          ──► MdvCore renderer ──► HTMLDocument ──► WKWebView
+                  preprocessor        (frontmatter, flavor, (theme CSS,      (app window,
+                  (opt-in user        swift-cmark →         CSP, base URL)   print/PDF)
+                   script)            MarkdownNode AST →
+                                      transforms → HTML)
                                                 └──────► stdout (mdv --html)
 ```
 
 - **MdvCore** (Swift package): parsing, AST transforms, HTML rendering, frontmatter, themes,
   preprocessors. No UI dependencies; tested with `swift test`.
+- **Render pipeline (#51):** every render runs the same stages in this order, enforced in
+  `HTMLRenderer.render(_:)` (`HTMLRenderer+Pipeline.swift`):
+  1. **Custom preprocessor** (#56/#57, opt-in, off by default): the whole file, frontmatter
+     included, through the user's executable (`SourcePreprocessor`;
+     `render(_:preprocessor:)` runs it, then the rest). Its output replaces the source for
+     every later stage.
+  2. **Frontmatter extraction** (`detectsFrontmatter`), in every flavor.
+  3. **Flavor resolution:** `RenderOptions.flavor` (the app's default; Settings in #55), or the
+     frontmatter's `mdv.flavor` (#54) through `FlavorRegistry`, so frontmatter can change how
+     the body parses.
+  4. **Parse** the body with the flavor's cmark-gfm extensions.
+  5. **AST transforms** (`MarkdownTransform`), the flavor's plus the built-in preprocessors
+     turned on in `RenderOptions.builtInPreprocessors`, in one fixed order whatever enabled
+     them: alerts (#52), wiki links (#53), emoji shortcodes.
+  6. **HTML:** sanitize raw HTML, collect headings and anchors, highlight code, write markup.
+
+  Built-in syntax features ("built-in preprocessors" such as wiki links, and emoji and alerts)
+  are AST transforms, not text passes over the source: they rewrite only text nodes the parser
+  produced, so code spans, code blocks, raw HTML, and link destinations are never rewritten,
+  and Markdown's escaping and code rules aren't re-implemented in a second parser. Nodes they
+  add keep the source range of the text they replace, and `HTMLRenderer` writes them, so new
+  markup is escaped by construction. Only the custom preprocessor sees raw text.
+  **`data-source-line` after a custom preprocessor** refers to lines of the preprocessor's
+  output, the text the parser saw, not the file on disk: scroll sync, the outline, and the
+  reading position kept across reloads all use those lines consistently. A preprocessor that
+  keeps line structure keeps them aligned with the file; one that adds or removes lines shifts
+  them (the alternative, a line map from the script, would be a second contract every script
+  must honor).
+- **Flavors (#51):** a `Flavor` (MdvCore, `Flavors/`) is an id, a display name, the cmark-gfm
+  extensions it enables, and the AST transforms it always runs. Bundled: `gfm` (GitHub Flavored
+  Markdown, the default: tables, strikethrough, extended autolinks, task lists, footnotes,
+  emoji shortcodes, and alerts from #52) and `commonmark` (strict: no extensions, no
+  transforms). `FlavorRegistry` resolves ids from settings and frontmatter, like
+  `ThemeRegistry`: unknown or missing ids are GFM. **A flavor owns syntax only.** Viewer and
+  safety features are independent of it and stay on `RenderOptions`: heading anchors,
+  highlighting, source lines, sanitizing, the remote image policy, `linkRoot`, GitHub vs cmark
+  markup for GFM nodes, and frontmatter detection and display. Emoji shortcodes are GFM-only:
+  they're a GitHub convention, and strict CommonMark means what CommonMark says. CommonMark
+  keeps frontmatter detection: frontmatter is metadata, not syntax, and showing a YAML block as
+  a paragraph and a `<hr>` would help no one. Opt-in built-in preprocessors (wiki links, #53)
+  are toggles independent of the flavor, so they work in CommonMark too. Each bundled flavor has
+  its own fixture corpus (`Tests/MdvCoreTests/Fixtures/flavors/<id>/`); GFM is also checked
+  against github.com by the README corpus. The spec suite uses `Flavor.spec` (every extension,
+  no transforms), which isn't registered.
 - **Parsing:** [`swiftlang/swift-cmark`](https://github.com/swiftlang/swift-cmark) (cmark-gfm, the
   engine GitHub uses), called directly through its C API. `MarkdownParser` enables GFM extensions
-  and footnotes per `RenderOptions`, never enables smart punctuation, and copies cmark's tree into
-  our own `Sendable` `MarkdownNode` AST; no C pointers outlive a parse.
+  and footnotes per the flavor (`RenderOptions.flavor`), never enables smart punctuation, and
+  copies cmark's tree into our own `Sendable` `MarkdownNode` AST; no C pointers outlive a parse.
 - **Rendering:** `HTMLRenderer` walks the `MarkdownNode` AST and emits HTML (cmark-compatible for
   CommonMark). Owning the AST and the output is what lets us control heading anchors, task lists,
-  emoji, raw HTML sanitizing, syntax highlighting, and source-line mapping, and gives M4
-  transforms one tree to operate on.
+  emoji, raw HTML sanitizing, syntax highlighting, and source-line mapping, and gives the
+  pipeline's transforms (above) one tree to operate on.
 - **Syntax highlighting:** at render time, in `MdvCore`, so the app and `mdv --html` get the same
   static `<span class="hljs-…">` markup and the viewer needs no JavaScript. A pinned
   [highlight.js](https://highlightjs.org) build (BSD-3, vendored as generated Swift source by
@@ -418,7 +463,8 @@ editor or a browser.
   text and never acted on. Find in page passes the query to its app script as a value and
   matches it as literal text; page content never reaches script source.
 - Custom preprocessor scripts run only when the user configures them, with a timeout, no shell
-  interpolation, and the document passed via stdin.
+  interpolation, and the document passed via stdin. They are the first stage of the render
+  pipeline (#51), so their output is still parsed, transformed, and sanitized like any file.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
 
 ## Success looks like
