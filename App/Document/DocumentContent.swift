@@ -13,15 +13,23 @@ struct DocumentContent: Equatable, Sendable {
     /// `page` (off the main thread on live reload) so opting in and reloading never render on
     /// main; only documents with remote images pay for it.
     let remoteImagesPage: RenderedPage?
+    /// The Settings > Markdown preferences (#55) both pages were rendered with. A document
+    /// whose content doesn't match the current settings renders again
+    /// (`MarkdownDocument.setContent(_:)`).
+    let preferences: MarkdownPreferences
 
     /// Renders `source`. The page title is the document's own (frontmatter `title`, then the
     /// first `h1`) or `fallbackTitle` (the file name). Root-relative links and images
     /// (`/docs/x.png`) resolve against `linkRoot`, the document's allowed root
-    /// (`linkRoot(forDocumentAt:)`), as GitHub resolves them against the repository. `flavor`
-    /// is the default flavor for documents (GFM until Settings has one, #55).
-    init(source: String, fallbackTitle: String, linkRoot: String? = nil, flavor: Flavor = .gfm) {
+    /// (`linkRoot(forDocumentAt:)`), as GitHub resolves them against the repository.
+    /// `preferences` are Settings > Markdown's (#55): the default flavor, frontmatter display,
+    /// and built-in preprocessors.
+    init(
+        source: String, fallbackTitle: String, linkRoot: String? = nil, preferences: MarkdownPreferences = .default
+    ) {
         self.source = source
-        let options = Self.renderOptions(flavor: flavor, linkRoot: linkRoot)
+        self.preferences = preferences
+        let options = Self.renderOptions(preferences: preferences, linkRoot: linkRoot)
         let page = Self.render(source, fallbackTitle: fallbackTitle, options: options, allowingRemoteImages: false)
         self.page = page
         remoteImagesPage =
@@ -52,9 +60,12 @@ struct DocumentContent: Equatable, Sendable {
     }
 
     /// Decodes UTF-8 file contents and renders them.
-    init(data: Data, fallbackTitle: String, linkRoot: String? = nil, flavor: Flavor = .gfm) throws {
+    init(
+        data: Data, fallbackTitle: String, linkRoot: String? = nil, preferences: MarkdownPreferences = .default
+    ) throws {
         self.init(
-            source: try Self.source(from: data), fallbackTitle: fallbackTitle, linkRoot: linkRoot, flavor: flavor)
+            source: try Self.source(from: data), fallbackTitle: fallbackTitle, linkRoot: linkRoot,
+            preferences: preferences)
     }
 
     /// Decodes file contents as UTF-8, the only encoding mdv reads. Throws
@@ -68,15 +79,17 @@ struct DocumentContent: Equatable, Sendable {
         return source
     }
 
-    /// The app's render options: the default options with `flavor` (the syntax; a document's
-    /// frontmatter can still pick its own, #54), plus `data-source-line` annotations, which the
+    /// The app's render options: the default options with Settings > Markdown's `preferences`
+    /// (#55: the default flavor, which a document's frontmatter can still override, #54;
+    /// frontmatter display; built-in preprocessors), plus `data-source-line` annotations, which the
     /// scroll bridge (`WebViewCoordinator`) reads, and remote images blocked (placeholders)
     /// unless the window opted in, then `https:` only, and root-relative URLs resolved against
     /// `linkRoot`. `mdv --html` leaves the last three off.
     static func renderOptions(
-        flavor: Flavor = .gfm, allowingRemoteImages: Bool = false, linkRoot: String? = nil
+        preferences: MarkdownPreferences = .default, allowingRemoteImages: Bool = false, linkRoot: String? = nil
     ) -> RenderOptions {
-        var options = RenderOptions(flavor: flavor)
+        var options = RenderOptions()
+        preferences.apply(to: &options)
         options.sourceLines = true
         options.remoteImages = allowingRemoteImages ? .allowHTTPS : .block
         options.linkRoot = linkRoot

@@ -24,11 +24,14 @@ extension DocumentWindowController {
     }
 
     func writeHTML(to pasteboard: NSPasteboard) async {
-        guard let source = markdownDocument?.content?.source else {
+        guard let content = markdownDocument?.content else {
             return
         }
+        // What the window shows: the preferences its page was rendered with.
+        let source = content.source
+        let preferences = content.preferences
         let html = await Task.detached(priority: .userInitiated) {
-            DocumentPasteboard.copyableHTML(for: source)
+            DocumentPasteboard.copyableHTML(for: source, preferences: preferences)
         }.value
         DocumentPasteboard.writeHTML(html, to: pasteboard)
     }

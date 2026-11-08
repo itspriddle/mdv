@@ -56,4 +56,29 @@ final class SettingsUITests: XCTestCase {
         let serif = mdv.waitForRenderedText(Self.line, in: second).frame
         XCTAssertGreaterThan(serif.height, github.height + 1, "the new window uses Serif")
     }
+
+    /// Settings > Markdown (#55): the default flavor applies to open documents at once. In
+    /// CommonMark the table is plain text.
+    func testDefaultFlavorReRendersOpenDocuments() throws {
+        let mdv = try MdvUITestApp.launch(openingFixture: "settings/flavor.md")
+        self.mdv = mdv
+        let window = mdv.waitForWindow(titled: "Settings Flavor")
+        mdv.waitForRenderedText("After the table.", in: window)
+        let webView = mdv.webView(in: window)
+        XCTAssertTrue(webView.tables.firstMatch.waitForExistence(timeout: MdvUITestApp.defaultTimeout), "GFM table")
+
+        mdv.openSettings()
+        mdv.showSettingsPane("Markdown")
+        XCTAssertTrue(mdv.settingsWindow.popUpButtons["settings-frontmatter"].exists)
+        XCTAssertEqual(
+            mdv.settingsWindow.popUpButtons["settings-default-flavor"].value as? String, "GitHub Flavored Markdown")
+        mdv.chooseSetting("CommonMark", in: "settings-default-flavor")
+
+        // The open window re-renders: the table's rows are now a paragraph of pipes.
+        mdv.waitForRenderedText("| Alpha | Beta |", in: window)
+        XCTAssertTrue(webView.tables.firstMatch.waitForNonExistence(timeout: MdvUITestApp.defaultTimeout), "no table")
+
+        mdv.chooseSetting("GitHub Flavored Markdown", in: "settings-default-flavor")
+        XCTAssertTrue(webView.tables.firstMatch.waitForExistence(timeout: MdvUITestApp.defaultTimeout), "table back")
+    }
 }

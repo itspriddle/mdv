@@ -215,10 +215,33 @@ code block's text color.
 
 ### Frontmatter
 
-YAML or TOML frontmatter at the top of a file is hidden in the viewer today. mdv can also
-render it (planned as an option): YAML as a `<table class="frontmatter">` of keys and values
-(nested values are nested tables), TOML as a `<pre class="frontmatter">` code block, so a
-theme can style them apart from the document's own tables.
+YAML or TOML frontmatter at the top of a file is hidden unless the reader turns on
+Settings > Markdown > Frontmatter > Shown as a Table. Then it appears above the document: YAML
+as a table of top-level keys and values (lists are comma-separated, nested mappings are nested
+tables without the class), TOML as a code block:
+
+```html
+<table class="frontmatter">
+<tbody>
+<tr>
+<th>title</th>
+<td>Release notes</td>
+</tr>
+</tbody>
+</table>
+
+<pre class="frontmatter"><code class="language-toml">title = "Release notes"</code></pre>
+```
+
+Both get your ordinary `table` and `pre` styles, so a theme that styles those already covers
+them. The classes let you style them apart from the document's own tables and code, for
+example:
+
+```css
+.markdown-body table.frontmatter { font-size: 0.875em; }
+.markdown-body table.frontmatter th,
+.markdown-body table.frontmatter td { text-align: left; vertical-align: top; }
+```
 
 ### Blocked remote images
 
