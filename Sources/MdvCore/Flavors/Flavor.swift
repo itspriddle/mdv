@@ -33,13 +33,14 @@ public struct Flavor: Sendable, Hashable, Identifiable {
 
 extension Flavor {
     /// GitHub Flavored Markdown as github.com renders it (the default): every extension (tables,
-    /// strikethrough, extended autolinks, task lists, footnotes) and emoji shortcodes.
+    /// strikethrough, extended autolinks, task lists, footnotes), alerts, and emoji shortcodes.
     public static let gfm = Flavor(
         id: "gfm", displayName: "GitHub Flavored Markdown", extensions: MarkdownExtension.gfm,
-        transforms: [.emojiShortcodes])
+        transforms: [.alerts, .emojiShortcodes])
 
     /// Strict CommonMark: no extensions and no transforms, so tables, task lists, strikethrough,
-    /// extended autolinks, footnotes, and emoji shortcodes stay literal text. Frontmatter is
+    /// extended autolinks, footnotes, and emoji shortcodes stay literal text, and alerts stay block
+    /// quotes. Frontmatter is
     /// still detected (it's metadata, not syntax; `RenderOptions.detectsFrontmatter`).
     public static let commonmark = Flavor(id: "commonmark", displayName: "CommonMark", extensions: [])
 }

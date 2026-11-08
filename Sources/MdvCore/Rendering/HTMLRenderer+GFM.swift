@@ -1,4 +1,5 @@
-// GFM extension rendering for `HTMLRenderer`: tables, strikethrough, task lists, and footnotes.
+// GFM extension rendering for `HTMLRenderer`: tables, strikethrough, task lists, footnotes, and
+// alerts (`HTMLRenderer+Alerts.swift`).
 
 extension HTMLRenderer {
     func renderExtensionEnter(_ node: MarkdownNode, _ context: Context, into output: inout HTMLOutput) {
@@ -33,6 +34,8 @@ extension HTMLRenderer {
             renderFootnoteDefinitionStart(
                 node, key: footnoteIDs.key(number: number, label: label), opensSection: context.opensFootnoteSection,
                 into: &output)
+        case .alert(let type):
+            renderAlertStart(node, type, into: &output)
         default:
             break
         }
@@ -64,6 +67,8 @@ extension HTMLRenderer {
                 output.newlineIfNeeded()
             }
             output.raw("</li>\n")
+        case .alert:
+            renderAlertEnd(into: &output)
         default:
             break
         }

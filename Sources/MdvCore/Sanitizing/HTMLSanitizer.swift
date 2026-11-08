@@ -157,10 +157,7 @@ public struct HTMLSanitizer: Sendable {
 
     /// Whether a node's children are blocks (so closing tags go in an HTML block).
     private static func holdsBlocks(_ kind: MarkdownNode.Kind) -> Bool {
-        switch kind {
-        case .document, .blockQuote, .list, .item, .taskItem, .footnoteDefinition: true
-        default: false
-        }
+        kind.isBlockContainer
     }
 }
 

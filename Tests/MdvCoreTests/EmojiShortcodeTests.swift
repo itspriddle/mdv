@@ -145,7 +145,7 @@ struct EmojiShortcodeTests {
     func disabled() {
         #expect(paragraph(":tada:", options: RenderOptions(flavor: .commonmark)) == ":tada:")
         #expect(HTMLRenderer(options: .spec).render(":tada:").html == "<p>:tada:</p>\n")
-        #expect(RenderOptions().transforms == [.emojiShortcodes])
+        #expect(RenderOptions().transforms.contains(.emojiShortcodes))
     }
 
     @Test("emoji characters are written escaped")

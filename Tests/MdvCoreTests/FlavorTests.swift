@@ -37,10 +37,10 @@ struct FlavorTests {
         #expect(registry.flavor(id: "gfm") == .gfm)
     }
 
-    @Test("GFM has every extension and emoji; CommonMark has neither")
+    @Test("GFM has every extension, alerts, and emoji; CommonMark has none of them")
     func definitions() {
         #expect(Flavor.gfm.extensions == Set(MarkdownExtension.allCases))
-        #expect(Flavor.gfm.transforms == [.emojiShortcodes])
+        #expect(Flavor.gfm.transforms == [.alerts, .emojiShortcodes])
         #expect(Flavor.commonmark.extensions.isEmpty)
         #expect(Flavor.commonmark.transforms.isEmpty)
         #expect(Flavor.spec.extensions == Set(MarkdownExtension.allCases))
@@ -79,7 +79,7 @@ struct MarkdownTransformTests {
         options.builtInPreprocessors = [.emojiShortcodes]
         #expect(options.transforms == [.emojiShortcodes])
         options.flavor = .gfm
-        #expect(options.transforms == [.emojiShortcodes])
+        #expect(options.transforms == [.alerts, .emojiShortcodes])
     }
 
     @Test("a built-in preprocessor works in any flavor")

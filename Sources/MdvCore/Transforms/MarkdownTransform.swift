@@ -23,12 +23,16 @@
 /// it. Transforms run before sanitizing, heading collection, and highlighting, so heading text
 /// and slugs see their result, and nodes they add are rendered (and escaped) by `HTMLRenderer`.
 public enum MarkdownTransform: String, CaseIterable, Sendable, Hashable {
+    /// GitHub alerts (`> [!NOTE]`) in top-level block quotes become `alert` nodes (#52). GFM only.
+    case alerts
+
     /// GitHub emoji shortcodes (`:tada:`) in text become emoji (#10). GFM only.
     case emojiShortcodes = "emoji"
 
     /// The pass that implements this transform.
     var implementation: any MarkdownTreeTransform.Type {
         switch self {
+        case .alerts: GitHubAlerts.self
         case .emojiShortcodes: EmojiShortcodes.self
         }
     }

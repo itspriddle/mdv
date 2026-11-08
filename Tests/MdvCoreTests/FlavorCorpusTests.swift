@@ -64,9 +64,12 @@ struct FlavorCorpusTests {
     @Test("CommonMark leaves every GFM construct literal")
     func commonMarkIsStrict() throws {
         let folder = try Self.rootURL().appending(path: "commonmark")
-        for name in ["tables", "task-lists", "strikethrough", "autolinks", "footnotes", "emoji"] {
+        for name in ["tables", "task-lists", "strikethrough", "autolinks", "footnotes", "emoji", "alerts"] {
             let html = try String(contentsOf: folder.appending(path: "\(name).html"), encoding: .utf8)
-            for marker in ["<table", "<input", "<del", "<section", "<sup", "🎉", "href=\"https://example.com/path"] {
+            for marker in [
+                "<table", "<input", "<del", "<section", "<sup", "🎉", "href=\"https://example.com/path",
+                "markdown-alert",
+            ] {
                 #expect(!html.contains(marker), "commonmark/\(name) contains \(marker)")
             }
         }

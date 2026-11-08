@@ -17,6 +17,23 @@ struct GitHubFixtureTests {
         #expect(actual.trimmingCharacters(in: .whitespacesAndNewlines) == expected)
     }
 
+    /// GitHub alerts (#52): every rule `GitHubAlerts` documents, as GitHub's API renders it. The
+    /// fixture needs line breaks (the marker is alone on its line), which `mode=gfm` writes as
+    /// `<br>`, so GitHub's soft breaks become newlines here (the fixture has no hard breaks
+    /// outside markers), and both sides are normalized: mdv starts each body block on a new line
+    /// where GitHub doesn't.
+    @Test("alerts match GitHub, and so do their Octicons, byte for byte")
+    func alertsMatchGitHub() throws {
+        let markdown = try Self.fixture("alerts", "md")
+        let github = try Self.fixture("alerts", "html")
+        let expected = Self.strippingGitHubSiteMarkup(github).replacingOccurrences(of: "<br>\n", with: "\n")
+        let actual = HTMLRenderer().render(markdown).html
+        #expect(HTMLNormalizer.normalize(actual) == HTMLNormalizer.normalize(expected))
+        for type in GitHubAlert.allCases {
+            #expect(github.contains("\(type.iconSVG)\(type.title)</p>"), "\(type)")
+        }
+    }
+
     /// Removes what github.com layers on top of its Markdown rendering (see the README).
     static func strippingGitHubSiteMarkup(_ html: String) -> String {
         var html = html

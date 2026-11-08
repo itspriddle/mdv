@@ -121,11 +121,10 @@ terminal applications.</p>
 <p>You can use <a href="https://brew.sh/">Homebrew</a> (on macOS or Linux) to install fzf.</p>
 <pre><code class="language-sh">brew install fzf
 </code></pre>
-<blockquote>
-<p>[!IMPORTANT]
-To set up shell integration (key bindings and fuzzy completion),
+<div class="markdown-alert markdown-alert-important"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-report mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>To set up shell integration (key bindings and fuzzy completion),
 see <a href="#setting-up-shell-integration">the instructions below</a>.</p>
-</blockquote>
+</div>
 <p>fzf is also available <a href="https://github.com/macports/macports-ports/blob/master/sysutils/fzf/Portfile">via MacPorts</a>: <code>sudo port install fzf</code></p>
 <h3 id="using-mise"><a class="anchor" aria-hidden="true" href="#using-mise"></a>Using Mise</h3>
 <p>You can use <a href="https://github.com/jdx/mise">mise</a> to install fzf.</p>
@@ -208,11 +207,10 @@ see <a href="#setting-up-shell-integration">the instructions below</a>.</p>
 </tr>
 </tbody>
 </table>
-<blockquote>
-<p>[!IMPORTANT]
-To set up shell integration (key bindings and fuzzy completion),
+<div class="markdown-alert markdown-alert-important"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-report mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>To set up shell integration (key bindings and fuzzy completion),
 see <a href="#setting-up-shell-integration">the instructions below</a>.</p>
-</blockquote>
+</div>
 <p><a href="https://repology.org/project/fzf/versions"><img src="https://repology.org/badge/vertical-allrepos/fzf.svg?columns=3" alt="Packaging status" /></a></p>
 <h3 id="windows-packages"><a class="anchor" aria-hidden="true" href="#windows-packages"></a>Windows packages</h3>
 <p>On Windows, fzf is available via <a href="https://chocolatey.org/packages/fzf">Chocolatey</a>, <a href="https://github.com/ScoopInstaller/Main/blob/master/bucket/fzf.json">Scoop</a>,
@@ -283,18 +281,16 @@ fzf --nushell | save -f ($nu.default-config-dir | path join &quot;autoload&quot;
 </code></pre>
 </li>
 </ul>
-<blockquote>
-<p>[!NOTE]
-<code>--bash</code>, <code>--zsh</code>, <code>--fish</code>, and <code>--nushell</code> options are only available in
+<div class="markdown-alert markdown-alert-note"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-info mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>--bash</code>, <code>--zsh</code>, <code>--fish</code>, and <code>--nushell</code> options are only available in
 recent versions of fzf. If you have an older version of fzf, or want finer control, you can
 source individual script files in the <a href="/shell">/shell</a> directory. The
 location of the files may vary depending on the package manager you use.
 Please refer to the package documentation for more information.
 (e.g. <code>apt show fzf</code>)</p>
-</blockquote>
-<blockquote>
-<p>[!TIP]
-You can disable CTRL-T, CTRL-R, or ALT-C bindings by setting the
+</div>
+<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>You can disable CTRL-T, CTRL-R, or ALT-C bindings by setting the
 corresponding <code>*_COMMAND</code> variable to an empty string when sourcing the
 script. For example, to disable CTRL-R and ALT-C:</p>
 <ul>
@@ -305,7 +301,7 @@ script. For example, to disable CTRL-R and ALT-C:</p>
 <code>$env.FZF_CTRL_R_COMMAND = &quot;&quot;; $env.FZF_ALT_C_COMMAND = &quot;&quot;</code></li>
 </ul>
 <p>Setting the variables after sourcing the script will have no effect.</p>
-</blockquote>
+</div>
 <h3 id="vimneovim-plugin"><a class="anchor" aria-hidden="true" href="#vimneovim-plugin"></a>Vim/Neovim plugin</h3>
 <p>If you use <a href="https://github.com/junegunn/vim-plug">vim-plug</a>, add this to
 your Vim configuration file:</p>
@@ -322,11 +318,10 @@ Plug 'junegunn/fzf.vim'
 that provides a variety of useful commands</li>
 </ul>
 <p>To learn more about the Vim integration, see <a href="README-VIM.md">README-VIM.md</a>.</p>
-<blockquote>
-<p>[!TIP]
-If you use Neovim and prefer Lua-based plugins, check out
+<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>If you use Neovim and prefer Lua-based plugins, check out
 <a href="https://github.com/ibhagwan/fzf-lua">fzf-lua</a>.</p>
-</blockquote>
+</div>
 <h2 id="upgrading-fzf"><a class="anchor" aria-hidden="true" href="#upgrading-fzf"></a>Upgrading fzf</h2>
 <p>fzf is being actively developed, and you might want to upgrade it once in a
 while. Please follow the instruction below depending on the installation
@@ -349,29 +344,26 @@ selected item to STDOUT.</p>
 directory to get the list of files.</p>
 <pre><code class="language-sh">vim $(fzf)
 </code></pre>
-<blockquote>
-<p>[!NOTE]
-You can override the default behavior</p>
+<div class="markdown-alert markdown-alert-note"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-info mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>You can override the default behavior</p>
 <ul>
 <li>Either by setting <code>$FZF_DEFAULT_COMMAND</code> to a command that generates the desired list</li>
 <li>Or by setting <code>--walker</code>, <code>--walker-root</code>, and <code>--walker-skip</code> options in <code>$FZF_DEFAULT_OPTS</code></li>
 </ul>
-</blockquote>
-<blockquote>
-<p>[!WARNING]
-A more robust solution would be to use <code>xargs</code> but we've presented
+</div>
+<div class="markdown-alert markdown-alert-warning"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-alert mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>A more robust solution would be to use <code>xargs</code> but we've presented
 the above as it's easier to grasp</p>
 <pre><code class="language-sh">fzf --print0 | xargs -0 -o vim
 </code></pre>
-</blockquote>
-<blockquote>
-<p>[!TIP]
-fzf also has the ability to turn itself into a different process.</p>
+</div>
+<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>fzf also has the ability to turn itself into a different process.</p>
 <pre><code class="language-sh">fzf --<span class="hljs-built_in">bind</span> <span class="hljs-string">'enter:become(vim {})'</span>
 </code></pre>
 <p><em>See <a href="#turning-into-a-different-process">Turning into a different process</a>
 for more information.</em></p>
-</blockquote>
+</div>
 <h3 id="using-the-finder"><a class="anchor" aria-hidden="true" href="#using-the-finder"></a>Using the finder</h3>
 <ul>
 <li><code>CTRL-K</code> / <code>CTRL-J</code> (or <code>CTRL-P</code> / <code>CTRL-N</code>) to move cursor up and down</li>
@@ -413,20 +405,18 @@ fzf --popup top,40%        <span class="hljs-comment"># Top, 40% height</span>
 fzf --popup bottom,80%,40% <span class="hljs-comment"># Bottom, 80% width, 40% height</span>
 </code></pre>
 <p><code>--popup</code> is silently ignored when you're not on tmux or Zellij.</p>
-<blockquote>
-<p>[!NOTE]
-If you're stuck with an old version of tmux that doesn't support popup,
+<div class="markdown-alert markdown-alert-note"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-info mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>If you're stuck with an old version of tmux that doesn't support popup,
 or if you want to open fzf in a regular tmux pane, check out
 <a href="bin/fzf-tmux">fzf-tmux</a> script.</p>
-</blockquote>
-<blockquote>
-<p>[!TIP]
-You can add these options to <code>$FZF_DEFAULT_OPTS</code> so that they're applied by
+</div>
+<div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-light-bulb mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>You can add these options to <code>$FZF_DEFAULT_OPTS</code> so that they're applied by
 default. For example,</p>
 <pre><code class="language-sh"><span class="hljs-comment"># Open in a popup if on tmux or Zellij, otherwise use --height mode</span>
 <span class="hljs-built_in">export</span> FZF_DEFAULT_OPTS=<span class="hljs-string">'--height 40% --popup bottom,40% --layout reverse --border top'</span>
 </code></pre>
-</blockquote>
+</div>
 <h3 id="search-syntax"><a class="anchor" aria-hidden="true" href="#search-syntax"></a>Search syntax</h3>
 <p>Unless otherwise specified, fzf starts in &quot;extended-search mode&quot; where you can
 type in multiple search terms delimited by spaces. e.g. <code>^music .mp3$ sbtrkt !fire</code></p>
@@ -511,9 +501,8 @@ point to the location of the file</li>
 </ul>
 </li>
 </ul>
-<blockquote>
-<p>[!WARNING]
-<code>FZF_DEFAULT_COMMAND</code> is not used by shell integration due to the
+<div class="markdown-alert markdown-alert-warning"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-alert mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p><code>FZF_DEFAULT_COMMAND</code> is not used by shell integration due to the
 slight difference in requirements.</p>
 <ul>
 <li><code>CTRL-T</code> runs <code>$FZF_CTRL_T_COMMAND</code> to get a list of files and directories</li>
@@ -522,7 +511,7 @@ slight difference in requirements.</p>
 <li><code>cd foo**&lt;tab&gt;</code> runs <code>fzf_compgen_dir()</code> with the prefix (<code>foo</code>) as the first argument</li>
 </ul>
 <p>The available options are described later in this document.</p>
-</blockquote>
+</div>
 <h3 id="customizing-the-look"><a class="anchor" aria-hidden="true" href="#customizing-the-look"></a>Customizing the look</h3>
 <p>The user interface of fzf is fully customizable with a large number of
 configuration options. For a quick setup, you can start with one of the style
@@ -1068,9 +1057,8 @@ syntax-highlights the content of a file, such as
 </code></pre>
 <p>See the man page (<code>man fzf</code>) for the full list of options.</p>
 <p>More advanced examples can be found <a href="https://github.com/junegunn/fzf/blob/master/ADVANCED.md">here</a>.</p>
-<blockquote>
-<p>[!WARNING]
-Since fzf is a general-purpose text filter rather than a file finder, <strong>it is
+<div class="markdown-alert markdown-alert-warning"><p class="markdown-alert-title"><svg data-component="Octicon" class="octicon octicon-alert mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>Since fzf is a general-purpose text filter rather than a file finder, <strong>it is
 not a good idea to add <code>--preview</code> option to your <code>$FZF_DEFAULT_OPTS</code></strong>.</p>
 <pre><code class="language-sh"><span class="hljs-comment"># *********************</span>
 <span class="hljs-comment"># ** DO NOT DO THIS! **</span>
@@ -1082,7 +1070,7 @@ ps -ef | fzf
 <span class="hljs-built_in">seq</span> 100 | fzf
 <span class="hljs-built_in">history</span> | fzf
 </code></pre>
-</blockquote>
+</div>
 <h3 id="previewing-an-image"><a class="anchor" aria-hidden="true" href="#previewing-an-image"></a>Previewing an image</h3>
 <p>fzf can display images in the preview window using one of the following protocols:</p>
 <ul>
