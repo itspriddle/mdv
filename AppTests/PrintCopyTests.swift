@@ -39,6 +39,22 @@ final class PrintCopyTests: DocumentWindowTestCase {
         #expect(try #require(document.content).page.body.contains("data-source-line"), "the viewer's page has them")
     }
 
+    @Test("Copy as HTML copies an alert as GitHub's markup, which pastes as its title and body (#52)")
+    func copyAlert() throws {
+        let html = DocumentPasteboard.copyableHTML(for: "> [!WARNING]\n> Mind the gap.\n")
+        #expect(html.hasPrefix("<div class=\"markdown-alert markdown-alert-warning\">"))
+        let pasted = try NSAttributedString(
+            data: Data(html.utf8),
+            options: [
+                .documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue,
+            ],
+            documentAttributes: nil
+        ).string
+        #expect(pasted.contains("Warning"))
+        #expect(pasted.contains("Mind the gap."))
+        #expect(!pasted.contains("[!WARNING]"))
+    }
+
     @Test("copy items need a document with content")
     func copyValidation() throws {
         let controller = DocumentWindowController(zoomSettings: settings())
