@@ -53,19 +53,23 @@ class DocumentWindowTestCase {
 
     /// Opens `source` in a document window that follows `zoomSettings`, `contentWidthSettings`,
     /// and `themeSettings` (all in this suite's defaults unless given), in a document that
-    /// follows `markdownSettings` (the in-memory shared store unless given), once the page has
-    /// loaded.
+    /// follows `markdownSettings` and `customPreprocessorSettings` (the in-memory shared stores
+    /// unless given), once the page has loaded.
     /// `appearance` is set on the window before the page loads (light or dark from the start).
     func open(
         _ source: String = source, name: String = "notes.md", zoomSettings: ZoomSettings? = nil,
         contentWidthSettings: ContentWidthSettings? = nil, themeSettings: ThemeSettings? = nil,
-        markdownSettings: MarkdownSettings? = nil, appearance: NSAppearance.Name? = nil
+        markdownSettings: MarkdownSettings? = nil, customPreprocessorSettings: CustomPreprocessorSettings? = nil,
+        appearance: NSAppearance.Name? = nil
     ) async throws -> (MarkdownDocument, DocumentWindowController) {
         let file = folder.appending(path: name)
         try Data(source.utf8).write(to: file)
         let document = try MarkdownDocument(contentsOf: file, ofType: Self.markdownType)
         if let markdownSettings {
             document.markdownSettings = markdownSettings
+        }
+        if let customPreprocessorSettings {
+            document.customPreprocessorSettings = customPreprocessorSettings
         }
         let controller = DocumentWindowController(
             zoomSettings: zoomSettings ?? settings(),

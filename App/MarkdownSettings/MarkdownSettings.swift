@@ -13,6 +13,10 @@ struct MarkdownPreferences: Equatable, Sendable {
     /// Opt-in built-in preprocessors (#53's wiki links), independent of the flavor. Only
     /// `MarkdownSettings.optionalPreprocessors` ever appear here.
     var builtInPreprocessors: Set<MarkdownTransform> = []
+    /// The custom preprocessor (#57), stage 1 of the pipeline, or `nil` when it's off. Comes
+    /// from `CustomPreprocessorSettings`, not this store: `MarkdownDocument.renderPreferences`
+    /// fills it in. `apply(to:)` ignores it; `DocumentContent.rendering` runs it.
+    var customPreprocessor: CustomPreprocessorPreference?
 
     /// GFM, frontmatter hidden, no built-in preprocessors: the app before #55, and `mdv --html`.
     static let `default` = MarkdownPreferences()

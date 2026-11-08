@@ -17,6 +17,9 @@ import Foundation
 /// - `-MdvUITestThemesFolder <path>`: read custom themes (#35) from this absolute path
 ///   instead of `~/Library/Application Support/mdv/Themes`. Without it a UI-test launch loads
 ///   no custom themes, so tests never read or create the reader's folder.
+/// - `-MdvUITestPreprocessor <path>`: start with the custom preprocessor (#57) on, running the
+///   executable at this absolute path with no arguments (`CustomPreprocessorSettings.shared`,
+///   in memory). Without it a UI-test launch has no preprocessor, whatever the reader set.
 ///
 /// UI-test launches (and hosted unit tests) never add to Open Recent (`DocumentController`).
 enum UITestHooks {
@@ -27,6 +30,8 @@ enum UITestHooks {
         static let openKey = "MdvUITestOpen"
         /// Launch argument (a `UserDefaults` key) with an absolute path to the custom themes folder.
         static let themesFolderKey = "MdvUITestThemesFolder"
+        /// Launch argument (a `UserDefaults` key) with an absolute path to a custom preprocessor.
+        static let preprocessorKey = "MdvUITestPreprocessor"
     #endif
 
     /// Whether a UI test launched the app. Always `false` in Release builds.
@@ -72,6 +77,19 @@ enum UITestHooks {
                 return nil
             }
             return URL(filePath: path, directoryHint: .isDirectory)
+        #else
+            nil
+        #endif
+    }
+
+    /// The custom preprocessor executable a UI test asked for, or nil. Always nil in Release.
+    static var preprocessorExecutable: String? {
+        #if DEBUG
+            guard isUITesting, let path = UserDefaults.standard.string(forKey: preprocessorKey), path.hasPrefix("/")
+            else {
+                return nil
+            }
+            return path
         #else
             nil
         #endif
