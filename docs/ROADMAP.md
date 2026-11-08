@@ -388,7 +388,7 @@ Control how source becomes Markdown.
 - Frontmatter display: `RenderOptions` can render frontmatter as a table
   (`FrontmatterDisplay.table`), but nothing in the app exposes it; a Settings option would make
   `table.frontmatter`/`pre.frontmatter` in `docs/THEMES.md` real (update the guide)
-- GitHub alerts (`> [!NOTE]`) in the GFM flavor (rendered as plain block quotes in M1)
+- ~~GitHub alerts (`> [!NOTE]`) in the GFM flavor (rendered as plain block quotes in M1)~~ Done (#52)
 - Settings UI for flavors and preprocessors
 - ~~Carried over from M3: per-window zoom and content width, with Settings setting the default
   for new windows (#47). Restoration keeps each window's values.~~ Done (#47, ahead of M4).
@@ -412,6 +412,18 @@ huge output) cannot hang or crash the app.
   passes, so code and raw HTML are never rewritten. Transforms (`MarkdownTransform`) run in one
   fixed order, whatever enabled them: alerts, wiki links, emoji. After a custom preprocessor,
   `data-source-line` refers to the preprocessor's output. See VISION.
+- GitHub alerts (#52): an AST transform in the GFM flavor (`GitHubAlerts`, first in the
+  transform order) matching github.com's rules, each verified with `gh api markdown` and kept
+  as `Fixtures/github/alerts.md`: top-level block quotes only (no nesting, none in lists or
+  footnotes), the case-insensitive marker alone on the first line of a first paragraph, and a
+  body required (a lone marker stays a block quote). GitHub's markup and Octicon SVGs are
+  renderer constants (no CSP change); the alert `div` carries `data-source-line`, the title
+  doesn't and isn't a heading (not in the outline). Themes: GitHub's vendored rules; Document
+  (shaded callout, unshaded on paper) and Serif (rule and small-caps title); `ThemeBase` gives
+  a theme without `extends` a left rule and title layout, and keeps alerts whole on paper where
+  they fit. Known divergence: a quote between raw HTML tags (`<details>` … `</details>` in
+  separate HTML blocks) is top level in mdv's tree, so it becomes an alert; github.com keeps it
+  a block quote.
 - Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
   `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
   against github.com by the README corpus.
@@ -459,7 +471,7 @@ Ship it.
 - Homebrew cask
 - Make `itspriddle/<name>` public; project site / landing page; CONTRIBUTING and issue templates
 - Acknowledgements for bundled third-party code (highlight.js BSD-3 notice, gemoji data,
-  github-markdown-css MIT notice)
+  github-markdown-css MIT notice, Octicons MIT notice for the alert icons from #52)
 
 **Exit criteria:** a 1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
 updates itself to 1.0.1 via Sparkle.

@@ -49,7 +49,9 @@ lock the build database.
   - `Transforms/`: AST passes. `MarkdownTransform` (enum; declaration order is run order:
     alerts, wiki links, emoji) names each pass; its implementation conforms to
     `MarkdownTreeTransform`. Enabled by `Flavor.transforms` or
-    `RenderOptions.builtInPreprocessors`. Emoji shortcodes live here.
+    `RenderOptions.builtInPreprocessors`. Emoji shortcodes and GitHub alerts (`GitHubAlerts`,
+    top-level `> [!NOTE]` quotes to `MarkdownNode.Kind.alert`; markup and Octicons in
+    `Rendering/HTMLRenderer+Alerts.swift`) live here.
   - `Themes/`: `Theme` (CSS plus `ThemeBackground`), `ThemeRegistry` (the one place the app and
     CLI get a theme; unknown ids fall back to GitHub), `ThemeBase` (the base layer every page
     gets; `!important` there means protected from themes), and `ThemeLayer` (cascade layers
@@ -141,6 +143,9 @@ lock the build database.
 - `Tests/MdvCoreTests/Fixtures/flavors/<id>/`: per-flavor corpus (`FlavorCorpusTests`), `.md`
   inputs and recorded `.html` (`MDV_RECORD_SNAPSHOTS=1`); one folder per registered flavor. A
   feature that changes a flavor's output adds fixtures to it.
+- `Tests/MdvCoreTests/Fixtures/flavors/<id>`: per-flavor corpus (`FlavorCorpusTests`,
+  `MDV_RECORD_SNAPSHOTS=1`). `Fixtures/github/alerts.md` is github.com's alert rules from
+  `gh api markdown` (mode gfm), compared normalized (see that folder's README).
 - `Tests/MdvCoreTests/Fixtures/github`, `.../corpus`: GitHub reference output (refresh with
   `scripts/update-github-fixtures`, manual, needs auth) and mdv snapshots
   (`MDV_RECORD_SNAPSHOTS=1`). Corpus exceptions live in `corpus.json`.
