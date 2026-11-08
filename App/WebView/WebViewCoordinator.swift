@@ -35,8 +35,16 @@ final class WebViewCoordinator: NSObject {
     /// The theme in the loaded page's `mdv-theme` style element; nil for a page that isn't a
     /// rendered document (the first-load preparation page, test pages).
     private(set) var loadedTheme: Theme?
-    /// The in-place swap `show(_:)` started, if any (for tests).
+    /// The in-place swap `show(_:)` started, if any (for tests). It returns once the page holds
+    /// `theme` (or a load replaced it).
     private(set) var pendingThemeSwap: Task<Void, Never>?
+    /// The `replaceTheme` script in flight, if any. One at a time: while it runs, `loadedTheme`
+    /// is still the page's previous theme, so another swap waits for it rather than comparing
+    /// against that.
+    private var themeScriptInFlight: Task<Bool, any Error>?
+    /// Counts full loads, so a swap that finishes after a new load started doesn't claim the new
+    /// page holds its theme.
+    private var pageGeneration = 0
 
     // MARK: Links (#19, `WebViewCoordinator+Navigation.swift`)
 
@@ -162,6 +170,7 @@ final class WebViewCoordinator: NSObject {
     /// `HTMLDocument` (CSP, theme); tests also use it for hand-written hostile pages.
     func load(html: String, baseURL: URL?) async throws {
         loadedTheme = nil
+        pageGeneration += 1
         expectedLoadURL = baseURL ?? URL(string: "about:blank")
         LaunchTiming.mark("loadStarted")
         guard let navigation = webView.loadHTMLString(html, baseURL: baseURL) else {
@@ -191,15 +200,41 @@ final class WebViewCoordinator: NSObject {
 
     /// Swaps `theme` into the loaded page if the page has another one. Runs after every load
     /// and theme change, so whichever finishes last, the page ends with the current theme.
+    ///
+    /// Swaps run one at a time and the check repeats after each: a switch away and straight back
+    /// (A to B to A) while the swap to B is in flight must still end on A, though `loadedTheme`
+    /// says A until that swap lands.
     private func swapThemeIfNeeded() async throws {
-        guard hasLoadedPage, let loadedTheme, loadedTheme != theme else {
-            return
+        while hasLoadedPage, let loadedTheme, loadedTheme != theme {
+            if let inFlight = themeScriptInFlight {
+                // Done means `loadedTheme` and `themeScriptInFlight` are already updated (the
+                // task does both before it returns), so the check above sees the result.
+                _ = try? await inFlight.value
+                continue
+            }
+            let task = startThemeScript(theme)
+            // A page without a theme element, or a new load started (it swaps in its own).
+            guard try await task.value else {
+                return
+            }
         }
-        let theme = theme
-        let swapped = try await replaceTheme(css: theme.layerCSS)
-        if swapped {
-            self.loadedTheme = theme
+    }
+
+    /// Sends `theme` to the page as the one script in flight. Before the task returns, it clears
+    /// `themeScriptInFlight` and, if the page took the theme and is still the same load, sets
+    /// `loadedTheme`. Returns whether it did.
+    private func startThemeScript(_ theme: Theme) -> Task<Bool, any Error> {
+        let generation = pageGeneration
+        let task = Task {
+            defer { themeScriptInFlight = nil }
+            guard try await replaceTheme(css: theme.layerCSS), generation == pageGeneration else {
+                return false
+            }
+            loadedTheme = theme
+            return true
         }
+        themeScriptInFlight = task
+        return task
     }
 
     enum LoadError: Error, Equatable {

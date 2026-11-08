@@ -127,6 +127,25 @@ final class ThemePickerTests: DocumentWindowTestCase {
         #expect(controller.coordinator.loadedTheme == .document)
     }
 
+    @Test("switching back to the page's theme while a swap is in flight ends on it")
+    func switchBackDuringSwap() async throws {
+        defer { closeAll() }
+        let (_, controller) = try await openLong(themeSettings: themeSettings())
+        let coordinator = controller.coordinator
+        for round in 0..<5 {
+            // The swap to serif starts (its script is in flight), then the pick goes back to the
+            // theme the page still holds: the page must not keep serif.
+            controller.setTheme(id: "serif")
+            await Task.yield()
+            controller.setTheme(id: "github")
+            await coordinator.pendingThemeSwap?.value
+            try await until("round \(round) shows github", timeout: .seconds(5)) {
+                try await pageThemeCSS(in: controller) == Theme.github.layerCSS.trimmingCharacters(in: .newlines)
+            }
+            #expect(coordinator.loadedTheme == .github, "round \(round)")
+        }
+    }
+
     @Test("a live reload keeps the window's theme, and a full reload uses it")
     func reloadKeepsTheme() async throws {
         defer { closeAll() }
