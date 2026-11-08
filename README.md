@@ -17,6 +17,13 @@ mdv ships GitHub, Document, and Serif themes, and any CSS file in
 `~/Library/Application Support/mdv/Themes` is a theme too. See the
 [theme authoring guide](docs/THEMES.md).
 
+## Markdown flavors
+
+Documents render as GitHub Flavored Markdown by default: tables, task lists, strikethrough,
+autolinks, footnotes, emoji shortcodes, and GitHub alerts (`> [!NOTE]`). Settings > Markdown
+switches the default to strict CommonMark, shows frontmatter as a table, and turns on wiki
+links (`[[Page]]`). Open windows update right away.
+
 ## Per-document settings
 
 A document can choose how it is shown with an `mdv:` mapping in its YAML frontmatter:
@@ -26,7 +33,7 @@ A document can choose how it is shown with an `mdv:` mapping in its YAML frontma
 mdv:
   flavor: commonmark   # or gfm (the default)
   theme: serif         # a bundled id, or custom:<file name>
-  wikilinks: true      # [[Page]] links (#53)
+  wikilinks: true      # [[Page]] links
 ---
 ```
 
@@ -58,6 +65,9 @@ preprocessor: choose the program with Choose… and add any arguments, one per f
   trust. A document can't turn it on or change it.
 - It has 5 seconds and 10 MB of output. If it fails, the window shows the document without it
   and a bar with the reason; Show Details has what the program wrote to standard error.
+- If macOS won't start it ("Operation not permitted"), the file may be quarantined, for example
+  a script you downloaded. If you trust it, `xattr -d com.apple.quarantine /path/to/script`
+  clears that.
 - It runs again on every live reload, and open windows update when you change it in Settings.
 
 ## Requirements

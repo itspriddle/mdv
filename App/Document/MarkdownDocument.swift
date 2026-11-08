@@ -171,6 +171,9 @@ final class MarkdownDocument: NSDocument {
             let interval = signposter.beginInterval(
                 "Render", id: signposter.makeSignpostID(), "\(source.utf8.count) bytes")
             defer { signposter.endInterval("Render", interval) }
+            if let delay = UITestHooks.renderDelay {
+                try await Task.sleep(for: delay)
+            }
             return try await DocumentContent.rendering(source, of: url, preferences: preferences)
         }
         return try await withTaskCancellationHandler {

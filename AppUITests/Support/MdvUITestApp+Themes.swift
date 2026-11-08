@@ -3,11 +3,25 @@ import XCTest
 extension MdvUITestApp {
     /// Chooses View > Theme > `title` (#34).
     func chooseTheme(_ title: String) {
+        chooseThemeMenuItem(title)
+    }
+
+    /// Chooses View > Theme > Document's Theme (#54).
+    ///
+    /// By its identifier (the action), not its title: validation retitles it "Document's Theme
+    /// (Serif)" only while the menu is open, and its accessibility title stays "Document's
+    /// Theme", so a title query failed on CI when XCUITest looked the item up again after the
+    /// click, once the menu had closed (#59).
+    func chooseDocumentTheme() {
+        chooseThemeMenuItem("useDocumentTheme:")
+    }
+
+    private func chooseThemeMenuItem(_ titleOrIdentifier: String) {
         let view = app.menuBars.menuBarItems["View"]
         view.click()
         let submenu = view.menuItems["Theme"]
         submenu.hover()
-        submenu.menuItems[title].click()
+        submenu.menuItems[titleOrIdentifier].click()
     }
 
     /// Whether View > Theme lists `title` (#35): opens the menu, looks, and closes it.

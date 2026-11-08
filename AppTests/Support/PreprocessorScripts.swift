@@ -82,6 +82,25 @@ struct PreprocessorScripts {
             """)
     }
 
+    /// Misbehaves according to the document: hangs ignoring `SIGTERM` if it contains `HANG`,
+    /// dies by `SIGSEGV` on `CRASH`, floods stdout on `FLOOD`, exits 3 on `FAIL`, and otherwise
+    /// passes it through. Lets a live reload switch one script between failures (#59).
+    func modal() throws -> String {
+        try write(
+            "modal.sh",
+            """
+            echo $$ >> \(quotedPidFile)
+            input=$(cat)
+            case "$input" in
+            *HANG*) trap '' TERM; while :; do sleep 1; done ;;
+            *CRASH*) ulimit -c 0; kill -SEGV $$ ;;
+            *FLOOD*) exec yes 'A line of Markdown that goes on and on.' ;;
+            *FAIL*) echo 'failing on purpose' >&2; exit 3 ;;
+            esac
+            printf '%s\\n' "$input"
+            """)
+    }
+
     /// The pids scripts have written so far.
     func pids() -> [pid_t] {
         guard let text = try? String(contentsOf: pidFile, encoding: .utf8) else {

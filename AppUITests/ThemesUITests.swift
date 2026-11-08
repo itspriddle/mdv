@@ -112,7 +112,7 @@ final class ThemesUITests: XCTestCase {
         mdv.chooseTheme("GitHub")
         waitUntil("GitHub restyles the paragraph") { abs(paragraph.frame.width - documentWidth) > 1 }
 
-        mdv.chooseTheme("Document's Theme (Serif)")
+        mdv.chooseDocumentTheme()
         waitUntil("back to the document's theme") { abs(paragraph.frame.width - documentWidth) < 1 }
 
         // The document's theme was Serif: picking Serif leaves the paragraph as it opened.

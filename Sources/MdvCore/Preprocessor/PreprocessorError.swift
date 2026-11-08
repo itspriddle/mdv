@@ -42,6 +42,8 @@ public struct PreprocessorError: Error, Sendable, Equatable, CustomStringConvert
             "The document is larger than the preprocessor limit (\(Self.size(limit)))."
         case .executableUnavailable(let problem):
             "The preprocessor can’t run: \(problem)"
+        case .launchFailed(let code) where code == EPERM || code == EACCES:
+            "The preprocessor couldn’t start: \(String(cString: strerror(code))). \(Self.blockedLaunchHint)"
         case .launchFailed(let code):
             "The preprocessor couldn’t start: \(String(cString: strerror(code)))."
         case .timedOut(let timeout):
@@ -58,6 +60,14 @@ public struct PreprocessorError: Error, Sendable, Equatable, CustomStringConvert
             "The preprocessor’s output contains a NUL byte."
         }
     }
+
+    /// A likely cause and fix when launching was refused (`EPERM`, `EACCES`) although the file
+    /// passed the executable check: usually macOS refusing a quarantined file (downloaded, or
+    /// written by a sandboxed app). Unverified per case, so it says "may".
+    static let blockedLaunchHint =
+        "macOS may be blocking it, for example if it was downloaded or saved by a sandboxed app "
+        + "(quarantined). If you trust it, run “xattr -d com.apple.quarantine” on the file in "
+        + "Terminal, or check System Settings > Privacy & Security."
 
     public var description: String {
         standardError.isEmpty ? message : "\(message)\n\(standardError)"
