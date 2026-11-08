@@ -32,15 +32,24 @@ lock the build database.
 - `Sources/MdvCore`: all rendering logic (parse, transform, HTML, themes, preprocessors). No UI
   imports. New logic goes here so it is testable with `swift test`.
   - `Parsing/`: `MarkdownParser` wraps swift-cmark's C API (the only code that imports
-    `cmark_gfm`); `MarkdownExtension` lists GFM extensions toggled via `RenderOptions`.
+    `cmark_gfm`); `MarkdownExtension` lists GFM extensions, which flavors enable.
+  - `Flavors/`: `Flavor` (id, name, extensions, transforms; syntax only) with `gfm` (default)
+    and `commonmark`; `FlavorRegistry` resolves ids (unknown → GFM). A flavor is one
+    `static let` plus a line in `FlavorRegistry.bundled` plus `Fixtures/flavors/<id>/`.
   - `AST/`: `MarkdownNode`, our `Sendable` syntax tree (CommonMark + GFM kinds, source ranges).
   - `Rendering/`: `HTMLRenderer` walks the AST to HTML; `MarkdownRenderer`, `RenderOptions`, and
-    `RenderedDocument` are the public API. `RenderOptions.spec` turns every mdv addition off; a
+    `RenderedDocument` are the public API. `HTMLRenderer+Pipeline.swift` is the render pipeline
+    (VISION): custom preprocessor (`SourcePreprocessor`, before `render(_:)`) → frontmatter →
+    flavor resolution → parse → transforms → HTML. `RenderOptions.flavor` picks syntax;
+    viewer features are separate toggles. `RenderOptions.spec` turns every mdv addition off; a
     new toggle adds one line there. Heading slugs, footnote ids, and `data-source-line` live here.
   - `Sanitizing/`: `HTMLSanitizer` allowlist for raw-HTML nodes only (renderer output is trusted,
     so everything the renderer emits must be escaped by construction).
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
-  - `Transforms/`: AST passes (emoji shortcodes).
+  - `Transforms/`: AST passes. `MarkdownTransform` (enum; declaration order is run order:
+    alerts, wiki links, emoji) names each pass; its implementation conforms to
+    `MarkdownTreeTransform`. Enabled by `Flavor.transforms` or
+    `RenderOptions.builtInPreprocessors`. Emoji shortcodes live here.
   - `Themes/`: `Theme` (CSS plus `ThemeBackground`), `ThemeRegistry` (the one place the app and
     CLI get a theme; unknown ids fall back to GitHub), `ThemeBase` (the base layer every page
     gets; `!important` there means protected from themes), and `ThemeLayer` (cascade layers
@@ -129,6 +138,9 @@ lock the build database.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
   `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
   a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
+- `Tests/MdvCoreTests/Fixtures/flavors/<id>/`: per-flavor corpus (`FlavorCorpusTests`), `.md`
+  inputs and recorded `.html` (`MDV_RECORD_SNAPSHOTS=1`); one folder per registered flavor. A
+  feature that changes a flavor's output adds fixtures to it.
 - `Tests/MdvCoreTests/Fixtures/github`, `.../corpus`: GitHub reference output (refresh with
   `scripts/update-github-fixtures`, manual, needs auth) and mdv snapshots
   (`MDV_RECORD_SNAPSHOTS=1`). Corpus exceptions live in `corpus.json`.

@@ -4,7 +4,8 @@
 /// URLs; raw HTML passed through when `RenderOptions.sanitize` is off), so the CommonMark/GFM
 /// spec suites can check it directly. Raw HTML is otherwise filtered by `HTMLSanitizer`. GFM
 /// tables and strikethrough match cmark too; task lists and footnotes follow
-/// `RenderOptions.gfmMarkup`. Later M1 features (emoji, highlighting, source lines) hook in here.
+/// `RenderOptions.gfmMarkup`. `render(_:)` is the render pipeline (documented there and in
+/// VISION); syntax features plug in as `MarkdownTransform`s, viewer features as `RenderOptions`.
 public struct HTMLRenderer: MarkdownRenderer {
     public var options: RenderOptions
     /// Highlights fenced code blocks when `options.highlighting` is on; `nil` renders them plain.
@@ -20,46 +21,6 @@ public struct HTMLRenderer: MarkdownRenderer {
         self.highlighter = highlighter
     }
 
-    public func render(_ markdown: String) -> RenderedDocument {
-        let extracted = options.detectsFrontmatter ? Frontmatter.extract(from: markdown) : nil
-        let frontmatter = extracted?.frontmatter
-        let body = extracted.map { String($0.body) } ?? markdown
-        let document = transformed(
-            MarkdownParser(extensions: options.extensions).parse(body, lineOffset: frontmatter?.lineCount ?? 0))
-
-        var output = HTMLOutput(capacity: markdown.utf8.count + markdown.utf8.count / 4)
-        if let frontmatter, options.frontmatterDisplay == .table {
-            FrontmatterHTML.render(frontmatter, into: &output)
-        }
-        let (headings, blockedRemoteImages) = render(document, into: &output)
-        return RenderedDocument(
-            html: output.string,
-            title: Self.title(frontmatter: frontmatter, headings: headings),
-            headings: headings,
-            frontmatter: frontmatter,
-            blockedRemoteImages: blockedRemoteImages
-        )
-    }
-
-    /// Renders an already-parsed tree to an HTML fragment.
-    public func html(for node: MarkdownNode) -> String {
-        let node = transformed(node)
-        var output = HTMLOutput()
-        render(node, into: &output)
-        return output.string
-    }
-
-    /// Applies the tree transforms `options` enables (emoji shortcodes), before headings are
-    /// collected so heading text and slugs see their result.
-    private func transformed(_ node: MarkdownNode) -> MarkdownNode {
-        options.emoji ? EmojiShortcodes.replace(in: node) : node
-    }
-
-    /// The document title: frontmatter `title` first, then the first non-empty `h1`.
-    static func title(frontmatter: Frontmatter?, headings: [Heading]) -> String? {
-        frontmatter?.title ?? headings.first { $0.level == 1 && !$0.text.isEmpty }?.text
-    }
-
     /// Renders `root` and returns its headings in document order and the remote images
     /// replaced with placeholders (`RenderedDocument.blockedRemoteImages`).
     ///
@@ -67,7 +28,7 @@ public struct HTMLRenderer: MarkdownRenderer {
     /// raw HTML `<h1>`–`<h6>` can be included (`HeadingCollection`). With
     /// `options.headingAnchors` on, their slugs become heading ids.
     @discardableResult
-    private func render(_ root: MarkdownNode, into output: inout HTMLOutput) -> (
+    func render(_ root: MarkdownNode, into output: inout HTMLOutput) -> (
         headings: [Heading], blockedRemoteImages: [RemoteImage]
     ) {
         var rawBlockedImages: [RemoteImage] = []

@@ -53,7 +53,7 @@ struct GFMTableTests {
 
     @Test("tables are literal text without the extension")
     func disabled() {
-        let output = HTMLRenderer(options: RenderOptions(extensions: [])).render("| a |\n| - |").html
+        let output = HTMLRenderer(options: RenderOptions(flavor: .commonmark)).render("| a |\n| - |").html
         #expect(output == "<p>| a |\n| - |</p>\n")
     }
 }

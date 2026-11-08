@@ -3,10 +3,15 @@ public protocol MarkdownRenderer: Sendable {
     func render(_ markdown: String) -> RenderedDocument
 }
 
-/// Feature toggles for parsing and rendering. Later M1 issues add their switches here.
+/// How a document is parsed and rendered: the flavor (syntax) plus viewer and safety features,
+/// which are independent of the flavor (see `Flavor` for the split).
 public struct RenderOptions: Sendable, Equatable {
-    /// Syntax extensions enabled on top of CommonMark. Defaults to GitHub Flavored Markdown.
-    public var extensions: Set<MarkdownExtension>
+    /// The Markdown dialect: parser extensions and the syntax transforms it runs (#51). Defaults
+    /// to GitHub Flavored Markdown. Callers choose syntax here, never per extension.
+    public var flavor: Flavor
+    /// Built-in preprocessors turned on in addition to the flavor's own transforms, independent of
+    /// the flavor (#53's wiki links). Empty by default. They run in `MarkdownTransform` order.
+    public var builtInPreprocessors: Set<MarkdownTransform> = []
     /// Strip a leading YAML/TOML frontmatter block before parsing (#8). Turn off for spec
     /// conformance, where a leading `---` block is ordinary Markdown.
     public var detectsFrontmatter = true
@@ -23,8 +28,6 @@ public struct RenderOptions: Sendable, Equatable {
     /// output (`mdv --html`) and the spec suites stay clean; the app turns it on. See
     /// `HTMLRenderer.writeSourceLine(of:into:)` for the attribute contract.
     public var sourceLines = false
-    /// Replace GitHub emoji shortcodes such as `:tada:` in text with their emoji (#10).
-    public var emoji = true
     /// Syntax-highlight fenced code blocks that name a language, at render time (#11). Needs
     /// `HTMLRenderer.highlighter`; blocks render as plain escaped code without one.
     public var highlighting = true
@@ -43,9 +46,15 @@ public struct RenderOptions: Sendable, Equatable {
     /// for trusted input (the spec suites expect raw HTML to pass through).
     public var sanitize: Bool
 
-    public init(extensions: Set<MarkdownExtension> = MarkdownExtension.gfm, sanitize: Bool = true) {
-        self.extensions = extensions
+    public init(flavor: Flavor = .gfm, sanitize: Bool = true) {
+        self.flavor = flavor
         self.sanitize = sanitize
+    }
+
+    /// The AST transforms a render with these options runs: the flavor's plus the built-in
+    /// preprocessors, in pipeline order (`MarkdownTransform`).
+    public var transforms: [MarkdownTransform] {
+        MarkdownTransform.ordered(flavor.transforms.union(builtInPreprocessors))
     }
 }
 
