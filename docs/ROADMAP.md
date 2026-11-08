@@ -209,7 +209,10 @@ CSS themes as a first-class feature.
 - Font size vs zoom (#37): no font size control; zoom (Cmd +/-, reflowing `pageZoom`) is the
   text size control. Content width is four presets (narrow, theme default, wide, full) in
   View > Content Width, global and persisted, applied live via the `mdv-user` layer
-  (`--mdv-content-width`); print ignores it. See VISION.
+  (`--mdv-content-width`); print ignores it. See VISION. **Reversed after M3 (#47):** zoom and
+  content width move to per window, like themes, with Settings setting the default for new
+  windows. A global change re-laid out every open window at once, which was jarring. VISION's
+  #37 entry changes when #47 lands.
 
 - Theme switch (#34): in-place swap of the `mdv-theme` `<style>` text by app script (same
   `mdv.replaceStyle` as #37), keeping the reading position, find, zoom, and remote-image
@@ -262,7 +265,7 @@ CSS themes as a first-class feature.
 - Copy Link and find (#42): Copy Link never copies an `mdv-doc:` URL (`CopyableLink`); the find
   bar shares the system find pasteboard; Jump to Selection (Cmd-J).
 - No per-file zoom (#43): it would make Cmd +/- mean "this file" or "every file" depending on
-  history; pinch already covers a one-off. The outline gained Expand/Collapse All and a
+  history; pinch already covers a one-off. (#47 makes zoom per window, not per file.) The outline gained Expand/Collapse All and a
   per-window, restored width.
 - Missing custom theme fallback (#45): a window whose custom theme is deleted, broken, or not
   loaded yet shows Settings' default theme, and GitHub (the registry's default) only when that
@@ -270,6 +273,18 @@ CSS themes as a first-class feature.
 - Custom themes without `extends` (#45): unchanged, they start from the base layer only, with no
   highlight.js token colors; a theme written from scratch styles code itself (the guide and its
   example show how).
+
+**After the close-out** (found while testing the milestone PR, #46, and merged with it):
+
+- Appearance override: Settings > General and View > Appearance pick System, Light, or Dark
+  for the whole app (`NSApp.appearance`); printing stays light.
+- The toolbar's theme menu was dropped (a pull-down toolbar menu hid its first item, GitHub);
+  View > Theme is the one picker.
+- Dragging a link out of the page, Share on a link, and Copy Image no longer expose `mdv-doc:`
+  URLs (`PasteboardLinkRewriter` in MdvCore). Copy Image of a local image copies the file's
+  bytes plus a PNG, and works for SVG.
+- `docs/github-soft-dark.css`: an `extends: github` example theme (github.com's "Soft dark",
+  Primer `dark_dimmed`), checked by `ThemeGuideTests`.
 
 **Performance (#40):** cold open to first paint, as in #27 (process start to two animation
 frames after the first page load finished, Release, file as an argument, outline hidden),
@@ -345,8 +360,7 @@ with the sidebar shown) is still there; deferred, below.
   indicator for long first renders (about 0.4 s of an empty window at 5 MB); no performance
   check in CI (needs a GUI session and Release; CI timing is too noisy); the prewarmed web
   view lingers if no document window ever opens.
-- Opening and links: other routes that may expose `mdv-doc:` URLs (dragging a link out of the
-  page, Share on a link, Copy Image) are unchecked; the find pasteboard isn't re-read on app
+- Opening and links: the find pasteboard isn't re-read on app
   activation while the bar is open; dropping an extensionless file from Finder and `mdv
   CHANGELOG` are manual checks only; the Open panel sniffs every extensionless file it lists
   (fine locally, maybe slow on a large network folder); while a document's folder is missing,
@@ -376,6 +390,8 @@ Control how source becomes Markdown.
   `table.frontmatter`/`pre.frontmatter` in `docs/THEMES.md` real (update the guide)
 - GitHub alerts (`> [!NOTE]`) in the GFM flavor (rendered as plain block quotes in M1)
 - Settings UI for flavors and preprocessors
+- Carried over from M3: per-window zoom and content width, with Settings setting the default
+  for new windows (#47). Restoration keeps each window's values.
 
 **Exit criteria:** each flavor has its own test corpus; a misbehaving script (hang, crash,
 huge output) cannot hang or crash the app.
