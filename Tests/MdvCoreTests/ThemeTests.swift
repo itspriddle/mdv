@@ -22,6 +22,18 @@ struct ThemeTests {
         #expect(ThemeColor(red: 1, green: 0xA0, blue: 0).hex == "#01a000")
     }
 
+    @Test("tells dark backgrounds from light ones, for controls drawn over them")
+    func isDark() {
+        #expect(ThemeColor(0x00_00_00).isDark)
+        #expect(!ThemeColor(0xFF_FF_FF).isDark)
+        #expect(ThemeColor(0x75_75_75).isDark, "mid gray: white has the better contrast")
+        #expect(!ThemeColor(0x76_76_76).isDark)
+        for theme in ThemeRegistry.bundled.themes {
+            #expect(!theme.background.light.isDark, "\(theme.id) light")
+            #expect(theme.background.dark.isDark, "\(theme.id) dark")
+        }
+    }
+
     @Test("the page background is generated from the background the app paints before first load")
     func background() throws {
         let css = Theme.github.css

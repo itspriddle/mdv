@@ -43,6 +43,11 @@ final class MarkdownDocument: NSDocument {
     /// Whether the window shows the file's current contents; set by live reload.
     var fileStatus: FileStatus = .current
 
+    /// Whether a render (`pendingRender`) or a live reload is in flight: the windows show a
+    /// progress indicator if it runs long (#58). Each window hears of a change through
+    /// `DocumentWindowController.renderActivityDidChange()`.
+    private(set) var isRendering = false
+
     /// Watches the file while the document has windows (live reload).
     @ObservationIgnored private var liveReloader: LiveReloader?
 
@@ -98,6 +103,7 @@ final class MarkdownDocument: NSDocument {
         NotificationCenter.default.removeObserver(
             self, name: CustomPreprocessorSettings.didChangeNotification, object: nil)
         dropPendingRender()
+        updateRenderActivity()
         super.close()
     }
 
@@ -143,6 +149,7 @@ final class MarkdownDocument: NSDocument {
             }
             self.setContent(content)
         }
+        updateRenderActivity()
     }
 
     /// What a render of this document uses now: Settings > Markdown's preferences (#55) and the
@@ -175,7 +182,8 @@ final class MarkdownDocument: NSDocument {
 
     /// Marks the render in flight, if any, as stale and cancels it. A custom preprocessor it
     /// is running is stopped; otherwise its work finishes in the background (the renderer
-    /// can't be interrupted) and the result is dropped.
+    /// can't be interrupted) and the result is dropped. Callers call `updateRenderActivity()`
+    /// once they're done, so a render replaced by another never reports a gap.
     private func dropPendingRender() {
         contentGeneration += 1
         pendingRender?.cancel()
@@ -204,6 +212,20 @@ final class MarkdownDocument: NSDocument {
             controller.documentContentDidChange()
         }
         renderIfSettingsChanged()
+        updateRenderActivity()
+    }
+
+    /// Updates `isRendering` from the render and the live reload in flight, and tells the
+    /// windows when it changed.
+    func updateRenderActivity() {
+        let rendering = pendingRender != nil || liveReloader?.isReloading == true
+        guard rendering != isRendering else {
+            return
+        }
+        isRendering = rendering
+        for case let controller as DocumentWindowController in windowControllers {
+            controller.renderActivityDidChange()
+        }
     }
 
     // MARK: Markdown settings (#55)

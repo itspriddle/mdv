@@ -71,6 +71,8 @@ final class OutlineTests {
         // The first display ends by focusing the web view; wait, so it doesn't take focus from
         // the outline mid-test.
         try await until("the web view focused") { controller.window?.firstResponder === controller.coordinator.webView }
+        // The outline fills once the first page has painted (#58).
+        try await until("the outline's first fill") { controller.outlineController.hasOutline }
         return (document, controller)
     }
 

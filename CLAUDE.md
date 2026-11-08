@@ -92,7 +92,7 @@ lock the build database.
     MANIFEST and license.
 - `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
   `AppDelegate`), SwiftUI for window content only. Feature folders: `ContentWidth/`, `Copy/`,
-  `DefaultViewer/`, `Print/`, `Themes/`, `Zoom/` (each a small type plus its
+  `DefaultViewer/`, `Print/`, `RenderProgress/`, `Themes/`, `Zoom/` (each a small type plus its
   `DocumentWindowController+<Feature>.swift`). `Themes/ThemeSettings` holds the theme registry
   and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
   `Themes/CustomThemeLibrary` watches the custom themes folder (`ThemeFolderWatcher`) and
@@ -147,7 +147,13 @@ lock the build database.
     reload bypasses `NSDocument.revert`; the window swaps content in place with
     `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
   - `Outline/`: `OutlineViewController` (the sidebar's `NSOutlineView`) and `OutlinePreference`
-    (default visibility).
+    (default visibility). The window fills it after the first page paints (#58), then on each
+    display.
+  - `RenderProgress/`: `RenderProgress` (#58: the delayed indicator's state, 300 ms by default,
+    injectable) and `RenderProgressIndicator` (the overlay: centered over the blank page before
+    the first page loads, small in the corner during re-renders). The window feeds it from
+    `isWaitingForFirstPage` and `MarkdownDocument.isRendering` (a render or live reload in
+    flight; `updateRenderActivity()` tells each window).
   - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
     actions go in `DocumentWindowController+<Feature>.swift`, menu validation in the one
     `validateMenuItem` switch in `+Outline.swift`), `DocumentWindow` (restorable state),
