@@ -224,7 +224,9 @@ final class MarkdownSettingsTests: DocumentWindowTestCase {
             try await evaluate("return document.body.textContent.includes('Appended.');", in: controller) as? Bool
                 ?? false
         }
-        #expect(try await !pageHas("table", in: controller))
+        // The stale GFM page (with the appended text) shows first by design; wait for the
+        // CommonMark render to replace it rather than checking once.
+        try await until("the CommonMark render of the reload") { try await !pageHas("table", in: controller) }
     }
 
     @Test("a document opened after the change renders with it")

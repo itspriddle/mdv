@@ -41,7 +41,9 @@ struct StressTests {
     }
 
     func until(
-        _ what: String, timeout: Duration = .seconds(10), _ condition: () async throws -> Bool
+        // Generous: a starved CI runner can take over a second per web content process launch,
+        // and stress tests open many windows. A wrong end state still fails, just later.
+        _ what: String, timeout: Duration = .seconds(30), _ condition: () async throws -> Bool
     ) async throws {
         let deadline = ContinuousClock.now + timeout
         while try await !condition() {
