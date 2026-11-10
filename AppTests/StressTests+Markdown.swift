@@ -182,7 +182,7 @@ extension StressTests {
         for (index, window) in windows.enumerated() {
             try await expectFinal(window, index: index, plan: plan, registry: themeStore.registry)
         }
-        #expect(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
+        expectTiming(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
     }
 
     /// Checks that window `index` settled on the plan's last step: its content, the document's
@@ -247,7 +247,7 @@ extension StressTests {
             #expect(document.fileStatus == .current)
             #expect(document.content?.preprocessorError == nil, "window \(index)")
         }
-        #expect(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
+        expectTiming(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
         // Every overtaken run (hanging ones included) was stopped.
         #expect(try await scripts.processesGone(), "no script, child, or zombie left: \(scripts.pids())")
     }

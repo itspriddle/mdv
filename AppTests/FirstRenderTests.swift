@@ -164,16 +164,16 @@ struct FirstRenderTests {
 
         #expect(document.content?.page.headings.isEmpty == false)
         // One frame at 60 Hz.
-        #expect(readTime < .milliseconds(17), "read+decode took \(readTime)")
+        expectTiming(readTime < .milliseconds(17), "read+decode took \(readTime)")
         // Main-thread CPU time between heartbeats, not wall time: on a loaded machine (parallel
         // builds, CI) the main thread also waits to be scheduled, which isn't a stall we caused
         // (wall-clock gaps of 21-44 ms were seen that way while the busy time stayed under 5 ms).
         let bound: Duration = .milliseconds(17)
-        #expect(longestBusyWhileRendering < bound, "main thread busy for \(longestBusyWhileRendering) at once")
+        expectTiming(longestBusyWhileRendering < bound, "main thread busy for \(longestBusyWhileRendering) at once")
         // A main thread waiting for the render (a lock, a synchronous hop) uses no CPU; it would
         // wait for most of the render, far over this bound.
-        #expect(longestGapWhileRendering < .milliseconds(250), "main thread stalled \(longestGapWhileRendering)")
-        #expect(renderTime > longestGapWhileRendering * 4, "the render ran while the main thread kept going")
+        expectTiming(longestGapWhileRendering < .milliseconds(250), "main thread stalled \(longestGapWhileRendering)")
+        expectTiming(renderTime > longestGapWhileRendering * 4, "the render ran while the main thread kept going")
     }
 
     // MARK: Preparing the web view

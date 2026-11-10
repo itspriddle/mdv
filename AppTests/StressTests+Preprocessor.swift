@@ -81,8 +81,8 @@ extension StressTests {
             }
             try await expectRendered(script, version: " v2", in: window)
         }
-        #expect(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
-        #expect(heartbeat.longestGap < .milliseconds(500), "longest main-thread gap \(heartbeat.longestGap)")
+        expectTiming(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
+        expectTiming(heartbeat.longestGap < .milliseconds(500), "longest main-thread gap \(heartbeat.longestGap)")
         #expect(try await scripts.processesGone(), "no script, child, or zombie left: \(scripts.pids())")
     }
 
@@ -130,7 +130,7 @@ extension StressTests {
             #expect(document.fileStatus == .current)
             #expect(document.content?.preprocessorError == nil)
         }
-        #expect(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
+        expectTiming(heartbeat.longestBusyGap < .milliseconds(150), "main thread busy \(heartbeat.longestBusyGap)")
         // Every overtaken run was cancelled: nothing is still running a stale version.
         #expect(try await scripts.processesGone())
     }
@@ -166,7 +166,7 @@ extension StressTests {
                 lastDocument = document
             }
         }
-        #expect(longestClose < .milliseconds(400), "longest close \(longestClose)")
+        expectTiming(longestClose < .milliseconds(400), "longest close \(longestClose)")
         #expect(try await scripts.processesGone(), "no script, child, or zombie left: \(scripts.pids())")
         try await until("the closed document is freed") { lastDocument == nil }
     }

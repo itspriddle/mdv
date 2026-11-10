@@ -178,7 +178,8 @@ lock the build database.
   `AppTests/Support/`: `DocumentWindowTestCase` (windows over temp files and throwaway
   settings), `ThrowawayDefaults` (a per-test `UserDefaults` suite in a temp folder; never use
   `UserDefaults(suiteName:)` with a plain name, which leaves a plist in ~/Library/Preferences),
-  `MainThreadHeartbeat` (main-thread stalls by CPU time), `SnapshotImage`, `LoopbackServer`,
+  `MainThreadHeartbeat` (main-thread stalls by CPU time), `expectTiming` (`MainThreadTiming`: main-thread
+  timing bounds, strict locally, report-only on CI via `TEST_RUNNER_MDV_TIMING_REPORT_ONLY`), `SnapshotImage`, `LoopbackServer`,
   `PreprocessorScripts` (custom preprocessor scripts plus a leaked-process check).
   `StressTests` (+`Themes`, `ZoomWidth`, `Preprocessor`, `Markdown`) is the crash and hang suite; run it
   under ASan and TSan at each milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
