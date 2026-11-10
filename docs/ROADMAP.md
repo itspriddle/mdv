@@ -373,7 +373,7 @@ checklist is in the milestone PR)
 
 ## M4: Flavors and preprocessors
 
-**Status:** Done (2026-11-08; the milestone PR, #60, merges after review).
+**Status:** Done (2026-11-10, #60).
 
 Control how source becomes Markdown.
 
@@ -544,7 +544,8 @@ Debug, with no sanitizer reports and no runtime issues from mdv's code. The stre
 - one preprocessor script that hangs, crashes, floods stdout, or fails depending on the file,
   switched by live reload, with its arguments changing mid-run.
 
-Each ends on the newest content and settings, with no process left. No app bug turned up.
+Each ends on the newest content and settings, with no process left. The sanitizer and stress
+runs found no app bug; macOS 26 CI later exposed one (see "After the close-out").
 
 The macOS 26 CI run on the integration branch (5ae19c2) failed two tests, both test problems:
 
@@ -562,6 +563,28 @@ The macOS 26 CI run on the integration branch (5ae19c2) failed two tests, both t
 
 ASan reproduced the first failure locally (the close test's heartbeat, 1 of 365 tests) before
 the fix; the stress suite then passed three runs in a row without sanitizers.
+
+**After the close-out (macOS 26 CI, before #60 merged):**
+
+- **Lost theme swap, a real bug** (from #34, exposed by M4's extra theme switches on starved
+  runners). Switching A to B and back to A while B's swap was in flight left the page on B for
+  good: `WebViewCoordinator.swapThemeIfNeeded()` compared against `loadedTheme`, which only
+  caught up when the swap script answered. Swaps now run one at a time and re-check after each,
+  and `pageGeneration` stops a swap that finishes after a new load from claiming that page. A
+  `ThemePickerTests` regression test failed every time on the old code with no CPU load.
+- **Main-thread timing bounds are report-only on CI** (`expectTiming`,
+  `AppTests/Support/MainThreadTiming.swift`). CI's app-test step sets
+  `TEST_RUNNER_MDV_TIMING_REPORT_ONLY`; `xcodebuild` forwards only `TEST_RUNNER_` variables to
+  the test process, never `CI`. The runners showed 0.26-0.67 s main-thread gaps with almost no
+  CPU used, and 18-27 ms busy times on code that measures 1.3-1.5 ms on a real Mac with every
+  core loaded. A throwaway experiment (#61) ruled out #58's progress indicator. On CI a miss is
+  logged as a known issue; locally the bounds stay strict.
+- **Test races fixed:** a settings test that checked once instead of waiting for the end state,
+  the preprocessor cancellation margin, and an alert-button query that matched CI's Touch Bar
+  copy (query alert and sheet buttons inside their window).
+
+When a correctness check (not a timing bound) times out on CI, suspect a race before raising
+the timeout, and reproduce locally with `yes` loading every core.
 
 **Performance (#59):** no re-run for the table: the machine was still busy at
 the close-out (load 5-7, `duetexpertd` holding a core again, plus Spotlight indexing the build
