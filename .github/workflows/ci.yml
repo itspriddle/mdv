@@ -38,6 +38,10 @@ jobs:
         run: make test-core
       - name: Build and test app
         run: make build test-app SIGN=0
+        env:
+          # Main-thread timing bounds are report-only here: shared runners are too starved for
+          # them (AppTests/Support/MainThreadTiming.swift). They stay strict locally.
+          TEST_RUNNER_MDV_TIMING_REPORT_ONLY: "1"
       - name: Upload theme snapshots
         if: always()
         uses: actions/upload-artifact@v7

@@ -54,10 +54,21 @@ Term
 > > A nested block quote.
 
 > [!NOTE]
-> Alerts render as plain block quotes until M4.
+> A note alert with `code` and a [link](README.md).
+
+> [!TIP]
+> A tip alert.
+
+> [!IMPORTANT]
+> An important alert.
+>
+> - with a list
 
 > [!WARNING]
 > A warning alert.
+
+> [!CAUTION]
+> A caution alert.
 
 ## Code
 

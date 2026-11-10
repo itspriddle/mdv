@@ -10,7 +10,7 @@ them when the milestone is broken down.
 | [M1](#m1-core-rendering)                | Core rendering                 | -         | Done   |
 | [M2](#m2-viewer-app)                    | Viewer app                     | -         | Done   |
 | [M3](#m3-themes)                        | Themes                         | -         | Done   |
-| [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         |        |
+| [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         | Done   |
 | [M5](#m5-cli)                           | CLI                            | -         |        |
 | [Gate](#gate-choose-the-name)           | Choose the final name          | -         |        |
 | [M6](#m6-distribution-and-10)           | Distribution                   | **1.0**   |        |
@@ -355,10 +355,10 @@ with the sidebar shown) is still there; deferred, below.
 - Settings: remembering the remote-image opt-in per file (decided against for now, #36); no
   Settings UI for restoration or for resetting the default viewer offer; no UI test for the
   Settings window's position; no manual VoiceOver pass.
-- Performance: the outline's first fill (about 20 ms on main for a 5 MB document with the
+- Performance: ~~the outline's first fill (about 20 ms on main for a 5 MB document with the
   sidebar shown; options: fill after the first load, or lazily while collapsed); no progress
-  indicator for long first renders (about 0.4 s of an empty window at 5 MB); no performance
-  check in CI (needs a GUI session and Release; CI timing is too noisy); the prewarmed web
+  indicator for long first renders (about 0.4 s of an empty window at 5 MB)~~ done in M4
+  (#58); no performance check in CI (needs a GUI session and Release; CI timing is too noisy); the prewarmed web
   view lingers if no document window ever opens.
 - Opening and links: the find pasteboard isn't re-read on app
   activation while the bar is open; dropping an extensionless file from Finder and `mdv
@@ -373,28 +373,225 @@ checklist is in the milestone PR)
 
 ## M4: Flavors and preprocessors
 
+**Status:** Done (2026-11-08; the milestone PR, #60, merges after review).
+
 Control how source becomes Markdown.
 
 - Flavor presets: CommonMark (strict), GFM (default), plus room for others; each a defined set of
-  parser options and AST transforms
-- Built-in preprocessors (e.g. frontmatter stripping, wiki-links `[[Page]]`, include/transclusion
-  TBD)
+  parser options and AST transforms (#51)
+- Built-in preprocessors: wiki links `[[Page]]` (#53); frontmatter is extracted in every flavor
+  and shown hidden or as a table. Include/transclusion: not done (deferred, below)
 - Custom preprocessor: user-configured executable, document on stdin, Markdown on stdout,
-  timeout and size limits, explicit opt-in with a clear warning
-- Per-document overrides via frontmatter (`mdv: { flavor: commonmark, theme: github }`). A
-  `theme:` override resolves like a window's pick (M3): bundled or `custom:<file>` ids through
-  `ThemeSettings.registry`, falling back to Settings' default; decide whether it beats a theme
-  the reader picked for that window, and whether it is remembered by restoration
-- Frontmatter display: `RenderOptions` can render frontmatter as a table
-  (`FrontmatterDisplay.table`), but nothing in the app exposes it; a Settings option would make
-  `table.frontmatter`/`pre.frontmatter` in `docs/THEMES.md` real (update the guide)
-- GitHub alerts (`> [!NOTE]`) in the GFM flavor (rendered as plain block quotes in M1)
-- Settings UI for flavors and preprocessors
+  timeout and size limits, explicit opt-in with a clear warning (#56, #57)
+- Per-document overrides via frontmatter (`mdv: { flavor: commonmark, theme: github }`, #54).
+  The window's pick beats the document's theme, which beats Settings' default; restoration keeps
+  only the pick
+- Frontmatter display as a table in Settings > Markdown (#55); `docs/THEMES.md` documents
+  `table.frontmatter`/`pre.frontmatter`
+- GitHub alerts (`> [!NOTE]`) in the GFM flavor, styled in every bundled theme (#52)
+- Settings UI for flavors and preprocessors: Settings > Markdown (#55, #57)
+- Feedback for slow renders: a delayed progress indicator, and the outline filled after first
+  paint (#58)
 - ~~Carried over from M3: per-window zoom and content width, with Settings setting the default
   for new windows (#47). Restoration keeps each window's values.~~ Done (#47, ahead of M4).
 
 **Exit criteria:** each flavor has its own test corpus; a misbehaving script (hang, crash,
-huge output) cannot hang or crash the app.
+huge output) cannot hang or crash the app. ✅ (`Fixtures/flavors/<id>/`, enforced by
+`FlavorCorpusTests`; `StressTests+Preprocessor` and `+Markdown`, also under ASan and TSan; the
+manual checklist is in the milestone PR)
+
+**Decisions:**
+
+- Flavor vs feature split (#51): a `Flavor` owns syntax only, its cmark-gfm extensions and the
+  AST transforms it always runs. Bundled: `gfm` (default; every extension, emoji shortcodes,
+  alerts from #52) and `commonmark` (none). Emoji shortcodes are GFM-only. Heading anchors,
+  highlighting, source lines, sanitizing, remote images, `linkRoot`, markup style, and
+  frontmatter detection and display stay `RenderOptions` features independent of the flavor;
+  CommonMark keeps frontmatter detection (metadata, not syntax). Opt-in built-in preprocessors
+  (wiki links, #53) are `RenderOptions.builtInPreprocessors`, also independent of the flavor.
+  `FlavorRegistry` resolves ids; unknown ids are GFM. See VISION.
+- Render pipeline (#51): custom preprocessor (whole file, opt-in) → frontmatter extraction →
+  flavor resolution (frontmatter `mdv.flavor`, #54) → parse → AST transforms → HTML, in
+  `HTMLRenderer.render(_:)`. Built-in preprocessors are AST transforms over text nodes, not text
+  passes, so code and raw HTML are never rewritten. Transforms (`MarkdownTransform`) run in one
+  fixed order, whatever enabled them: alerts, wiki links, emoji. After a custom preprocessor,
+  `data-source-line` refers to the preprocessor's output. See VISION.
+- GitHub alerts (#52): an AST transform in the GFM flavor (`GitHubAlerts`, first in the
+  transform order) matching github.com's rules, each verified with `gh api markdown` and kept
+  as `Fixtures/github/alerts.md`: top-level block quotes only (no nesting, none in lists or
+  footnotes), the case-insensitive marker alone on the first line of a first paragraph, and a
+  body required (a lone marker stays a block quote). GitHub's markup and Octicon SVGs are
+  renderer constants (no CSP change); the alert `div` carries `data-source-line`, the title
+  doesn't and isn't a heading (not in the outline). Themes: GitHub's vendored rules; Document
+  (shaded callout, unshaded on paper) and Serif (rule and small-caps title); `ThemeBase` gives
+  a theme without `extends` a left rule and title layout, and keeps alerts whole on paper where
+  they fit. Known divergence: a quote between raw HTML tags (`<details>` … `</details>` in
+  separate HTML blocks) is top level in mdv's tree, so it becomes an alert; github.com keeps it
+  a block quote.
+- Settings > Markdown (#55): default flavor, frontmatter display (hidden or a table), and
+  opt-in built-in preprocessors in one `MarkdownSettings` store; changes re-render open
+  documents in place (the live reload swap, reading position kept), and frontmatter
+  `mdv.flavor` (#54) still wins. No per-window flavor menu: flavor belongs to the file
+  (frontmatter) or the reader's one default, and is per document, not per window. The bundled
+  themes already style `table.frontmatter` and `pre.frontmatter` (light, dark, print); no theme
+  CSS or snapshot change. See VISION.
+- Wiki links (#53): an opt-in built-in preprocessor (Settings > Markdown, or `mdv.wikilinks`,
+  which beats Settings both ways), independent of the flavor. `[[Page]]`, `[[Page|label]]`
+  (label second, unlike Gollum), `[[Page#Heading]]`, `[[#Heading]]`; plain text only, brackets
+  written as is (`\[[` stays literal, checked against the source line). GitHub wiki naming
+  (`Page Name` → `Page-Name.md`, case-insensitive, space = hyphen, Markdown extensions only).
+  Searched in the document's folder, then the allowed root breadth first, never outside it,
+  skipping hidden entries and symbolic links, capped at 10,000 entries. MdvCore takes an
+  injected `WikiLinkResolver` (`FolderWikiLinkResolver` over an injected folder reader; the app
+  reads the disk). Found: a relative, percent-encoded `a.wikilink` through `LinkPolicy`;
+  missing: `a.wikilink.wikilink-missing` with no `href` (dashed underline from the base
+  layer, no theme CSS or snapshot change). Resolved at render time only; `mdv --html` has no
+  resolver yet (M5). Fixtures `Fixtures/flavors/*/wiki-links*.md`. See VISION.
+- Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
+  `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
+  against github.com by the README corpus.
+- Per-document overrides (#54): `DocumentOverrides` (MdvCore) reads `flavor`, `theme`, and
+  `wikilinks` from the YAML frontmatter's `mdv:` mapping; other keys and wrong types are
+  ignored and reported in `RenderedDocument.overrides`. Presentation only: frontmatter can't
+  enable the custom preprocessor, turn off sanitizing, allow remote images, or change any other
+  setting (`RenderOptions.applying(_:)` touches only the flavor; tests prove each). The flavor
+  beats `RenderOptions.flavor` before parsing (`mdv --html` too); an unknown one keeps the
+  reader's default. Theme precedence: the window's View > Theme pick, then the document's
+  theme, then Settings' default; same fallback as a pick. Restoration saves only the pick. A
+  live reload that changes `mdv.theme` swaps the theme in place. View > Theme checks the shown
+  theme and has "Document's Theme" to drop the pick. TOML `[mdv]` is unsupported (documented,
+  reported as ignored); no TOML parser. `mdv --html` uses a bundled frontmatter theme. See
+  VISION.
+- Custom preprocessor runner (#56): `CustomPreprocessor` in `MdvCore`. The document's path is
+  passed in `MDV_DOCUMENT_PATH`, never as an argument. The working directory is the document's
+  folder (`/` without a file). The environment is fixed (`PATH` with Homebrew's folders,
+  `HOME`, `TMPDIR`, `LANG`). The executable is an absolute path, never looked up on `PATH`,
+  and it is validated when configured and again before each run (links followed only for
+  the check). Limits: 5 s, 10 MB in, 10 MB out, a 64 KB stderr tail, and `SIGTERM` to the
+  process group, then `SIGKILL` 0.5 s later. Its stage 1 adapter is `for(documentURL:)`
+  (`SourcePreprocessor`). Fixture scripts cover each misbehavior, and the tests check that no
+  process or descriptor leaks. See VISION's security model.
+- Custom preprocessor in the app (#57): off by default, turned on only in Settings > Markdown
+  after a warning, with the program chosen in an Open panel and arguments as a list
+  (`CustomPreprocessorSettings`, `MarkdownPreferences.customPreprocessor`). It runs on every
+  document the app opens (no extension filter). A failure renders the document without it plus a
+  bar with the reason and a Show Details stderr disclosure (no alert, no error page). Settings
+  shows the session's last run instead of a "Test on…" button. Live reload reruns it; newer
+  renders, `setContent`, and closing cancel the run in flight; Settings changes re-render open
+  documents and restart outdated runs. Frontmatter can't enable it. `StressTests+Preprocessor`
+  covers hang, crash, flood, fork, reload storms, and closing mid-run. See VISION.
+- Feedback for slow renders (#58): a wait over 300 ms (`RenderProgress.defaultDelay`, injected
+  in tests) shows an indeterminate indicator; shorter ones never flash it. Before the first page
+  loads it sits in the middle of the blank page on the theme's background (drawn in the
+  appearance that contrasts with it) and goes when the page loads. Re-renders (live reload,
+  Settings changes, a slow preprocessor) keep the old page, never blanking it, and show a small
+  indicator in the top corner: decided yes, but subtle (a material circle, no clicks taken),
+  since a reload of a large file or a slow script otherwise looks like nothing happened. The
+  outline's first fill runs after the first page paints (two animation frames, or 100 ms when
+  WebKit isn't drawing the window), and the sidebar is blank rather than "No Headings" until
+  then. `MarkdownDocument.isRendering` covers both a render and a live reload in flight. See
+  VISION.
+
+**Performance (#58):** the #45 harness (`scripts/measure-cold-open -f`, Release, MacBook Air,
+macOS 27.2), before (#57's merge, 2c6c400) and after #58 launched interleaved with the floor in
+one sitting: three rounds of 4 launches (3 for the large files), the median of the rounds'
+medians. The synthetic documents are `FirstRenderTests.largeSource(bytes:)`, as in #40 and #45.
+**The machine wasn't idle:** no other agents ran, but load averaged 4-9 (a system daemon,
+`duetexpertd`, held one core throughout, and load rose in the third round), so compare within
+this table, not with #45's.
+
+| Document | Size | Before #58 | After #58 | Floor (bare `WKWebView`) | After minus floor |
+| -------- | ---- | ---------- | --------- | ------------------------ | ----------------- |
+| mdv README | 4.4 KB | 336 ms | 335 ms | 298 ms | +37 ms |
+| `bat` README (corpus) | 34 KB | 358 ms | 357 ms | 320 ms | +37 ms |
+| Synthetic | 1 MB | 654 ms | 643 ms | | |
+| Synthetic | 5 MB | 2126 ms | 2200 ms | | |
+| Synthetic, outline shown | 5 MB | 2150 ms | 2162 ms | | |
+
+README-sized opens are unchanged and within the agreed 0-50 ms of the floor. At 5 MB the rounds
+spread by 100-450 ms under this load, so the cold-open harness can't resolve the outline's
+~20 ms either way; the hosted measurement does (`FirstRenderTests`, Debug, same sitting, two
+runs each): with the outline shown, the longest main-thread busy stretch between the render
+landing and the page load was 19.1-19.4 ms before and 1.5 ms after (the fill now comes after
+the first paint), the same as with the outline hidden. The test's bound with the outline shown
+dropped from 50 ms to 17 ms. Re-measure 1 MB and 5 MB on a quieter machine at the close-out if
+absolute numbers are wanted.
+
+**Decisions at the close-out (#59):**
+
+- UI tests hold up renders with a Debug-only launch hook, `-MdvUITestRenderDelay <seconds>`
+  (`UITestHooks.renderDelay`, compiled out of Release, at most 30 s, cancelled with the
+  render), instead of a 4 s preprocessor script, which a slow CI launch could outlast.
+- When `posix_spawn` refuses a preprocessor that passed the executable check (`EPERM` or
+  `EACCES`), the bar's reason adds a likely cause without claiming it: the file may be
+  quarantined (downloaded, or saved by a sandboxed app), with `xattr -d com.apple.quarantine`
+  and System Settings > Privacy & Security to try. Seen with scripts the sandboxed UI test
+  runner writes; a quarantined script launched from a terminal ran, so the cause isn't
+  confirmed for downloads.
+- The GitHub repository became public (it was to stay private until 1.0); M6 renames it rather
+  than publishing it.
+
+**Crash and hang pass (#59):** `AppTests` (365 tests, including the stress suite) and
+`AppUITests` (46 tests, restoration included, run separately with
+`TEST_RUNNER_MDV_UI_TEST_RESTORATION=1`) pass under Address Sanitizer and Thread Sanitizer in
+Debug, with no sanitizer reports and no runtime issues from mdv's code. The stress suite gained
+`StressTests+Markdown`:
+
+- Settings > Markdown (flavor, frontmatter table, wiki links) changing during first renders
+  (a 1 MB document among them) and rapid live reloads;
+- frontmatter `mdv.theme` and `mdv.flavor` changing under rapid live reloads, with the reader
+  picking and dropping a theme and changing both defaults meanwhile;
+- one preprocessor script that hangs, crashes, floods stdout, or fails depending on the file,
+  switched by live reload, with its arguments changing mid-run.
+
+Each ends on the newest content and settings, with no process left. No app bug turned up.
+
+The macOS 26 CI run on the integration branch (5ae19c2) failed two tests, both test problems:
+
+- `StressTests+Preprocessor`: the main-thread heartbeat ran while twelve windows started
+  their web content processes. On the runner that stalled the main thread for 3.8 s, with
+  0.27 s of CPU time, before any script result landed; even the crashing script's result
+  took 4.8 s, so the whole VM was starved. The runner's cancel, validation, and spawn code
+  never runs on the main thread. The misbehaving scripts are now timed on a live reload once
+  the windows are up. The close test times each `close()` (a close that waited for a
+  TERM-ignoring script would take the 0.5 s grace period). The bounds are unchanged.
+- `ThemesUITests.testFrontmatterThemeOpensInThatTheme`: "Document's Theme (Serif)" has that
+  title only while the menu is open (validation sets it; its accessibility title is
+  "Document's Theme"), so XCUITest's lookup after the click failed once the menu had closed.
+  The test chooses it by identifier.
+
+ASan reproduced the first failure locally (the close test's heartbeat, 1 of 365 tests) before
+the fix; the stress suite then passed three runs in a row without sanitizers.
+
+**Performance (#59):** no re-run for the table: the machine was still busy at
+the close-out (load 5-7, `duetexpertd` holding a core again, plus Spotlight indexing the build
+folders), so #58's table above stands for M4. Nothing in #59 changes a Release code path, apart
+from one error message and a Debug-only hook that compiles to `nil`. A non-interleaved spot
+check of the finished milestone (10 launches each, load 5-6) gave the README (4.9 KB) 354 ms
+against a 303 ms floor (+50) and `bat` 392 ms against 336 ms (+57). That's in line with M3's
+non-interleaved runs (+44, +65) rather than a regression; interleaved runs on a quiet machine
+are the ones to compare.
+
+**Deferred from M4** (from the issue handoffs; none blocks 1.0 on its own):
+
+- Pipeline and flavors: include/transclusion (no design yet); `RenderedDocument` doesn't report
+  the flavor a document actually rendered with, so the UI can't say "this document overrides
+  to CommonMark"; no UI for `RenderedDocument.overrides.ignored` (frontmatter keys mdv ignored
+  and why).
+- Alerts: a quote between raw HTML blocks (`<details>` … `</details>`) becomes an alert where
+  github.com keeps a block quote (known divergence, #52); titles are always English, as on
+  GitHub.
+- Wiki links: `mdv --html` has no resolver, so page links render as missing there (M5); a link
+  to a heading goes to the first heading with that text (slugs aren't de-duplicated against the
+  target); no tooltip on missing links; a `.markdown` and `.md` tie in one folder goes to name
+  order; targets appearing or disappearing don't re-render (the next render picks them up).
+- Custom preprocessor: non-UTF-8 sources can't be converted (the file must decode as UTF-8
+  first); the runner is not a sandbox (`setsid` escapes the group); the quarantine hint is
+  unconfirmed for downloaded scripts (no reproduction outside the UI test runner).
+- Slow renders: the corner indicator hides when the render lands, not when the in-place swap
+  finishes (a few hundred ms more at 5 MB); no indicator while a reload only reads the file.
+- Settings > Markdown: the flavor picker's note doesn't mention that frontmatter `mdv.flavor`
+  wins.
 
 ## M5: CLI
 
@@ -408,6 +605,30 @@ Make the terminal workflow excellent.
   back to GitHub), pages are three cascade layers (`ThemeLayer`), and custom themes load with
   `CustomThemeFolder` (MdvCore). Decide whether `--theme` accepts custom themes (`custom:<file>`
   from the Themes folder) and whether `mdv FILE --theme X` sets that window's theme in the app
+- What M4 settled for the CLI:
+  - **`--flavor NAME`:** ids come from `FlavorRegistry.bundled` (`gfm`, `commonmark`) and set
+    `RenderOptions.flavor`. Today frontmatter `mdv.flavor` beats `RenderOptions.flavor` inside
+    MdvCore (`RenderOptions.applying(_:)`), as it beats Settings' default in the app. Decide
+    whether an explicit `--flavor` beats the document (as a window's theme pick does, and as
+    VISION says `--theme` will); if so MdvCore needs a way to apply every override but the
+    flavor. An unknown `--flavor` should be a usage error, not a silent fallback (frontmatter
+    falls back because documents are untrusted; flags are the reader's).
+  - **Frontmatter overrides in headless output:** `mdv --html` already applies `mdv.flavor`
+    and `mdv.wikilinks` (in MdvCore) and uses a bundled `mdv.theme` for its page (custom or
+    unknown ids are GitHub). `--theme` should beat `mdv.theme`; `custom:` ids need
+    `CustomThemeFolder`.
+  - **Custom preprocessor:** `mdv --html` doesn't run it. Recommendation: keep it off unless a
+    flag asks for it (headless output of an untrusted file shouldn't run a program implicitly,
+    and the app's setting is an app preference). The runner is in MdvCore (`CustomPreprocessor`;
+    `documentURL: nil` for stdin gives cwd `/`), so a flag is a few lines; decide whether it
+    reads the app's configured program or takes a path.
+  - **Settings > Markdown:** `mdv --html` uses `RenderOptions` defaults (GFM, frontmatter
+    hidden, no wiki links), not the app's Settings. Decide whether the CLI reads them; flags are
+    the reproducible default.
+  - **Wiki links:** `mdv --html` has no `WikiLinkResolver`, so page links render as missing
+    (`[[#Heading]]` works). Pass a `FolderWikiLinkResolver` with a file system reader (move the
+    app's `FileSystemFolderReader` into MdvCore or the CLI) and the document's allowed root
+    (`LocalResourceRoot.forDocument(at:)`); none for stdin.
 - Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting, and
   remote images (`--html` keeps them, as GitHub does, unless asked to block them; #20)
 - `--wait` blocks until the window closes (for `$EDITOR`-style and git workflows)
@@ -437,9 +658,10 @@ Ship it.
   appcast
 - Version bumping keeps `MARKETING_VERSION` and `MdvInfo.version` in sync
 - Homebrew cask
-- Make `itspriddle/<name>` public; project site / landing page; CONTRIBUTING and issue templates
+- Rename `itspriddle/mdv` to the final name (public since M4's close-out); project site /
+  landing page; CONTRIBUTING and issue templates
 - Acknowledgements for bundled third-party code (highlight.js BSD-3 notice, gemoji data,
-  github-markdown-css MIT notice)
+  github-markdown-css MIT notice, Octicons MIT notice for the alert icons from #52)
 
 **Exit criteria:** a 1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
 updates itself to 1.0.1 via Sparkle.
@@ -463,7 +685,7 @@ Rough priority order; each becomes its own milestone when it's next.
 
 1. **Plan a milestone:** in a dedicated session, break the milestone into GitHub issues
    (user-story style, with acceptance criteria) under a matching GitHub milestone in
-   `itspriddle/mdv` (private until 1.0).
+   `itspriddle/mdv` (public).
 2. **Work issues:** one branch per issue following
    [Conventional Branch](https://conventional-branch.github.io) (`feature/…`, `bugfix/…`), commits
    following [Conventional Commits](https://www.conventionalcommits.org). Issue branches merge

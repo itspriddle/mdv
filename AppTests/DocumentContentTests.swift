@@ -56,6 +56,23 @@ struct DocumentContentTests {
         #expect(page.headings.map(\.sourceLine) == [1, 3])
     }
 
+    @Test("renders GFM by default and the given flavor otherwise")
+    func flavor() {
+        let source = "| a |\n| - |\n\n:tada:"
+        let gfm = DocumentContent(source: source, fallbackTitle: "a.md").page.body
+        #expect(gfm.contains("<table data-source-line=\"1\">"))
+        #expect(gfm.contains("🎉"))
+        let commonmark = DocumentContent(
+            source: source, fallbackTitle: "a.md", preferences: MarkdownPreferences(flavor: .commonmark)
+        ).page.body
+        #expect(!commonmark.contains("<table"))
+        #expect(commonmark.contains("<p data-source-line=\"4\">:tada:</p>"))
+        #expect(DocumentContent.renderOptions().flavor == .gfm)
+        #expect(
+            DocumentPasteboard.copyableHTML(for: source, preferences: MarkdownPreferences(flavor: .commonmark))
+                .contains("| a |"))
+    }
+
     @Test("decodes UTF-8 and rejects other encodings")
     func decoding() throws {
         let content = try DocumentContent(data: Data("caf\u{E9}".utf8), fallbackTitle: "a.md")

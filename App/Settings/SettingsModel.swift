@@ -13,6 +13,10 @@ import MdvCore
 /// | Zoom | `ZoomSettings.defaultLevel` | new windows (#47) |
 /// | Content width | `ContentWidthSettings.defaultWidth` | new windows (#47) |
 /// | Default Markdown viewer | `DefaultViewer` (Launch Services) | system-wide |
+/// | Default flavor | `MarkdownSettings.defaultFlavorID` | every document, live (#55) |
+/// | Frontmatter display | `MarkdownSettings.frontmatterDisplay` | every document, live (#55) |
+/// | Built-in preprocessors | `MarkdownSettings.builtInPreprocessors` | every document, live (#55) |
+/// | Custom preprocessor | `CustomPreprocessorSettings`, via `customPreprocessor` | every document, live (#57) |
 ///
 /// Every store takes an injectable `UserDefaults` suite and is in memory under UI tests, so
 /// hosted tests build the model over throwaway stores. The model mirrors the stores in
@@ -23,7 +27,7 @@ import MdvCore
 ///
 /// To add a setting: give its store an injectable `UserDefaults` (and a change notification if
 /// something else can change it), add a property here, read it in `refresh()`, add a `set…`
-/// method, and add a row to `GeneralSettingsView`.
+/// method, and add a row to its pane (`GeneralSettingsView`, `MarkdownSettingsView`).
 @MainActor
 @Observable
 final class SettingsModel: NSObject {
@@ -32,7 +36,10 @@ final class SettingsModel: NSObject {
     @ObservationIgnored let zoomSettings: ZoomSettings
     @ObservationIgnored let contentWidthSettings: ContentWidthSettings
     @ObservationIgnored let outlinePreference: OutlinePreference
+    @ObservationIgnored let markdownSettings: MarkdownSettings
     @ObservationIgnored let defaultViewerOffer: DefaultViewerOfferController
+    /// Settings > Markdown > Custom preprocessor (#57), with its own model and store.
+    @ObservationIgnored let customPreprocessor: CustomPreprocessorModel
     /// Opens the custom themes folder (#35, the same action as View > Theme > Open Themes
     /// Folder); nil where custom themes are off (hosted tests, UI tests without a folder).
     @ObservationIgnored let openThemesFolderAction: (@MainActor () -> Void)?
@@ -53,6 +60,13 @@ final class SettingsModel: NSObject {
     private(set) var isDefaultViewer = false
     /// Whether "Make Default" is waiting on Launch Services (and the button disabled).
     private(set) var isMakingDefaultViewer = false
+    /// The flavors the default-flavor picker lists, in registry order (GFM first).
+    private(set) var flavors: [Flavor] = []
+    /// The id of the flavor documents render with unless their frontmatter names one (#54).
+    private(set) var defaultFlavorID = Flavor.gfm.id
+    private(set) var frontmatterDisplay = FrontmatterDisplay.hidden
+    /// The built-in preprocessors that are on (a subset of `optionalPreprocessors`).
+    private(set) var builtInPreprocessors: Set<MarkdownTransform> = []
 
     init(
         appearanceSettings: AppearanceSettings = .shared,
@@ -60,14 +74,18 @@ final class SettingsModel: NSObject {
         zoomSettings: ZoomSettings = .shared,
         contentWidthSettings: ContentWidthSettings = .shared,
         outlinePreference: OutlinePreference = OutlinePreference(),
+        markdownSettings: MarkdownSettings = .shared,
+        customPreprocessor: CustomPreprocessorModel? = nil,
         defaultViewerOffer: DefaultViewerOfferController,
         openThemesFolder: (@MainActor () -> Void)? = nil
     ) {
+        self.customPreprocessor = customPreprocessor ?? CustomPreprocessorModel()
         self.appearanceSettings = appearanceSettings
         self.themeSettings = themeSettings
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.outlinePreference = outlinePreference
+        self.markdownSettings = markdownSettings
         self.defaultViewerOffer = defaultViewerOffer
         openThemesFolderAction = openThemesFolder
         super.init()
@@ -84,6 +102,8 @@ final class SettingsModel: NSObject {
         center.addObserver(
             self, selector: refreshSelector, name: ContentWidthSettings.didChangeNotification,
             object: contentWidthSettings)
+        center.addObserver(
+            self, selector: refreshSelector, name: MarkdownSettings.didChangeNotification, object: markdownSettings)
     }
 
     @objc private func storeDidChange(_ notification: Notification) {
@@ -101,6 +121,11 @@ final class SettingsModel: NSObject {
         contentWidth = contentWidthSettings.defaultWidth
         showsOutlineInNewWindows = outlinePreference.showsOutlineInNewWindows
         isDefaultViewer = defaultViewerOffer.viewer.isDefault
+        flavors = markdownSettings.registry.flavors
+        defaultFlavorID = markdownSettings.defaultFlavorID
+        frontmatterDisplay = markdownSettings.frontmatterDisplay
+        builtInPreprocessors = markdownSettings.builtInPreprocessors
+        customPreprocessor.refresh()
     }
 
     // MARK: Changes
@@ -143,6 +168,34 @@ final class SettingsModel: NSObject {
     /// New windows show (or hide) the outline. Open windows keep theirs.
     func setShowsOutlineInNewWindows(_ shows: Bool) {
         outlinePreference.showsOutlineInNewWindows = shows
+        refresh()
+    }
+
+    /// Documents render with the flavor with `id` (unless their frontmatter names one, #54).
+    /// Open documents render again in place. An unregistered id is ignored.
+    func setDefaultFlavor(id: String) {
+        markdownSettings.defaultFlavorID = id
+        refresh()
+    }
+
+    /// Documents show (or hide) their frontmatter. Open documents render again in place.
+    func setFrontmatterDisplay(_ display: FrontmatterDisplay) {
+        markdownSettings.frontmatterDisplay = display
+        refresh()
+    }
+
+    /// The built-in preprocessors Settings offers (`MarkdownSettings.optionalPreprocessors`).
+    var optionalPreprocessors: [MarkdownTransform] { MarkdownSettings.optionalPreprocessors }
+
+    /// Turns a built-in preprocessor on or off. Open documents render again in place.
+    func setBuiltInPreprocessor(_ preprocessor: MarkdownTransform, isOn: Bool) {
+        var enabled = markdownSettings.builtInPreprocessors
+        if isOn {
+            enabled.insert(preprocessor)
+        } else {
+            enabled.remove(preprocessor)
+        }
+        markdownSettings.builtInPreprocessors = enabled
         refresh()
     }
 

@@ -22,6 +22,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         tabs.tabStyle = .toolbar
         tabs.addTabViewItem(
             Self.pane("General", symbol: "gearshape", identifier: "general", GeneralSettingsView(model: model)))
+        tabs.addTabViewItem(
+            Self.pane("Markdown", symbol: "doc.text", identifier: "markdown", MarkdownSettingsView(model: model)))
 
         let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]

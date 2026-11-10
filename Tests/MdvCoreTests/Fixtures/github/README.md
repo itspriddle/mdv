@@ -20,6 +20,9 @@ highlight.js `hljs-` spans where GitHub writes `<div class="highlight …">` wit
 render without that. Keep each paragraph on one line. (`mode=markdown` is an older pipeline that
 differs from github.com: no footnote section heading, unprefixed footnote hrefs.)
 
+`alerts.md` is the exception: alerts need a line break after the marker, so its test turns
+GitHub's `<br>` back into newlines and compares normalized HTML (see `alertsMatchGitHub`).
+
 ## Comparison
 
 Before comparing, the test removes what github.com adds on top of its Markdown rendering and mdv

@@ -1,3 +1,5 @@
+import Foundation
+
 /// A page theme: plain CSS plus the metadata the app needs before the page draws.
 ///
 /// Every page gets the base layer (`ThemeBase`) first; a theme only styles the document
@@ -94,5 +96,17 @@ public struct ThemeColor: Sendable, Equatable {
     /// CSS hex notation, e.g. `#0d1117`.
     public var hex: String {
         "#" + [red, green, blue].map { $0 < 0x10 ? "0" + String($0, radix: 16) : String($0, radix: 16) }.joined()
+    }
+
+    /// Whether the color is dark: its relative luminance (WCAG) is below 0.179, the point where
+    /// white and black have equal contrast on it. The app draws its own controls over a theme
+    /// background (the render progress indicator, #58) in the matching appearance.
+    public var isDark: Bool {
+        func linear(_ component: UInt8) -> Double {
+            let value = Double(component) / 255
+            return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        let luminance = 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+        return luminance < 0.179
     }
 }

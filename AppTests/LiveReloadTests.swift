@@ -262,7 +262,7 @@ struct LiveReloadTests {
         // Issue budget: no main-thread stall over ~100 ms (main-thread CPU time between ticks, so
         // a loaded machine's scheduling delays don't count). Measured locally: see the #21 notes.
         // The wall-clock bound only catches the main thread waiting on the reload.
-        #expect(heartbeat.longestBusyGap < .milliseconds(100), "main thread busy \(heartbeat.longestBusyGap)")
-        #expect(heartbeat.longestGap < .milliseconds(300), "longest main-thread gap \(heartbeat.longestGap)")
+        expectTiming(heartbeat.longestBusyGap < .milliseconds(100), "main thread busy \(heartbeat.longestBusyGap)")
+        expectTiming(heartbeat.longestGap < .milliseconds(300), "longest main-thread gap \(heartbeat.longestGap)")
     }
 }

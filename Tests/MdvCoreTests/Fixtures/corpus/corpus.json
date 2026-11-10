@@ -21,13 +21,7 @@
       "source": "https://github.com/sharkdp/bat/blob/d14e46c393b9f5c9197c23ea2393fadddf8ae899/README.md",
       "commit": "d14e46c393b9f5c9197c23ea2393fadddf8ae899",
       "license": "MIT OR Apache-2.0",
-      "exceptions": [
-        {
-          "github": "[!TIP] If you specify a default style in <code>bat</code>'s config file, you can change which components are displayed during a single run of <code>bat</code> using the <code>--style</code> command-line argument. By prefixing a component with <code>+</code> or <code>-</code>, it can be added or removed from the current style.</p>",
-          "mdv": "[!tip] If you specify a default style in <code>bat</code>'s config file, you can change which components are displayed during a single run of <code>bat</code> using the <code>--style</code> command-line argument. By prefixing a component with <code>+</code> or <code>-</code>, it can be added or removed from the current style.</p>",
-          "reason": "GitHub alert written `[!tip]`: the normalizer can't recover the marker's case from GitHub's alert markup (mdv renders alerts as block quotes; alerts are deferred)."
-        }
-      ]
+      "exceptions": []
     },
     "deno": {
       "source": "https://github.com/denoland/deno/blob/e7b39ebd55c85aaf6a29290c1f5a99e2e21e09dd/README.md",

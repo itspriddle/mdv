@@ -24,11 +24,16 @@ extension DocumentWindowController {
     }
 
     func writeHTML(to pasteboard: NSPasteboard) async {
-        guard let source = markdownDocument?.content?.source else {
+        guard let content = markdownDocument?.content else {
             return
         }
+        // What the window shows: the Markdown its page was rendered from (the custom
+        // preprocessor's output, #57) and the preferences it was rendered with.
+        let source = content.renderedSource
+        let preferences = content.preferences
+        let documentURL = markdownDocument?.fileURL
         let html = await Task.detached(priority: .userInitiated) {
-            DocumentPasteboard.copyableHTML(for: source)
+            DocumentPasteboard.copyableHTML(for: source, preferences: preferences, documentURL: documentURL)
         }.value
         DocumentPasteboard.writeHTML(html, to: pasteboard)
     }

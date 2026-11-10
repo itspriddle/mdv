@@ -100,6 +100,28 @@ final class ThemesUITests: XCTestCase {
         waitUntil("the default theme's text size") { abs(paragraph.frame.width - defaultWidth) < 2 }
     }
 
+    /// Frontmatter overrides (#54): a document with `mdv: { theme: serif }` opens in Serif. A
+    /// pick from View > Theme beats it, and View > Theme > Document's Theme goes back to it.
+    func testFrontmatterThemeOpensInThatTheme() throws {
+        let mdv = try MdvUITestApp.launch(openingFixture: "document-theme.md")
+        self.mdv = mdv
+        let window = mdv.waitForWindow(titled: "Document Theme Fixture")
+        let paragraph = mdv.waitForRenderedText("This paragraph is set in the theme", in: window)
+        let documentWidth = paragraph.frame.width
+
+        mdv.chooseTheme("GitHub")
+        waitUntil("GitHub restyles the paragraph") { abs(paragraph.frame.width - documentWidth) > 1 }
+
+        mdv.chooseDocumentTheme()
+        waitUntil("back to the document's theme") { abs(paragraph.frame.width - documentWidth) < 1 }
+
+        // The document's theme was Serif: picking Serif leaves the paragraph as it opened.
+        mdv.chooseTheme("GitHub")
+        waitUntil("GitHub again") { abs(paragraph.frame.width - documentWidth) > 1 }
+        mdv.chooseTheme("Serif")
+        waitUntil("Serif matches how it opened") { abs(paragraph.frame.width - documentWidth) < 1 }
+    }
+
     private func waitUntil(_ description: String, _ condition: @escaping () -> Bool) {
         let predicate = NSPredicate { _, _ in condition() }
         XCTAssertEqual(

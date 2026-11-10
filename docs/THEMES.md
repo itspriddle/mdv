@@ -171,7 +171,9 @@ appear in code blocks. Typical output:
 | Headings | `h1`–`h6` with an `id` (the slug used in `#fragment` links) and an empty first child `<a class="anchor" aria-hidden="true" href="#slug"></a>` |
 | Lists | `ul`, `ol`, `li`. A loose list item wraps its text in `p`. |
 | Task lists | `<ul class="contains-task-list">` → `<li class="task-list-item">` → `<input type="checkbox" disabled class="task-list-item-checkbox">` (`checked` when done) then the text |
-| Block quotes | `blockquote`, nested for nested quotes. GitHub alerts (`> [!NOTE]`) are plain block quotes for now. |
+| Block quotes | `blockquote`, nested for nested quotes |
+| Alerts | GitHub alerts (`> [!NOTE]`, GFM flavor): `<div class="markdown-alert markdown-alert-note">` (also `markdown-alert-tip`, `markdown-alert-important`, `markdown-alert-warning`, `markdown-alert-caution`) holding `<p class="markdown-alert-title">` (an `<svg class="octicon">` icon, then the title) and the body blocks. The base layer gives them a left rule in the text color and lays out the title; colors are yours. |
+| Wiki links | `[[Page]]` when the reader turns wiki links on: `<a class="wikilink" href="Page.md">` for a page that exists, `<a class="wikilink wikilink-missing">` (no `href`) for one that doesn't. See [Wiki links](#wiki-links). |
 | Code blocks | `<pre><code class="language-swift">` (no class without a language) with highlight.js token spans inside |
 | Inline code, keys | `code`, `kbd` (from raw HTML) |
 | Tables | `table` → `thead`/`tbody` → `tr` → `th`/`td`; column alignment is an `align` attribute (`th[align="right"]`) |
@@ -215,10 +217,53 @@ code block's text color.
 
 ### Frontmatter
 
-YAML or TOML frontmatter at the top of a file is hidden in the viewer today. mdv can also
-render it (planned as an option): YAML as a `<table class="frontmatter">` of keys and values
-(nested values are nested tables), TOML as a `<pre class="frontmatter">` code block, so a
-theme can style them apart from the document's own tables.
+YAML or TOML frontmatter at the top of a file is hidden unless the reader turns on
+Settings > Markdown > Frontmatter > Shown as a Table. Then it appears above the document: YAML
+as a table of top-level keys and values (lists are comma-separated, nested mappings are nested
+tables without the class), TOML as a code block:
+
+```html
+<table class="frontmatter">
+<tbody>
+<tr>
+<th>title</th>
+<td>Release notes</td>
+</tr>
+</tbody>
+</table>
+
+<pre class="frontmatter"><code class="language-toml">title = "Release notes"</code></pre>
+```
+
+Both get your ordinary `table` and `pre` styles, so a theme that styles those already covers
+them. The classes let you style them apart from the document's own tables and code, for
+example:
+
+```css
+.markdown-body table.frontmatter { font-size: 0.875em; }
+.markdown-body table.frontmatter th,
+.markdown-body table.frontmatter td { text-align: left; vertical-align: top; }
+```
+
+### Wiki links
+
+With wiki links on (Settings > Markdown, or `wikilinks: true` in a document's `mdv:`
+frontmatter), `[[Page Name]]` becomes a link to the page's file, and a page mdv can't find
+becomes a link with no `href`:
+
+```html
+<a class="wikilink" href="Page-Name.md">Page Name</a>
+<a class="wikilink wikilink-missing">Missing Page</a>
+```
+
+A found wiki link is an ordinary link, so your `a` styles cover it. A missing one has no
+`href`, and themes usually style `a:not([href])` as plain text (GitHub's does), so the base
+layer gives `.wikilink-missing` a dashed underline (`border-bottom`) and a plain pointer.
+Restyle it with `.markdown-body .wikilink-missing`, for example:
+
+```css
+.markdown-body .wikilink-missing { color: #cf222e; border-bottom-style: dotted; }
+```
 
 ### Blocked remote images
 
@@ -400,6 +445,33 @@ fraction of a second of a change:
 
 A save that's briefly invalid while you're typing (an unclosed `{`) shows the Settings default
 theme until the next valid save.
+
+## Choosing a theme per document
+
+A Markdown file can name the theme it should open in, in its YAML frontmatter under `mdv:`:
+
+```yaml
+---
+title: Release notes
+mdv:
+  theme: custom:Release Notes.css
+---
+```
+
+- **Ids:** a bundled theme by id (`github`, `document`, `serif`; case doesn't matter) or a
+  custom one as `custom:<file name>` (exactly as the file is named, `.css` included).
+- **Precedence:** a theme you pick for that window in **View > Theme** wins over the
+  document's, and the document's wins over the **Settings > General** default. **View > Theme >
+  Document's Theme** drops your pick and goes back to the document's theme.
+- **Missing themes** fall back like a deleted custom theme: an id that isn't loaded (yet) shows
+  the Settings default, and the document's theme appears as soon as its file loads.
+- **Editing the frontmatter** while the file is open swaps the theme in place, like a theme
+  edit. Window restoration only remembers your own pick, so a changed `mdv.theme` applies the
+  next time the document opens too.
+- `mdv --html` uses a bundled theme the document names; anything else gets GitHub.
+
+The same block can set the document's Markdown flavor; see the
+[README](../README.md#per-document-settings) for every key and what a document can't change.
 
 ## A complete example
 

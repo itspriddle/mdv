@@ -15,11 +15,15 @@ enum SerifTheme {
         .markdown-body {
           --serif-text: #26241f; --serif-muted: #6f6a60; --serif-accent: #9a4a1c; --serif-rule: #e2ddd2;
           --serif-code-bg: #f3f0e8;
+          --serif-note: #2e6a8a; --serif-tip: #4f7a3a; --serif-important: #5b4a8a; --serif-warning: #8a5d12;
+          --serif-caution: #9a3a1c;
         }
         @media screen and (prefers-color-scheme: dark) {
           .markdown-body {
             --serif-text: #e6e2d9; --serif-muted: #9d978b; --serif-accent: #e3a06b; --serif-rule: #3a3833;
             --serif-code-bg: #25231f;
+            --serif-note: #8fbcd4; --serif-tip: #a8c99a; --serif-important: #c2b0e6; --serif-warning: #e0c27a;
+            --serif-caution: #e89a7a;
           }
         }
         body { margin: 0; }
@@ -71,6 +75,21 @@ enum SerifTheme {
           color: var(--serif-muted); font-style: italic;
         }
         .markdown-body blockquote em { font-style: normal; }
+        /* GitHub alerts: a margin note, a thin colored rule with a small-caps title, upright text. */
+        .markdown-body .markdown-alert {
+          margin: 0 0 1.1em; padding: 0 0 0 1.2em; border-left: 2px solid var(--serif-alert);
+        }
+        .markdown-body .markdown-alert > :last-child { margin-bottom: 0; }
+        .markdown-body .markdown-alert-title {
+          margin-bottom: 0.35em; color: var(--serif-alert); font-variant-caps: all-small-caps;
+          letter-spacing: 0.06em;
+        }
+        .markdown-body .markdown-alert-title svg { width: 0.85em; height: 0.85em; }
+        .markdown-body .markdown-alert-note { --serif-alert: var(--serif-note); }
+        .markdown-body .markdown-alert-tip { --serif-alert: var(--serif-tip); }
+        .markdown-body .markdown-alert-important { --serif-alert: var(--serif-important); }
+        .markdown-body .markdown-alert-warning { --serif-alert: var(--serif-warning); }
+        .markdown-body .markdown-alert-caution { --serif-alert: var(--serif-caution); }
         /* A section break: three spaced asterisks instead of a line. */
         .markdown-body hr { height: auto; margin: 2.2em 0; border: 0; text-align: center; color: var(--serif-muted); }
         .markdown-body hr::before { content: "* * *"; letter-spacing: 0.6em; }

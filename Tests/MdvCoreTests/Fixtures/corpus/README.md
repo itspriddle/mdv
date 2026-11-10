@@ -62,7 +62,6 @@ Both sides go through `HTMLNormalizer` (the spec suite's port of cmark's `normal
 | `user-content-` prefixes, footnote id nonces, `rel="nofollow"`, `notranslate`, `id=""`, hovercard attributes | Removed (see `Fixtures/github/README.md`) |
 | Bare issue URL shortened to an `#123` issue link                      | Link with the URL as text, as mdv renders it                        |
 | Leading YAML frontmatter table                                        | Removed; mdv hides frontmatter by default                           |
-| Alerts (`> [!NOTE]`) as `markdown-alert` divs                         | The block quote mdv renders (alerts are not supported yet)          |
 
 `MDV_CORPUS_DIFF_DIR=/some/dir` makes the test write both normalized outputs there.
 
@@ -77,5 +76,4 @@ kinds, all deliberate or deferred:
   the raw HTML's structure; a browser builds the same DOM from it.
 - **Top-level raw `<img>`** (`deno`, `fzf`): github.com wraps it in a paragraph and adds a default
   `<summary>` to a `<details>` without one.
-- **Alert marker case** (`bat`): `[!tip]` in the source; the normalizer writes `[!TIP]`.
 - **TOML frontmatter** (`rust-blog-1-82`): github.com renders `+++` blocks as text; mdv hides them.

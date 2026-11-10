@@ -89,7 +89,7 @@ struct CodeHighlighting {
                 } else {
                     stack[top].children.append(child)
                 }
-            case .document, .blockQuote, .list, .item, .taskItem, .footnoteDefinition:
+            case let kind where kind.isBlockContainer:
                 stack.append(Frame(child))
             default:
                 stack[top].children.append(child)

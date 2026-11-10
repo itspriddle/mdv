@@ -145,7 +145,7 @@ enum CorpusNormalizer {
             ##"<div class="snippet-clipboard-content[^"]*" data-snippet-clipboard-copy-content="[^"]*">"##
                 + ##"(<pre[^>]*>[\s\S]*?</pre>)</div>"##,
             with: "$1", in: html)
-        html = siteMarkupRemoved(alertsAsBlockquotes(html))
+        html = siteMarkupRemoved(html)
         return normalized(html)
     }
 
@@ -186,37 +186,6 @@ enum CorpusNormalizer {
             html = html.replacingOccurrences(of: literal, with: "")
         }
         return html
-    }
-
-    /// GitHub alerts (`> [!NOTE]`) back to the block quote mdv renders: the `[!TYPE]` marker
-    /// starts the first paragraph, or is a paragraph of its own before other content.
-    private static func alertsAsBlockquotes(_ html: String) -> String {
-        guard
-            let regex = try? NSRegularExpression(
-                pattern:
-                    ##"<div class="markdown-alert markdown-alert-([a-z]+)"><p class="markdown-alert-title">"##
-                    + ##"<svg [^>]*><path [^>]*></path></svg>[A-Za-z]+</p>\s*(<p>)?([\s\S]*?)</div>"##
-            )
-        else {
-            preconditionFailure("bad alert pattern")
-        }
-        var output = ""
-        var position = html.startIndex
-        for match in regex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-            guard let whole = Range(match.range, in: html), let type = Range(match.range(at: 1), in: html),
-                let body = Range(match.range(at: 3), in: html)
-            else {
-                continue
-            }
-            let marker = "[!\(html[type].uppercased())]"
-            let opensParagraph = match.range(at: 2).location != NSNotFound
-            output += html[position..<whole.lowerBound]
-            output +=
-                "<blockquote>\n" + (opensParagraph ? "<p>\(marker)\n" : "<p>\(marker)</p>\n") + html[body]
-                + "</blockquote>"
-            position = whole.upperBound
-        }
-        return output + html[position...]
     }
 
     static func mdv(_ html: String) -> String {

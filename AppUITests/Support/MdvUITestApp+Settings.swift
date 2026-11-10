@@ -31,4 +31,14 @@ extension MdvUITestApp {
         }
         item.click()
     }
+
+    /// Shows the Settings pane labeled `label` (e.g. "Markdown") by its toolbar button.
+    func showSettingsPane(_ label: String, file: StaticString = #filePath, line: UInt = #line) {
+        let button = settingsWindow.toolbars.buttons[label]
+        XCTAssertTrue(button.waitForExistence(timeout: Self.defaultTimeout), label, file: file, line: line)
+        button.click()
+        XCTAssertTrue(
+            settingsWindow.wait(for: \.title, toEqual: label, timeout: Self.defaultTimeout), "\(label) pane",
+            file: file, line: line)
+    }
 }

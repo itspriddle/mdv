@@ -40,23 +40,86 @@ editor or a browser.
 ## Architecture overview
 
 ```
- file / stdin ──► Preprocessors ──► MdvCore renderer ──► HTMLDocument ──► WKWebView
-                  (frontmatter,      (swift-cmark →        (theme CSS,      (app window,
-                   built-in, user     MarkdownNode AST →    CSP, base URL)   print/PDF)
-                   script)            HTMLRenderer)
+ file / stdin ──► custom          ──► MdvCore renderer ──► HTMLDocument ──► WKWebView
+                  preprocessor        (frontmatter, flavor, (theme CSS,      (app window,
+                  (opt-in user        swift-cmark →         CSP, base URL)   print/PDF)
+                   script)            MarkdownNode AST →
+                                      transforms → HTML)
                                                 └──────► stdout (mdv --html)
 ```
 
 - **MdvCore** (Swift package): parsing, AST transforms, HTML rendering, frontmatter, themes,
   preprocessors. No UI dependencies; tested with `swift test`.
+- **Render pipeline (#51):** every render runs the same stages in this order, enforced in
+  `HTMLRenderer.render(_:)` (`HTMLRenderer+Pipeline.swift`):
+  1. **Custom preprocessor** (#56/#57, opt-in, off by default): the whole file, frontmatter
+     included, through the user's executable (`SourcePreprocessor`;
+     `render(_:preprocessor:)` runs it, then the rest). Its output replaces the source for
+     every later stage.
+  2. **Frontmatter extraction** (`detectsFrontmatter`), in every flavor.
+  3. **Document overrides and flavor resolution (#54):** the frontmatter's `mdv:` mapping
+     (`DocumentOverrides`) is applied with `RenderOptions.applying(_:)`: a registered
+     `mdv.flavor` beats `RenderOptions.flavor` (the app's default, Settings > Markdown, #55), so
+     frontmatter can change how the body parses; an unknown one leaves `RenderOptions.flavor`.
+  4. **Parse** the body with the flavor's cmark-gfm extensions.
+  5. **AST transforms** (`MarkdownTransform`), the flavor's plus the built-in preprocessors
+     turned on in `RenderOptions.builtInPreprocessors`, in one fixed order whatever enabled
+     them: alerts (#52), wiki links (#53), emoji shortcodes.
+  6. **HTML:** sanitize raw HTML, collect headings and anchors, highlight code, write markup.
+
+  Built-in syntax features ("built-in preprocessors" such as wiki links, and emoji and alerts)
+  are AST transforms, not text passes over the source: they rewrite only text nodes the parser
+  produced, so code spans, code blocks, raw HTML, and link destinations are never rewritten,
+  and Markdown's escaping and code rules aren't re-implemented in a second parser. Nodes they
+  add keep the source range of the text they replace, and `HTMLRenderer` writes them, so new
+  markup is escaped by construction. Only the custom preprocessor sees raw text.
+  **GitHub alerts (#52)** follow github.com's rules, verified against its renderer (see
+  `GitHubAlerts`): a top-level block quote whose first line is `[!NOTE]`, `[!TIP]`,
+  `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` alone (any case), with a body after it,
+  becomes GitHub's `div.markdown-alert` markup. The title and Octicon SVG are renderer
+  constants, so they are trusted output and need no CSP change.
+  **`data-source-line` after a custom preprocessor** refers to lines of the preprocessor's
+  output, the text the parser saw, not the file on disk: scroll sync, the outline, and the
+  reading position kept across reloads all use those lines consistently. A preprocessor that
+  keeps line structure keeps them aligned with the file; one that adds or removes lines shifts
+  them (the alternative, a line map from the script, would be a second contract every script
+  must honor).
+- **Flavors (#51):** a `Flavor` (MdvCore, `Flavors/`) is an id, a display name, the cmark-gfm
+  extensions it enables, and the AST transforms it always runs. Bundled: `gfm` (GitHub Flavored
+  Markdown, the default: tables, strikethrough, extended autolinks, task lists, footnotes,
+  emoji shortcodes, and GitHub alerts) and `commonmark` (strict: no extensions, no
+  transforms). `FlavorRegistry` resolves ids from settings and frontmatter, like
+  `ThemeRegistry`: unknown or missing ids are GFM. **A flavor owns syntax only.** Viewer and
+  safety features are independent of it and stay on `RenderOptions`: heading anchors,
+  highlighting, source lines, sanitizing, the remote image policy, `linkRoot`, GitHub vs cmark
+  markup for GFM nodes, and frontmatter detection and display. Emoji shortcodes are GFM-only:
+  they're a GitHub convention, and strict CommonMark means what CommonMark says. CommonMark
+  keeps frontmatter detection: frontmatter is metadata, not syntax, and showing a YAML block as
+  a paragraph and a `<hr>` would help no one. Opt-in built-in preprocessors (wiki links, #53)
+  are toggles independent of the flavor, so they work in CommonMark too. Each bundled flavor has
+  its own fixture corpus (`Tests/MdvCoreTests/Fixtures/flavors/<id>/`); GFM is also checked
+  against github.com by the README corpus. The spec suite uses `Flavor.spec` (every extension,
+  no transforms), which isn't registered.
+- **Per-document overrides (#54):** a document can set `flavor`, `theme`, and `wikilinks`
+  (#53) in an `mdv:` mapping in its YAML frontmatter (`DocumentOverrides`, MdvCore,
+  `Overrides/`). Presentation only; see the security model. Each key is read into a typed
+  field (ids trimmed; flavor and bundled theme ids lowercased, `custom:` ids kept as written;
+  `wikilinks` takes YAML 1.2 `true`/`false`), and `RenderOptions.applying(_:)` is the one place
+  a field changes a render. Unknown keys and wrong types are ignored, never an error page, and
+  reported in `RenderedDocument.overrides.ignored` with a reason. The flavor is applied in
+  MdvCore before parsing, so `mdv --html` gets it too; the theme is reported for the caller to
+  resolve (the app below; `mdv --html` takes a bundled id and otherwise GitHub, and M5's
+  `--theme` will beat it). **TOML `[mdv]` is unsupported** (documented): TOML frontmatter isn't
+  parsed (no TOML parser, and none added for this); a TOML block that mentions `mdv` is reported
+  as ignored. `RenderOptions.appliesDocumentOverrides` turns overrides off (spec mode does).
 - **Parsing:** [`swiftlang/swift-cmark`](https://github.com/swiftlang/swift-cmark) (cmark-gfm, the
   engine GitHub uses), called directly through its C API. `MarkdownParser` enables GFM extensions
-  and footnotes per `RenderOptions`, never enables smart punctuation, and copies cmark's tree into
-  our own `Sendable` `MarkdownNode` AST; no C pointers outlive a parse.
+  and footnotes per the flavor (`RenderOptions.flavor`), never enables smart punctuation, and
+  copies cmark's tree into our own `Sendable` `MarkdownNode` AST; no C pointers outlive a parse.
 - **Rendering:** `HTMLRenderer` walks the `MarkdownNode` AST and emits HTML (cmark-compatible for
   CommonMark). Owning the AST and the output is what lets us control heading anchors, task lists,
-  emoji, raw HTML sanitizing, syntax highlighting, and source-line mapping, and gives M4
-  transforms one tree to operate on.
+  emoji, raw HTML sanitizing, syntax highlighting, and source-line mapping, and gives the
+  pipeline's transforms (above) one tree to operate on.
 - **Syntax highlighting:** at render time, in `MdvCore`, so the app and `mdv --html` get the same
   static `<span class="hljs-…">` markup and the viewer needs no JavaScript. A pinned
   [highlight.js](https://highlightjs.org) build (BSD-3, vendored as generated Swift source by
@@ -128,10 +191,23 @@ editor or a browser.
   view's fixed first-load cost (15-30 ms on main, attaching its WebContent process) in parallel
   with the render. A newer read (revert), a live reload, or closing the window drops a render in
   flight. Measured in Debug on a 5 MB document: the render takes about 2.2 s off main and the
-  main thread never stalls more than 5 ms (a hang-detector test asserts under one frame); with
-  the outline sidebar shown, its first fill adds an AppKit layout of about 15-20 ms when the
-  render lands. `Read` and `Render` signposts mark the open path in Instruments' Points of
-  Interest.
+  main thread never stalls more than 5 ms (a hang-detector test asserts under one frame), with
+  the outline sidebar shown or hidden. `Read` and `Render` signposts mark the open path in
+  Instruments' Points of Interest.
+  **Feedback for slow renders (#58).** A wait that outlasts 300 ms shows an indeterminate
+  progress indicator (`RenderProgress`, a SwiftUI overlay on the web view); shorter waits never
+  flash it. Before a window's first page loads, it sits in the middle of the blank page on the
+  theme's background, drawn in the appearance that contrasts with that background
+  (`ThemeColor.isDark`), and goes the moment the page loads. A re-render over a shown page (a
+  live reload, a Settings change, a slow custom preprocessor) never blanks the window: the old
+  page stays, readable and scrollable, with a small indicator on a material circle in its top
+  corner until the new page lands. That one is subtle on purpose: a reader editing a large file
+  or using a slow script should see that the window is behind, without anything covering the
+  text or taking clicks. The outline sidebar's first fill (an AppKit layout of about 15-20 ms on
+  main for a 5 MB document with the sidebar shown) runs after the first page has painted (two
+  animation frames, or 100 ms for a window WebKit isn't drawing), not when the render lands, so
+  it is off the first paint's critical path; the sidebar is blank, not "No Headings", until
+  then. Later renders fill it as they are shown.
 - **Outline sidebar (#24):** an AppKit sidebar split item (`NSOutlineView`, nested by heading
   level) beside the document, from `RenderedDocument.headings` (raw HTML headings included).
   A click or Return jumps by anchor (`slug`), with the source line as fallback. The current
@@ -258,6 +334,23 @@ editor or a browser.
   is missing too (`ThemeSettings.theme(forWindowThemeID:)`, #45); the window keeps its pick and
   shows it again when it returns. Print prints the window's web view, so it uses the window's
   theme; Copy as HTML stays a theme-free fragment.
+- **Frontmatter theme (#54):** a document's `mdv.theme` resolves like a window's pick (bundled
+  or `custom:<file>` ids through `ThemeSettings.registry`, same fallback). Precedence: the
+  reader's View > Theme pick for that window, then the document's theme, then Settings' default
+  as it was when the window opened (`DocumentWindowController.themeID`). The reader chose
+  explicitly for that window, so the pick wins; a document's theme is the author's suggestion
+  and beats only the general default. **Restoration remembers only the explicit pick**, so a
+  frontmatter theme edited while the app was closed applies on relaunch, and a window that
+  followed the document keeps following it. **Live reload:** the theme id travels with the
+  rendered page (`RenderedPage.documentThemeID`, shared by the document's windows), and a
+  reload that changes it swaps the stylesheet in place (#34's path), unless the window has a
+  pick; a changed `mdv.flavor` re-renders like any edit. **View > Theme** checks the theme the
+  window shows, whatever chose it, and starts with "Document's Theme (<name>)", enabled while a
+  pick hides the document's theme, which drops the pick. Rejected: a frontmatter theme beating
+  the reader's pick (the reader couldn't override a document they dislike), and restoring the
+  shown theme (a stale frontmatter theme would stick after the file changed). The first paint
+  of a window uses Settings' default background until the first render lands with the
+  document's theme (a frame or two, while the web view is still hidden).
 - **Custom themes (#35):** each `*.css` file in `~/Library/Application Support/mdv/Themes` is a
   theme, id `custom:<file name>` (a namespace no bundled id uses, so it can't shadow one),
   listed in the picker's own section. Metadata is an optional header comment, the first thing
@@ -305,7 +398,7 @@ editor or a browser.
   screen after printing.
 - **Settings (#36):** App menu > Settings… (Cmd-,) opens one reusable `NSWindowController`
   (`SettingsWindowController`) holding an `NSTabViewController` in toolbar style, one SwiftUI
-  `Form` per pane (General today); no SwiftUI `Settings` scene, since the app lifecycle is
+  `Form` per pane (General, and Markdown since #55); no SwiftUI `Settings` scene, since the app lifecycle is
   AppKit. It remembers its position and isn't restored at launch. Settings stores nothing of
   its own: `SettingsModel` reads and writes the existing stores (`ThemeSettings`,
   `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, `DefaultViewer`), each with an
@@ -317,6 +410,60 @@ editor or a browser.
   window and is not remembered per file: a remembered list of files that may load remote
   content is a privacy record and a standing exception to "no remote content" that the reader
   can forget granting; deferred until there's demand.
+- **Wiki links (#53):** an opt-in built-in preprocessor (`WikiLinks`, an AST transform), off
+  by default and turned on by Settings > Markdown or a document's `mdv.wikilinks`, which beats
+  Settings both ways. Independent of the flavor. Settled rules:
+  - **Syntax:** `[[Page]]`, `[[Page|label]]`, `[[Page#Heading]]`, `[[Page#Heading|label]]`,
+    and `[[#Heading]]` (same document). Label after the first `|` (the Obsidian and MediaWiki
+    order; GitHub's Gollum puts the label first, which mdv doesn't follow), heading after the
+    first `#`; `\|` in table cells. Only in plain text, all within one run: never in code, raw
+    HTML, link text, autolinks, or alt text, and not across emphasis. The brackets must be
+    written as is: `\[[`, `[\[`, `\]]`, and `&#91;[` stay literal. cmark merges escaped and
+    plain text into one node, so the transform lines each candidate node up with its source
+    line (`SourceLines`); a node it can't line up keeps its brackets literal (a missed link,
+    never an escape ignored). Targets over 1,024 bytes stay literal.
+  - **Naming (GitHub wiki rules):** `Page Name` is `Page-Name.md`; case-insensitive, and a space
+    matches a hyphen, so `Page Name.md` (note apps) works too. Only Markdown extensions
+    (`LinkPolicy.markdownExtensions`). `[[Page.md]]` names that file. Folders in the name
+    (`[[guides/Setup]]`) must match the file's folders; empty parts, `.`, `..`, a leading `/`,
+    and control characters name nothing.
+  - **Search scope:** the document's folder first, then every folder under the allowed root
+    (`LocalResourceRoot`: the git work tree, else the document's folder) breadth first, so the
+    match nearest the root wins; never outside the root. Hidden entries and symbolic links are
+    skipped, entries are taken in name order, and the root search stops after 10,000 entries
+    (`FolderWikiLinkResolver.defaultEntryLimit`), so a huge repository can't stall a render.
+    MdvCore stays filesystem-free: the renderer takes an injected `WikiLinkResolver`, the search
+    rules are `FolderWikiLinkResolver` over an injected `WikiLinkFolderReader`, and the app
+    supplies the file system reader (`DocumentWikiLinks`). `mdv --html` has no resolver, so
+    every page link is missing there (M5 can add one).
+  - **Output:** a found page is `<a class="wikilink" href="Page-Name.md#slug">`, its path
+    relative to the document with every part percent-encoded (nothing in a name can add a
+    scheme, query, or attribute), so it goes through `LinkPolicy` like any relative link (opens
+    in mdv, Cmd-click in a new tab) and Copy as HTML stays portable. The heading maps to
+    `HeadingSlug` of its text (the target's first heading with that text). A missing page is
+    `<a class="wikilink wikilink-missing">` with no `href`, so it can't navigate; the base layer
+    gives it a dashed underline. The label is text, escaped by `HTMLRenderer`.
+  - **Resolved at render time only:** a target appearing or disappearing doesn't re-render the
+    linking document; the next render (an edit, a Settings change, a reopen) picks it up. A
+    resolver is made per render and caches only within it.
+- **Settings > Markdown (#55):** a second Settings pane (`MarkdownSettingsView`) for how
+  documents are read: the default flavor (from `FlavorRegistry`), frontmatter hidden or shown
+  as a table (`FrontmatterDisplay`), and opt-in built-in preprocessors (the Wiki links toggle,
+  #53; the section is hidden if none is offered), with room below for the custom preprocessor (#57).
+  One store, `MarkdownSettings`, holds all three and posts one change notification; a render
+  gets them as a `MarkdownPreferences` value read on the main actor, never by reading the store
+  off it. Unlike the window defaults above, these apply to **open documents at once**: each
+  `MarkdownDocument` renders its source again off the main actor and its windows swap the
+  result in place like a live reload (no page load, reading position kept). `DocumentContent`
+  records the preferences it was rendered with, so a first render or live reload that started
+  before a change is rendered again when it lands. The default flavor is only
+  `RenderOptions.flavor`; a document's frontmatter `mdv.flavor` (#54) overrides it in MdvCore.
+  Copy as HTML uses the preferences the window's page was rendered with.
+  **No per-window flavor menu** (no View > Flavor): the flavor describes how a file was written,
+  not how the reader likes to read it, so it belongs to the file (frontmatter, #54) or to the
+  reader's one default; a third, per-window level would need restoration, another precedence
+  rule against frontmatter, and would make two windows on one document disagree about its
+  syntax (flavor is per document, themes are per window).
 - **Visual regression (#39):** `AppTests/ThemeSnapshotTests` opens the showcase fixture
   (`AppUITests/Fixtures/themes/showcase.md`) in each bundled theme in a 900 pt wide window
   (outline hidden, default zoom and width) and captures it light, dark, and printed: screen
@@ -417,8 +564,101 @@ editor or a browser.
   script whose message handler exists only in the app's content world; its message is display
   text and never acted on. Find in page passes the query to its app script as a value and
   matches it as literal text; page content never reaches script source.
-- Custom preprocessor scripts run only when the user configures them, with a timeout, no shell
-  interpolation, and the document passed via stdin.
+- **Documents can't raise their own privileges (#54).** Frontmatter overrides choose among
+  presentation options only: `flavor` (a registered flavor), `theme`, and `wikilinks`. There is
+  no generic mapping from frontmatter keys to `RenderOptions`; `RenderOptions.applying(_:)`
+  changes the flavor (and #53's wiki links toggle) and nothing else, so sanitizing, the remote
+  image policy, `linkRoot`, source lines, and every other setting stay as the reader's app set
+  them. The custom preprocessor isn't a render option at all: it is configured only in Settings
+  and runs before frontmatter is read. Any other key under `mdv:` (`sanitize`, `remoteImages`,
+  `preprocessor`, ...) is ignored and reported; unregistered flavors (such as the spec suite's)
+  can't be chosen; a theme id is only looked up in the registry, never read as a path. Tests
+  (`DocumentOverridesSecurityTests`) render a document that tries each of these.
+- Custom preprocessor scripts run only when the user configures them (#57), and they are the
+  first stage of the render pipeline (#51), so their output is still parsed, transformed, and
+  sanitized like any file.
+  - **Opt-in (#57):** off by default. Settings > Markdown > Custom preprocessor is the only
+    way to turn it on (`CustomPreprocessorSettings`): the program is chosen with an Open panel
+    (never a typed path; links are kept as chosen, not resolved) and stored as an absolute path,
+    a choice that isn't an executable file is refused with the reason, and the toggle turns it
+    on only after a warning that mdv will run that program on every document it opens, as the
+    reader, with the reader's access. Arguments are a list of fields, passed verbatim (empty
+    ones dropped). Frontmatter can't turn it on, choose a program, or pass arguments (tested,
+    `CustomPreprocessorTests.frontmatterCantEnable`), and the only launch argument for it,
+    `-MdvUITestPreprocessor`, is compiled into Debug UI-test builds only (as is
+    `-MdvUITestRenderDelay`, which holds up renders so UI tests can see the progress indicator). UI tests and hosted
+    tests keep the setting in memory.
+  - **Which documents:** every document the app opens while it is on; no extension filter
+    (mdv only opens Markdown and plain text, and a script can check `MDV_DOCUMENT_PATH` and pass
+    a file through unchanged). The file must still be UTF-8 (the open fails otherwise, as
+    without a preprocessor), and the script gets its exact bytes. `mdv --html` doesn't run it
+    (M5 decides).
+  - **Failures render the document without it, plus a bar** (`PreprocessorFailureBar`), never an
+    alert and never an error page: "Preprocessor failed", the reason (`PreprocessorError.message`),
+    and a Show Details disclosure with the stderr tail, shown verbatim. A program that was
+    deleted or lost its execute bit is such a failure, not a silent unprocessed render. When
+    macOS refuses to start a program that passed the executable check (`EPERM` or `EACCES` from
+    `posix_spawn`), the reason adds a likely cause without claiming it (#59): the file may be
+    quarantined (downloaded, or saved by a sandboxed app), with `xattr -d com.apple.quarantine`
+    and System Settings > Privacy & Security as the fixes to try. Seen with scripts the
+    sandboxed UI test runner writes; not reproduced with a quarantined script run from a
+    terminal, so the cause isn't confirmed for downloads.
+    Settings shows the last run of the session (succeeded, or failed and why) instead of a "Test
+    on…" button: opening a document is the test, and its window says what went wrong.
+  - **Lifecycle:** the first render of an open waits for the script (up to the 5.5 s worst
+    case; the window shows its blank, theme-colored page meanwhile, with the progress indicator
+    after 300 ms, #58). Each live reload runs it
+    again off the main actor. A newer render, `setContent`, a newer reload, or closing the
+    document cancels the run in flight, which stops its process group. Turning it off, or
+    changing the program or arguments, re-renders open documents in place; a render or reload
+    still running with the old setting starts over at once rather than waiting for the script.
+  - **Stress suite** (`StressTests+Preprocessor`, `+Markdown`): windows over scripts that hang,
+    crash, flood stdout, or leave children; reload storms; windows closed mid-run; one script
+    switching between hanging, crashing, flooding, and failing as live reload changes the file,
+    with its settings changing mid-run (#59). The main thread doesn't stall and no process
+    (script, child, or zombie) is left. The suite passes under the Address and Thread
+    Sanitizers (M4 close-out).
+
+  The runner is `CustomPreprocessor` in `MdvCore` (#56):
+  - **Contract:** the document's bytes on stdin, Markdown as UTF-8 on stdout, exit status 0
+    for success. Output that isn't UTF-8 or contains a NUL byte is an error. A non-zero exit
+    discards stdout.
+  - **Executable:** an absolute path, standardized and stored as given. It is never looked up
+    on `PATH`. Symbolic links are followed only to check the target, so a Homebrew upgrade
+    that moves the target keeps working. It must exist, be a regular file, and be executable
+    by the user, checked when configured and again before every run.
+  - **Arguments:** a fixed list from configuration, passed as an argv array to `posix_spawn`:
+    no shell, no expansion. Nothing from the document is ever added to the command line. The
+    document's path goes in `MDV_DOCUMENT_PATH`, never as an argument that could be read as an
+    option.
+  - **Environment:** only `PATH` (fixed:
+    `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`, the same from Finder or a
+    terminal), `HOME`, `TMPDIR`, `LANG=en_US.UTF-8`, and `MDV_DOCUMENT_PATH` (when there is a
+    file). None of the app's own environment is passed on.
+  - **Working directory:** the document's folder, so relative paths mean what they mean to the
+    reader. With no file (piped input), it is `/`.
+  - **Descriptors and signals:** the child gets only the three pipes
+    (`POSIX_SPAWN_CLOEXEC_DEFAULT`) and default signal handling. mdv's stdin pipe has
+    `F_SETNOSIGPIPE`, so a script that closes stdin can't raise `SIGPIPE` in mdv.
+  - **Limits** (`PreprocessorLimits.standard`): 5 s wall clock, 10 MB of input (a larger
+    document doesn't run), 10 MB of stdout, and the last 64 KB of stderr kept for the error
+    message. More stderr is drained and dropped.
+  - **Stopping:** the script runs in its own process group. On timeout, too much output, or
+    cancellation (a newer render cancels the task), the whole group gets `SIGTERM`, then
+    `SIGKILL` after a 0.5 s grace period, so children it started die too. When the script
+    exits on its own, anything left in its group is stopped the same way. The script is reaped
+    only after the group's final `SIGKILL`, so its group id can't be reused by another process
+    in the meantime.
+  - **No deadlocks, no blocked threads:** one kqueue loop on a dedicated thread (never the
+    Swift cooperative pool) writes stdin and reads stdout and stderr together. It also watches
+    for the exit, the deadline, and cancellation. A script that never reads stdin, or fills a
+    pipe, can't stall mdv. The worst case is the timeout plus the grace period.
+  - **Failures** are a typed `PreprocessorError`: input too large, executable unusable, launch
+    failed, timed out, output too large, exit status, signal, not UTF-8, or NUL, each with a
+    user-presentable message and the stderr tail. Each failure is logged with `os.Logger`.
+  - **Not a sandbox:** the script runs as the user, with the user's file access. A process that
+    leaves the group (`setsid`) is out of reach, though mdv stops reading its pipes after the
+    grace period. Opting in means trusting the executable.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
 
 ## Success looks like

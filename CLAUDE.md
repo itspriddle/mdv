@@ -32,15 +32,45 @@ lock the build database.
 - `Sources/MdvCore`: all rendering logic (parse, transform, HTML, themes, preprocessors). No UI
   imports. New logic goes here so it is testable with `swift test`.
   - `Parsing/`: `MarkdownParser` wraps swift-cmark's C API (the only code that imports
-    `cmark_gfm`); `MarkdownExtension` lists GFM extensions toggled via `RenderOptions`.
+    `cmark_gfm`); `MarkdownExtension` lists GFM extensions, which flavors enable.
+  - `Flavors/`: `Flavor` (id, name, extensions, transforms; syntax only) with `gfm` (default)
+    and `commonmark`; `FlavorRegistry` resolves ids (unknown → GFM). A flavor is one
+    `static let` plus a line in `FlavorRegistry.bundled` plus `Fixtures/flavors/<id>/`.
   - `AST/`: `MarkdownNode`, our `Sendable` syntax tree (CommonMark + GFM kinds, source ranges).
   - `Rendering/`: `HTMLRenderer` walks the AST to HTML; `MarkdownRenderer`, `RenderOptions`, and
-    `RenderedDocument` are the public API. `RenderOptions.spec` turns every mdv addition off; a
+    `RenderedDocument` are the public API. `HTMLRenderer+Pipeline.swift` is the render pipeline
+    (VISION): custom preprocessor (`SourcePreprocessor`, before `render(_:)`) → frontmatter →
+    flavor resolution → parse → transforms → HTML. `RenderOptions.flavor` picks syntax;
+    viewer features are separate toggles. `RenderOptions.spec` turns every mdv addition off; a
     new toggle adds one line there. Heading slugs, footnote ids, and `data-source-line` live here.
   - `Sanitizing/`: `HTMLSanitizer` allowlist for raw-HTML nodes only (renderer output is trusted,
     so everything the renderer emits must be escaped by construction).
   - `Frontmatter/`: YAML/TOML detection, Yams parsing with size/alias caps.
-  - `Transforms/`: AST passes (emoji shortcodes).
+  - `Overrides/`: `DocumentOverrides` (#54), the frontmatter's `mdv:` mapping (`flavor`,
+    `theme`, `wikilinks`), with ignored keys reported in `RenderedDocument.overrides`.
+    `RenderOptions.applying(_:)` is the one place it changes a render (the flavor and the
+    `.wikiLinks` built-in preprocessor only): never route a safety setting through it.
+  - `Transforms/`: AST passes. `MarkdownTransform` (enum; declaration order is run order:
+    alerts, wiki links, emoji) names each pass; its implementation conforms to
+    `MarkdownTreeTransform`. Enabled by `Flavor.transforms` or
+    `RenderOptions.builtInPreprocessors`. Emoji shortcodes and GitHub alerts (`GitHubAlerts`,
+    top-level `> [!NOTE]` quotes to `MarkdownNode.Kind.alert`; markup and Octicons in
+    `Rendering/HTMLRenderer+Alerts.swift`) live here, and so do wiki links (`WikiLinks`, #53:
+    `[[Page]]` text to `MarkdownNode.Kind.wikiLink`; markup in `HTMLRenderer+WikiLinks.swift`).
+  - `WikiLinks/`: wiki link pages and resolution (#53). `WikiPage` (the naming rule),
+    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; MdvCore never reads the
+    disk for it), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
+    an injected `WikiLinkFolderReader`), and `SourceLines` (which bracket bytes were written as
+    is rather than escaped).
+  - `Preprocessor/`: the custom preprocessor runner (#56; VISION's security model has the
+    contract and limits). `CustomPreprocessor.run(input:documentURL:)` is async and
+    cancellable. `PreprocessorConfiguration` validates the executable and
+    `PreprocessorLimits` holds the bounds; failures are `PreprocessorError`.
+    `PreprocessorEnvironment` builds the env and working directory, `PreprocessorProcess`
+    calls `posix_spawn`, and `PreprocessorSession` is the kqueue I/O loop on a dedicated
+    thread. `for(documentURL:)` is the pipeline's `SourcePreprocessor`. Every descriptor goes
+    through `PreprocessorDescriptors`, which the leak tests count. Fixture scripts are in
+    `Tests/MdvCoreTests/Fixtures/preprocessors`.
   - `Themes/`: `Theme` (CSS plus `ThemeBackground`), `ThemeRegistry` (the one place the app and
     CLI get a theme; unknown ids fall back to GitHub), `ThemeBase` (the base layer every page
     gets; `!important` there means protected from themes), and `ThemeLayer` (cascade layers
@@ -62,23 +92,48 @@ lock the build database.
     MANIFEST and license.
 - `App/`: the macOS app (module `MdvApp`), kept thin. AppKit lifecycle (`main.swift`,
   `AppDelegate`), SwiftUI for window content only. Feature folders: `ContentWidth/`, `Copy/`,
-  `DefaultViewer/`, `Print/`, `Themes/`, `Zoom/` (each a small type plus its
+  `DefaultViewer/`, `Print/`, `RenderProgress/`, `Themes/`, `Zoom/` (each a small type plus its
   `DocumentWindowController+<Feature>.swift`). `Themes/ThemeSettings` holds the theme registry
   and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
   `Themes/CustomThemeLibrary` watches the custom themes folder (`ThemeFolderWatcher`) and
   replaces the registry (`ThemeSettings.apply(_:)`). A window whose picked theme isn't
-  registered shows Settings' default (`ThemeSettings.theme(forWindowThemeID:)`).
+  registered shows Settings' default (`ThemeSettings.theme(forWindowThemeID:)`). The window
+  resolves `themeID`: its View > Theme pick (`pickedThemeID`, the only theme restoration saves),
+  else the document's `mdv.theme` (`documentThemeID`, from `RenderedPage`), else Settings'
+  default when it opened (`newWindowThemeID`).
   - `Settings/`: `SettingsWindowController` (App menu > Settings…, a toolbar-style
     `NSTabViewController` of SwiftUI panes), `SettingsModel` (wraps the existing stores:
     `ThemeSettings`, `OutlinePreference`, `ZoomSettings`, `ContentWidthSettings`, the default
     viewer; stores nothing itself), and `GeneralSettingsView`. A new setting is a store with
     `init(defaults:isPersistent:)`, a property and `set…` method on the model, and a row.
+    `MarkdownSettingsView` (#55) is Settings > Markdown: default flavor, frontmatter display,
+    built-in preprocessors (one row per `MarkdownSettings.optionalPreprocessors` entry), then
+    room for the custom preprocessor (#57).
+  - `WikiLinks/`: `DocumentWikiLinks` (a per-render `FolderWikiLinkResolver` for a document,
+    used by `DocumentContent` and Copy as HTML) and `FileSystemFolderReader` (regular files and
+    folders only; no symbolic links or packages).
+  - `MarkdownSettings/`: `MarkdownSettings` (the store: default flavor id, frontmatter
+    display, built-in preprocessors; one change notification) and `MarkdownPreferences` (the
+    value a render takes; `apply(to:)` sets `RenderOptions`). Unlike window defaults these
+    apply to open documents: `MarkdownDocument` follows the store and re-renders in place, and
+    `DocumentContent.preferences` records what a page was rendered with.
+  - `CustomPreprocessor/` (#57): `CustomPreprocessorSettings` (store: on/off, executable,
+    arguments, the session's `lastRun`; `shared` in memory under tests, or set by
+    `-MdvUITestPreprocessor`), `CustomPreprocessorModel` (Settings' model: the enable warning,
+    the Open panel), `DocumentContent.rendering(_:of:preferences:)` (the async render: runs the
+    preprocessor, falls back to the unprocessed source with `preprocessorError`), and
+    `PreprocessorFailureBar`. The setting reaches renders as
+    `MarkdownPreferences.customPreprocessor` (`MarkdownDocument.renderPreferences`), so a change
+    re-renders open documents like any Settings > Markdown change. The section view is
+    `Settings/CustomPreprocessorSection`.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
     (`render(_:of:)`; tests await `pendingRender`), so `content` is `nil` until the first render
-    lands; a newer read, `setContent`, or `close()` drops a render in flight. Every load and
-    revert goes through `setContent(_:)`, which tells each `DocumentWindowController`.
+    lands; a newer read, `setContent`, or `close()` drops and cancels a render in flight
+    (stopping a custom preprocessor run). Every load and
+    revert goes through `setContent(_:)`, which tells each `DocumentWindowController`
+    (and re-renders content made with outdated Markdown settings, #55).
     `DocumentController` (the shared `NSDocumentController`) finds open files by identity,
     skips gone files on restore, and types extensionless text files (`ExtensionlessText`) as
     plain text; its `canOpen(_:)` is the one rule for the Open panel and drops.
@@ -92,7 +147,13 @@ lock the build database.
     reload bypasses `NSDocument.revert`; the window swaps content in place with
     `WebViewCoordinator.updateContent(with:baseURL:)`, which keeps the reading position.
   - `Outline/`: `OutlineViewController` (the sidebar's `NSOutlineView`) and `OutlinePreference`
-    (default visibility).
+    (default visibility). The window fills it after the first page paints (#58), then on each
+    display.
+  - `RenderProgress/`: `RenderProgress` (#58: the delayed indicator's state, 300 ms by default,
+    injectable) and `RenderProgressIndicator` (the overlay: centered over the blank page before
+    the first page loads, small in the corner during re-renders). The window feeds it from
+    `isWaitingForFirstPage` and `MarkdownDocument.isRendering` (a render or live reload in
+    flight; `updateRenderActivity()` tells each window).
   - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
     actions go in `DocumentWindowController+<Feature>.swift`, menu validation in the one
     `validateMenuItem` switch in `+Outline.swift`), `DocumentWindow` (restorable state),
@@ -117,9 +178,11 @@ lock the build database.
   `AppTests/Support/`: `DocumentWindowTestCase` (windows over temp files and throwaway
   settings), `ThrowawayDefaults` (a per-test `UserDefaults` suite in a temp folder; never use
   `UserDefaults(suiteName:)` with a plain name, which leaves a plist in ~/Library/Preferences),
-  `MainThreadHeartbeat` (main-thread stalls by CPU time), `SnapshotImage`, `LoopbackServer`.
-  `StressTests` (+`Themes`) is the crash and hang suite; run it under ASan and TSan at each
-  milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
+  `MainThreadHeartbeat` (main-thread stalls by CPU time), `expectTiming` (`MainThreadTiming`: main-thread
+  timing bounds, strict locally, report-only on CI via `TEST_RUNNER_MDV_TIMING_REPORT_ONLY`), `SnapshotImage`, `LoopbackServer`,
+  `PreprocessorScripts` (custom preprocessor scripts plus a leaked-process check).
+  `StressTests` (+`Themes`, `ZoomWidth`, `Preprocessor`, `Markdown`) is the crash and hang suite; run it
+  under ASan and TSan at each milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
 - `docs/THEMES.md`: the end-user theme authoring guide, with `docs/example-theme.css` and
@@ -129,6 +192,12 @@ lock the build database.
 - `Tests/MdvCoreTests/Fixtures/spec`: vendored CommonMark/GFM spec examples, run in
   `RenderOptions.spec` mode. `exceptions.json` lists known failures (`pending #N` or `permanent`);
   a feature issue deletes its `pending` entries once they pass (the test fails on stale entries).
+- `Tests/MdvCoreTests/Fixtures/flavors/<id>/`: per-flavor corpus (`FlavorCorpusTests`), `.md`
+  inputs and recorded `.html` (`MDV_RECORD_SNAPSHOTS=1`); one folder per registered flavor. A
+  feature that changes a flavor's output adds fixtures to it.
+- `Tests/MdvCoreTests/Fixtures/flavors/<id>`: per-flavor corpus (`FlavorCorpusTests`,
+  `MDV_RECORD_SNAPSHOTS=1`). `Fixtures/github/alerts.md` is github.com's alert rules from
+  `gh api markdown` (mode gfm), compared normalized (see that folder's README).
 - `Tests/MdvCoreTests/Fixtures/github`, `.../corpus`: GitHub reference output (refresh with
   `scripts/update-github-fixtures`, manual, needs auth) and mdv snapshots
   (`MDV_RECORD_SNAPSHOTS=1`). Corpus exceptions live in `corpus.json`.
@@ -167,7 +236,11 @@ lock the build database.
   must check `UITestHooks.suppressesFirstRunPrompts`); `-MdvUITestOpen <abs path>` (or a
   plist array, `launch(openingFixtures:)`) opens documents at launch; `-MdvUITestThemesFolder
   <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
-  unit tests never load them). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
+  unit tests never load them); `-MdvUITestPreprocessor <abs path>` starts with that custom
+  preprocessor on; `-MdvUITestRenderDelay <seconds>` holds up every render (to see the
+  slow-render indicator without a slow script). Preprocessor scripts are executable fixtures
+  (`Fixtures/preprocessors/`): files the sandboxed runner writes are quarantined and won't
+  execute (`EPERM`). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
   `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1 make test-ui` (CI sets it).
 - The UI test runner must be code signed: `make test-ui` ignores `SIGN` and signs with the team
@@ -187,7 +260,7 @@ lock the build database.
 
 ## Workflow
 
-- GitHub: `itspriddle/mdv` (private until 1.0). Each roadmap milestone is a GitHub milestone with
+- GitHub: `itspriddle/mdv` (public). Each roadmap milestone is a GitHub milestone with
   issues.
 - One branch per issue (Conventional Branch, e.g. `feature/gfm-tables`), Conventional Commits
   (see `.claude/skills`). Issue branches merge into a milestone integration branch

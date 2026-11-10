@@ -1,0 +1,39 @@
+<h1 id="wiki-links"><a class="anchor" aria-hidden="true" href="#wiki-links"></a>Wiki links</h1>
+<p>Rendered with <code>.wikiLinks</code> on and the corpus resolver, whose pages are <code>Home.md</code>,
+<code>Page-Name.md</code>, <code>guides/Setup.md</code>, and <code>../notes/Other Page.markdown</code>.</p>
+<h2 id="found"><a class="anchor" aria-hidden="true" href="#found"></a>Found</h2>
+<p><a class="wikilink" href="Home.md">Home</a>, <a class="wikilink" href="Page-Name.md">Page Name</a>, <a class="wikilink" href="Page-Name.md">page-name</a>, <a class="wikilink" href="Page-Name.md">a label</a>, <a class="wikilink" href="Home.md">Home.md</a>,
+<a class="wikilink" href="guides/Setup.md">guides/Setup</a>, <a class="wikilink" href="../notes/Other%20Page.markdown">Other Page</a>, <a class="wikilink" href="Home.md#getting-started">Home#Getting Started</a>, <a class="wikilink" href="Home.md#getting-started">start</a>,
+and in this document <a class="wikilink" href="#not-found">#Not found</a>.</p>
+<ul>
+<li>In a list: <a class="wikilink" href="Home.md">Home</a></li>
+<li>[ ] In a task: <a class="wikilink" href="Home.md">home</a></li>
+</ul>
+<blockquote>
+<p>In a quote: <a class="wikilink" href="Home.md">Home</a>
+on a second line: <a class="wikilink" href="Page-Name.md">Page Name</a></p>
+</blockquote>
+<blockquote>
+<p>[!TIP]
+In an alert: <a class="wikilink" href="Home.md">Home</a></p>
+</blockquote>
+<p>| Page | Link |
+| --- | --- |
+| Home | <a class="wikilink" href="Home.md">home page</a> |</p>
+<p>Emphasis around a link: <em><a class="wikilink" href="Home.md">Home</a></em> and <strong><a class="wikilink" href="Home.md">bold</a></strong>, ~~<a class="wikilink" href="Home.md">Home</a>~~.
+A footnote with a link.[^1]</p>
+<p>Emoji in a label: <a class="wikilink" href="Home.md">home :house:</a>.</p>
+<p>[^1]: See <a class="wikilink" href="Home.md">Home</a>.</p>
+<h2 id="not-found"><a class="anchor" aria-hidden="true" href="#not-found"></a>Not found</h2>
+<p><a class="wikilink wikilink-missing">Missing Page</a>, <a class="wikilink wikilink-missing">with a label</a>, <a class="wikilink wikilink-missing">../escape</a>, <a class="wikilink wikilink-missing">/absolute</a>, <a class="wikilink wikilink-missing">Missing#Heading</a>.</p>
+<h2 id="literal"><a class="anchor" aria-hidden="true" href="#literal"></a>Literal</h2>
+<p>[[Escaped]], [[Escaped]], [[Escaped]], [[Encoded]], <code>[[Code]]</code>, [[]], [[#]], [[ |x]],
+[[a <em>b</em>]], [[a[b]]], <a href="https://example.com">link [[Home]]</a>, <a href="https://example.com/%5B%5BHome%5D%5D">https://example.com/[[Home]]</a>,
+<img src="image.png" alt="[[Home]]" />, <span><a class="wikilink" href="Home.md">Home</a></span> (raw HTML around text still links).</p>
+<pre><code>[[In a code block]]
+</code></pre>
+<pre><code>[[Indented code]]
+</code></pre>
+<div title="[[In an attribute]]"></div>
+<h2 id="escaping"><a class="anchor" aria-hidden="true" href="#escaping"></a>Escaping</h2>
+<p><a class="wikilink wikilink-missing">&lt;b&gt;label&lt;/b&gt;</a>, <a class="wikilink" href="Home.md">&quot;quotes&quot; &amp; ampersands</a>, <a class="wikilink wikilink-missing">java:script</a>.</p>

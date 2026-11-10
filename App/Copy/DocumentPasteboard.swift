@@ -57,11 +57,19 @@ enum DocumentPasteboard {
         }
     }
 
-    /// The rendered body fragment Copy as HTML copies: the default render options, the same
-    /// output as `mdv --html` without the page around it. No `data-source-line` annotations, and
-    /// remote images are kept as written (the viewer's placeholders are display only; nothing
-    /// is loaded by copying).
-    nonisolated static func copyableHTML(for source: String) -> String {
-        HTMLRenderer(options: RenderOptions()).render(source).html
+    /// The rendered body fragment Copy as HTML copies: the default render options with the
+    /// `preferences` the window's page was rendered with (Settings > Markdown, #55: flavor,
+    /// frontmatter display, built-in preprocessors), the same output as `mdv --html` without the
+    /// page around it. No `data-source-line` annotations, and remote images are kept as written
+    /// (the viewer's placeholders are display only; nothing is loaded by copying). Wiki links
+    /// resolve from `documentURL` like the window's (#53), to paths relative to the document.
+    nonisolated static func copyableHTML(
+        for source: String, preferences: MarkdownPreferences = .default, documentURL: URL? = nil
+    ) -> String {
+        var options = RenderOptions()
+        preferences.apply(to: &options)
+        let resolver = DocumentWikiLinks.resolver(
+            forDocumentAt: documentURL, linkRoot: DocumentContent.linkRoot(forDocumentAt: documentURL))
+        return HTMLRenderer(options: options, wikiLinkResolver: resolver).render(source).html
     }
 }

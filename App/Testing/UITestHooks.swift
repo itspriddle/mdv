@@ -17,6 +17,13 @@ import Foundation
 /// - `-MdvUITestThemesFolder <path>`: read custom themes (#35) from this absolute path
 ///   instead of `~/Library/Application Support/mdv/Themes`. Without it a UI-test launch loads
 ///   no custom themes, so tests never read or create the reader's folder.
+/// - `-MdvUITestPreprocessor <path>`: start with the custom preprocessor (#57) on, running the
+///   executable at this absolute path with no arguments (`CustomPreprocessorSettings.shared`,
+///   in memory). Without it a UI-test launch has no preprocessor, whatever the reader set.
+/// - `-MdvUITestRenderDelay <seconds>`: every render (first renders, live reloads, Settings
+///   re-renders) waits this long off the main actor before it starts, so a test can see the
+///   slow-render indicator (#58) without depending on how fast the machine is. The wait is
+///   cancelled with the render. At most 30 seconds.
 ///
 /// UI-test launches (and hosted unit tests) never add to Open Recent (`DocumentController`).
 enum UITestHooks {
@@ -27,6 +34,10 @@ enum UITestHooks {
         static let openKey = "MdvUITestOpen"
         /// Launch argument (a `UserDefaults` key) with an absolute path to the custom themes folder.
         static let themesFolderKey = "MdvUITestThemesFolder"
+        /// Launch argument (a `UserDefaults` key) with an absolute path to a custom preprocessor.
+        static let preprocessorKey = "MdvUITestPreprocessor"
+        /// Launch argument (a `UserDefaults` key) with a delay, in seconds, added to every render.
+        static let renderDelayKey = "MdvUITestRenderDelay"
     #endif
 
     /// Whether a UI test launched the app. Always `false` in Release builds.
@@ -72,6 +83,33 @@ enum UITestHooks {
                 return nil
             }
             return URL(filePath: path, directoryHint: .isDirectory)
+        #else
+            nil
+        #endif
+    }
+
+    /// The custom preprocessor executable a UI test asked for, or nil. Always nil in Release.
+    static var preprocessorExecutable: String? {
+        #if DEBUG
+            guard isUITesting, let path = UserDefaults.standard.string(forKey: preprocessorKey), path.hasPrefix("/")
+            else {
+                return nil
+            }
+            return path
+        #else
+            nil
+        #endif
+    }
+
+    /// The delay a UI test asked to add to every render, or nil. Always nil in Release. Safe to
+    /// read off the main actor (`UserDefaults` is thread-safe).
+    static var renderDelay: Duration? {
+        #if DEBUG
+            let seconds = UserDefaults.standard.double(forKey: renderDelayKey)
+            guard isUITesting, seconds > 0 else {
+                return nil
+            }
+            return .milliseconds(Int(min(seconds, 30) * 1000))
         #else
             nil
         #endif

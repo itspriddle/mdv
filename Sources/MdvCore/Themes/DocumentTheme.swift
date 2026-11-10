@@ -17,12 +17,16 @@ enum DocumentTheme {
           --doc-page: #ffffff; --doc-text: #1f1f1f; --doc-muted: #5f6368; --doc-link: #1a5fb4;
           --doc-rule: #c7cad1; --doc-code-bg: #f1f3f5; --doc-header-bg: #f5f6f8;
           --doc-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 4px 12px rgb(0 0 0 / 0.06);
+          --doc-note: #1a5fb4; --doc-tip: #1e7b34; --doc-important: #7340b8; --doc-warning: #8f5f00;
+          --doc-caution: #c0261d; --doc-alert-bg: #f7f8fa;
         }
         @media screen and (prefers-color-scheme: dark) {
           .markdown-body {
             --doc-page: #25262a; --doc-text: #e3e3e6; --doc-muted: #a2a5ab; --doc-link: #82b1ff;
             --doc-rule: #45474d; --doc-code-bg: #2f3136; --doc-header-bg: #2c2d32;
             --doc-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+            --doc-note: #82b1ff; --doc-tip: #6cc788; --doc-important: #c6a0f6; --doc-warning: #e3b341;
+            --doc-caution: #f28b82; --doc-alert-bg: #2a2b30;
           }
         }
         body { margin: 0; }
@@ -72,6 +76,18 @@ enum DocumentTheme {
         .markdown-body blockquote {
           padding: 0 1em; border-left: 3px solid var(--doc-rule); color: var(--doc-muted);
         }
+        /* GitHub alerts: a shaded callout with a colored rule and title, like a word processor's. */
+        .markdown-body .markdown-alert {
+          margin: 0 0 1em; padding: 0.75em 1em; border-left: 4px solid var(--doc-alert);
+          border-radius: 0 4px 4px 0; background: var(--doc-alert-bg);
+        }
+        .markdown-body .markdown-alert > :last-child { margin-bottom: 0; }
+        .markdown-body .markdown-alert-title { margin-bottom: 0.5em; color: var(--doc-alert); }
+        .markdown-body .markdown-alert-note { --doc-alert: var(--doc-note); }
+        .markdown-body .markdown-alert-tip { --doc-alert: var(--doc-tip); }
+        .markdown-body .markdown-alert-important { --doc-alert: var(--doc-important); }
+        .markdown-body .markdown-alert-warning { --doc-alert: var(--doc-warning); }
+        .markdown-body .markdown-alert-caution { --doc-alert: var(--doc-caution); }
         .markdown-body hr { height: 0; margin: 1.5em 0; border: 0; border-top: 1px solid var(--doc-rule); }
         .markdown-body img { max-width: 100%; box-sizing: content-box; }
         .markdown-body code, .markdown-body kbd, .markdown-body pre, .markdown-body samp {
@@ -126,7 +142,8 @@ enum DocumentTheme {
         .markdown-body { margin: 0; background: none; box-shadow: none; }
         .markdown-body a { color: inherit; }
         /* Code, keys, highlights, and tables keep their light fills (WebKit leaves backgrounds off
-           on paper otherwise), so code blocks and diff lines still read as blocks. */
+           on paper otherwise), so code blocks and diff lines still read as blocks. Alerts print
+           without their shading: the colored rule and title carry them. */
         .markdown-body pre, .markdown-body code, .markdown-body kbd, .markdown-body mark,
         .markdown-body table { print-color-adjust: exact; }
         """

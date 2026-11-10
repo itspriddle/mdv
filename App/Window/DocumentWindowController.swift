@@ -20,7 +20,9 @@ final class DocumentWindowController: NSWindowController {
     private var loadedBaseURL: URL?
     /// The CSP of the loaded page. A swap keeps it, so a page that needs another one is loaded.
     private var loadedContentSecurityPolicy: ContentSecurityPolicy?
-    private var hasShownPage = false
+    /// Whether the window's first page is still to load (the blank page shows, #32). The render
+    /// progress indicator (#58) and the outline's first fill go by it.
+    private(set) var isWaitingForFirstPage = true
     private var canRecoverFromCrash = true
     /// A fragment to scroll to once the page loads (a link opened this document with `#…`).
     var pendingFragment: String?
@@ -30,6 +32,8 @@ final class DocumentWindowController: NSWindowController {
     var pendingSourceLine: Double?
     /// This window's remote image opt-in (#20); never saved, kept across reloads.
     let remoteImages = RemoteImageOptIn()
+    /// The progress indicator for slow renders (#58, `+RenderProgress.swift`).
+    let renderProgress: RenderProgress
 
     // MARK: Outline (#24, `DocumentWindowController+Outline.swift`)
 
@@ -59,24 +63,32 @@ final class DocumentWindowController: NSWindowController {
 
     /// The registry and default theme this window follows.
     let themeSettings: ThemeSettings
-    /// The id of the theme picked for this window (restorable). It may name a theme that is no
-    /// longer registered (a deleted custom theme); the window then shows the default
-    /// (`theme`), and shows the picked one again if it comes back.
-    var themeID: String
+    /// The theme the reader picked for this window with View > Theme (restorable), or nil to
+    /// follow the document's theme (#54). It may name a theme that is no longer registered (a
+    /// deleted custom theme); the window then shows the default (`theme`), and shows the picked
+    /// one again if it comes back.
+    var pickedThemeID: String?
+    /// The theme the document's frontmatter names (`mdv.theme`, #54), from its latest render.
+    var documentThemeID: String?
+    /// Settings' default theme when the window opened: what it shows with neither a pick nor a
+    /// document theme. A later change to the default applies to new windows only.
+    let newWindowThemeID: String
 
     init(
         coordinator: WebViewCoordinator = WebViewCoordinator(),
         outlinePreference: OutlinePreference = OutlinePreference(),
         zoomSettings: ZoomSettings = .shared,
         contentWidthSettings: ContentWidthSettings = .shared,
-        themeSettings: ThemeSettings = .shared
+        themeSettings: ThemeSettings = .shared,
+        renderProgress: RenderProgress = RenderProgress()
     ) {
         self.coordinator = coordinator
+        self.renderProgress = renderProgress
         self.outlinePreference = outlinePreference
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
-        themeID = themeSettings.defaultThemeIDForNewWindows
+        newWindowThemeID = themeSettings.defaultThemeIDForNewWindows
         zoomLevel = zoomSettings.defaultLevel
         contentWidth = contentWidthSettings.defaultWidth
         wantsOutline = outlinePreference.showsOutlineInNewWindows
@@ -111,7 +123,7 @@ final class DocumentWindowController: NSWindowController {
             let hostingController = NSHostingController(
                 rootView: DocumentView(
                     document: markdownDocument, coordinator: coordinator, remoteImages: remoteImages,
-                    loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) }))
+                    renderProgress: renderProgress, loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) }))
             // SwiftUI sets the minimum size; the window (and later restoration) owns the size.
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero
@@ -120,6 +132,7 @@ final class DocumentWindowController: NSWindowController {
                 // Still rendering (#32): start the web view now, so the page loads fast after.
                 coordinator.prepareForFirstLoad()
             }
+            updateRenderProgress()
             documentContentDidChange()
         }
     }
@@ -143,7 +156,12 @@ final class DocumentWindowController: NSWindowController {
             return
         }
         synchronizeWindowTitleWithDocumentName()
-        outlineController.show(DocumentOutline(headings: page.headings))
+        // Before the page loads (or swaps), so a first load uses the document's theme and a live
+        // reload that changed `mdv.theme` swaps the stylesheet in place.
+        documentThemeDidChange(page.documentThemeID)
+        if !isWaitingForFirstPage {
+            outlineController.show(DocumentOutline(headings: page.headings))
+        }
         coordinator.documentFileURL = markdownDocument.fileURL
         // mdv-doc://<window>/<path>: relative images resolve against the document and are
         // served only from its allowed root (`LocalResourceSchemeHandler`). A moved file gets a
@@ -157,37 +175,49 @@ final class DocumentWindowController: NSWindowController {
                 return
             }
             do {
-                if coordinator.hasLoadedPage, baseURL == loadedBaseURL,
-                    page.contentSecurityPolicy == loadedContentSecurityPolicy
-                {
-                    try await coordinator.updateContent(with: page, baseURL: baseURL)
-                } else if coordinator.hasLoadedPage {
-                    let position = try? await coordinator.readingPosition()
-                    try await coordinator.load(page, baseURL: baseURL)
-                    if let position {
-                        try await coordinator.restore(position)
-                    }
-                } else {
-                    try await coordinator.load(page, baseURL: baseURL)
-                    LaunchTiming.mark("pageLoaded")
+                try await loadOrSwap(page, baseURL: baseURL)
+                let isFirstPage = isWaitingForFirstPage
+                if isFirstPage {
+                    isWaitingForFirstPage = false
+                    updateRenderProgress()
                 }
-                loadedBaseURL = baseURL
-                loadedContentSecurityPolicy = page.contentSecurityPolicy
                 await scrollToPendingFragment()
                 await scrollToPendingSourceLine()
                 await updateOutlinePosition()
                 await refreshFind()
-                if !hasShownPage {
-                    hasShownPage = true
+                if isFirstPage {
                     // Arrow keys, space, and Page Down scroll the document right away.
                     window?.makeFirstResponder(coordinator.webView)
                     await LaunchTiming.firstPageLoaded(in: coordinator)
+                    // Off the first paint's critical path (#58).
+                    await fillOutlineAfterFirstPaint()
                 }
             } catch {
                 // A newer load cancelled this one, or the web content process exited (handled
                 // by `webContentProcessDidTerminate()`); nothing else to show.
             }
         }
+    }
+
+    /// Puts `page` in the web view: swapped into the loaded page in place when the base URL and
+    /// CSP are unchanged, else loaded (keeping the reading position of a page already shown).
+    private func loadOrSwap(_ page: RenderedPage, baseURL: URL?) async throws {
+        if coordinator.hasLoadedPage, baseURL == loadedBaseURL,
+            page.contentSecurityPolicy == loadedContentSecurityPolicy
+        {
+            try await coordinator.updateContent(with: page, baseURL: baseURL)
+        } else if coordinator.hasLoadedPage {
+            let position = try? await coordinator.readingPosition()
+            try await coordinator.load(page, baseURL: baseURL)
+            if let position {
+                try await coordinator.restore(position)
+            }
+        } else {
+            try await coordinator.load(page, baseURL: baseURL)
+            LaunchTiming.mark("pageLoaded")
+        }
+        loadedBaseURL = baseURL
+        loadedContentSecurityPolicy = page.contentSecurityPolicy
     }
 
     /// The web content process exited (crash, or the system reclaimed it): load the page again

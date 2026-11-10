@@ -1,0 +1,220 @@
+<p>Each type, any case:</p>
+<blockquote>
+<p>[!NOTE]
+A note.</p>
+</blockquote>
+<blockquote>
+<p>[!tip]
+A tip.</p>
+</blockquote>
+<blockquote>
+<p>[!Important]
+Important.</p>
+</blockquote>
+<blockquote>
+<p>[!WARNING]
+A warning.</p>
+</blockquote>
+<blockquote>
+<p>[!cAuTiOn]
+Caution.</p>
+</blockquote>
+<p>Spacing around the marker:</p>
+<blockquote>
+<p>[!NOTE]
+No space after the quote marker.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+Indented marker.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]<br />
+Trailing spaces.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+Trailing tab.</p>
+</blockquote>
+<p>Line breaks after the marker:</p>
+<blockquote>
+<p>[!NOTE]<br />
+Hard break.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]<br />
+Backslash break.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]<br>
+Raw br.</p>
+</blockquote>
+<p>Escaped and entity markers:</p>
+<blockquote>
+<p>[!NOTE]
+Escaped bracket.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+Escaped bang.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+Entity bracket.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+Entity letter.</p>
+</blockquote>
+<p>Body shapes:</p>
+<blockquote>
+<p>[!NOTE]
+Lazy continuation.</p>
+</blockquote>
+<blockquote>
+<p>[!TIP]</p>
+<p>The marker in its own paragraph.</p>
+</blockquote>
+<blockquote>
+<p>[!IMPORTANT]</p>
+<ul>
+<li>a list</li>
+<li>right after</li>
+</ul>
+</blockquote>
+<blockquote>
+<p>[!WARNING]</p>
+<hr />
+</blockquote>
+<blockquote>
+<p>[!CAUTION]</p>
+<pre><code></code></pre>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+| a |
+|---|
+| b |</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]</p>
+<div>raw block</div>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+<span></span></p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+ </p>
+</blockquote>
+<blockquote>
+<p>[!WARNING]
+<em>em</em> and :tada: and <code>code</code>.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+First paragraph.</p>
+<p>Second paragraph.</p>
+</blockquote>
+<p>No nesting:</p>
+<blockquote>
+<p>[!NOTE]
+Outer.</p>
+<blockquote>
+<p>[!TIP]
+Inner stays a quote.</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<p>[!NOTE]
+Nested quote.</p>
+</blockquote>
+</blockquote>
+<ul>
+<li>
+<blockquote>
+<p>[!NOTE]
+In a list item.</p>
+</blockquote>
+</li>
+</ul>
+<p>Footnote.[^1]</p>
+<p>[^1]: &gt; [!NOTE]
+&gt; In a footnote.</p>
+<p>Not alerts:</p>
+<blockquote>
+<p>[!NOTE]</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]<br></p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] Text on the marker line.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] <code>code</code></p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] <b>html</b></p>
+</blockquote>
+<blockquote>
+<p>[!FOO]</p>
+</blockquote>
+<blockquote>
+<p>[! NOTE]</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE ]</p>
+</blockquote>
+<blockquote>
+<p><strong>[!NOTE]</strong></p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] </p>
+</blockquote>
+<blockquote>
+<p>[!NO\TE]</p>
+</blockquote>
+<blockquote>
+<p>intro</p>
+<p>[!NOTE]</p>
+</blockquote>
+<blockquote>
+<pre><code>[!NOTE]
+</code></pre>
+</blockquote>
+<p>Verified on GitHub but not in the API fixture (headings, scripts, or raw HTML around the quote):</p>
+<blockquote>
+<p>[!CAUTION]</p>
+<h1 id="a-heading-in-the-body"><a class="anchor" aria-hidden="true" href="#a-heading-in-the-body"></a>A heading in the body</h1>
+<p>Text.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE] </p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]</p>
+</blockquote>
+<blockquote>
+<h1 id="note"><a class="anchor" aria-hidden="true" href="#note"></a>[!NOTE]</h1>
+<p>A heading first.</p>
+</blockquote>
+<blockquote>
+<h2 id="note-1"><a class="anchor" aria-hidden="true" href="#note-1"></a>[!NOTE]</h2>
+</blockquote>
+<p>Known divergence: github.com keeps a quote between raw HTML tags a block quote; mdv's tree has it
+at the top level, so it becomes an alert.</p>
+<details>
+<blockquote>
+<p>[!TIP]
+Inside details.</p>
+</blockquote>
+</details>

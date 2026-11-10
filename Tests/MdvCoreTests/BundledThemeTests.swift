@@ -73,6 +73,17 @@ struct BundledThemeTests {
         }
     }
 
+    @Test("styles every GitHub alert type (#52), with a dark color on screen", arguments: themes)
+    func alerts(theme: Theme) throws {
+        #expect(theme.css.contains(".markdown-body .markdown-alert {"), "\(theme.id)")
+        for type in GitHubAlert.allCases {
+            #expect(theme.css.contains(".\(type.className)"), "\(theme.id): missing \(type.className)")
+        }
+        // The base layer gives alerts a structure (rule, title layout) when a theme doesn't.
+        #expect(ThemeBase.css.contains(".markdown-alert {"))
+        #expect(ThemeBase.css.contains(".markdown-alert-title svg"))
+    }
+
     @Test("content width reads the user-control variable (#37)", arguments: themes)
     func userControlVariables(theme: Theme) {
         #expect(theme.stylesheet.contains("max-width: var(--mdv-content-width, "))
@@ -129,7 +140,7 @@ struct BundledThemeTests {
             "<del>", "<kbd>", "class=\"hljs-keyword\"", "class=\"hljs-string\"", "class=\"hljs-comment\"",
             "class=\"hljs-addition\"", "<table>", "class=\"footnotes\"", "<img src=\"assets/shape.svg\"",
             "class=\"remote-image\"", "gh-dark-mode-only", "<details>", "<hr",
-        ] {
+        ] + GitHubAlert.allCases.map { "class=\"markdown-alert \($0.className)\"" } {
             #expect(html.contains(markup), "\(theme.id): missing \(markup)")
         }
         #expect(html.contains(theme.layerCSS))

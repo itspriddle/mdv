@@ -127,6 +127,25 @@ final class ThemePickerTests: DocumentWindowTestCase {
         #expect(controller.coordinator.loadedTheme == .document)
     }
 
+    @Test("switching back to the page's theme while a swap is in flight ends on it")
+    func switchBackDuringSwap() async throws {
+        defer { closeAll() }
+        let (_, controller) = try await openLong(themeSettings: themeSettings())
+        let coordinator = controller.coordinator
+        for round in 0..<5 {
+            // The swap to serif starts (its script is in flight), then the pick goes back to the
+            // theme the page still holds: the page must not keep serif.
+            controller.setTheme(id: "serif")
+            await Task.yield()
+            controller.setTheme(id: "github")
+            await coordinator.pendingThemeSwap?.value
+            try await until("round \(round) shows github", timeout: .seconds(5)) {
+                try await pageThemeCSS(in: controller) == Theme.github.layerCSS.trimmingCharacters(in: .newlines)
+            }
+            #expect(coordinator.loadedTheme == .github, "round \(round)")
+        }
+    }
+
     @Test("a live reload keeps the window's theme, and a full reload uses it")
     func reloadKeepsTheme() async throws {
         defer { closeAll() }
@@ -182,8 +201,9 @@ final class ThemePickerTests: DocumentWindowTestCase {
         defer { closeAll() }
         let view = try #require(MainMenu.build().item(withTitle: "View")?.submenu)
         let submenu = try #require(view.item(withTitle: "Theme")?.submenu)
-        // The themes, then Open Themes Folder (#35) after a separator.
-        let themeItems = Array(submenu.items.dropLast(2))
+        // Document's Theme (#54) and a separator, the themes, then Open Themes Folder (#35)
+        // after a separator.
+        let themeItems = Array(submenu.items.dropFirst(2).dropLast(2))
         #expect(submenu.items.suffix(2).map(\.title) == ["", "Open Themes Folder"])
         #expect(themeItems.map(\.title) == ThemeRegistry.bundled.themes.map(\.displayName))
         #expect(themeItems.map { $0.representedObject as? String } == ThemeRegistry.bundled.themes.map(\.id))
