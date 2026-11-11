@@ -145,7 +145,7 @@ struct StressTests {
     func largeDocument() {
         let markdown = Self.largeDocument(bytes: 8 * 1024 * 1024)
         let (html, duration) = timedRender(markdown)
-        #expect(duration < .seconds(20), "took \(duration)")
+        expectRenderTiming(duration < .seconds(20), "took \(duration)")
         #expect(html.utf8.count > markdown.utf8.count)
         // 4,000+ copies of each heading: every generated id is still unique. (Raw HTML ids are
         // the author's, namespaced with `user-content-`.)
@@ -160,7 +160,7 @@ struct StressTests {
         let markdown = String(repeating: line, count: 1024 * 1024 / line.utf8.count)
         #expect(markdown.utf8.count >= 1_000_000 && !markdown.contains("\n"))
         let (html, duration) = timedRender(markdown)
-        #expect(duration < .seconds(5), "took \(duration)")
+        expectRenderTiming(duration < .seconds(5), "took \(duration)")
         #expect(html.hasPrefix("<p data-source-line=\"1\">word <em>emphasis</em>"))
         #expect(count("<code>code</code>", in: html) == markdown.utf8.count / line.utf8.count)
     }
