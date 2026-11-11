@@ -734,6 +734,32 @@ editor or a browser.
   - **Not a sandbox:** the script runs as the user, with the user's file access. A process that
     leaves the group (`setsid`) is out of reach, though mdv stops reading its pipes after the
     grace period. Opting in means trusting the executable.
+- **Install Command Line Tool (#70)** writes outside the app, sometimes as root, so it follows
+  narrow rules (`CommandLineToolInstaller`, unit tested over temp folders):
+  - It only ever creates, replaces, or removes a symbolic link named `mdv` whose absolute
+    destination is `<X>.app/Contents/Helpers/mdv`, where `X.app` is gone (a moved app) or has
+    mdv's bundle identifier. A file, a folder, a relative link, or a link anywhere else
+    (including into another app with the same layout) is shown to the reader and left alone,
+    by install and by uninstall.
+  - Links are made atomically: a temporary link beside the target is renamed into place, with
+    `RENAME_EXCL` when nothing was there. A replace or removal re-reads the link first and
+    stops if its destination changed.
+  - `~/.local/bin` needs no privileges. For a folder the reader can't write (`/usr/local/bin`),
+    mdv uses AppleScript's `do shell script … with administrator privileges` (not the deprecated
+    `AuthorizationExecuteWithPrivileges`; a privileged helper tool is out of proportion for one
+    link). Nothing is interpolated into code: the AppleScript source is a constant whose
+    handler receives the shell script and its arguments as Apple event parameters and quotes
+    each with `quoted form of`. The shell scripts are constants too
+    (`privilegedInstallScript`, `privilegedUninstallScript`) and get the paths only as `$1`…,
+    which must be absolute and NUL-free. Run as root, they repeat the ownership check (the
+    link must still have the destination mdv read, and not resolve to a folder) and exit 3
+    otherwise. Tests run the same scripts, and the same AppleScript handler minus the
+    privilege clause, over paths full of quotes, `$(…)`, backticks, and newlines.
+  - The only launch argument, `-MdvUITestCommandLineToolFolder`, is Debug-only; UI-test and
+    hosted unit-test launches without it offer no folders, so tests never touch
+    `/usr/local/bin` or `~/.local/bin`.
+  - To choose the default folder, mdv reads the reader's `PATH` from their login shell
+    (`$SHELL -l -c`, 2 s limit, no input): the reader's own configuration, nothing from a document.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
 
 ## Success looks like

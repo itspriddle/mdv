@@ -123,6 +123,24 @@ mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
 | 73 | The `--output` file couldn't be written |
 | 74 | Writing to standard output failed |
 
+## Command line tool
+
+The `mdv` command ships inside the app. To put it on your `PATH`, choose mdv > Install Command
+Line Tool…, pick a folder, and click Install. mdv adds a link named `mdv` to the command in the
+copy of mdv you are running (the alert names it, which matters if you have several copies).
+
+- `~/.local/bin` needs no password, but your shell may not look there. If `mdv` isn't found in a
+  new terminal window, add `export PATH="$HOME/.local/bin:$PATH"` to your shell's startup file
+  (`~/.zshrc` for zsh). mdv suggests this folder when your login shell already has it on `PATH`.
+- `/usr/local/bin` is on every `PATH` but asks for an administrator's password.
+- mdv never replaces or removes anything that isn't its own link. If a file, a folder, or a link
+  to another program is already named `mdv` there, it tells you what it found and stops.
+- If you move or rename mdv.app, the link breaks; the menu item becomes Repair Command Line
+  Tool…, which points the link at the copy you are running.
+- When it is installed, the item is Uninstall Command Line Tool…, which removes the link (and
+  only the link). You can also delete it yourself: `rm ~/.local/bin/mdv` or
+  `sudo rm /usr/local/bin/mdv`.
+
 ## Requirements
 
 - macOS 15 or later

@@ -1,0 +1,236 @@
+import AppKit
+
+/// App menu > Install / Repair / Uninstall Command Line Tool… (#70): works out what the item
+/// does from what is in each location, and runs it with alerts. The rules are
+/// `CommandLineToolInstaller`'s.
+@MainActor
+final class CommandLineToolController {
+    /// What the menu item does now.
+    enum Action: Equatable {
+        /// Nothing of ours anywhere, or a link to another copy (`location` is that link's).
+        case install(preferred: CommandLineToolLocation?)
+        /// A link to a moved or renamed app: offer to point it at this copy.
+        case repair(CommandLineToolLocation)
+        /// A link to this copy.
+        case uninstall(CommandLineToolLocation)
+
+        var menuTitle: String {
+            switch self {
+            case .install: "Install Command Line Tool…"
+            case .repair: "Repair Command Line Tool…"
+            case .uninstall: "Uninstall Command Line Tool…"
+            }
+        }
+    }
+
+    let locations: [CommandLineToolLocation]
+    private let makeInstaller: (CommandLineToolLocation) -> CommandLineToolInstaller
+    private let privileged: any PrivilegedRunning
+    private var isRunning = false
+
+    init(
+        locations: [CommandLineToolLocation] = CommandLineToolLocation.standard,
+        makeInstaller: @escaping (CommandLineToolLocation) -> CommandLineToolInstaller = {
+            CommandLineToolInstaller(folder: $0.folder)
+        },
+        privileged: any PrivilegedRunning = AppleScriptPrivilegedRunner()
+    ) {
+        self.locations = locations
+        self.makeInstaller = makeInstaller
+        self.privileged = privileged
+    }
+
+    /// Whether the menu item is shown (false under tests without the folder hook).
+    var isAvailable: Bool {
+        !locations.isEmpty
+    }
+
+    /// What the item does, read fresh from disk (a few `lstat`s) each time the menu opens.
+    /// This is also how a link left dangling by a moved app is detected: the item becomes
+    /// Repair; nothing is fixed without asking.
+    func currentAction() -> Action {
+        let states = locations.map { ($0, makeInstaller($0).state()) }
+        if let installed = states.first(where: { $0.1 == .installed }) {
+            return .uninstall(installed.0)
+        }
+        if let dangling = states.first(where: { if case .dangling = $0.1 { true } else { false } }) {
+            return .repair(dangling.0)
+        }
+        let otherCopy = states.first { if case .otherCopy = $0.1 { true } else { false } }
+        return .install(preferred: otherCopy?.0)
+    }
+
+    /// The menu item's action.
+    func run() async {
+        guard isAvailable, !isRunning else {
+            return
+        }
+        isRunning = true
+        defer { isRunning = false }
+        switch currentAction() {
+        case .uninstall(let location):
+            await uninstall(from: location)
+        case .repair(let location):
+            await install(preferred: location, isRepair: true)
+        case .install(let preferred):
+            await install(preferred: preferred, isRepair: false)
+        }
+    }
+
+    // MARK: - Install
+
+    private func install(preferred: CommandLineToolLocation?, isRepair: Bool) async {
+        // Which locations are on the reader's PATH, to pick the default and to say whether a
+        // line needs adding. Only worth a shell when there is a choice.
+        let pathFolders = locations.count > 1 ? await LoginShellPath.folders() : nil
+        let noPassword = locations.first { !$0.needsAdministrator && $0.isOnPath(pathFolders ?? []) }
+        guard let initial = preferred ?? noPassword ?? locations.last,
+            let location = askToInstall(selecting: initial, isRepair: isRepair)
+        else {
+            return
+        }
+        let installer = makeInstaller(location)
+        if case .occupied(let occupant) = installer.state() {
+            showOccupied(occupant, at: location, installer: installer)
+            return
+        }
+        do {
+            try await installer.install(privileged: privileged)
+        } catch .cancelled {
+            return
+        } catch .occupied(let occupant) {
+            showOccupied(occupant, at: location, installer: installer)
+            return
+        } catch {
+            showFailure("mdv couldn’t install the command line tool.", error)
+            return
+        }
+        showInstalled(at: location, installer: installer, onPath: pathFolders.map(location.isOnPath))
+    }
+
+    /// Asks where to install, saying which copy of mdv the link will use. Returns nil on Cancel.
+    private func askToInstall(selecting initial: CommandLineToolLocation, isRepair: Bool) -> CommandLineToolLocation? {
+        let alert = NSAlert()
+        let thisApp = Bundle.main.bundleURL
+        if isRepair, case .dangling(let destination) = makeInstaller(initial).state() {
+            alert.messageText = "Repair the mdv command line tool?"
+            alert.informativeText =
+                "\(initial.displayPath)/mdv points to \(destination), which is gone (mdv was moved or "
+                + "renamed). Repairing points it to this copy of mdv:\n\n\(thisApp.path(percentEncoded: false))"
+            alert.addButton(withTitle: "Repair")
+        } else {
+            alert.messageText = "Install the mdv command line tool?"
+            var text =
+                "This adds a link named mdv that runs the command line tool in this copy of mdv:\n\n"
+                + thisApp.path(percentEncoded: false)
+            if case .otherCopy(let app, _) = makeInstaller(initial).state() {
+                let copy = app.path(percentEncoded: false)
+                text += "\n\nThe link in \(initial.displayPath) now points to the copy at \(copy)."
+            } else if !Self.otherCopies().isEmpty {
+                text += "\n\nThere are other copies of mdv on this Mac; the link uses this one."
+            }
+            alert.informativeText = text
+            alert.addButton(withTitle: "Install")
+        }
+        alert.addButton(withTitle: "Cancel")
+
+        let popUp = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 300, height: 26), pullsDown: false)
+        popUp.setAccessibilityIdentifier("command-line-tool-location")
+        for location in locations {
+            let note = location.needsAdministrator ? " (needs an administrator password)" : ""
+            popUp.addItem(withTitle: location.displayPath + note)
+        }
+        popUp.selectItem(at: locations.firstIndex(of: initial) ?? 0)
+        if !isRepair, locations.count > 1 {
+            alert.accessoryView = popUp
+        }
+
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return nil
+        }
+        return isRepair ? initial : locations[max(popUp.indexOfSelectedItem, 0)]
+    }
+
+    private func showInstalled(at location: CommandLineToolLocation, installer: CommandLineToolInstaller, onPath: Bool?)
+    {
+        let alert = NSAlert()
+        alert.messageText = "The mdv command line tool is installed."
+        var text = "\(location.displayPath)/mdv runs the command line tool in this copy of mdv. Try `mdv --help`."
+        if onPath != true {
+            text +=
+                "\n\n\(location.displayPath) may not be on your PATH. If `mdv` isn’t found in a new terminal "
+                + "window, add this line to your shell’s startup file (~/.zshrc for zsh):\n\n\(location.pathLine)"
+        }
+        alert.informativeText = text
+        alert.runModal()
+    }
+
+    /// Shows what is in the way and stops: install never replaces it.
+    private func showOccupied(
+        _ occupant: CommandLineToolInstaller.Occupant, at location: CommandLineToolLocation,
+        installer: CommandLineToolInstaller
+    ) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "mdv didn’t install the command line tool."
+        var text =
+            "\(installer.linkURL.path(percentEncoded: false)) is already there: \(Self.describe(occupant)). "
+            + "mdv only replaces or removes its own link, so it left this alone. Move or delete it and try again"
+        text += locations.count > 1 ? ", or choose the other location." : "."
+        alert.informativeText = text
+        alert.runModal()
+    }
+
+    // MARK: - Uninstall
+
+    private func uninstall(from location: CommandLineToolLocation) async {
+        let installer = makeInstaller(location)
+        let alert = NSAlert()
+        alert.messageText = "Uninstall the mdv command line tool?"
+        alert.informativeText =
+            "This removes the link \(installer.linkURL.path(percentEncoded: false)). mdv itself stays where it is."
+        alert.addButton(withTitle: "Uninstall")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return
+        }
+        do {
+            try await installer.uninstall(privileged: privileged)
+        } catch .cancelled {
+            return
+        } catch {
+            showFailure("mdv couldn’t uninstall the command line tool.", error)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func showFailure(_ message: String, _ error: CommandLineToolError) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = message
+        alert.informativeText = error.localizedDescription
+        alert.runModal()
+    }
+
+    /// How an alert names what is in the way.
+    static func describe(_ occupant: CommandLineToolInstaller.Occupant) -> String {
+        switch occupant {
+        case .file: "a file"
+        case .folder: "a folder"
+        case .link(let destination): "a link to \(destination)"
+        case .other: "something that isn’t a file or a link"
+        }
+    }
+
+    /// Other copies of mdv Launch Services knows about (dev builds, a copy in Downloads).
+    private static func otherCopies() -> [URL] {
+        guard let identifier = Bundle.main.bundleIdentifier else {
+            return []
+        }
+        let thisApp = Bundle.main.bundleURL.standardized
+        return NSWorkspace.shared.urlsForApplications(withBundleIdentifier: identifier).filter {
+            $0.standardized != thisApp
+        }
+    }
+}

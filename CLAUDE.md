@@ -126,6 +126,12 @@ lock the build database.
     `MarkdownPreferences.customPreprocessor` (`MarkdownDocument.renderPreferences`), so a change
     re-renders open documents like any Settings > Markdown change. The section view is
     `Settings/CustomPreprocessorSection`.
+  - `CommandLineTool/` (#70): App menu > Install / Repair / Uninstall Command Line Tool….
+    `CommandLineToolInstaller` (the rules over an injected folder and app: state, atomic
+    install, uninstall, and the constant privileged shell scripts; an `Item` per linked file,
+    the hook for #71), `PrivilegedRunning` (`AppleScriptPrivilegedRunner`, values passed as
+    Apple event parameters), `CommandLineToolLocation` (`~/.local/bin`, `/usr/local/bin`, or
+    the UI-test folder; `LoginShellPath`), and `CommandLineToolController` (menu state, alerts).
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
@@ -250,7 +256,8 @@ lock the build database.
   <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
   unit tests never load them); `-MdvUITestPreprocessor <abs path>` starts with that custom
   preprocessor on; `-MdvUITestRenderDelay <seconds>` holds up every render (to see the
-  slow-render indicator without a slow script). Preprocessor scripts are executable fixtures
+  slow-render indicator without a slow script); `-MdvUITestCommandLineToolFolder <abs path>`
+  is the only folder Install Command Line Tool… offers (none without it). Preprocessor scripts are executable fixtures
   (`Fixtures/preprocessors/`): files the sandboxed runner writes are quarantined and won't
   execute (`EPERM`). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with
