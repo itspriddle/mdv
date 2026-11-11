@@ -154,6 +154,11 @@ struct AppOpeningTests {
         #expect(AppLocator.target(for: ours, running: [(10, ours)]) == .launchServices(createsNewInstance: false))
         #expect(AppLocator.target(for: ours, running: [(11, installed)]) == .launchServices(createsNewInstance: true))
         #expect(AppLocator.target(for: ours, running: [(11, installed), (10, ours)]) == .running(10))
+        // A running app's bundle URL ends in a slash; the located app's may not.
+        let bare = URL(filePath: "/build/Debug/mdv.app", directoryHint: .notDirectory)
+        #expect(AppLocator.target(for: bare, running: [(11, installed), (10, ours)]) == .running(10))
+        #expect(AppLocator.isSameBundle(bare, ours))
+        #expect(!AppLocator.isSameBundle(bare, installed))
     }
 
     static func makeApp(at app: URL, bundleIdentifier: String) throws {

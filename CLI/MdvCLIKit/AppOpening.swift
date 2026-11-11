@@ -103,12 +103,16 @@ public struct WorkspaceAppOpener: AppOpening {
         }
     }
 
-    /// Sends the event straight to the copy of the app at our path, when Launch Services would
-    /// pick another copy with the same bundle id (a development build next to an installed one).
+    /// Sends mdv's own open event (`AppOpenEvent.Kind.direct`) straight to the copy of the app at
+    /// our path, when Launch Services would pick another copy with the same bundle id (a
+    /// development build next to an installed one) or refuses a sandboxed caller. AppKit answers
+    /// an Open Documents event that doesn't come from Launch Services as a scripting command,
+    /// without the app delegate, so it would drop mdv's parameters.
     private static func send(files: [URL], parameters: AppOpenParameters, to processIdentifier: pid_t) throws {
         let event = AppOpenEvent.make(
-            files: files, parameters: parameters, target: NSAppleEventDescriptor(processIdentifier: processIdentifier))
-        _ = try event.sendEvent(options: [.noReply], timeout: 10)
+            files: files, parameters: parameters, target: NSAppleEventDescriptor(processIdentifier: processIdentifier),
+            kind: .direct)
+        _ = try event.sendEvent(options: [.waitForReply], timeout: 10)
         NSRunningApplication(processIdentifier: processIdentifier)?.activate()
     }
 
@@ -193,8 +197,17 @@ public struct AppLocator: Sendable {
 
     /// The process id of `app` when it is running.
     static func runningProcess(of app: URL) -> pid_t? {
-        let resolved = app.resolvingSymlinksInPath().standardizedFileURL
-        return runningCopies().first { $0.1.resolvingSymlinksInPath().standardizedFileURL == resolved }?.0
+        runningCopies().first { isSameBundle($0.1, app) }?.0
+    }
+
+    /// Whether two bundle URLs name the same folder: resolved paths, ignoring a trailing slash
+    /// (a bundle URL has one; a URL built from a path may not).
+    static func isSameBundle(_ lhs: URL, _ rhs: URL) -> Bool {
+        func path(_ url: URL) -> String {
+            let path = url.resolvingSymlinksInPath().standardizedFileURL.path(percentEncoded: false)
+            return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
+        }
+        return path(lhs) == path(rhs)
     }
 
     private static func runningCopies() -> [(pid_t, URL)] {
@@ -204,9 +217,8 @@ public struct AppLocator: Sendable {
 
     /// `runningTarget(for:)`'s decision, given the running copies' process ids and bundle URLs.
     static func target(for app: URL, running copies: [(pid_t, URL)]) -> Target {
-        let resolved = app.resolvingSymlinksInPath().standardizedFileURL
-        let ours = copies.first { $0.1.resolvingSymlinksInPath().standardizedFileURL == resolved }
-        let others = copies.contains { $0.1.resolvingSymlinksInPath().standardizedFileURL != resolved }
+        let ours = copies.first { isSameBundle($0.1, app) }
+        let others = copies.contains { !isSameBundle($0.1, app) }
         switch (ours, others) {
         case (let ours?, true):
             return .running(ours.0)

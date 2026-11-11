@@ -7,11 +7,29 @@ import Foundation
 /// (`NSWorkspace.OpenConfiguration.appleEvent`), which launches the app with it or sends it to
 /// the running app, so the app opens files exactly as it does from Finder.
 ///
-/// Trust model: any local process can send the app an Open Documents event, with any parameters.
-/// The parameters are presentation-only (they can't widen what a document may do), and the app
+/// When the CLI must reach a running copy without Launch Services (`Kind.direct`: another copy
+/// with the same bundle id is running, or the caller is sandboxed), it sends the same content as
+/// mdv's own event class instead (`mdv `/`odoc`), which the app handles with the same code.
+/// AppKit answers an Open Documents event that didn't come through Launch Services as a
+/// scripting command, which never reaches the app delegate and would drop the parameters.
+///
+/// Trust model: any local process can send the app either event, with any parameters. The
+/// parameters are presentation-only (they can't widen what a document may do), and the app
 /// reads them as untrusted input (`AppOpenParameters(event:)`): wrong types, oversized values,
 /// and unknown keywords are ignored. Nothing here is reachable from a web page (no URL scheme).
 public enum AppOpenEvent {
+    /// Which event carries the open.
+    public enum Kind: Sendable {
+        /// `aevt/odoc`, through Launch Services.
+        case openDocuments
+        /// `mdv /odoc`, sent straight to a running app.
+        case direct
+    }
+
+    /// `mdv `: the event class of `Kind.direct`.
+    public static let directEventClass: AEEventClass = 0x6D64_7620
+    /// `odoc`: the event id of `Kind.direct`.
+    public static let directEventID = AEEventID(kAEOpenDocuments)
     /// `mdvT`: the theme id for the opened windows (UTF-8 or UTF-16 text).
     public static let themeKeyword: AEKeyword = 0x6D64_7654
     // Reserved for later M5 issues (see docs/VISION.md, "CLI to app"):
@@ -20,15 +38,18 @@ public enum AppOpenEvent {
     /// The longest parameter value the app decodes, in bytes. A theme id is at most 256
     /// characters (`AppOpenParameters.maximumThemeIDLength`); 4 bytes each covers any encoding.
     public static let maximumTextBytes = 1024
+    /// The most files one direct event opens; the rest are ignored.
+    public static let maximumFiles = 1000
 
-    /// The Open Documents event for `files` with `parameters`, addressed to `target`: the app's
-    /// bundle id for Launch Services (which delivers it to the app it launches or finds), or a
-    /// process id to send it directly.
+    /// The event for `files` with `parameters`, addressed to `target`: the app's bundle id for
+    /// Launch Services (which delivers it to the app it launches or finds), or a process id to
+    /// send it directly (`kind: .direct`).
     public static func make(
-        files: [URL], parameters: AppOpenParameters, target: NSAppleEventDescriptor
+        files: [URL], parameters: AppOpenParameters, target: NSAppleEventDescriptor, kind: Kind = .openDocuments
     ) -> NSAppleEventDescriptor {
+        let eventClass = kind == .direct ? directEventClass : AEEventClass(kCoreEventClass)
         let event = NSAppleEventDescriptor.appleEvent(
-            withEventClass: AEEventClass(kCoreEventClass), eventID: AEEventID(kAEOpenDocuments),
+            withEventClass: eventClass, eventID: AEEventID(kAEOpenDocuments),
             targetDescriptor: target,
             returnID: AEReturnID(kAutoGenerateReturnID), transactionID: AETransactionID(kAnyTransactionID))
         let list = NSAppleEventDescriptor.list()
@@ -42,9 +63,29 @@ public enum AppOpenEvent {
         return event
     }
 
-    /// Whether `event` is an Open Documents event.
+    /// Whether `event` is an Open Documents event, or mdv's direct one.
     public static func isOpenDocuments(_ event: NSAppleEventDescriptor) -> Bool {
-        event.eventClass == AEEventClass(kCoreEventClass) && event.eventID == AEEventID(kAEOpenDocuments)
+        (event.eventClass == AEEventClass(kCoreEventClass) || event.eventClass == directEventClass)
+            && event.eventID == AEEventID(kAEOpenDocuments)
+    }
+
+    /// The file URLs in a direct event's direct object (a list, or one file), in order: items
+    /// that aren't file URLs are skipped, and at most `maximumFiles` are read. Empty for
+    /// anything else. (AppKit reads Open Documents events' files itself.)
+    public static func files(in event: NSAppleEventDescriptor) -> [URL] {
+        guard event.eventClass == directEventClass, event.eventID == directEventID,
+            let object = event.paramDescriptor(forKeyword: keyDirectObject)
+        else {
+            return []
+        }
+        guard object.descriptorType == DescType(typeAEList) else {
+            return object.fileURLValue.map { [$0] } ?? []
+        }
+        let count = min(object.numberOfItems, maximumFiles)
+        guard count > 0 else {
+            return []
+        }
+        return (1...count).compactMap { object.atIndex($0)?.fileURLValue }.filter(\.isFileURL)
     }
 
     /// The text in `descriptor`, when it is UTF-8 or UTF-16 text of at most
