@@ -6,9 +6,11 @@ public enum ExitStatus {
     public static let success: Int32 = 0
     /// Bad flags or arguments (ArgumentParser's `ValidationError` exits with this too).
     public static let usage: Int32 = ExitCode.validationFailure.rawValue
-    /// An input isn't valid UTF-8, or the `--theme` file isn't a valid theme.
+    /// An input isn't valid UTF-8, standard input is too large for a window (#68), or the
+    /// `--theme` file isn't a valid theme.
     public static let dataError: Int32 = 65
-    /// An input file is missing or unreadable, or the `--theme` file is missing.
+    /// An input file is missing or unreadable, standard input for a window is empty (#68), or
+    /// the `--theme` file is missing.
     public static let noInput: Int32 = 66
     /// The app couldn't be opened.
     public static let unavailable: Int32 = 69
@@ -36,8 +38,14 @@ public enum ExitStatus {
             status: usage,
             meaning: "usage error: bad flags, several pages to one output, --output naming an input, "
                 + "or no FILE while standard input is a terminal"),
-        Entry(status: dataError, meaning: "an input isn't valid UTF-8, or the --theme file isn't a valid theme"),
-        Entry(status: noInput, meaning: "an input file is missing or unreadable, or the --theme file is missing"),
+        Entry(
+            status: dataError,
+            meaning: "an input isn't valid UTF-8, standard input is over 10 MB for a window, "
+                + "or the --theme file isn't a valid theme"),
+        Entry(
+            status: noInput,
+            meaning: "an input file is missing or unreadable, standard input for a window is empty, "
+                + "or the --theme file is missing"),
         Entry(status: unavailable, meaning: "the app couldn't be opened"),
         Entry(status: software, meaning: "the --preprocessor program couldn't run or failed"),
         Entry(status: cannotCreate, meaning: "the --output file couldn't be written"),

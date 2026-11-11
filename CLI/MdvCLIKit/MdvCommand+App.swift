@@ -14,7 +14,7 @@ extension MdvCommand {
                 try Self.checkReadableFile(atPath: path)
                 if let url = source.url { files.append(url) }
             case .standardInput:
-                standardInput = try InputDocument.read(source, in: environment).markdown
+                standardInput = try InputDocument.readForWindow(in: environment).markdown
             }
         }
         let request = AppOpenRequest(

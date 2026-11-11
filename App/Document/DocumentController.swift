@@ -1,4 +1,5 @@
 import AppKit
+import MdvCore
 import UniformTypeIdentifiers
 
 /// The app's `NSDocumentController` (created in `main.swift`, before anything touches
@@ -28,6 +29,41 @@ final class DocumentController: NSDocumentController {
             return
         }
         super.noteNewRecentDocumentURL(url)
+    }
+
+    /// Opens `url`, unless it is `cmd | mdv`'s standard input handoff (#68): a file that
+    /// `StandardInputHandoff.take(_:)` verifies is one (by its shape: name, owner, permissions,
+    /// one link, no symbolic links) is read, deleted, and opened as an untitled document
+    /// (`MarkdownDocument(standardInput:)`) that never enters Open Recent. Recognizing it here,
+    /// not by an event parameter, covers every path an Open Documents event takes (the
+    /// delegate's `DocumentOpener`, and AppKit's own handling, which drops mdv's parameters).
+    /// A file that isn't a handoff opens as usual; a handoff too large or not UTF-8 is deleted
+    /// and fails the open with its reason.
+    override func openDocument(
+        withContentsOf url: URL, display displayDocument: Bool,
+        completionHandler: @escaping (NSDocument?, Bool, (any Error)?) -> Void
+    ) {
+        guard url.isFileURL, url.lastPathComponent == StandardInputHandoff.fileName else {
+            super.openDocument(withContentsOf: url, display: displayDocument, completionHandler: completionHandler)
+            return
+        }
+        let source: String
+        do {
+            source = try StandardInputHandoff.take(url)
+        } catch .notAHandoff {
+            super.openDocument(withContentsOf: url, display: displayDocument, completionHandler: completionHandler)
+            return
+        } catch {
+            completionHandler(nil, false, error)
+            return
+        }
+        let document = MarkdownDocument(standardInput: source)
+        addDocument(document)
+        if displayDocument {
+            document.makeWindowControllers()
+            document.showWindows()
+        }
+        completionHandler(document, false, nil)
     }
 
     /// The open document for `url`: AppKit's URL match, else a document whose file is the same

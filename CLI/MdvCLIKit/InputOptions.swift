@@ -1,8 +1,9 @@
 import ArgumentParser
 import Foundation
+import MdvCore
 
 /// The documents to read: FILE arguments, `-` for standard input, or standard input alone when
-/// there are none (#68 owns how standard input reaches the app).
+/// there are none. In the app, standard input opens as an untitled window (#68), after the files.
 public struct InputOptions: ParsableArguments, Sendable {
     @Argument(
         help: ArgumentHelp("Markdown files. '-' or no FILE reads standard input.", valueName: "FILE"),
@@ -69,12 +70,40 @@ public struct InputDocument: Equatable, Sendable {
         case .file(let path):
             data = try readFile(atPath: path)
         case .standardInput:
-            do {
-                data = try environment.readStandardInput()
-            } catch {
-                throw CLIError("stdin: \(error.localizedDescription)", status: ExitStatus.noInput)
-            }
+            data = try readStandardInput(in: environment, maximumBytes: nil)
         }
+        return try decode(data, from: source)
+    }
+
+    /// Reads standard input for a window (`cmd | mdv`, #68): at most
+    /// `StandardInputHandoff.maximumBytes` (more is `ExitStatus.dataError`, read no further),
+    /// and not empty or only whitespace (`ExitStatus.noInput`), so nothing opens for either.
+    static func readForWindow(in environment: CLIEnvironment) throws(CLIError) -> InputDocument {
+        let limit = StandardInputHandoff.maximumBytes
+        let data = try readStandardInput(in: environment, maximumBytes: limit)
+        guard data.count <= limit else {
+            throw CLIError(
+                "stdin: larger than \(limit / 1024 / 1024) MB, the most mdv opens in a window (--html has no limit)",
+                status: ExitStatus.dataError)
+        }
+        let document = try decode(data, from: .standardInput)
+        guard document.markdown.contains(where: { !$0.isWhitespace }) else {
+            throw CLIError("stdin: empty; nothing to open", status: ExitStatus.noInput)
+        }
+        return document
+    }
+
+    private static func readStandardInput(in environment: CLIEnvironment, maximumBytes: Int?) throws(CLIError)
+        -> Data
+    {
+        do {
+            return try environment.readStandardInput(maximumBytes)
+        } catch {
+            throw CLIError("stdin: \(error.localizedDescription)", status: ExitStatus.noInput)
+        }
+    }
+
+    private static func decode(_ data: Data, from source: InputSource) throws(CLIError) -> InputDocument {
         guard let markdown = String(bytes: data, encoding: .utf8) else {
             throw CLIError("\(source.displayName): not valid UTF-8", status: ExitStatus.dataError)
         }

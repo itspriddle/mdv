@@ -32,8 +32,8 @@ public enum AppOpenEvent {
     public static let directEventID = AEEventID(kAEOpenDocuments)
     /// `mdvT`: the theme id for the opened windows (UTF-8 or UTF-16 text).
     public static let themeKeyword: AEKeyword = 0x6D64_7654
-    // Reserved for later M5 issues (see docs/VISION.md, "CLI to app"):
-    // `mdvI` (0x6D64_7649) standard input for #68. `mdvW` (#69) is `waitKeyword`.
+    // `mdvW` (#69) is `waitKeyword`. `mdvI` (0x6D64_7649) was reserved for standard input;
+    // #68 needed no parameter (`StandardInputHandoff`), so it stays unused.
 
     /// The longest parameter value the app decodes, in bytes. A theme id is at most 256
     /// characters (`AppOpenParameters.maximumThemeIDLength`); 4 bytes each covers any encoding.

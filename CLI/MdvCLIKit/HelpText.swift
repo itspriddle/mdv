@@ -7,6 +7,8 @@ public enum HelpText {
         "Opens FILE(s) in mdv. With no FILE, reads Markdown from standard input. "
             + "--html, --fragment, or --output render HTML instead of opening the app.",
         "Several FILEs print one after another only with --fragment; --output takes one.",
+        "Standard input opens in an untitled window (up to 10 MB, read to its end, no file left "
+            + "behind); '-' adds it to FILEs.",
     ]
 
     /// One usage example: the command line and what it does.
@@ -23,6 +25,9 @@ public enum HelpText {
             explanation: "Open notes.md and return once its window closes (or mdv quits)."),
         Example(
             command: "echo '# Markdown' | mdv", explanation: "Open Markdown from standard input in a new window."),
+        Example(
+            command: "git show HEAD:README.md | mdv --wait",
+            explanation: "Open the committed README in a new window and return once it closes."),
         Example(
             command: "mdv --html README.md > README.html",
             explanation: "Render a complete HTML page, CSS inline, to standard output."),

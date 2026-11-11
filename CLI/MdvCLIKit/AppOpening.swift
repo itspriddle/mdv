@@ -21,7 +21,7 @@ public struct AppOpenRequest: Equatable, Sendable {
 /// Opens documents in the app. `CLIEnvironment.appOpener` holds it, so tests record requests
 /// instead of launching anything. Throw `CLIError` (usually `ExitStatus.unavailable`) on failure.
 ///
-/// #68 decides how standard input reaches the app. With `options.wait` (#69), `open` returns
+/// With `options.wait` (#69), `open` returns
 /// only once the windows it opened are closed or the app quits (`WindowsClosedWaiter`).
 public protocol AppOpening: Sendable {
     func open(_ request: AppOpenRequest, options: AppOpenOptions) async throws(CLIError)
@@ -32,28 +32,49 @@ public protocol AppOpening: Sendable {
 /// Services launches the app with it, or sends it to the running app, and activates the app, as
 /// Finder's open does. See docs/VISION.md, "CLI to app".
 ///
-/// Standard input still goes in a temp file that is never deleted (#68 replaces this).
+/// Standard input (#68) goes in a private handoff file (`StandardInputHandoff`), last among the
+/// event's files; the app recognizes it by its shape, deletes it once read, and shows it as an
+/// untitled window. This opener deletes it if the event never got to the app.
 public struct WorkspaceAppOpener: AppOpening {
     /// Environment variables passed on to an app this opener launches: `LaunchTiming`'s, so
     /// `scripts/measure-cold-open -c` can time `mdv FILE`. They only make the app report timings.
     static let forwardedEnvironment = ["MDV_LAUNCH_TIMING", "MDV_LAUNCH_TIMING_LOG"]
 
     private let locator: AppLocator
+    /// Where standard input's handoff folder is made (`temporaryFolder(environment:)`).
+    private let temporaryFolder: URL
 
-    public init(locator: AppLocator = .live) {
+    public init(
+        locator: AppLocator = .live,
+        temporaryFolder: URL = Self.temporaryFolder(environment: ProcessInfo.processInfo.environment)
+    ) {
         self.locator = locator
+        self.temporaryFolder = temporaryFolder
     }
 
     public func open(_ request: AppOpenRequest, options: AppOpenOptions) async throws(CLIError) {
-        var files = request.files
-        if let markdown = request.standardInput {
-            files.append(try Self.saveStandardInput(markdown))
-        }
         let app = try locator.locate()
-        // Registered before the event goes, so a window closed at once isn't missed.
-        let waiter = options.wait ? try WindowsClosedWaiter() : nil
-        let parameters = AppOpenParameters(themeID: request.themeID, waitToken: waiter?.token)
-        let processIdentifier = try await Self.deliver(files: files, parameters: parameters, to: app)
+        var files = request.files
+        var handoff: URL?
+        if let markdown = request.standardInput {
+            let file = try handOff(markdown)
+            files.append(file)
+            handoff = file
+        }
+        let waiter: WindowsClosedWaiter?
+        let processIdentifier: pid_t?
+        do {
+            // Registered before the event goes, so a window closed at once isn't missed.
+            waiter = options.wait ? try WindowsClosedWaiter() : nil
+            let parameters = AppOpenParameters(themeID: request.themeID, waitToken: waiter?.token)
+            processIdentifier = try await Self.deliver(files: files, parameters: parameters, to: app)
+        } catch {
+            // The app never got the event, so nothing else will delete the handoff.
+            if let handoff {
+                StandardInputHandoff.remove(handoff)
+            }
+            throw error
+        }
         if let waiter {
             // The app's process too, so a quit or crash ends the wait.
             await waiter.wait(forProcess: processIdentifier ?? AppLocator.runningProcess(of: app))
@@ -132,17 +153,27 @@ public struct WorkspaceAppOpener: AppOpening {
         NSRunningApplication(processIdentifier: processIdentifier)?.activate()
     }
 
-    private static func saveStandardInput(_ markdown: String) throws(CLIError) -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("mdv-stdin-\(UUID().uuidString).md")
+    /// Writes standard input to a private handoff file the app deletes once it has read it
+    /// (`StandardInputHandoff`, #68).
+    private func handOff(_ markdown: String) throws(CLIError) -> URL {
         do {
-            try markdown.write(to: url, atomically: true, encoding: .utf8)
+            return try StandardInputHandoff.write(Data(markdown.utf8), inFolder: temporaryFolder)
         } catch {
             throw CLIError(
-                "couldn't save standard input for the app: \(error.localizedDescription)",
+                "couldn't save standard input for the app in \(temporaryFolder.path(percentEncoded: false)): "
+                    + error.localizedDescription,
                 status: ExitStatus.unavailable)
         }
-        return url
+    }
+
+    /// Where handoff folders go: `TMPDIR` when it is an absolute path (the per-user temp folder
+    /// in a login shell), else Foundation's temporary directory. The folder needn't be private:
+    /// each handoff is in its own new folder that only this user can open.
+    public static func temporaryFolder(environment: [String: String]) -> URL {
+        if let path = environment["TMPDIR"], path.hasPrefix("/") {
+            return URL(filePath: path, directoryHint: .isDirectory)
+        }
+        return FileManager.default.temporaryDirectory
     }
 }
 
