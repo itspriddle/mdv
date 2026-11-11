@@ -15,6 +15,10 @@ import MdvCore
 /// Theme pick, so it beats the document's `mdv.theme` and restoration keeps it. An
 /// already-open window switches to it. A `--wait` token (#69) makes `waits` track the windows
 /// shown for it, already-open ones included, until they close.
+///
+/// Standard input (`cmd | mdv`, #68) is one of the files: the document controller recognizes
+/// its handoff file and returns an untitled document, which shows and joins a `--wait` token
+/// like any other.
 @MainActor
 final class DocumentOpener {
     private let documentController: NSDocumentController
