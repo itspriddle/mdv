@@ -69,6 +69,13 @@ preprocessor: choose the program with Choose… and add any arguments, one per f
   a script you downloaded. If you trust it, `xattr -d com.apple.quarantine /path/to/script`
   clears that.
 - It runs again on every live reload, and open windows update when you change it in Settings.
+- On the command line it runs only when you ask, never from the app's setting:
+  `mdv --html --preprocessor ~/bin/expand --preprocessor-arg --strict notes.md`. The path is
+  a file (relative to the current folder), never looked up on `PATH`; repeat
+  `--preprocessor-arg` for each argument. Standard input runs it in `/` with no
+  `MDV_DOCUMENT_PATH`. The limits are the app's. If it fails, mdv prints the reason and what it
+  wrote to standard error, prints no HTML, and exits 70. Ctrl-C stops it (and anything it
+  started) before mdv exits.
 
 ## Command line
 
@@ -120,6 +127,7 @@ mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
 | 65 | An input isn't valid UTF-8, or the `--theme` file isn't a valid theme |
 | 66 | An input file is missing or unreadable, or the `--theme` file is missing |
 | 69 | The app couldn't be opened |
+| 70 | The `--preprocessor` program couldn't run or failed |
 | 73 | The `--output` file couldn't be written |
 | 74 | Writing to standard output failed |
 

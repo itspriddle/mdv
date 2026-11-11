@@ -23,6 +23,7 @@ public struct MdvCommand: AsyncParsableCommand {
               mdv -o README.html README.md
               mdv --fragment intro.md usage.md > body.html
               mdv --html --theme serif --flavor commonmark notes.md
+              mdv --html --preprocessor ~/bin/expand --preprocessor-arg -v notes.md
 
             Several FILEs print one after another only with --fragment; --output takes one.
 
@@ -38,7 +39,7 @@ public struct MdvCommand: AsyncParsableCommand {
     @OptionGroup(title: "Output") public var output: OutputOptions
     @OptionGroup public var themeFlavor: ThemeFlavorOptions
     @OptionGroup(title: "Rendering") public var renderFlags: RenderFlagOptions
-    @OptionGroup public var preprocessor: PreprocessorOptions
+    @OptionGroup(title: "Preprocessor") public var preprocessor: PreprocessorOptions
     @OptionGroup public var app: AppOpenOptions
 
     public init() {}
@@ -55,6 +56,10 @@ public struct MdvCommand: AsyncParsableCommand {
         }
         if renderFlags.isSet, !output.rendersHTML, !themeFlavor.lists {
             throw ValidationError("The Rendering flags change HTML output; add --html, --fragment, or --output.")
+        }
+        if preprocessor.isSet, !output.rendersHTML, !themeFlavor.lists {
+            throw ValidationError(
+                "--preprocessor changes HTML output only; add --html, --fragment, or --output.")
         }
         let inputCount = input.sources.count
         if output.output != nil, inputCount > 1 {
