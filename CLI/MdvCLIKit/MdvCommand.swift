@@ -18,6 +18,7 @@ public struct MdvCommand: AsyncParsableCommand {
             --html, --fragment, or --output render HTML instead of opening the app.
 
               mdv README.md
+              mdv --wait notes.md
               echo '# Markdown' | mdv
               mdv --html README.md > README.html
               mdv -o README.html README.md

@@ -3,7 +3,6 @@ import Dispatch
 import Foundation
 import MdvCore
 import Synchronization
-import notify
 
 /// `mdv --wait` (#69): waits for the app to say the windows of one open event have closed, or
 /// for the app's process to exit (quit, crash, force quit), whichever comes first.
@@ -20,19 +19,22 @@ final class WindowsClosedWaiter: Sendable {
     let token: UUID
 
     private let core: Core
-    private let registration: Int32
+    private let registration: DarwinNotificationRegistration
 
     /// Registers for `token`'s notification; `ExitStatus.unavailable` if that fails (nothing has
     /// opened yet).
     init(token: UUID = UUID()) throws(CLIError) {
         let core = Core()
-        var registration: Int32 = 0
-        let status = notify_register_dispatch(
-            AppOpenEvent.windowsClosedNotificationName(for: token), &registration, core.queue
-        ) { _ in core.finish() }
-        guard status == NOTIFY_STATUS_OK else {
+        let registration: DarwinNotificationRegistration
+        switch DarwinNotificationRegistration.register(
+            AppOpenEvent.windowsClosedNotificationName(for: token), queue: core.queue, handler: { core.finish() })
+        {
+        case .success(let value):
+            registration = value
+        case .failure(let failure):
             throw CLIError(
-                "couldn't wait for the app's windows (notify status \(status))", status: ExitStatus.unavailable)
+                "couldn't wait for the app's windows (notify status \(failure.status))",
+                status: ExitStatus.unavailable)
         }
         self.token = token
         self.core = core
@@ -40,7 +42,7 @@ final class WindowsClosedWaiter: Sendable {
     }
 
     deinit {
-        notify_cancel(registration)
+        registration.cancel()
         core.cancelProcessSource()
     }
 

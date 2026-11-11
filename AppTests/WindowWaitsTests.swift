@@ -119,7 +119,7 @@ final class WindowWaitsTests {
         let opener = DocumentOpener(
             themeSettings: ThemeSettings(defaults: throwawayDefaults.defaults, isPersistent: true), waits: waits,
             presentError: { _ in })
-        let (a, b) = (try file("a.md"), try file("b.md"))
+        let (fileA, fileB) = (try file("a.md"), try file("b.md"))
         defer {
             for document in opened { document.close() }
         }
@@ -136,14 +136,14 @@ final class WindowWaitsTests {
             }
         }
 
-        await open([a], token: nil)
+        await open([fileA], token: nil)
         #expect(waits.pendingTokens.isEmpty)
         let token = UUID()
-        await open([a, b], token: token)
+        await open([fileA, fileB], token: token)
         #expect(waits.pendingTokens == [token])
 
-        let documentA = try #require(NSDocumentController.shared.document(for: a))
-        let documentB = try #require(NSDocumentController.shared.document(for: b))
+        let documentA = try #require(NSDocumentController.shared.document(for: fileA))
+        let documentB = try #require(NSDocumentController.shared.document(for: fileB))
         documentA.close()
         #expect(posted.isEmpty)
         documentB.close()

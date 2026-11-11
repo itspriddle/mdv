@@ -2,7 +2,6 @@ import Darwin
 import Foundation
 import MdvCore
 import Testing
-import notify
 
 @testable import MdvCLIKit
 
@@ -45,10 +44,10 @@ struct WaitTests {
     func notification() async throws {
         let waiter = try WindowsClosedWaiter()
         let task = Task { await waiter.wait(forProcess: nil) }
-        notify_post(AppOpenEvent.windowsClosedNotificationName(for: UUID()))
+        DarwinNotificationRegistration.post(AppOpenEvent.windowsClosedNotificationName(for: UUID()))
         try await Task.sleep(for: .milliseconds(300))
         #expect(!waiter.isFinished)
-        notify_post(AppOpenEvent.windowsClosedNotificationName(for: waiter.token))
+        DarwinNotificationRegistration.post(AppOpenEvent.windowsClosedNotificationName(for: waiter.token))
         await task.value
         #expect(waiter.isFinished)
     }
@@ -56,7 +55,7 @@ struct WaitTests {
     @Test("a notification posted before the wait starts still ends it")
     func early() async throws {
         let waiter = try WindowsClosedWaiter()
-        notify_post(AppOpenEvent.windowsClosedNotificationName(for: waiter.token))
+        DarwinNotificationRegistration.post(AppOpenEvent.windowsClosedNotificationName(for: waiter.token))
         try await Task.sleep(for: .milliseconds(100))
         await waiter.wait(forProcess: nil)
         #expect(waiter.isFinished)
