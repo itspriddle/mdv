@@ -62,7 +62,19 @@ struct CommandLineToolSandbox {
             fromPropertyList: ["CFBundleIdentifier": bundleIdentifier], format: .xml, options: 0)
         try info.write(to: app.appending(path: "Contents/Info.plist"))
         try Data("#!/bin/sh\n".utf8).write(to: helpers.appending(path: "mdv"))
+        let man = app.appending(path: "Contents/Resources/man/man1", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: man, withIntermediateDirectories: true)
+        try Data(".Dd x\n".utf8).write(to: man.appending(path: "mdv.1"))
         return app
+    }
+
+    /// Where the man page's link goes for `bin` (`share/man/man1` beside it).
+    var manFolder: URL { root.appending(path: "share/man/man1", directoryHint: .isDirectory) }
+    var manLink: URL { manFolder.appending(path: "mdv.1") }
+
+    func manPageInstaller(app: URL, folder: URL? = nil) -> CommandLineToolInstaller {
+        CommandLineToolInstaller(
+            folder: folder ?? manFolder, item: .manPage, app: app, bundleIdentifier: Self.bundleIdentifier)
     }
 
     func installer(app: URL, folder: URL? = nil) -> CommandLineToolInstaller {
@@ -84,8 +96,10 @@ struct CommandLineToolSandbox {
     }
 
     func remove() {
-        try? FileManager.default.setAttributes(
-            [.posixPermissions: 0o755], ofItemAtPath: bin.path(percentEncoded: false))
+        for folder in [bin, manFolder] {
+            try? FileManager.default.setAttributes(
+                [.posixPermissions: 0o755], ofItemAtPath: folder.path(percentEncoded: false))
+        }
         try? FileManager.default.removeItem(at: root)
     }
 }

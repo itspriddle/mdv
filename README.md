@@ -153,6 +153,41 @@ copy of mdv you are running (the alert names it, which matters if you have sever
   only the link). You can also delete it yourself: `rm ~/.local/bin/mdv` or
   `sudo rm /usr/local/bin/mdv`.
 
+### Man page
+
+Install Command Line Tool also links the man page beside the command, at
+`~/.local/share/man/man1/mdv.1` or `/usr/local/share/man/man1/mdv.1` (one password prompt
+covers both), so `man mdv` works with no `MANPATH` changes. A page that isn't mdv's is left
+alone, and uninstalling removes mdv's link with the command's. The page itself is
+`mdv.app/Contents/Resources/man/man1/mdv.1`: `man /Applications/mdv.app/Contents/Resources/man/man1/mdv.1`
+reads it without installing anything.
+
+### Shell completions
+
+The app carries completion scripts for zsh, bash, and fish in
+`mdv.app/Contents/Resources/completions`. They complete every flag, file names, `--flavor`, and
+`--theme` ids, including custom themes (read from the Themes folder each time you press Tab, so
+a new theme completes without regenerating anything). They call `mdv` itself, so install the
+command first. Linking to the scripts in the app keeps them current when mdv updates:
+
+```sh
+completions=/Applications/mdv.app/Contents/Resources/completions
+
+# zsh: a folder on fpath; in ~/.zshrc, add `fpath=(~/.zfunc $fpath)` above `compinit`
+mkdir -p ~/.zfunc && ln -sf "$completions/_mdv" ~/.zfunc/_mdv
+
+# bash (with bash-completion installed)
+mkdir -p ~/.local/share/bash-completion/completions
+ln -sf "$completions/mdv.bash" ~/.local/share/bash-completion/completions/mdv
+
+# fish
+mkdir -p ~/.config/fish/completions && ln -sf "$completions/mdv.fish" ~/.config/fish/completions/mdv.fish
+```
+
+`mdv --generate-completion-script zsh` (or `bash`, `fish`) prints the same script. In bash, `:`
+splits words, so complete a custom theme from its start (`--theme cu<Tab>`), not after
+`custom:`.
+
 ## Requirements
 
 - macOS 15 or later
@@ -172,6 +207,7 @@ Signed local builds: copy `Config/Local.xcconfig.example` to `Config/Local.xccon
 | Command            | What it does                               |
 | ------------------ | ------------------------------------------ |
 | `make build`       | Build the app and embedded CLI             |
+| `make cli-docs`    | Generate the man page and completions into `build/cli-docs` |
 | `make test`        | Run core (`swift test`) and app test suites |
 | `make lint`        | SwiftLint + swift-format lint (strict)     |
 | `make format`      | Auto-format sources                        |

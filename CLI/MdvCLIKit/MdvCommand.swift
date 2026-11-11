@@ -13,22 +13,9 @@ public struct MdvCommand: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "mdv",
         abstract: "View Markdown files.",
-        discussion: """
-            Opens FILE(s) in mdv. With no FILE, reads Markdown from standard input.
-            --html, --fragment, or --output render HTML instead of opening the app.
-
-              mdv README.md
-              echo '# Markdown' | mdv
-              mdv --html README.md > README.html
-              mdv -o README.html README.md
-              mdv --fragment intro.md usage.md > body.html
-              mdv --html --theme serif --flavor commonmark notes.md
-              mdv --html --preprocessor ~/bin/expand --preprocessor-arg -v notes.md
-
-            Several FILEs print one after another only with --fragment; --output takes one.
-
-            \(ExitStatus.help)
-            """,
+        // The overview, examples, and exit statuses live in `HelpText` and `ExitStatus`, which
+        // the man page's hand-written sections are built from too (#71).
+        discussion: HelpText.discussion,
         version: MdvInfo.version
     )
 

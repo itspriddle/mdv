@@ -98,6 +98,31 @@ targets:
         copy:
           destination: wrapper
           subpath: Contents/Helpers
+    # Shell completions and the man page (#71), for the Homebrew cask and Install Command Line
+    # Tool: Contents/Resources/completions/{_mdv,mdv.bash,mdv.fish} and
+    # Contents/Resources/man/man1/mdv.1. Completions come from the embedded helper; the man page
+    # from `make cli-docs` (which `make build` runs), required for Release.
+    postBuildScripts:
+      - name: Bundle shell completions and man page
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          helper="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers/mdv"
+          resources="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          mkdir -p "$resources/completions"
+          "$helper" --generate-completion-script zsh > "$resources/completions/_mdv"
+          "$helper" --generate-completion-script bash > "$resources/completions/mdv.bash"
+          "$helper" --generate-completion-script fish > "$resources/completions/mdv.fish"
+          page="$SRCROOT/build/cli-docs/man/man1/mdv.1"
+          if [ -f "$page" ]; then
+            mkdir -p "$resources/man/man1"
+            cp "$page" "$resources/man/man1/mdv.1"
+          elif [ "$CONFIGURATION" = Release ]; then
+            echo "error: $page is missing; run make cli-docs (make build runs it)"
+            exit 1
+          else
+            echo "warning: no man page in this build; run make cli-docs"
+          fi
 
   mdv-cli:
     type: tool

@@ -25,6 +25,7 @@ final class CommandLineToolController {
 
     let locations: [CommandLineToolLocation]
     private let makeInstaller: (CommandLineToolLocation) -> CommandLineToolInstaller
+    private let makeManPageInstaller: (CommandLineToolLocation) -> CommandLineToolInstaller
     private let privileged: any PrivilegedRunning
     private var isRunning = false
 
@@ -33,10 +34,14 @@ final class CommandLineToolController {
         makeInstaller: @escaping (CommandLineToolLocation) -> CommandLineToolInstaller = {
             CommandLineToolInstaller(folder: $0.folder)
         },
+        makeManPageInstaller: @escaping (CommandLineToolLocation) -> CommandLineToolInstaller = {
+            CommandLineToolInstaller(folder: $0.manFolder, item: .manPage)
+        },
         privileged: any PrivilegedRunning = AppleScriptPrivilegedRunner()
     ) {
         self.locations = locations
         self.makeInstaller = makeInstaller
+        self.makeManPageInstaller = makeManPageInstaller
         self.privileged = privileged
     }
 
@@ -94,8 +99,10 @@ final class CommandLineToolController {
             showOccupied(occupant, at: location, installer: installer)
             return
         }
+        let manPage = manPageToInstall(at: location)
         do {
-            try await installer.install(privileged: privileged)
+            try await CommandLineToolInstaller.install(
+                [installer] + [manPage].compactMap(\.self), privileged: privileged)
         } catch .cancelled {
             return
         } catch .occupied(let occupant) {
@@ -105,7 +112,22 @@ final class CommandLineToolController {
             showFailure("mdv couldn’t install the command line tool.", error)
             return
         }
-        showInstalled(at: location, installer: installer, onPath: pathFolders.map(location.isOnPath))
+        showInstalled(at: location, withManPage: manPage != nil, onPath: pathFolders.map(location.isOnPath))
+    }
+
+    /// The man page's installer when it goes along with the command (#71): this copy has one
+    /// (a build without `make cli-docs` doesn't), and nothing that isn't ours is in its place.
+    /// A man page from elsewhere (say, a package manager's) is left alone, without an alert:
+    /// the command is what the reader asked for.
+    func manPageToInstall(at location: CommandLineToolLocation) -> CommandLineToolInstaller? {
+        let installer = makeManPageInstaller(location)
+        guard FileManager.default.fileExists(atPath: installer.target.path(percentEncoded: false)) else {
+            return nil
+        }
+        if case .occupied = installer.state() {
+            return nil
+        }
+        return installer
     }
 
     /// Asks where to install, saying which copy of mdv the link will use. Returns nil on Cancel.
@@ -151,11 +173,16 @@ final class CommandLineToolController {
         return isRepair ? initial : locations[max(popUp.indexOfSelectedItem, 0)]
     }
 
-    private func showInstalled(at location: CommandLineToolLocation, installer: CommandLineToolInstaller, onPath: Bool?)
-    {
+    private func showInstalled(at location: CommandLineToolLocation, withManPage: Bool, onPath: Bool?) {
         let alert = NSAlert()
         alert.messageText = "The mdv command line tool is installed."
-        var text = "\(location.displayPath)/mdv runs the command line tool in this copy of mdv. Try `mdv --help`."
+        var text = "\(location.displayPath)/mdv runs the command line tool in this copy of mdv. Try `mdv --help`"
+        text += withManPage ? " or `man mdv`." : "."
+        let completions = Bundle.main.bundleURL.appending(path: Self.completionsPathInBundle).path(
+            percentEncoded: false)
+        text +=
+            "\n\nShell completions for zsh, bash, and fish are in \(completions) "
+            + "(mdv’s README explains how to use them)."
         if onPath != true {
             text +=
                 "\n\n\(location.displayPath) may not be on your PATH. If `mdv` isn’t found in a new terminal "
@@ -195,7 +222,11 @@ final class CommandLineToolController {
             return
         }
         do {
-            try await installer.uninstall(privileged: privileged)
+            // The man page goes with the command when it is ours (any copy's); anything else stays.
+            let manPage = makeManPageInstaller(location)
+            let ours = manPage.state() == .installed || manPage.state().ourDestination != nil
+            try await CommandLineToolInstaller.uninstall(
+                ours ? [installer, manPage] : [installer], privileged: privileged)
         } catch .cancelled {
             return
         } catch {
@@ -204,6 +235,9 @@ final class CommandLineToolController {
     }
 
     // MARK: - Helpers
+
+    /// Where the build puts the shell completion scripts (project.yml, #71).
+    nonisolated static let completionsPathInBundle = "Contents/Resources/completions"
 
     private func showFailure(_ message: String, _ error: CommandLineToolError) {
         let alert = NSAlert()

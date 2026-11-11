@@ -6,6 +6,17 @@ struct CommandLineToolLocation: Equatable, Sendable {
     let folder: URL
     /// The folder as the reader knows it (`~/.local/bin`).
     let displayPath: String
+    /// Where the man page's link goes (#71): `<folder>/../share/man/man1` by default, which
+    /// `man` searches for every `bin` folder on the `PATH` (no `MANPATH` needed).
+    let manFolder: URL
+
+    init(folder: URL, displayPath: String, manFolder: URL? = nil) {
+        self.folder = folder
+        self.displayPath = displayPath
+        self.manFolder =
+            manFolder
+            ?? folder.deletingLastPathComponent().appending(path: "share/man/man1", directoryHint: .isDirectory)
+    }
 
     /// `~/.local/bin`: no password, but not always on the reader's `PATH`.
     static var userBin: CommandLineToolLocation {
@@ -19,11 +30,16 @@ struct CommandLineToolLocation: Equatable, Sendable {
         folder: URL(filePath: "/usr/local/bin", directoryHint: .isDirectory), displayPath: "/usr/local/bin")
 
     /// The locations the menu offers: both standard folders, or only the folder a UI test
-    /// passed (`-MdvUITestCommandLineToolFolder`). None under hosted unit tests or a UI test
-    /// without that hook, so tests never touch the real folders.
+    /// passed (`-MdvUITestCommandLineToolFolder`; its man page goes inside it, never beside
+    /// it). None under hosted unit tests or a UI test without that hook, so tests never touch
+    /// the real folders.
     @MainActor static var standard: [CommandLineToolLocation] {
         if let folder = UITestHooks.commandLineToolFolder {
-            return [CommandLineToolLocation(folder: folder, displayPath: folder.path(percentEncoded: false))]
+            return [
+                CommandLineToolLocation(
+                    folder: folder, displayPath: folder.path(percentEncoded: false),
+                    manFolder: folder.appending(path: "share/man/man1", directoryHint: .isDirectory))
+            ]
         }
         let isTesting = AppDelegate.isHostingUnitTests
         if isTesting || UITestHooks.isUITesting {

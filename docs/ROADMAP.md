@@ -689,6 +689,16 @@ Make the terminal workflow excellent.
   becomes the windows' View > Theme pick (an open window switches); `--flavor` without HTML
   output is a usage error. Parameters are presentation-only and validated in the app as
   untrusted. #68/#69 add parameters to the same event (`mdvI`, `mdvW` reserved).
+- Completions and man page (#71): generated from the ArgumentParser command, not committed
+  (`make cli-docs` into `build/cli-docs`; `make test-core` and `make build` run it). zsh, bash,
+  and fish scripts from ArgumentParser; `--theme` completes `--list-themes`' ids when Tab is
+  pressed. The man page is the `generate-manual` plugin's, finished with hand-written sections
+  built from code (`ManualPage`: EXIT STATUS from `ExitStatus.entries`, EXAMPLES from
+  `HelpText`, FILES, ENVIRONMENT, SECURITY CONSIDERATIONS). A test checks every option from
+  `--experimental-dump-help` is in the page and the scripts. The app bundles them in
+  `Contents/Resources/{man/man1,completions}` (paths for the M6 cask); Install Command Line
+  Tool also links the man page into `share/man/man1` beside the command (one password prompt);
+  completions are documented, not installed.
 
 ## Gate: choose the name
 

@@ -14,7 +14,8 @@ public struct PreprocessorOptions: ParsableArguments, Sendable {
         help: ArgumentHelp(
             "Run the program at PATH (a file, not a command name) on each input first: "
                 + "the document on its stdin, Markdown on its stdout.",
-            valueName: "PATH"))
+            valueName: "PATH"),
+        completion: .file())
     public var executable: String?
 
     @Option(
