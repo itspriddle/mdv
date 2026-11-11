@@ -8,11 +8,14 @@ final class RunningCommandLine {
     let arguments: [String]
     private let errorPipe: Pipe
 
-    init(arguments: [String]) throws {
+    init(arguments: [String], standardInput: URL? = nil, environment: [String: String] = [:]) throws {
         process = Process()
         process.executableURL = try MdvUITestApp.commandLineTool()
         process.arguments = arguments
-        process.standardInput = FileHandle.nullDevice
+        process.standardInput = try standardInput.map { try FileHandle(forReadingFrom: $0) } ?? FileHandle.nullDevice
+        if !environment.isEmpty {
+            process.environment = ProcessInfo.processInfo.environment.merging(environment) { $1 }
+        }
         process.standardOutput = FileHandle.nullDevice
         errorPipe = Pipe()
         process.standardError = errorPipe
@@ -50,9 +53,12 @@ final class RunningCommandLine {
 }
 
 extension MdvUITestApp {
-    /// Starts `mdv arguments…` without waiting for it.
-    static func startCommandLine(_ arguments: [String]) throws -> RunningCommandLine {
-        try RunningCommandLine(arguments: arguments)
+    /// Starts `mdv arguments…` without waiting for it; standard input is the file
+    /// `standardInput`, else empty, and `environment` adds to the runner's.
+    static func startCommandLine(
+        _ arguments: [String], standardInput: URL? = nil, environment: [String: String] = [:]
+    ) throws -> RunningCommandLine {
+        try RunningCommandLine(arguments: arguments, standardInput: standardInput, environment: environment)
     }
 
     /// Closes `window` with its close button.

@@ -27,12 +27,19 @@ extension MdvUITestApp {
     }
 
     /// Runs `mdv arguments…` and returns its exit status and standard error. Gives up after 20 s.
+    /// Standard input is the file `standardInput` (a file, so a run that stops reading early
+    /// can't raise `SIGPIPE` here), else empty; `environment` adds to the runner's.
     @discardableResult
-    static func runCommandLine(_ arguments: [String]) throws -> (status: Int32, stderr: String) {
+    static func runCommandLine(
+        _ arguments: [String], standardInput: URL? = nil, environment: [String: String] = [:]
+    ) throws -> (status: Int32, stderr: String) {
         let process = Process()
         process.executableURL = try commandLineTool()
         process.arguments = arguments
-        process.standardInput = FileHandle.nullDevice
+        process.standardInput = try standardInput.map { try FileHandle(forReadingFrom: $0) } ?? FileHandle.nullDevice
+        if !environment.isEmpty {
+            process.environment = ProcessInfo.processInfo.environment.merging(environment) { $1 }
+        }
         process.standardOutput = FileHandle.nullDevice
         let errorPipe = Pipe()
         process.standardError = errorPipe
