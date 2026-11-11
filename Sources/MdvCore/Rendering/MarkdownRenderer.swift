@@ -21,6 +21,11 @@ public struct RenderOptions: Sendable, Equatable {
     /// can pick its flavor (which beats `flavor`) and, in the app, its theme. Presentation only;
     /// no safety setting can be overridden.
     public var appliesDocumentOverrides = true
+    /// Overrides the caller chose explicitly, so a document's `mdv:` value for them is not
+    /// applied (#64): `mdv --flavor commonmark` pins `.flavor`, and the flag beats `mdv.flavor`.
+    /// Empty by default (every override applies). Pinning only keeps this render's own setting;
+    /// it never changes a safety setting, which documents can't override anyway.
+    public var pinnedOverrides: Set<DocumentOverrides.Key> = []
     /// Markup for GFM extensions whose HTML differs between GitHub and cmark (task lists and
     /// footnotes). `RenderOptions.spec` switches to `.cmark`.
     public var gfmMarkup: GFMMarkup = .github
@@ -90,10 +95,13 @@ public struct RenderedDocument: Sendable, Equatable {
     /// The frontmatter's `mdv:` overrides (#54), with what was ignored and why. The flavor is
     /// already applied; the theme is the caller's to resolve.
     public var overrides: DocumentOverrides
+    /// The flavor the body was parsed with (#64): `RenderOptions.flavor`, or the document's
+    /// `mdv.flavor` when that applied (not pinned).
+    public var flavor: Flavor
 
     public init(
         html: String, title: String? = nil, headings: [Heading] = [], frontmatter: Frontmatter? = nil,
-        blockedRemoteImages: [RemoteImage] = [], overrides: DocumentOverrides = .none
+        blockedRemoteImages: [RemoteImage] = [], overrides: DocumentOverrides = .none, flavor: Flavor = .gfm
     ) {
         self.html = html
         self.title = title
@@ -101,6 +109,7 @@ public struct RenderedDocument: Sendable, Equatable {
         self.frontmatter = frontmatter
         self.blockedRemoteImages = blockedRemoteImages
         self.overrides = overrides
+        self.flavor = flavor
     }
 }
 
