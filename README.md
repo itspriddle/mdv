@@ -85,7 +85,15 @@ first, so a missing or unreadable file opens nothing. `mdv --theme serif FILE` o
 in that theme, as if picked from View > Theme. `mdv --wait FILE...` returns only once you've closed
 the windows it opened (a file that was already open counts too), or the app quits; Ctrl-C stops
 waiting and leaves the windows open. With no FILE (or `-`), it reads Markdown from standard
-input. These flags render HTML instead:
+input.
+
+```sh
+mdv README.md docs/guide.md               # open both in the app
+mdv --theme serif notes.md                # in the Serif theme
+git show HEAD:README.md | mdv --wait      # a window for standard input; returns once it closes
+```
+
+These flags render HTML instead:
 
 ```sh
 mdv --html README.md > README.html        # a complete page: CSS inline, no external resources
