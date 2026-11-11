@@ -97,6 +97,20 @@ mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
   (bundled or custom) picks the theme, falling back to GitHub silently.
 - `--list-themes` and `--list-flavors` print one `id<TAB>name` line each (custom theme files
   that don't load are reported on standard error).
+- Rendering flags: `--frontmatter table` shows frontmatter before the body (hidden by default);
+  `--wiki-links` / `--no-wiki-links` turn `[[wiki links]]` on or off, beating the document's
+  `mdv.wikilinks`; `--source-lines` adds `data-source-line` attributes; `--no-highlight` and
+  `--no-heading-anchors` turn those off; `--block-remote-images` replaces remote images with a
+  placeholder (they're kept by default, as on GitHub). Raw HTML is always sanitized; there is no
+  flag to turn that off. The CLI ignores the app's Settings: output depends only on the flags
+  and the file.
+- For a FILE, wiki links resolve from its folder and then its repository (or folder), and
+  root-relative links (`/docs/x.png`) resolve against that root as absolute paths, as in the
+  app. Links to other pages stay `.md`. Standard input has no folder, so page links show as
+  missing.
+- Frontmatter `mdv:` keys mdv ignored are reported on standard error as warnings
+  (`mdv: notes.md: warning: mdv.sanitize isn't a setting a document can change ...`);
+  `--verbose` also reports the flavor and wiki link setting used and where each came from.
 - Errors are one line on standard error, such as `mdv: notes.md: No such file or directory`.
 
 | Exit status | Meaning |

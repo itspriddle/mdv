@@ -434,8 +434,10 @@ editor or a browser.
     (`FolderWikiLinkResolver.defaultEntryLimit`), so a huge repository can't stall a render.
     MdvCore stays filesystem-free: the renderer takes an injected `WikiLinkResolver`, the search
     rules are `FolderWikiLinkResolver` over an injected `WikiLinkFolderReader`, and the app
-    supplies the file system reader (`DocumentWikiLinks`). `mdv --html` has no resolver, so
-    every page link is missing there (M5 can add one).
+    supplies the file system reader (`DocumentWikiLinks`). `FileSystemFolderReader` (regular
+    files and folders only) lives in MdvCore so `mdv --html` uses the same one (#65,
+    `FolderWikiLinkResolver.fileSystem(forDocumentAt:root:)`); standard input has no resolver,
+    so its page links are missing.
   - **Output:** a found page is `<a class="wikilink" href="Page-Name.md#slug">`, its path
     relative to the document with every part percent-encoded (nothing in a name can add a
     scheme, query, or attribute), so it goes through `LinkPolicy` like any relative link (opens
@@ -530,6 +532,24 @@ editor or a browser.
     doesn't read the app's default-theme setting; its default is GitHub. `--list-themes` and
     `--list-flavors` print `id<TAB>name` lines (for completions, #71); theme files that don't
     load are reported on standard error.
+  - Render flags (#65, `RenderFlagOptions`, help section "Rendering"): `--frontmatter
+    hidden|table`, `--wiki-links`/`--no-wiki-links` (pins `.wikiLinks`, so it beats
+    `mdv.wikilinks`; off by default), `--source-lines`, `--no-highlight`,
+    `--no-heading-anchors`, `--block-remote-images` (#20's placeholder; kept by default, as
+    GitHub does). They change HTML output only, so without `--html`, `--fragment`, or `--output`
+    they are a usage error (64). **The CLI never reads the app's Settings > Markdown**: flags
+    only, so the same command gives the same output whatever the app is set to.
+  - File inputs resolve root-relative URLs and wiki links as the app does: `linkRoot` is the
+    allowed root (`LocalResourceRoot`), so `/docs/x.png` becomes `<root>/docs/x.png`, an
+    absolute path that works when the page is opened from disk but names the reader's folders
+    (don't publish such a page as is). Wiki links search the document's folder, then the root,
+    never through a symbolic link. Links to pages stay `.md` in `--output` (no rewrite to
+    `.html`: mdv renders one file per run and doesn't know where the others will go).
+  - Diagnostics (#65) go to standard error only: frontmatter `mdv:` keys a render ignored are
+    always reported as `mdv: <input>: warning: <reason>` (exit status unchanged), and
+    `--verbose` adds the flavor and wiki link setting used and where each came from (flag,
+    document, default). Control characters from the document are printed as `\u{XX}`, so
+    frontmatter can't send escape sequences to the terminal.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
@@ -553,7 +573,7 @@ editor or a browser.
   - The opt-in lasts for that window until it closes, survives live reloads, and is never
     saved, so reopening a file blocks again. Remembering it per file can come later.
   - `mdv --html` keeps GitHub-compatible output (`.keep`) by default, and its CSP blocks remote
-    images when the page is opened. A flag to block them in the HTML itself is M5 work.
+    images when the page is opened. `--block-remote-images` (#65) writes placeholders instead.
   - Tests use servers on 127.0.0.1 and never the network. A document full of remote images
     makes no request, and a page with no CSP does make them (the control).
 - The web view never gets `file:` access. The app loads each document at
@@ -576,7 +596,8 @@ editor or a browser.
   images and links, and a leading `/` never means the file system root). The renderer rewrites
   them to `<root>/...` (`RenderOptions.linkRoot`, `RootRelativeURL`) with `.`/`..` clamped at
   the root, so `LocalImagePolicy` and `LinkPolicy` see ordinary `mdv-doc` URLs and stay the
-  only checks; `//host` stays remote. `mdv --html` and Copy as HTML keep them as written.
+  only checks; `//host` stays remote. Copy as HTML and `mdv --html` of standard input keep them
+  as written; `mdv --html FILE` rewrites them against the file's root, as the app does (#65).
 - GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` images (and their remote-image
   placeholders) show only in the matching appearance through the base layer's CSS (`ThemeBase`)
   (`img[src$=...]` under `prefers-color-scheme`), so they follow live appearance changes; print
@@ -591,6 +612,14 @@ editor or a browser.
   is passed as an argument, never spliced into script source. Tests prove page scripts stay
   blocked while app scripts run.
 - Raw HTML in Markdown is sanitized per a defined policy rather than passed through blindly.
+  - **No `--no-sanitize` (#65).** The CLI has no way to turn sanitizing off. Headless output is
+    a page meant to be opened in a browser, where page JavaScript isn't disabled as it is in
+    the viewer, so passing raw HTML from an untrusted file through would run its scripts
+    (and the page's CSP is the only other guard). The spec suites turn it off in MdvCore
+    (`RenderOptions.spec`), which is where unsanitized output belongs.
+  - **The CLI doesn't read Settings > Markdown (#65)**: its output depends only on its flags
+    and the file, never on app state. Frontmatter overrides apply as in the app, under the
+    same rules (presentation only); `--flavor` and `--wiki-links`/`--no-wiki-links` beat them.
 - Syntax highlighting runs only the vendored highlight.js, in a private JavaScriptCore context
   with no access to the page, files, or network; code and language names are passed as values,
   never spliced into script. Its output is treated as untrusted: it must be nothing but
