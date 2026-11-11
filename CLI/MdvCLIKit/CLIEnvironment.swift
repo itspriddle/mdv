@@ -46,14 +46,14 @@ public struct CLIEnvironment: Sendable {
         self.cancelsOnInterrupt = cancelsOnInterrupt
     }
 
-    /// The real process: its standard streams, `/usr/bin/open`, and the reader's Themes folder.
+    /// The real process: its standard streams, the app (`WorkspaceAppOpener`), and the reader's Themes folder.
     public static var live: CLIEnvironment {
         CLIEnvironment(
             readStandardInput: { try FileHandle.standardInput.readToEnd() ?? Data() },
             standardInputIsTerminal: isatty(STDIN_FILENO) == 1,
             standardOutput: FileHandleSink(.standardOutput),
             standardError: FileHandleSink(.standardError),
-            appOpener: OpenCommandAppOpener(),
+            appOpener: WorkspaceAppOpener(),
             themesFolder: ThemeResolver.themesFolder(environment: ProcessInfo.processInfo.environment),
             cancelsOnInterrupt: true
         )

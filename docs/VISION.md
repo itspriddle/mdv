@@ -571,6 +571,49 @@ editor or a browser.
     the signal, so mdv dies of it as shells expect. A signal mdv started out ignoring (`nohup`,
     background jobs) stays ignored. Only installed around the run, so reading standard input
     is still interrupted the default way.
+  - CLI to app (#67, `WorkspaceAppOpener`, `AppOpenEvent` in MdvCore, `DocumentOpener` in the
+    app): `mdv FILE` checks every path first (missing, folder, unreadable: exit 66, nothing
+    opens; relative paths resolve against the shell's folder) and `--theme` (`ThemeResolver`,
+    as for `--html`), then builds a standard **Open Documents Apple Event** (`aevt/odoc`, the
+    files as its direct object) with mdv's own optional parameters (`mdvT`: theme id) and hands
+    it to Launch Services as `NSWorkspace.OpenConfiguration.appleEvent`
+    (`openApplication(at:)`). Launch Services launches the app with it as the first event, or
+    sends it to the running app, and activates the app: Finder's path, so no Automation
+    (TCC) prompt, and the app opens files exactly as from Finder (`application(_:open:)`, which
+    reads the parameters of `NSAppleEventManager.currentAppleEvent`). Rejected: `open -b`
+    (no way to pass options, errors were its exit status), launch arguments (launch only), a
+    URL scheme (a web page could trigger it), XPC (needs a launchd service).
+    - Finding the app: the app that contains the executable (`mdv.app/Contents/Helpers/mdv`,
+      symlinks resolved, bundle id checked), so a development build's CLI opens that build; run
+      outside a bundle (`swift run mdv`), the app Launch Services knows by bundle id; neither:
+      exit 69. Launch Services finds a *running* app by bundle id, not path, so with another
+      copy running (an installed mdv next to a dev build) the CLI launches its own copy as a
+      new instance, or, if its copy is running too, sends that process the event directly.
+      Directly sent `odoc` events reach AppKit's scripting handler, not the delegate, and lose
+      the parameters, so the direct path uses mdv's own class `mdv /odoc` (same direct object
+      and parameters; `AppDelegate.handleDirectOpen`). The direct path is also the fallback
+      when Launch Services refuses a sandboxed caller (the UI test runner, whose children
+      inherit its sandbox; `AppUITests.entitlements` allows its Apple Events to mdv).
+    - **Trust model:** any local process can already send the app these events, with any
+      parameters, so they are presentation-only and validated as untrusted input:
+      `AppOpenParameters(event:)` keeps a theme id only if it is UTF-8/UTF-16 text of at most
+      1 KB, 1–256 characters, no control/format characters or surrounding whitespace; the app
+      then uses it only if it is registered or a `custom:` id (which shows Settings' default
+      until its file loads). The direct event's files are `typeFileURL` items only (text is
+      never coerced into a path), at most 1000. Nothing widens what a document can do; files
+      open with the same checks as from Finder.
+    - `--theme` becomes each window's View > Theme pick (beats `mdv.theme`; restoration
+      keeps it), set before a new window first shows; an already-open window switches. An
+      already-open file focuses its window (`DocumentController` finds it by identity).
+      `--flavor` without `--html`/`--fragment`/`--output` is a usage error (64): windows have
+      no per-window flavor (M4); Settings > Markdown and `mdv.flavor` decide. `mdv FILE`
+      activates the app, like `open`; no `--background` until someone needs it.
+    - For #68 and #69: further parameters go on the same event (reserved keywords `mdvI` for
+      standard input, `mdvW` for a `--wait` token), read by `AppOpenParameters` with the same
+      size and type checks. An Open Documents event with no files never reaches
+      `application(_:open:)`, so standard input needs its file in the direct object or its own
+      handling. Timing: `MDV_LAUNCH_TIMING` and `MDV_LAUNCH_TIMING_LOG` are the only
+      environment the CLI passes to an app it launches (`scripts/measure-cold-open -c`).
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.

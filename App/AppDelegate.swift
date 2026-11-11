@@ -7,6 +7,8 @@ import MdvCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
+    /// Opens the files of Open Documents events (`application(_:open:)`).
+    let documentOpener = DocumentOpener()
     /// The app-wide appearance (Settings and View > Appearance); injectable for tests.
     let appearanceSettings: AppearanceSettings
     /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
@@ -32,6 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             WebViewPrewarmer.shared.prewarm()
         }
         MainMenu.install()
+        NSAppleEventManager.shared().setEventHandler(
+            self, andSelector: #selector(handleDirectOpen(_:withReplyEvent:)),
+            forEventClass: AppOpenEvent.directEventClass, andEventID: AppOpenEvent.directEventID)
         // Before restoration: restored windows showing a custom theme switch to it as soon as
         // the first load (off the main thread) lands.
         if let folder = CustomThemeLibrary.folderURL {
@@ -67,6 +72,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 self?.openUITestDocuments(urls.dropFirst())
             }
         }
+    }
+
+    /// Files from an Open Documents event: Finder, the Dock, `open`, and `mdv FILE` (#67), whose
+    /// event carries `AppOpenParameters` (untrusted; `DocumentOpener` checks them).
+    func application(_ application: NSApplication, open urls: [URL]) {
+        let parameters = AppOpenParameters(event: NSAppleEventManager.shared().currentAppleEvent)
+        documentOpener.open(urls, parameters: parameters)
+    }
+
+    /// mdv's direct open event (`AppOpenEvent.Kind.direct`): the CLI sends it to this copy when
+    /// Launch Services can't (another copy with the same bundle id runs, or a sandboxed caller).
+    /// Same files and parameters as an Open Documents event, opened the same way.
+    @objc func handleDirectOpen(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
+        let urls = AppOpenEvent.files(in: event)
+        guard !urls.isEmpty else {
+            return
+        }
+        documentOpener.open(urls, parameters: AppOpenParameters(event: event))
+        NSApp.activate()
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {

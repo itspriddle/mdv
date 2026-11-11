@@ -49,6 +49,11 @@ public struct MdvCommand: AsyncParsableCommand {
         if themeFlavor.lists, !input.files.isEmpty {
             throw ValidationError("--list-themes and --list-flavors take no FILE.")
         }
+        if themeFlavor.flavor != nil, !output.rendersHTML, !themeFlavor.lists {
+            throw ValidationError(
+                "--flavor is for --html, --fragment, and --output; windows use Settings > Markdown "
+                    + "or the document's mdv.flavor.")
+        }
         if renderFlags.isSet, !output.rendersHTML, !themeFlavor.lists {
             throw ValidationError("The Rendering flags change HTML output; add --html, --fragment, or --output.")
         }

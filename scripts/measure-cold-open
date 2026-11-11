@@ -12,11 +12,17 @@
 #   -b MS    exit 1 if a file's median first paint is over MS (a local regression check)
 #   -f       also measure the floor: scripts/cold-open-floor.swift, a bare AppKit app with one
 #            WKWebView configured like mdv's, loading the file's `mdv --html` page at launch
+#   -c       also time the Launch Services paths from the command that asks for them (#67):
+#            Finder's (`open -n -a APP FILE`) and the CLI's (`APP/Contents/Helpers/mdv FILE`),
+#            milliseconds from running the command to the first paint ("sinceCommand"); the
+#            app reports to a log file (MDV_LAUNCH_TIMING_LOG), and uses the reader's outline
+#            setting (Launch Services passes no launch arguments)
 #
 # The machine's load moves every number: compare builds in one sitting, or interleaved.
 # Every launch ignores saved windows (-ApplePersistenceIgnoreState) and the default viewer offer.
 # It launches the binary directly (not through Launch Services), so another running mdv doesn't
-# matter, but it opens windows: run it while nothing else drives the GUI.
+# matter, but it opens windows: run it while nothing else drives the GUI. With -c, quit any mdv
+# at APP's path first (others are fine: both paths then start a new instance).
 set -euo pipefail
 
 runs=10
@@ -25,7 +31,8 @@ outline=NO
 budget=""
 app=""
 floor=0
-while getopts "n:sa:ob:f" opt; do
+commands=0
+while getopts "n:sa:ob:fc" opt; do
   case "$opt" in
     n) runs="$OPTARG" ;;
     s) build=0 ;;
@@ -33,12 +40,13 @@ while getopts "n:sa:ob:f" opt; do
     o) outline=YES ;;
     b) budget="$OPTARG" ;;
     f) floor=1 ;;
-    *) sed -n '2,19p' "$0"; exit 2 ;;
+    c) commands=1 ;;
+    *) sed -n '2,25p' "$0"; exit 2 ;;
   esac
 done
 shift $((OPTIND - 1))
 if [ $# -eq 0 ]; then
-  sed -n '2,19p' "$0"
+  sed -n '2,25p' "$0"
   exit 2
 fi
 
@@ -113,6 +121,48 @@ PY
   rm -f "$results" "$log"
 }
 
+# measure_command LABEL FILE COMMAND...: runs COMMAND $runs times ({LOG} in it is the log path);
+# each launch goes through Launch Services, so the app reports to that log with its process start,
+# and the time is from the command's start to the paint.
+measure_command() {
+  local label="$1" file="$2"
+  shift 2
+  local log results
+  log="$(mktemp)"
+  results="$(mktemp)"
+  for ((run = 0; run < runs; run++)); do
+    : >"$log"
+    local start
+    start="$(python3 -I -c 'import time; print(time.time() * 1000)')"
+    local command=("${@//\{LOG\}/$log}")
+    MDV_LAUNCH_TIMING=exit MDV_LAUNCH_TIMING_LOG="$log" "${command[@]}" >/dev/null 2>&1 ||
+      echo "$label: command failed" >&2
+    for _ in $(seq 200); do
+      [ -s "$log" ] && break
+      sleep 0.1
+    done
+    sed -n "s/^mdv-launch-timing //p" "$log" | python3 -I -c '
+import json, sys
+start = float(sys.argv[1])
+for line in sys.stdin:
+    row = json.loads(line)
+    print(json.dumps({"sinceCommand": row["processStart"] + row["painted"] - start,
+                      "painted": row["painted"]}))' "$start" >>"$results"
+    sleep 2
+  done
+  printf '%s: %s (%s launches)\n' "$label" "$file" "$(wc -l <"$results" | tr -d ' ')"
+  python3 -I - "$results" <<'PY' || status=1
+import json, statistics, sys
+rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+if not rows:
+    sys.exit("no timings reported")
+for name in ["painted", "sinceCommand"]:
+    values = sorted(r[name] for r in rows)
+    print(f"  {name:22} median {statistics.median(values):7.1f}  min {values[0]:7.1f}  max {values[-1]:7.1f}")
+PY
+  rm -f "$log" "$results"
+}
+
 status=0
 for file in "$@"; do
   path="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
@@ -123,6 +173,12 @@ for file in "$@"; do
     "$app/Contents/Helpers/mdv" --html "$path" >"$html"
     budget="" measure floor "$path" "$probe/Contents/MacOS/ColdOpenFloor" "$html"
     rm -f "$html"
+  fi
+  if [ "$commands" -eq 1 ]; then
+    # `open --env` passes the timing variables; the CLI forwards them to an app it launches.
+    measure_command "open -n" "$path" /usr/bin/open -n -a "$app" \
+      --env MDV_LAUNCH_TIMING=exit --env "MDV_LAUNCH_TIMING_LOG={LOG}" "$path"
+    measure_command "mdv FILE" "$path" "$app/Contents/Helpers/mdv" "$path"
   fi
 done
 exit "$status"
