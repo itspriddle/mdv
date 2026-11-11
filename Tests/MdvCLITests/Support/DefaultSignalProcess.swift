@@ -7,9 +7,10 @@ import Testing
 /// signal tests can't use `Process`.
 enum DefaultSignalProcess {
     /// Spawns `path` with SIGINT, SIGTERM, and SIGHUP reset to their default actions, standard
-    /// input from /dev/null, standard output to `stdout`, and standard error discarded.
+    /// input from /dev/null, standard output to `stdout`, and standard error to `stderr`.
     static func spawn(
-        _ path: String, arguments: [String], environment: [String: String], stdout: String
+        _ path: String, arguments: [String], environment: [String: String], stdout: String,
+        stderr: String
     ) throws -> pid_t {
         var attributes: posix_spawnattr_t?
         posix_spawnattr_init(&attributes)
@@ -28,7 +29,7 @@ enum DefaultSignalProcess {
         defer { posix_spawn_file_actions_destroy(&actions) }
         posix_spawn_file_actions_addopen(&actions, 0, "/dev/null", O_RDONLY, 0)
         posix_spawn_file_actions_addopen(&actions, 1, stdout, O_WRONLY | O_CREAT | O_TRUNC, 0o600)
-        posix_spawn_file_actions_addopen(&actions, 2, "/dev/null", O_WRONLY, 0)
+        posix_spawn_file_actions_addopen(&actions, 2, stderr, O_WRONLY | O_CREAT | O_TRUNC, 0o600)
 
         let argv = ([path] + arguments).map { strdup($0) } + [nil]
         let envp = environment.map { strdup("\($0.key)=\($0.value)") } + [nil]

@@ -220,7 +220,8 @@ struct PreprocessorTests {
         // Not `Process`: a test runner (CI's) may start with SIGINT ignored, and mdv rightly
         // keeps an inherited SIG_IGN.
         let pid = try DefaultSignalProcess.spawn(
-            binary.path, arguments: arguments, environment: environment, stdout: outputPath)
+            binary.path, arguments: arguments, environment: environment, stdout: outputPath,
+            stderr: folder.path("stderr"))
 
         let pids = try await Self.pids(in: pidFile)
         #expect(pids.count == 2)
@@ -228,7 +229,8 @@ struct PreprocessorTests {
         let status = try await DefaultSignalProcess.waitForExit(pid)
         let elapsed = ContinuousClock.now - start
 
-        #expect(status.signal == SIGINT, "ended by SIGINT (\(status))")
+        let stderr = (try? String(contentsOfFile: folder.path("stderr"), encoding: .utf8)) ?? ""
+        #expect(status.signal == SIGINT, "ended by SIGINT (\(status)); stderr: \(stderr)")
         #expect(elapsed < .seconds(4), "stopped by SIGINT, not the 5 s timeout")
         #expect((try? Data(contentsOf: URL(filePath: outputPath))) ?? Data() == Data())
         #expect(try await Self.processesGone(pids))

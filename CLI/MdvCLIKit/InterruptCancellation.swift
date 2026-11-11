@@ -24,14 +24,18 @@ enum InterruptCancellation {
         for number in signals {
             var previous = sigaction()
             guard sigaction(number, nil, &previous) == 0, !isIgnored(previous) else { continue }
-            // The source first, then ignore the default action: a signal in between still ends
-            // the process, before any work has started.
+            // The source first, then replace the default action: a signal in between still
+            // ends the process, before any work has started. A no-op handler rather than
+            // SIG_IGN: the kernel may discard an ignored signal before the source sees it
+            // (suspected on CI's macOS 26), while a caught one always reaches it.
             let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
             source.setEventHandler { state.received(number) }
             source.resume()
-            var ignore = sigaction()
-            ignore.__sigaction_u.__sa_handler = SIG_IGN
-            sigaction(number, &ignore, nil)
+            var catchOnly = sigaction()
+            catchOnly.__sigaction_u.__sa_handler = { _ in }
+            sigemptyset(&catchOnly.sa_mask)
+            catchOnly.sa_flags = SA_RESTART
+            sigaction(number, &catchOnly, nil)
             installed.append(Installed(signal: number, previous: previous, source: source))
         }
 
