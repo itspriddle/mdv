@@ -100,6 +100,11 @@ mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
 - `-o FILE` / `--output FILE` writes to FILE instead of standard output (`-o -` is standard
   output). It replaces FILE atomically, takes one input, and refuses to overwrite an input file.
 - With no FILE and a terminal on standard input, mdv prints usage instead of waiting for input.
+- `cmd | mdv` opens standard input in a new window titled from its first heading (or "Standard
+  Input"), leaving no file behind. It reads to the end (no live streaming) and takes up to
+  10 MB; empty input opens nothing. The window has no folder, so relative images don't load.
+  `-` reads standard input along with files: `mdv notes.md -`. With `--wait`,
+  `git show HEAD:README.md | mdv --wait` returns once the window closes.
 - `--theme NAME` picks the page's theme: `github`, `document`, `serif`, or `custom:<file name>`
   from the Themes folder (`~/Library/Application Support/mdv/Themes`, or `MDV_THEMES_FOLDER`).
   `--flavor NAME` picks the syntax: `gfm` or `commonmark` (HTML output only: windows follow
@@ -130,8 +135,8 @@ mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
 | --- | --- |
 | 0 | Success |
 | 64 | Usage error: bad flags, several pages to one output, `--output` naming an input, or no FILE while standard input is a terminal |
-| 65 | An input isn't valid UTF-8, or the `--theme` file isn't a valid theme |
-| 66 | An input file is missing or unreadable, or the `--theme` file is missing |
+| 65 | An input isn't valid UTF-8, standard input is over 10 MB for a window, or the `--theme` file isn't a valid theme |
+| 66 | An input file is missing or unreadable, standard input for a window is empty, or the `--theme` file is missing |
 | 69 | The app couldn't be opened |
 | 70 | The `--preprocessor` program couldn't run or failed |
 | 73 | The `--output` file couldn't be written |

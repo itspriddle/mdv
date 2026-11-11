@@ -507,8 +507,9 @@ editor or a browser.
     leaves no partial output.
   - Errors and exit codes (#63, `sysexits(3)`): 64 usage (ArgumentParser's errors, several
     pages to one output, `--output` naming an input, no FILE while standard input is a
-    terminal), 65 input not UTF-8, 66 input missing or unreadable (POSIX message: `No such file
-    or directory`, `Is a directory`, `Permission denied`), 69 the app couldn't be opened, 70 the
+    terminal), 65 input not UTF-8 (or standard input over 10 MB for a window, #68), 66 input
+    missing or unreadable (POSIX message: `No such file or directory`, `Is a directory`,
+    `Permission denied`; or empty standard input for a window, #68), 69 the app couldn't be opened, 70 the
     `--preprocessor` program couldn't run or failed (#66), 73
     `--output` not writable, 74 writing standard output failed. Errors are one `mdv: <file>:
     <reason>` line on standard error. `ExitStatus` is the list; `--help` and the README repeat it.
@@ -608,12 +609,59 @@ editor or a browser.
       `--flavor` without `--html`/`--fragment`/`--output` is a usage error (64): windows have
       no per-window flavor (M4); Settings > Markdown and `mdv.flavor` decide. `mdv FILE`
       activates the app, like `open`; no `--background` until someone needs it.
-    - For #68 and #69: further parameters go on the same event (reserved keywords `mdvI` for
-      standard input, `mdvW` for a `--wait` token), read by `AppOpenParameters` with the same
-      size and type checks. An Open Documents event with no files never reaches
-      `application(_:open:)`, so standard input needs its file in the direct object or its own
-      handling. Timing: `MDV_LAUNCH_TIMING` and `MDV_LAUNCH_TIMING_LOG` are the only
-      environment the CLI passes to an app it launches (`scripts/measure-cold-open -c`).
+    - Further parameters go on the same event (`mdvW`, the `--wait` token, #69), read by
+      `AppOpenParameters` with the same size and type checks. (`mdvI` was reserved for
+      standard input; #68 needed no parameter.) Timing: `MDV_LAUNCH_TIMING` and
+      `MDV_LAUNCH_TIMING_LOG` are the only environment the CLI passes to an app it launches
+      (`scripts/measure-cold-open -c`).
+  - Standard input into a window (#68, `cmd | mdv`, `StandardInputHandoff` in MdvCore):
+    - **Transport: a private handoff file the app deletes once it has read it.** The CLI
+      writes the Markdown to `$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md` (`mkdtemp(3)`: an
+      unpredictable name, created exclusively, mode 0700; the file `O_EXCL|O_NOFOLLOW`, mode
+      0600; `TMPDIR` when absolute, else Foundation's temp folder; a shared `/tmp` is still
+      safe) and puts it last in the Open Documents event's direct object. The app's
+      `DocumentController.openDocument(withContentsOf:display:completionHandler:)` recognizes
+      it, reads it, deletes it and its folder right away, and returns an untitled document;
+      if the event never reached the app, the CLI deletes it. Recognizing the file there, by
+      its shape, rather than by an event parameter (`mdvI`, reserved by #67) works on every
+      path an Open Documents event takes: a cold launch while another copy with the bundle id
+      runs (Launch Services' new instance) gets the event through AppKit's own handler, which
+      never calls the delegate and drops mdv's parameters (seen while building #68; the same
+      launch loses `--theme`). A parameter would add no trust either: any sender can set it.
+      Rejected: the bytes in an event parameter. An Open Documents event with no files never
+      reaches `application(_:open:)`, and Launch Services rewrites custom event classes, so
+      bytes could only go by the direct `mdv /odoc` path, which needs the app already
+      running; two transports weren't worth it. A file is left behind only when the app dies
+      between the CLI's send and its read (the system cleans its temp folder).
+    - **Trust model:** any local process can send that event naming any file, so the app
+      deletes only a file it verifies is a handoff, through descriptors, without following
+      links: a folder named `mdv-stdin.*` owned by this user with no group/other permissions,
+      holding a regular file named `stdin.md`, owned by this user, no group/other
+      permissions, one link (not a hard link to another file); it is read through the checked
+      descriptor. Anything else, `stdin.md` files included, is left alone and opens as an
+      ordinary file. The checks are on shape, not location (a sandboxed caller's temp folder
+      is its container), so a sender (or a Finder open, a drop) can at worst make the app
+      read and delete a file with that exact shape, which only mdv makes, and which a
+      same-user process could delete anyway.
+    - **Limits:** at most 10 MB (`StandardInputHandoff.maximumBytes`, the preprocessor's input
+      bound, twice the largest measured document). The CLI reads no more than that plus a
+      byte (`yes | mdv` ends), and refuses more (65), empty or whitespace-only input (66), and
+      non-UTF-8 (65), with nothing opened. The app checks size and UTF-8 again (a hand-made
+      handoff), deletes it, and presents the error. `--html` keeps reading standard input
+      without a limit. No streaming: input is read to EOF (`tail -f log.md | mdv` never opens;
+      deferred).
+    - **The window:** `MarkdownDocument(standardInput:)`, an untitled document with no file:
+      titled from its frontmatter `title` or first heading, else "Standard Input"; no live
+      reload, nothing in Open Recent, and its window isn't restorable (nothing to reopen).
+      Settings > Markdown, `mdv:` frontmatter, and `--theme` apply as to any document; wiki
+      links have no resolver (page links show as missing), and the custom preprocessor, if on,
+      runs with no document path, in `/`, as in the CLI. **No allowed root:** the page has no
+      base URL, so relative images don't load (a broken image, as for any image outside a
+      root) and relative links go nowhere; the shell's folder isn't used, because piped text
+      (`curl … | mdv`) shouldn't read local files by where the shell happens to be.
+    - `-` mixes standard input with files (`mdv a.md - b.md`): the files open, then standard
+      input's window (`AppOpenRequest` keeps them apart). `cmd | mdv --wait` waits for the
+      standard input window like any other (it joins the token in `DocumentOpener`).
   - Completions and man page (#71): **generated from the ArgumentParser command, never
     committed**, so a new flag appears in both with no extra step. zsh, bash, and fish scripts
     are ArgumentParser's (`--generate-completion-script`). FILE, `--output`, and

@@ -689,6 +689,18 @@ Make the terminal workflow excellent.
   becomes the windows' View > Theme pick (an open window switches); `--flavor` without HTML
   output is a usage error. Parameters are presentation-only and validated in the app as
   untrusted. #68/#69 add parameters to the same event (`mdvI`, `mdvW` reserved).
+- `cmd | mdv` (#68): standard input goes to the app as a private handoff file
+  (`$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md`, 0700/0600, `StandardInputHandoff` in MdvCore), one
+  of the Open Documents event's files; `DocumentController` recognizes it by its shape (no
+  `mdvI` parameter: AppKit drops parameters on some launch paths, and any sender could set
+  one), deletes it once read, and shows an
+  untitled "Standard Input" window (titled from the document when it can be) that live reload,
+  Open Recent, and restoration skip. The app deletes only files it verifies are handoffs
+  (shape, owner, permissions, one link, no symbolic links); anything else opens as a file. At
+  most 10 MB; empty (66), larger (65), and non-UTF-8 (65) input open nothing. No allowed root
+  (relative images don't load), no wiki link resolver, preprocessor in `/`. No streaming
+  (deferred). `-` with files opens the files, then standard input. `cmd | mdv --wait` waits for
+  the standard input window.
 - Completions and man page (#71): generated from the ArgumentParser command, not committed
   (`make cli-docs` into `build/cli-docs`; `make test-core` and `make build` run it). zsh, bash,
   and fish scripts from ArgumentParser; `--theme` completes `--list-themes`' ids when Tab is
