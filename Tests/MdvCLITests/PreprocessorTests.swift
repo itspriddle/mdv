@@ -212,32 +212,25 @@ struct PreprocessorTests {
             Issue.record("mdv binary not found at \(binary.path); set MDV_CLI_BINARY")
             return
         }
-        let process = Process()
-        process.executableURL = binary
-        process.arguments = ["--html", "--preprocessor", script, "--preprocessor-arg", pidFile, document]
+        let outputPath = folder.path("stdout")
+        let arguments = ["--html", "--preprocessor", script, "--preprocessor-arg", pidFile, document]
         var environment = ProcessInfo.processInfo.environment
         environment["MDV_THEMES_FOLDER"] = folder.path("no-themes")
-        process.environment = environment
-        let output = Pipe()
-        process.standardInput = FileHandle.nullDevice
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-        // Not `waitUntilExit()`, which can miss the exit on a Swift concurrency thread.
-        let (exits, exited) = AsyncStream.makeStream(of: Never.self)
-        process.terminationHandler = { _ in exited.finish() }
         let start = ContinuousClock.now
-        try process.run()
+        // Not `Process`: a test runner (CI's) may start with SIGINT ignored, and mdv rightly
+        // keeps an inherited SIG_IGN.
+        let pid = try DefaultSignalProcess.spawn(
+            binary.path, arguments: arguments, environment: environment, stdout: outputPath)
 
         let pids = try await Self.pids(in: pidFile)
         #expect(pids.count == 2)
-        process.interrupt()
-        for await _ in exits {}
+        kill(pid, SIGINT)
+        let status = try await DefaultSignalProcess.waitForExit(pid)
         let elapsed = ContinuousClock.now - start
 
-        #expect(process.terminationReason == .uncaughtSignal)
-        #expect(process.terminationStatus == SIGINT)
+        #expect(status.signal == SIGINT, "ended by SIGINT (\(status))")
         #expect(elapsed < .seconds(4), "stopped by SIGINT, not the 5 s timeout")
-        #expect(try output.fileHandleForReading.readToEnd() ?? Data() == Data())
+        #expect((try? Data(contentsOf: URL(filePath: outputPath))) ?? Data() == Data())
         #expect(try await Self.processesGone(pids))
     }
 

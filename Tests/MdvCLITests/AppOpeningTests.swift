@@ -1,6 +1,7 @@
 import Foundation
-@testable import MdvCLIKit
 import Testing
+
+@testable import MdvCLIKit
 
 @Suite("Opening in the app")
 struct AppOpeningTests {
