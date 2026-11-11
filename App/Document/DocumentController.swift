@@ -35,12 +35,63 @@ final class DocumentController: NSDocumentController {
     /// `StandardInputHandoff.take(_:)` verifies is one (by its shape: name, owner, permissions,
     /// one link, no symbolic links) is read, deleted, and opened as an untitled document
     /// (`MarkdownDocument(standardInput:)`) that never enters Open Recent. Recognizing it here,
-    /// not by an event parameter, covers every path an Open Documents event takes (the
-    /// delegate's `DocumentOpener`, and AppKit's own handling, which drops mdv's parameters).
+    /// not by an event parameter, covers every path an Open Documents event takes (mdv's
+    /// direct event through `DocumentOpener`, and AppKit's own handling).
     /// A file that isn't a handoff opens as usual; a handoff too large or not UTF-8 is deleted
     /// and fails the open with its reason.
+    ///
+    /// A file AppKit opens for an Open Documents event that carries mdv's parameters
+    /// (`mdv --theme`, `--wait` through Launch Services, #67/#69) goes to `eventOpener`, which
+    /// applies them. AppKit handles those events itself and never calls the app delegate's
+    /// `application(_:open:)` for mdv's document types, and while an earlier open is in flight
+    /// it opens the files later, when the event is no longer current: so the parameters come
+    /// from `eventLog`, recorded as the event arrived, else from the current event.
     override func openDocument(
         withContentsOf url: URL, display displayDocument: Bool,
+        completionHandler: @escaping (NSDocument?, Bool, (any Error)?) -> Void
+    ) {
+        guard displayDocument, let eventOpener,
+            let parameters = eventLog.take(for: url)
+                ?? Self.openDocumentsParameters(NSAppleEventManager.shared().currentAppleEvent)
+        else {
+            openFile(url, display: displayDocument, completionHandler: completionHandler)
+            return
+        }
+        eventOpener.openForOpenDocumentsEvent(
+            parameters: parameters,
+            open: { [weak self] completion in
+                guard let self else {
+                    completion(nil, false, CocoaError(.userCancelled))
+                    return
+                }
+                self.openFile(url, display: false, completionHandler: completion)
+            },
+            completion: completionHandler)
+    }
+
+    /// Opens the files of Open Documents events that carry mdv's parameters (the app
+    /// delegate's `DocumentOpener`; nil in tests that make their own controller).
+    weak var eventOpener: DocumentOpener?
+
+    /// The parameters of Open Documents events as they arrived (`OpenDocumentsEventTap`).
+    let eventLog = OpenDocumentsEventLog()
+
+    /// mdv's parameters in `event` when it is a standard Open Documents event (`aevt/odoc`) that
+    /// carries any; nil otherwise. (mdv's direct event goes to `DocumentOpener` itself.)
+    nonisolated static func openDocumentsParameters(_ event: NSAppleEventDescriptor?) -> AppOpenParameters? {
+        guard let event, event.eventClass == AEEventClass(kCoreEventClass),
+            event.eventID == AEEventID(kAEOpenDocuments)
+        else {
+            return nil
+        }
+        let parameters = AppOpenParameters(event: event)
+        return parameters == AppOpenParameters() ? nil : parameters
+    }
+
+    /// `openDocument(withContentsOf:display:completionHandler:)` without mdv's event
+    /// parameters: the standard input handoff, else AppKit's open.
+    private func openFile(
+        _ url: URL, display displayDocument: Bool,
         completionHandler: @escaping (NSDocument?, Bool, (any Error)?) -> Void
     ) {
         guard url.isFileURL, url.lastPathComponent == StandardInputHandoff.fileName else {

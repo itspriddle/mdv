@@ -580,8 +580,17 @@ editor or a browser.
     it to Launch Services as `NSWorkspace.OpenConfiguration.appleEvent`
     (`openApplication(at:)`). Launch Services launches the app with it as the first event, or
     sends it to the running app, and activates the app: Finder's path, so no Automation
-    (TCC) prompt, and the app opens files exactly as from Finder (`application(_:open:)`, which
-    reads the parameters of `NSAppleEventManager.currentAppleEvent`). Rejected: `open -b`
+    (TCC) prompt, and the app opens files exactly as from Finder. AppKit handles Open
+    Documents events itself and never calls the delegate's `application(_:open:)` for mdv's
+    document types (Launch Services launch or running app, `open -a`, Finder), so
+    `DocumentController.openDocument(withContentsOf:display:completionHandler:)` applies them
+    (`DocumentOpener.openForOpenDocumentsEvent`). While an earlier open is in flight AppKit
+    opens an event's files later, when `NSAppleEventManager.currentAppleEvent` is no longer
+    the event, so `OpenDocumentsEventTap` (an Apple Event Manager handler for `aevt/odoc`
+    that records the event and passes it on to AppKit's) keeps each event's parameters by
+    file in `OpenDocumentsEventLog` (taken once per file, gone after 30 s).
+    (`application(_:open:)` was the first design; it lost `--theme` and `--wait` on every
+    Launch Services path, which CI's single copy caught.) Rejected: `open -b`
     (no way to pass options, errors were its exit status), launch arguments (launch only), a
     URL scheme (a web page could trigger it), XPC (needs a launchd service).
     - Finding the app: the app that contains the executable (`mdv.app/Contents/Helpers/mdv`,
