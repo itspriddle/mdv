@@ -1,6 +1,7 @@
 import ArgumentParser
 import Foundation
 import MdvCLIKit
+import MdvCore
 import Synchronization
 
 /// What one run of `mdv` did: its exit status, both output streams, and what it asked the app to
@@ -27,7 +28,8 @@ enum CLIHarness {
         stdinIsTerminal: Bool = false,
         appOpener: RecordingAppOpener = RecordingAppOpener(),
         failingOutput: (any Error & Sendable)? = nil,
-        themesFolder: URL? = nil
+        themesFolder: URL? = nil,
+        preprocessorLimits: PreprocessorLimits = .standard
     ) async -> CLIResult {
         let output = CapturedOutput(failingWith: failingOutput)
         let error = CapturedOutput()
@@ -49,7 +51,8 @@ enum CLIHarness {
             standardOutput: output,
             standardError: error,
             appOpener: appOpener,
-            themesFolder: themesFolder)
+            themesFolder: themesFolder,
+            preprocessorLimits: preprocessorLimits)
         let status = await command.execute(in: environment)
         return CLIResult(
             status: status, standardOutput: output.data, standardError: error.data,

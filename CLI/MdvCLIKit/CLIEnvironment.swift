@@ -1,4 +1,5 @@
 import Foundation
+import MdvCore
 
 /// Everything `MdvCommand.execute(in:)` touches outside its arguments and the files they name:
 /// standard streams, the app, and the Themes folder. `live` is the real process; tests pass fakes, so the command
@@ -17,6 +18,13 @@ public struct CLIEnvironment: Sendable {
     /// `ThemeResolver.themesFolder(environment:)`. Tests pass a temp folder or nil, never the
     /// reader's folder.
     public var themesFolder: URL?
+    /// The bounds on each `--preprocessor` run (#66): the app's, `.standard`. Tests pass shorter
+    /// ones.
+    public var preprocessorLimits: PreprocessorLimits
+    /// Whether `SIGINT`, `SIGTERM`, and `SIGHUP` cancel a `--preprocessor` run and then end the
+    /// process (`InterruptCancellation`). Live only: in-process tests leave the test runner's
+    /// signals alone.
+    public var cancelsOnInterrupt: Bool
 
     public init(
         readStandardInput: @escaping @Sendable () throws -> Data,
@@ -24,7 +32,9 @@ public struct CLIEnvironment: Sendable {
         standardOutput: any OutputSink,
         standardError: any OutputSink,
         appOpener: any AppOpening,
-        themesFolder: URL? = nil
+        themesFolder: URL? = nil,
+        preprocessorLimits: PreprocessorLimits = .standard,
+        cancelsOnInterrupt: Bool = false
     ) {
         self.readStandardInput = readStandardInput
         self.standardInputIsTerminal = standardInputIsTerminal
@@ -32,6 +42,8 @@ public struct CLIEnvironment: Sendable {
         self.standardError = standardError
         self.appOpener = appOpener
         self.themesFolder = themesFolder
+        self.preprocessorLimits = preprocessorLimits
+        self.cancelsOnInterrupt = cancelsOnInterrupt
     }
 
     /// The real process: its standard streams, `/usr/bin/open`, and the reader's Themes folder.
@@ -42,7 +54,8 @@ public struct CLIEnvironment: Sendable {
             standardOutput: FileHandleSink(.standardOutput),
             standardError: FileHandleSink(.standardError),
             appOpener: OpenCommandAppOpener(),
-            themesFolder: ThemeResolver.themesFolder(environment: ProcessInfo.processInfo.environment)
+            themesFolder: ThemeResolver.themesFolder(environment: ProcessInfo.processInfo.environment),
+            cancelsOnInterrupt: true
         )
     }
 
