@@ -17,9 +17,9 @@ import Foundation
 ///   `PrivilegedRunning` is given; then the fixed `privilegedInstallScript` /
 ///   `privilegedUninstallScript` run with the paths as arguments (VISION's security model).
 ///
-/// Hook for #71 (completions, man page): each installed file is one `Item`; `item` defaults to
-/// the command. A later item is another installer over its own folder and bundle path, run
-/// alongside this one (batch them into one privileged run so the reader sees one password prompt).
+/// Each installed file is one `Item` (`item` defaults to the command), with an installer over
+/// its own folder. `install(_:privileged:)` and `uninstall(_:privileged:)` change several
+/// together (the command and its man page, #71) with at most one privileged run.
 struct CommandLineToolInstaller: Sendable {
     /// One file the installer links into a folder.
     struct Item: Equatable, Sendable {
@@ -30,6 +30,11 @@ struct CommandLineToolInstaller: Sendable {
 
         /// The `mdv` command.
         static let command = Item(name: "mdv", pathInBundle: "Contents/Helpers/mdv")
+
+        /// The man page (#71), linked into `CommandLineToolLocation.manFolder`, where `man mdv`
+        /// finds it for a command on the `PATH`. The build copies it into the bundle
+        /// (project.yml, from `make cli-docs`).
+        static let manPage = Item(name: "mdv.1", pathInBundle: "Contents/Resources/man/man1/mdv.1")
     }
 
     /// What isn't ours at the link's path.
@@ -172,66 +177,101 @@ struct CommandLineToolInstaller: Sendable {
         let right = URL(filePath: rhs).standardized
         return left == right || left.resolvingSymlinksInPath() == right.resolvingSymlinksInPath()
     }
+}
 
-    // MARK: - Install and uninstall
+// MARK: - Install and uninstall
 
+extension CommandLineToolInstaller {
     /// Links `<folder>/mdv` to this copy, creating the folder if needed. Does nothing when it is
     /// already installed; replaces our link to another copy or a moved app; throws `occupied`
     /// for anything else. With `privileged`, a folder the reader can't write is handled by the
     /// privileged script (an administrator password prompt); without it, that throws
     /// `needsAdministrator`.
     func install(privileged: (any PrivilegedRunning)? = nil) async throws(CommandLineToolError) {
-        let current = state()
-        switch current {
-        case .installed:
-            return
-        case .occupied(let occupant):
+        try await Self.install([self], privileged: privileged)
+    }
+
+    /// Installs several items together (#71: the command and its man page). Nothing changes when
+    /// any of them is `occupied`. Each link whose folder the reader can write is made directly;
+    /// the rest go to one privileged run, so the reader sees one password prompt.
+    static func install(
+        _ installers: [Self], privileged: (any PrivilegedRunning)? = nil
+    ) async throws(CommandLineToolError) {
+        let states = installers.map { $0.state() }
+        for case .occupied(let occupant) in states {
             throw .occupied(occupant)
-        case .notInstalled, .otherCopy, .dangling:
-            break
         }
-        do throws(CommandLineToolError) {
-            try createFolder()
-            try link(replacing: current.ourDestination)
-        } catch .needsAdministrator {
-            guard let privileged else {
-                throw .needsAdministrator
+        var pending: [String] = []
+        for (installer, current) in zip(installers, states) where current != .installed {
+            do throws(CommandLineToolError) {
+                try installer.createFolder()
+                try installer.link(replacing: current.ourDestination)
+            } catch .needsAdministrator {
+                pending += [installer.targetPath, installer.linkPath, current.ourDestination ?? ""]
             }
-            try await runPrivileged(
-                privileged, script: Self.privilegedInstallScript,
-                arguments: [targetPath, linkPath, current.ourDestination ?? ""])
         }
+        guard !pending.isEmpty else {
+            return
+        }
+        guard let privileged else {
+            throw .needsAdministrator
+        }
+        try await runPrivileged(
+            privileged, script: privilegedInstallScript, arguments: pending, installers: installers)
     }
 
     /// Removes our link (to any copy of mdv, or a moved one). Throws `notInstalled` when nothing
     /// is there and `occupied` for anything that isn't ours.
     func uninstall(privileged: (any PrivilegedRunning)? = nil) async throws(CommandLineToolError) {
-        let current = state()
-        let destination: String
-        switch current {
-        case .notInstalled:
+        if state() == .notInstalled {
             throw .notInstalled
-        case .occupied(let occupant):
-            throw .occupied(occupant)
-        case .installed:
-            destination = (try? FileManager.default.destinationOfSymbolicLink(atPath: linkPath)) ?? targetPath
-        case .otherCopy(_, let linked), .dangling(let linked):
-            destination = linked
         }
-        do throws(CommandLineToolError) {
-            guard currentDestination() == destination else {
-                throw CommandLineToolError.changed
+        try await Self.uninstall([self], privileged: privileged)
+    }
+
+    /// Removes our links among `installers`, skipping those with nothing installed; nothing
+    /// changes when any of them is `occupied`. Like `install(_:privileged:)`, the links the
+    /// reader can't remove go to one privileged run.
+    static func uninstall(
+        _ installers: [Self], privileged: (any PrivilegedRunning)? = nil
+    ) async throws(CommandLineToolError) {
+        var removals: [(installer: Self, destination: String)] = []
+        for installer in installers {
+            switch installer.state() {
+            case .notInstalled:
+                continue
+            case .occupied(let occupant):
+                throw .occupied(occupant)
+            case .installed:
+                let link = installer.linkPath
+                let destination =
+                    (try? FileManager.default.destinationOfSymbolicLink(atPath: link)) ?? installer.targetPath
+                removals.append((installer, destination))
+            case .otherCopy(_, let linked), .dangling(let linked):
+                removals.append((installer, linked))
             }
-            guard unlink(linkPath) == 0 else {
-                throw CommandLineToolError(errno: errno)
-            }
-        } catch .needsAdministrator {
-            guard let privileged else {
-                throw .needsAdministrator
-            }
-            try await runPrivileged(
-                privileged, script: Self.privilegedUninstallScript, arguments: [linkPath, destination])
         }
+        var pending: [String] = []
+        for (installer, destination) in removals {
+            do throws(CommandLineToolError) {
+                guard installer.currentDestination() == destination else {
+                    throw CommandLineToolError.changed
+                }
+                guard unlink(installer.linkPath) == 0 else {
+                    throw CommandLineToolError(errno: errno)
+                }
+            } catch .needsAdministrator {
+                pending += [installer.linkPath, destination]
+            }
+        }
+        guard !pending.isEmpty else {
+            return
+        }
+        guard let privileged else {
+            throw .needsAdministrator
+        }
+        try await runPrivileged(
+            privileged, script: privilegedUninstallScript, arguments: pending, installers: installers)
     }
 
     private func createFolder() throws(CommandLineToolError) {
@@ -284,8 +324,8 @@ struct CommandLineToolInstaller: Sendable {
         return try? FileManager.default.destinationOfSymbolicLink(atPath: linkPath)
     }
 
-    private func runPrivileged(
-        _ runner: any PrivilegedRunning, script: String, arguments: [String]
+    private static func runPrivileged(
+        _ runner: any PrivilegedRunning, script: String, arguments: [String], installers: [Self]
     ) async throws(CommandLineToolError) {
         // The paths are arguments, never part of the script; they still must be absolute
         // (so none reads as an option) and free of NUL, which a C string can't carry.
@@ -301,89 +341,16 @@ struct CommandLineToolInstaller: Sendable {
             case .cancelled:
                 throw .cancelled
             case .exitStatus(Self.refusedStatus, _):
-                // The script found something else at the path (it changed since `state()`).
-                if case .occupied(let occupant) = state() {
-                    throw .occupied(occupant)
+                // The script found something else at a path (it changed since `state()`).
+                for installer in installers {
+                    if case .occupied(let occupant) = installer.state() {
+                        throw .occupied(occupant)
+                    }
                 }
                 throw .changed
             case .exitStatus(_, let message), .failed(let message):
                 throw .failed(message)
             }
-        }
-    }
-}
-
-// MARK: - Privileged scripts
-
-extension CommandLineToolInstaller {
-    /// The exit status the privileged scripts use when the path holds something they won't touch.
-    static let refusedStatus: Int32 = 3
-
-    /// Run as root by `/bin/sh -c` with `$1` the target, `$2` the link path, and `$3` the
-    /// destination of the link it may replace (empty: only when nothing is there). It refuses
-    /// (status 3) anything else at the path, including a link to a folder (which `mv` would
-    /// move into). Never edited at run time: values reach it only as arguments.
-    static let privilegedInstallScript = """
-        set -eu
-        target=$1 link=$2 expected=$3
-        folder=$(/usr/bin/dirname "$link")
-        /bin/mkdir -p "$folder"
-        if [ -L "$link" ]; then
-          [ -n "$expected" ] && [ "$(/usr/bin/readlink "$link")" = "$expected" ] && [ ! -d "$link" ] || exit 3
-        elif [ -e "$link" ]; then
-          exit 3
-        fi
-        temporary="$folder/.mdv-install-$$"
-        /bin/ln -s "$target" "$temporary"
-        /bin/mv -f "$temporary" "$link" || { /bin/rm -f "$temporary"; exit 1; }
-        """
-
-    /// Run as root by `/bin/sh -c` with `$1` the link path and `$2` the destination it must
-    /// have; removes only that symbolic link and refuses (status 3) anything else.
-    static let privilegedUninstallScript = """
-        set -eu
-        [ -L "$1" ] && [ "$(/usr/bin/readlink "$1")" = "$2" ] || exit 3
-        /bin/rm -f "$1"
-        """
-}
-
-/// Why installing or removing the command failed.
-enum CommandLineToolError: Error, Equatable, LocalizedError {
-    /// Something that isn't mdv's link is at the path.
-    case occupied(CommandLineToolInstaller.Occupant)
-    /// Nothing is installed at the path.
-    case notInstalled
-    /// The path changed while mdv was looking at it.
-    case changed
-    /// The folder needs an administrator to change.
-    case needsAdministrator
-    /// The reader cancelled the administrator password prompt.
-    case cancelled
-    case failed(String)
-
-    init(errno code: Int32) {
-        switch code {
-        case EACCES, EPERM, EROFS:
-            self = .needsAdministrator
-        default:
-            self = .failed(String(cString: strerror(code)))
-        }
-    }
-
-    var errorDescription: String? {
-        switch self {
-        case .occupied(let occupant):
-            switch occupant {
-            case .file: "A file that isn’t mdv’s link is in the way."
-            case .folder: "A folder is in the way."
-            case .link(let destination): "A link to \(destination) is in the way."
-            case .other: "Something that isn’t mdv’s link is in the way."
-            }
-        case .notInstalled: "The command line tool isn’t installed there."
-        case .changed: "The file changed while mdv was installing. Try again."
-        case .needsAdministrator: "Changing this folder needs an administrator."
-        case .cancelled: "Cancelled."
-        case .failed(let message): message
         }
     }
 }
