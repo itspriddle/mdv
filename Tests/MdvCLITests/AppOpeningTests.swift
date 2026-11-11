@@ -1,4 +1,5 @@
 import Foundation
+import MdvCore
 import Testing
 
 @testable import MdvCLIKit
@@ -23,7 +24,7 @@ struct AppOpeningTests {
             ])
     }
 
-    @Test("standard input goes to the app as text")
+    @Test("standard input goes to the opener as text")
     func standardInput() async {
         let result = await CLIHarness.run([], stdin: Data("# Piped\n".utf8))
         #expect(result.status == 0)
@@ -35,6 +36,78 @@ struct AppOpeningTests {
         let result = await CLIHarness.run([], stdin: Data([0xFF]))
         #expect(result.status == 65)
         #expect(result.openedInApp.isEmpty)
+    }
+
+    @Test("'-' with files: the files, then standard input")
+    func standardInputWithFiles() async throws {
+        let folder = try TempFolder()
+        let file = try folder.file("a.md", "# A")
+        let result = await CLIHarness.run(["-", file], stdin: Data("# Piped\n".utf8))
+        #expect(result.status == 0)
+        #expect(
+            result.openedInApp == [
+                AppOpenRequest(files: [URL(fileURLWithPath: file)], standardInput: "# Piped\n")
+            ])
+    }
+
+    @Test("empty or blank standard input opens nothing (66)", arguments: ["", "\n", " \t\n\n"])
+    func emptyStandardInput(input: String) async {
+        let result = await CLIHarness.run([], stdin: Data(input.utf8))
+        #expect(result.status == 66)
+        #expect(result.stderr == "mdv: stdin: empty; nothing to open\n")
+        #expect(result.openedInApp.isEmpty)
+    }
+
+    @Test("standard input over 10 MB opens nothing (65); exactly 10 MB opens")
+    func oversizeStandardInput() async {
+        let limit = StandardInputHandoff.maximumBytes
+        let over = await CLIHarness.run([], stdin: Data(repeating: 0x61, count: limit + 1))
+        #expect(over.status == 65)
+        #expect(over.stderr.hasPrefix("mdv: stdin: larger than 10 MB"))
+        #expect(over.openedInApp.isEmpty)
+
+        let atLimit = await CLIHarness.run([], stdin: Data(repeating: 0x61, count: limit))
+        #expect(atLimit.status == 0)
+        #expect(atLimit.openedInApp.first?.standardInput?.utf8.count == limit)
+    }
+
+    @Test("--html has no standard input limit and renders empty input")
+    func htmlStandardInputUnlimited() async {
+        let result = await CLIHarness.run(["--fragment"], stdin: Data(repeating: 0x61, count: 10 * 1024 * 1024 + 10))
+        #expect(result.status == 0)
+        #expect(await CLIHarness.run(["--fragment"], stdin: Data()).status == 0)
+    }
+
+    @Test("a bounded read stops after one byte more than the maximum, without waiting for the end")
+    func boundedRead() throws {
+        let pipe = Pipe()
+        // Never closed while reading: `yes | mdv` never ends either.
+        try pipe.fileHandleForWriting.write(contentsOf: Data(repeating: 0x79, count: 1000))
+        let data = try CLIEnvironment.readStandardInput(pipe.fileHandleForReading, maximumBytes: 100)
+        #expect(data.count == 101)
+        try pipe.fileHandleForWriting.close()
+        let rest = try CLIEnvironment.readStandardInput(pipe.fileHandleForReading, maximumBytes: nil)
+        #expect(rest.count == 899)
+    }
+
+    @Test("the handoff folder is TMPDIR when absolute, else Foundation's temporary folder")
+    func handoffFolder() {
+        #expect(WorkspaceAppOpener.temporaryFolder(environment: ["TMPDIR": "/private/tmp/x/"]).path == "/private/tmp/x")
+        let fallback = FileManager.default.temporaryDirectory
+        #expect(WorkspaceAppOpener.temporaryFolder(environment: ["TMPDIR": "relative"]) == fallback)
+        #expect(WorkspaceAppOpener.temporaryFolder(environment: [:]) == fallback)
+    }
+
+    @Test("when the app can't be found, no handoff file is written")
+    func noAppNoHandoff() async throws {
+        let folder = try TempFolder()
+        let opener = WorkspaceAppOpener(
+            locator: AppLocator(executablePath: { nil }, applicationForBundleIdentifier: { _ in nil }),
+            temporaryFolder: folder.url)
+        await #expect(throws: CLIError.self) {
+            try await opener.open(AppOpenRequest(files: [], standardInput: "# Piped\n"), options: AppOpenOptions())
+        }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.url.path).isEmpty)
     }
 
     @Test("an opener failure is reported with its status")

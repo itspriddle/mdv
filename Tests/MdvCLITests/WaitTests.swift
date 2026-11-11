@@ -21,6 +21,15 @@ struct WaitTests {
         #expect(plain.waits == [false])
     }
 
+    @Test("cmd | mdv --wait: standard input reaches the opener with the wait (#68)")
+    func standardInput() async {
+        let opener = RecordingAppOpener()
+        let result = await CLIHarness.run(["--wait"], stdin: Data("# Piped\n".utf8), appOpener: opener)
+        #expect(result.status == 0)
+        #expect(opener.requests.map(\.standardInput) == ["# Piped\n"])
+        #expect(opener.waits == [true])
+    }
+
     @Test(
         "--wait with HTML output or a list is a usage error",
         arguments: [["--html"], ["--fragment"], ["-o", "out.html"], ["--list-themes"]])

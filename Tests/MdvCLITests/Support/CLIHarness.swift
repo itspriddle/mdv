@@ -43,9 +43,9 @@ enum CLIHarness {
                 standardError: Data((MdvCommand.fullMessage(for: error) + "\n").utf8))
         }
         let environment = CLIEnvironment(
-            readStandardInput: {
+            readStandardInput: { maximumBytes in
                 if let stdinError { throw stdinError }
-                return stdin
+                return maximumBytes.map { Data(stdin.prefix($0 + 1)) } ?? stdin
             },
             standardInputIsTerminal: stdinIsTerminal,
             standardOutput: output,
