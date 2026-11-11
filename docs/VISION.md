@@ -508,7 +508,8 @@ editor or a browser.
   - Errors and exit codes (#63, `sysexits(3)`): 64 usage (ArgumentParser's errors, several
     pages to one output, `--output` naming an input, no FILE while standard input is a
     terminal), 65 input not UTF-8, 66 input missing or unreadable (POSIX message: `No such file
-    or directory`, `Is a directory`, `Permission denied`), 69 the app couldn't be opened, 73
+    or directory`, `Is a directory`, `Permission denied`), 69 the app couldn't be opened, 70 the
+    `--preprocessor` program couldn't run or failed (#66), 73
     `--output` not writable, 74 writing standard output failed. Errors are one `mdv: <file>:
     <reason>` line on standard error. `ExitStatus` is the list; `--help` and the README repeat it.
   - Standard input (#63): with no FILE, mdv reads standard input, unless it is a terminal; then
@@ -550,6 +551,26 @@ editor or a browser.
     `--verbose` adds the flavor and wiki link setting used and where each came from (flag,
     document, default). Control characters from the document are printed as `\u{XX}`, so
     frontmatter can't send escape sequences to the terminal.
+  - Custom preprocessor (#66, `PreprocessorOptions`, help section "Preprocessor"): **only
+    `--preprocessor PATH` runs one**, with repeatable `--preprocessor-arg ARG` (taken verbatim,
+    even when it starts with `-`). Headless output of an untrusted file never starts a program
+    implicitly, so the app's Settings > Markdown preprocessor is not read (no
+    `--app-preprocessor`: the same command gives the same output whatever the app is set to).
+    PATH is a file path, made absolute against the working directory and checked by
+    `PreprocessorConfiguration`; it is never looked up on `PATH`. Same runner, contract, and
+    limits as the app (`PreprocessorLimits.standard`; `CLIEnvironment.preprocessorLimits` for
+    tests). A file passes `documentURL` (`MDV_DOCUMENT_PATH`, its folder as working directory);
+    standard input passes `nil` and runs in `/`, as in the app, not in the shell's folder. HTML
+    output only, like the Rendering flags (usage error otherwise). **A failure fails the run**:
+    exit 70 (`EX_SOFTWARE`) with `mdv: <input>: <PreprocessorError.message>` (including the
+    quarantine hint) and the stderr tail on the following lines (control characters escaped,
+    tabs and line breaks kept), and no HTML; there is no `--preprocessor-fallback`. The
+    script runs in its own process group, so a terminal's Ctrl-C doesn't reach it: while it
+    runs, `InterruptCancellation` turns `SIGINT`, `SIGTERM`, and `SIGHUP` into cancellation
+    (the runner stops the group and reaps it), then restores the default action and re-raises
+    the signal, so mdv dies of it as shells expect. A signal mdv started out ignoring (`nohup`,
+    background jobs) stays ignored. Only installed around the run, so reading standard input
+    is still interrupted the default way.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
@@ -666,8 +687,8 @@ editor or a browser.
   - **Which documents:** every document the app opens while it is on; no extension filter
     (mdv only opens Markdown and plain text, and a script can check `MDV_DOCUMENT_PATH` and pass
     a file through unchanged). The file must still be UTF-8 (the open fails otherwise, as
-    without a preprocessor), and the script gets its exact bytes. `mdv --html` doesn't run it
-    (M5 decides).
+    without a preprocessor), and the script gets its exact bytes. `mdv --html` runs one only
+    when `--preprocessor PATH` names it (#66; the CLI bullets under Architecture).
   - **Failures render the document without it, plus a bar** (`PreprocessorFailureBar`), never an
     alert and never an error page: "Preprocessor failed", the reason (`PreprocessorError.message`),
     and a Show Details disclosure with the stderr tail, shown verbatim. A program that was
