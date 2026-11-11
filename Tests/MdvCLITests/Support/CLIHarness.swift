@@ -26,7 +26,8 @@ enum CLIHarness {
         stdinError: (any Error & Sendable)? = nil,
         stdinIsTerminal: Bool = false,
         appOpener: RecordingAppOpener = RecordingAppOpener(),
-        failingOutput: (any Error & Sendable)? = nil
+        failingOutput: (any Error & Sendable)? = nil,
+        themesFolder: URL? = nil
     ) async -> CLIResult {
         let output = CapturedOutput(failingWith: failingOutput)
         let error = CapturedOutput()
@@ -47,7 +48,8 @@ enum CLIHarness {
             standardInputIsTerminal: stdinIsTerminal,
             standardOutput: output,
             standardError: error,
-            appOpener: appOpener)
+            appOpener: appOpener,
+            themesFolder: themesFolder)
         let status = await command.execute(in: environment)
         return CLIResult(
             status: status, standardOutput: output.data, standardError: error.data,

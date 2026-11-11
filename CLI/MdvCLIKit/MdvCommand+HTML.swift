@@ -31,7 +31,7 @@ extension MdvCommand {
         let page = HTMLDocument(
             title: rendered.title ?? document.source.fallbackTitle,
             body: rendered.html,
-            theme: themeFlavor.theme(for: rendered))
+            theme: try themeFlavor.theme(for: rendered, in: environment))
         return page.html + "\n"
     }
 }

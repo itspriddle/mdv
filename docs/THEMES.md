@@ -468,7 +468,11 @@ mdv:
 - **Editing the frontmatter** while the file is open swaps the theme in place, like a theme
   edit. Window restoration only remembers your own pick, so a changed `mdv.theme` applies the
   next time the document opens too.
-- `mdv --html` uses a bundled theme the document names; anything else gets GitHub.
+- **On the command line**, `mdv --html` uses the document's theme too, bundled or custom (from
+  the same Themes folder, with the same checks); one that doesn't load gets GitHub. `--theme`
+  beats it: `mdv --html --theme "custom:Release Notes.css" notes.md > notes.html`. Unlike the
+  document's theme, a `--theme` that can't be used is an error with the reason (the same one
+  the picker shows). `mdv --list-themes` lists the ids.
 
 The same block can set the document's Markdown flavor; see the
 [README](../README.md#per-document-settings) for every key and what a document can't change.

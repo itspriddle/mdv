@@ -7,7 +7,8 @@ extension HTMLRenderer {
     ///    `markdown` (`render(_:preprocessor:)`). Everything below sees only that output.
     /// 2. Frontmatter extraction (`options.detectsFrontmatter`), for every flavor.
     /// 3. Document overrides (#54, `DocumentOverrides`): the frontmatter's `mdv.flavor` beats
-    ///    `options.flavor`, so it changes how the body parses (`RenderOptions.applying(_:)`).
+    ///    `options.flavor`, so it changes how the body parses (`RenderOptions.applying(_:)`),
+    ///    unless the caller pinned it (`options.pinnedOverrides`, #64).
     /// 4. Parse the body with the flavor's extensions (`MarkdownParser`).
     /// 5. AST transforms: the flavor's and `options.builtInPreprocessors`, in `MarkdownTransform`
     ///    order.
@@ -37,7 +38,8 @@ extension HTMLRenderer {
             headings: headings,
             frontmatter: frontmatter,
             blockedRemoteImages: blockedRemoteImages,
-            overrides: overrides
+            overrides: overrides,
+            flavor: renderer.options.flavor
         )
     }
 

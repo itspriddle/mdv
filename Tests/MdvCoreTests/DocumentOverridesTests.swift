@@ -202,4 +202,39 @@ struct DocumentOverridesTests {
             HTMLRenderer(options: enabled).render("---\nmdv: { wikilinks: false }\n---\n[[#Top]]").html
                 == "<p>[[#Top]]</p>\n")
     }
+
+    @Test("a pinned flavor survives mdv.flavor; other overrides still apply")
+    func pinnedFlavor() {
+        var options = RenderOptions(flavor: .gfm)
+        options.pinnedOverrides = [.flavor]
+        let overrides = DocumentOverrides(flavor: "commonmark", wikiLinks: true)
+        let applied = options.applying(overrides)
+        #expect(applied.flavor == .gfm)
+        #expect(applied.builtInPreprocessors == [.wikiLinks])
+
+        let rendered = HTMLRenderer(options: options).render(
+            "---\nmdv: { flavor: commonmark, wikilinks: true }\n---\n~~x~~ [[#Top]]\n")
+        #expect(rendered.html.contains("<del>x</del>"))
+        #expect(rendered.html.contains("class=\"wikilink\""))
+        #expect(rendered.flavor == .gfm)
+        #expect(rendered.overrides.flavor == "commonmark")
+    }
+
+    @Test("a pinned wikilinks setting survives mdv.wikilinks in both directions")
+    func pinnedWikiLinks() {
+        var options = RenderOptions()
+        options.pinnedOverrides = [.wikiLinks]
+        #expect(options.applying(DocumentOverrides(wikiLinks: true)).builtInPreprocessors.isEmpty)
+        options.builtInPreprocessors = [.wikiLinks]
+        #expect(options.applying(DocumentOverrides(wikiLinks: false)).builtInPreprocessors == [.wikiLinks])
+    }
+
+    @Test("unpinned, the document's flavor applies and the rendered document reports it")
+    func reportsFlavor() {
+        #expect(RenderOptions().pinnedOverrides.isEmpty)
+        #expect(HTMLRenderer().render("# Hi\n").flavor == .gfm)
+        #expect(HTMLRenderer(options: RenderOptions(flavor: .commonmark)).render("# Hi\n").flavor == .commonmark)
+        #expect(HTMLRenderer().render("---\nmdv: { flavor: commonmark }\n---\nx\n").flavor == .commonmark)
+        #expect(HTMLRenderer().render("---\nmdv: { flavor: nope }\n---\nx\n").flavor == .gfm)
+    }
 }

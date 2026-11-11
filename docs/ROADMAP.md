@@ -648,6 +648,12 @@ Make the terminal workflow excellent.
   `-o`/`--output` writes atomically and never over an input. Several inputs share an output
   only as fragments. Exit statuses follow `sysexits(3)` (64, 65, 66, 69, 73, 74). With no FILE
   and a terminal on standard input, mdv prints usage; `-` reads standard input explicitly.
+- Theme and flavor (#64): `--theme`/`--flavor` beat the document's `mdv:` frontmatter, which
+  beats the default (MdvCore `RenderOptions.pinnedOverrides`; `RenderedDocument.flavor` reports
+  the flavor used). `--theme` accepts `custom:<file name>` from the Themes folder
+  (`MDV_THEMES_FOLDER` overrides it), and a custom frontmatter theme now loads in `--html` too.
+  Unknown flag ids are usage errors; a missing or invalid custom theme exits 66 or 65 with the
+  reason. `--list-themes` and `--list-flavors` added.
 
 ## Gate: choose the name
 
