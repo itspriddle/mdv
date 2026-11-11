@@ -4,7 +4,9 @@ import Foundation
 /// The documents to read: FILE arguments, `-` for standard input, or standard input alone when
 /// there are none (#68 owns how standard input reaches the app).
 public struct InputOptions: ParsableArguments, Sendable {
-    @Argument(help: ArgumentHelp("Markdown files. '-' or no FILE reads standard input.", valueName: "FILE"))
+    @Argument(
+        help: ArgumentHelp("Markdown files. '-' or no FILE reads standard input.", valueName: "FILE"),
+        completion: .file())
     public var files: [String] = []
 
     public init() {}

@@ -23,7 +23,8 @@ public struct OutputOptions: ParsableArguments, Sendable {
         name: [.short, .long],
         help: ArgumentHelp(
             "Write to FILE instead of standard output, replacing it atomically; never an input file. Implies --html.",
-            valueName: "FILE"))
+            valueName: "FILE"),
+        completion: .file())
     public var output: String?
 
     public init() {}

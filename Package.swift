@@ -42,6 +42,15 @@ let package = Package(
             dependencies: ["MdvCLIKit"],
             path: "CLI/Main"
         ),
+        // Build tool, not shipped: `make man` finishes generate-manual's page with it (#71).
+        .executableTarget(
+            name: "MdvManualTool",
+            dependencies: [
+                "MdvCLIKit",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            path: "CLI/ManualTool"
+        ),
         .testTarget(
             name: "MdvCoreTests",
             dependencies: [

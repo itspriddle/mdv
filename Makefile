@@ -17,6 +17,8 @@ GEMOJI_JSON   := build/gemoji/emoji-$(GEMOJI_COMMIT).json
 EMOJI_TABLE   := Sources/MdvCore/Generated/EmojiTable.swift
 ENTITIES_JSON := build/html-entities/entities.json
 ENTITY_TABLE  := Sources/MdvCore/Generated/HTMLEntityTable.swift
+# Man page and shell completions, generated from the CLI (#71; not committed).
+CLI_DOCS      := build/cli-docs
 # CI and unsigned local builds: make build SIGN=0
 ifeq ($(SIGN),0)
 XCODEBUILD += CODE_SIGNING_ALLOWED=NO
@@ -31,7 +33,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: help bootstrap generate build test test-core test-app test-ui record-theme-snapshots lint format emoji html-entities vendor-highlightjs vendor-github-markdown-css clean
+.PHONY: help bootstrap generate build test test-core test-app test-ui cli-docs record-theme-snapshots lint format emoji html-entities vendor-highlightjs vendor-github-markdown-css clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -42,13 +44,16 @@ bootstrap: ## Install required tools via Homebrew
 generate: ## Generate mdv.xcodeproj from project.yml
 	xcodegen generate
 
-build: generate ## Build the app and CLI
+build: generate cli-docs ## Build the app and CLI (bundles the man page and completions)
 	$(XCODEBUILD) build
 
 test: test-core test-app ## Run all tests
 
-test-core: ## Run MdvCore package tests
-	swift test
+test-core: cli-docs ## Run package tests (MdvCore, CLI, and the generated man page)
+	MDV_CLI_DOCS="$(abspath $(CLI_DOCS))" swift test
+
+cli-docs: ## Generate the man page and shell completions into build/cli-docs
+	scripts/generate-cli-docs $(CLI_DOCS)
 
 test-app: generate ## Run app unit tests (hosted, no UI automation)
 	$(XCODEBUILD) test -only-testing:AppTests

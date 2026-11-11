@@ -13,13 +13,15 @@ public struct ThemeFlavorOptions: ParsableArguments, Sendable {
         help: ArgumentHelp(
             "The page's theme: \(ThemeResolver.bundledIDs), or custom:<file name> from the "
                 + "Themes folder. Beats the document's mdv.theme.",
-            valueName: "NAME"))
+            valueName: "NAME"),
+        completion: .custom { _, _, _ in ThemeFlavorOptions.completionThemeIDs(shell: CompletionShell.requesting) })
     public var theme: String?
 
     @Option(
         help: ArgumentHelp(
             "The Markdown flavor: \(ThemeFlavorOptions.flavorIDs). Beats the document's mdv.flavor.",
-            valueName: "NAME"))
+            valueName: "NAME"),
+        completion: .list(FlavorRegistry.bundled.flavors.map(\.id)))
     public var flavor: String?
 
     @Flag(help: "List theme ids and names (bundled, then the Themes folder's), then exit.")
@@ -84,8 +86,7 @@ public struct ThemeFlavorOptions: ParsableArguments, Sendable {
             lines = FlavorRegistry.bundled.flavors.map { ($0.id, $0.displayName) }
         } else {
             let custom = ThemeResolver(themesFolder: environment.themesFolder).customThemes()
-            let registry = ThemeResolver.base.adding(custom.themes)
-            lines = registry.themes.map { ($0.id, $0.displayName) }
+            lines = Self.themeList(custom).map { ($0.id, $0.displayName) }
             for failure in custom.failures {
                 let subject = failure.isFolder ? "Themes folder" : CustomTheme.id(forFileName: failure.fileName)
                 environment.reportError("\(subject): \(failure.problem)")
@@ -97,6 +98,29 @@ public struct ThemeFlavorOptions: ParsableArguments, Sendable {
         } catch {
             throw CLIError("stdout: \(error.localizedDescription)", status: ExitStatus.ioError)
         }
+    }
+
+    /// The themes `--list-themes` prints: bundled, then the custom themes that loaded.
+    private static func themeList(_ custom: CustomThemeCatalog) -> [Theme] {
+        ThemeResolver.base.adding(custom.themes).themes
+    }
+
+    /// `--theme`'s shell completions (#71): the ids `--list-themes` prints, read from the Themes
+    /// folder the run would use (`MDV_THEMES_FOLDER`, else the default). Runs when the reader
+    /// presses Tab, never when the completion script is generated, so a new custom theme
+    /// completes without regenerating it. Files that don't load are left out, silently.
+    ///
+    /// zsh's completion script hands these to `_describe`, which reads an unescaped `:` as the
+    /// start of a description, so `custom:` ids are escaped for zsh only.
+    static func completionThemeIDs(
+        shell: CompletionShell?, environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> [String] {
+        let folder = ThemeResolver.themesFolder(environment: environment)
+        let ids = themeList(ThemeResolver(themesFolder: folder).customThemes()).map(\.id)
+        guard shell == .zsh else {
+            return ids
+        }
+        return ids.map { $0.replacingOccurrences(of: ":", with: "\\:") }
     }
 
     private static var flavorIDs: String {
