@@ -24,7 +24,11 @@ enum CLIBinary {
 
     /// Runs the binary with `arguments` in `directory`, feeding `stdin` (closed after), and waits
     /// for it to exit. Records an issue and returns `nil` when the binary is missing.
-    static func run(_ arguments: [String], stdin: Data = Data(), in directory: URL? = nil) throws -> CLIResult? {
+    /// `themesFolder` is passed as `MDV_THEMES_FOLDER`; by default a folder that doesn't exist, so
+    /// a run never reads the reader's own Themes folder.
+    static func run(
+        _ arguments: [String], stdin: Data = Data(), in directory: URL? = nil, themesFolder: URL? = nil
+    ) throws -> CLIResult? {
         guard FileManager.default.isExecutableFile(atPath: url.path) else {
             Issue.record("mdv binary not found at \(url.path); set MDV_CLI_BINARY")
             return nil
@@ -33,6 +37,10 @@ enum CLIBinary {
         process.executableURL = url
         process.arguments = arguments
         if let directory { process.currentDirectoryURL = directory }
+        let noThemes = FileManager.default.temporaryDirectory.appending(path: "mdv-no-themes-\(UUID().uuidString)")
+        var environment = ProcessInfo.processInfo.environment
+        environment["MDV_THEMES_FOLDER"] = (themesFolder ?? noThemes).path
+        process.environment = environment
         let input = Pipe()
         let output = Pipe()
         let error = Pipe()

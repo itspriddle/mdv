@@ -1,7 +1,7 @@
 import Foundation
 
 /// Everything `MdvCommand.execute(in:)` touches outside its arguments and the files they name:
-/// standard streams and the app. `live` is the real process; tests pass fakes, so the command
+/// standard streams, the app, and the Themes folder. `live` is the real process; tests pass fakes, so the command
 /// runs in-process without spawning (`Tests/MdvCLITests`).
 public struct CLIEnvironment: Sendable {
     /// Reads all of standard input. Called at most once per run.
@@ -13,29 +13,36 @@ public struct CLIEnvironment: Sendable {
     public var standardError: any OutputSink
     /// Opens documents in the app (`mdv FILE`, #67).
     public var appOpener: any AppOpening
+    /// Where `custom:` themes are read from (#64); `nil` reads none. Live:
+    /// `ThemeResolver.themesFolder(environment:)`. Tests pass a temp folder or nil, never the
+    /// reader's folder.
+    public var themesFolder: URL?
 
     public init(
         readStandardInput: @escaping @Sendable () throws -> Data,
         standardInputIsTerminal: Bool,
         standardOutput: any OutputSink,
         standardError: any OutputSink,
-        appOpener: any AppOpening
+        appOpener: any AppOpening,
+        themesFolder: URL? = nil
     ) {
         self.readStandardInput = readStandardInput
         self.standardInputIsTerminal = standardInputIsTerminal
         self.standardOutput = standardOutput
         self.standardError = standardError
         self.appOpener = appOpener
+        self.themesFolder = themesFolder
     }
 
-    /// The real process: its standard streams and `/usr/bin/open`.
+    /// The real process: its standard streams, `/usr/bin/open`, and the reader's Themes folder.
     public static var live: CLIEnvironment {
         CLIEnvironment(
             readStandardInput: { try FileHandle.standardInput.readToEnd() ?? Data() },
             standardInputIsTerminal: isatty(STDIN_FILENO) == 1,
             standardOutput: FileHandleSink(.standardOutput),
             standardError: FileHandleSink(.standardError),
-            appOpener: OpenCommandAppOpener()
+            appOpener: OpenCommandAppOpener(),
+            themesFolder: ThemeResolver.themesFolder(environment: ProcessInfo.processInfo.environment)
         )
     }
 

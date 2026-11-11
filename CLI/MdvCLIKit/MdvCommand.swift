@@ -22,6 +22,7 @@ public struct MdvCommand: AsyncParsableCommand {
               mdv --html README.md > README.html
               mdv -o README.html README.md
               mdv --fragment intro.md usage.md > body.html
+              mdv --html --theme serif --flavor commonmark notes.md
 
             Several FILEs print one after another only with --fragment; --output takes one.
 
@@ -44,6 +45,9 @@ public struct MdvCommand: AsyncParsableCommand {
 
     /// Rules that span groups (each group checks its own in its `validate()`).
     public func validate() throws {
+        if themeFlavor.lists, !input.files.isEmpty {
+            throw ValidationError("--list-themes and --list-flavors take no FILE.")
+        }
         let inputCount = input.sources.count
         if output.output != nil, inputCount > 1 {
             throw ValidationError("--output takes one input; run mdv once per file.")
@@ -65,6 +69,15 @@ public struct MdvCommand: AsyncParsableCommand {
     /// Runs the parsed command and returns its exit status. Failures are reported on
     /// `environment.standardError` as one `mdv: …` line.
     public func execute(in environment: CLIEnvironment) async -> Int32 {
+        if themeFlavor.lists {
+            do {
+                try themeFlavor.list(in: environment)
+                return ExitStatus.success
+            } catch {
+                environment.reportError(error.message)
+                return error.status
+            }
+        }
         if input.readsStandardInputImplicitly, environment.standardInputIsTerminal {
             environment.reportError("no FILE given and standard input is a terminal")
             let hint = "Usage: \(Self.usageString())\n  See 'mdv --help'.\n"

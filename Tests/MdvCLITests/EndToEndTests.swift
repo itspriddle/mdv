@@ -50,4 +50,18 @@ struct EndToEndTests {
         #expect(result.stdout.isEmpty)
         #expect(result.stderr.contains("Usage: mdv"))
     }
+
+    @Test("MDV_THEMES_FOLDER sets the Themes folder for --theme and --list-themes")
+    func themesFolderVariable() throws {
+        let themes = try TempFolder()
+        try themes.file("Test.css", "/* mdv-theme\n   name: Test Theme\n*/\nbody { color: #123456; }\n")
+        guard
+            let page = try CLIBinary.run(
+                ["--html", "--theme", "custom:Test.css"], stdin: Data("# Hi\n".utf8), themesFolder: themes.url),
+            let list = try CLIBinary.run(["--list-themes"], themesFolder: themes.url)
+        else { return }
+        #expect(page.status == 0)
+        #expect(page.stdout.contains("#123456"))
+        #expect(list.stdout.hasSuffix("custom:Test.css\tTest Theme\n"))
+    }
 }
