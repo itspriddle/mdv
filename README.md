@@ -38,7 +38,7 @@ mdv:
 ```
 
 - `flavor` is applied before the body is parsed, in the app and in `mdv --html`. An unknown
-  flavor is ignored, and the document renders with the default.
+  flavor is ignored, and the document renders with the default. `mdv --flavor` beats it.
 - `theme` beats the default theme from Settings, but a theme you pick for the window in View >
   Theme beats it (View > Theme > Document's Theme goes back). See the
   [theme guide](docs/THEMES.md#choosing-a-theme-per-document).
@@ -88,14 +88,23 @@ mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
 - `-o FILE` / `--output FILE` writes to FILE instead of standard output (`-o -` is standard
   output). It replaces FILE atomically, takes one input, and refuses to overwrite an input file.
 - With no FILE and a terminal on standard input, mdv prints usage instead of waiting for input.
+- `--theme NAME` picks the page's theme: `github`, `document`, `serif`, or `custom:<file name>`
+  from the Themes folder (`~/Library/Application Support/mdv/Themes`, or `MDV_THEMES_FOLDER`).
+  `--flavor NAME` picks the syntax: `gfm` or `commonmark`. **A flag beats the document's
+  `mdv:` frontmatter, which beats the default** (GitHub, GFM), as a View > Theme pick does in
+  the app. An unknown name is a usage error; a custom theme that is missing (66) or fails its
+  checks (65) is an error with the reason. Without `--theme`, the document's `mdv.theme`
+  (bundled or custom) picks the theme, falling back to GitHub silently.
+- `--list-themes` and `--list-flavors` print one `id<TAB>name` line each (custom theme files
+  that don't load are reported on standard error).
 - Errors are one line on standard error, such as `mdv: notes.md: No such file or directory`.
 
 | Exit status | Meaning |
 | --- | --- |
 | 0 | Success |
 | 64 | Usage error: bad flags, several pages to one output, `--output` naming an input, or no FILE while standard input is a terminal |
-| 65 | An input isn't valid UTF-8 |
-| 66 | An input file is missing or unreadable |
+| 65 | An input isn't valid UTF-8, or the `--theme` file isn't a valid theme |
+| 66 | An input file is missing or unreadable, or the `--theme` file is missing |
 | 69 | The app couldn't be opened |
 | 73 | The `--output` file couldn't be written |
 | 74 | Writing to standard output failed |

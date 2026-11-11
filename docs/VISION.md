@@ -108,8 +108,8 @@ editor or a browser.
   a field changes a render. Unknown keys and wrong types are ignored, never an error page, and
   reported in `RenderedDocument.overrides.ignored` with a reason. The flavor is applied in
   MdvCore before parsing, so `mdv --html` gets it too; the theme is reported for the caller to
-  resolve (the app below; `mdv --html` takes a bundled id and otherwise GitHub, and M5's
-  `--theme` will beat it). **TOML `[mdv]` is unsupported** (documented): TOML frontmatter isn't
+  resolve (the app below; `mdv --html` through `ThemeResolver`, #64, where `--theme` beats
+  it). **TOML `[mdv]` is unsupported** (documented): TOML frontmatter isn't
   parsed (no TOML parser, and none added for this); a TOML block that mentions `mdv` is reported
   as ignored. `RenderOptions.appliesDocumentOverrides` turns overrides off (spec mode does).
 - **Parsing:** [`swiftlang/swift-cmark`](https://github.com/swiftlang/swift-cmark) (cmark-gfm, the
@@ -512,6 +512,24 @@ editor or a browser.
   - Standard input (#63): with no FILE, mdv reads standard input, unless it is a terminal; then
     it prints usage and exits 64 rather than waiting silently. `-` reads standard input
     explicitly (once), even from a terminal.
+  - Theme and flavor (#64): **precedence is flag > frontmatter > default**, as a window's
+    View > Theme pick beats `mdv.theme`: a flag is the reader's explicit choice for this run.
+    `--flavor` sets `RenderOptions.flavor` and pins it (`RenderOptions.pinnedOverrides`, checked
+    in `RenderOptions.applying(_:)`), so `mdv.flavor` doesn't replace it while the document's
+    other overrides (`wikilinks`) still apply; `RenderedDocument.flavor` reports the flavor used.
+    Pinning only keeps the caller's own presentation setting; no safety setting goes through it.
+    `--theme` takes a bundled id (lowercased) or `custom:<file name>`, resolved by
+    `ThemeResolver` (MdvCLIKit, reused by `mdv FILE --theme`): custom themes load through
+    `CustomThemeFolder` with the app's checks, and an id is only matched against the folder's
+    files, never used as a path. Flags are the reader's, so an unknown `--flavor`/`--theme` is a
+    usage error (64), a missing custom theme 66, and one failing its checks 65, each with the
+    reason; frontmatter is untrusted, so its theme falls back to GitHub silently. Without
+    `--theme`, a `custom:` `mdv.theme` now loads too (same folder, same checks as the app). The
+    folder is `~/Library/Application Support/mdv/Themes` (the app's), overridable with
+    `MDV_THEMES_FOLDER` (tests always set it or inject `CLIEnvironment.themesFolder`). The CLI
+    doesn't read the app's default-theme setting; its default is GitHub. `--list-themes` and
+    `--list-flavors` print `id<TAB>name` lines (for completions, #71); theme files that don't
+    load are reported on standard error.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
