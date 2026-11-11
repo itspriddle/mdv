@@ -70,6 +70,36 @@ preprocessor: choose the program with Choose… and add any arguments, one per f
   clears that.
 - It runs again on every live reload, and open windows update when you change it in Settings.
 
+## Command line
+
+`mdv FILE...` opens files in the app; with no FILE (or `-`), it reads Markdown from standard
+input. These flags render HTML instead:
+
+```sh
+mdv --html README.md > README.html        # a complete page: CSS inline, no external resources
+mdv -o README.html README.md              # the same page written to a file
+mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
+```
+
+- `--html` prints one complete page per run. It is already standalone: styles are inline and a
+  Content-Security-Policy blocks scripts and remote loads.
+- `--fragment` prints only the rendered body (no `<html>`, `<head>`, or CSS). Several inputs
+  print one after another; only fragments can share an output.
+- `-o FILE` / `--output FILE` writes to FILE instead of standard output (`-o -` is standard
+  output). It replaces FILE atomically, takes one input, and refuses to overwrite an input file.
+- With no FILE and a terminal on standard input, mdv prints usage instead of waiting for input.
+- Errors are one line on standard error, such as `mdv: notes.md: No such file or directory`.
+
+| Exit status | Meaning |
+| --- | --- |
+| 0 | Success |
+| 64 | Usage error: bad flags, several pages to one output, `--output` naming an input, or no FILE while standard input is a terminal |
+| 65 | An input isn't valid UTF-8 |
+| 66 | An input file is missing or unreadable |
+| 69 | The app couldn't be opened |
+| 73 | The `--output` file couldn't be written |
+| 74 | Writing to standard output failed |
+
 ## Requirements
 
 - macOS 15 or later

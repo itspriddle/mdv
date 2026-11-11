@@ -484,6 +484,34 @@ editor or a browser.
   share) and `takeSnapshot` (visible area only, at the display's scale).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
+  - Structure (#63): the command is the `MdvCLIKit` library (`CLI/MdvCLIKit`); the executable
+    (`CLI/Main`, SwiftPM's `MdvCLI` and Xcode's `mdv-cli`) only calls `MdvCommand.main()`.
+    Each concern is an `@OptionGroup` in its own file: `InputOptions` (FILE, `-`, stdin),
+    `OutputOptions`, `ThemeFlavorOptions`, `RenderFlagOptions`, `PreprocessorOptions`,
+    `AppOpenOptions`. `MdvCommand.validate()` holds rules that span groups.
+    `execute(in: CLIEnvironment)` runs against injected standard streams and an `AppOpening`
+    opener; `MdvCLITests` (under `swift test`) calls it in-process and runs the built binary
+    end to end.
+  - Output (#63): `--html` prints a complete page, which is already standalone (inline CSS,
+    strict CSP, no external resources), so the roadmap's `--standalone` was dropped.
+    `--fragment` prints the body HTML only (no `<html>`, `<head>`, or CSS) and implies `--html`.
+    `-o`/`--output FILE` implies `--html`, writes atomically (temp file renamed over FILE), and
+    refuses an output that is one of the inputs (same device and inode, so symbolic and hard
+    links count). `-o -` is standard output.
+  - Several inputs (#63): only `--fragment` prints several to one output (in argument order);
+    several full pages, or `--output` with several inputs, is a usage error, because
+    concatenated pages aren't one HTML document. An `--output-dir` was left out until someone
+    needs it. Every input is read and rendered before anything is written, so a bad input
+    leaves no partial output.
+  - Errors and exit codes (#63, `sysexits(3)`): 64 usage (ArgumentParser's errors, several
+    pages to one output, `--output` naming an input, no FILE while standard input is a
+    terminal), 65 input not UTF-8, 66 input missing or unreadable (POSIX message: `No such file
+    or directory`, `Is a directory`, `Permission denied`), 69 the app couldn't be opened, 73
+    `--output` not writable, 74 writing standard output failed. Errors are one `mdv: <file>:
+    <reason>` line on standard error. `ExitStatus` is the list; `--help` and the README repeat it.
+  - Standard input (#63): with no FILE, mdv reads standard input, unless it is a terminal; then
+    it prints usage and exits 64 rather than waiting silently. `-` reads standard input
+    explicitly (once), even from a terminal.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.

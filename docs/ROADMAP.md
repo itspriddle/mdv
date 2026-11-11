@@ -639,6 +639,16 @@ Make the terminal workflow excellent.
 
 **Exit criteria:** every example in the README works; CLI tests run in CI.
 
+**Decisions** (details in [VISION](VISION.md#architecture-overview), "CLI"):
+
+- CLI foundation (#63): the command is the `MdvCLIKit` library with one option group file per
+  concern and a thin `CLI/Main`; `MdvCLITests` runs under `make test-core` (in-process through
+  `MdvCommand.execute(in:)`, plus end-to-end runs of the built binary). `--standalone` is
+  dropped (`--html` pages are already standalone); `--fragment` prints body HTML only;
+  `-o`/`--output` writes atomically and never over an input. Several inputs share an output
+  only as fragments. Exit statuses follow `sysexits(3)` (64, 65, 66, 69, 73, 74). With no FILE
+  and a terminal on standard input, mdv prints usage; `-` reads standard input explicitly.
+
 ## Gate: choose the name
 
 Before distribution work starts, pick the final name. Bundle identifier, repository name, Sparkle
