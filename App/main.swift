@@ -1,6 +1,7 @@
 import AppKit
 
 LaunchTiming.mark("main")
+LaunchTiming.registerMeasurementDefaults()
 
 // The first NSDocumentController created becomes `NSDocumentController.shared`, so create ours
 // before anything asks for the shared one.

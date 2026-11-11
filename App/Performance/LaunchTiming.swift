@@ -83,6 +83,19 @@ enum LaunchTiming {
         }
     }
 
+    /// For a measured launch the harness can't pass arguments to (`measure-cold-open -c`, through
+    /// Launch Services): ignore saved windows (and don't save over them), and skip the default
+    /// viewer offer, as the harness's launch arguments do. Registration-domain defaults, so a
+    /// launch argument still wins. Called first thing in `main.swift`; does nothing unless timing.
+    static func registerMeasurementDefaults() {
+        guard isEnabled else {
+            return
+        }
+        UserDefaults.standard.register(defaults: [
+            "ApplePersistenceIgnoreState": true, "DefaultViewerOfferDeclined": true,
+        ])
+    }
+
     private static func report(_ fields: [String]) {
         guard let path = ProcessInfo.processInfo.environment[logKey], !path.isEmpty, let processStart else {
             FileHandle.standardError.write(Data("mdv-launch-timing {\(fields.joined(separator: ","))}\n".utf8))
