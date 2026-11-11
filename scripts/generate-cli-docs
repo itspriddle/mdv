@@ -1,0 +1,47 @@
+#!/bin/bash
+# Generates mdv's man page and shell completions from the ArgumentParser command (#71):
+#
+#   OUT/man/man1/mdv.1          generate-manual's page, finished by MdvManualTool (ManualPage)
+#   OUT/completions/_mdv        zsh
+#   OUT/completions/mdv.bash    bash
+#   OUT/completions/mdv.fish    fish
+#
+# Usage: scripts/generate-cli-docs [OUT]   (default: build/cli-docs; `make cli-docs`)
+#
+# Nothing here is committed: a new flag shows up the next time this runs. The page's date is
+# the last commit's, so the same commit gives the same page.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+out=${1:-build/cli-docs}
+
+date=$(git log -1 --format=%cs 2>/dev/null || true)
+if [[ -z "$date" ]]; then
+  date=$(date +%Y-%m-%d)
+fi
+
+# The plugin builds the package and writes <output>/<target>/<command>.1.
+generated=.build/plugins/GenerateManual/outputs/MdvCLI/mdv.1
+rm -f "$generated"
+swift package plugin generate-manual --configuration debug --date "$date" >&2
+if [[ ! -f "$generated" ]]; then
+  echo "generate-cli-docs: generate-manual didn't write $generated" >&2
+  exit 1
+fi
+
+swift build --product MdvManualTool >&2
+swift build --product mdv >&2
+bin=$(swift build --show-bin-path)
+
+mkdir -p "$out/man/man1" "$out/completions"
+"$bin/MdvManualTool" "$generated" --output "$out/man/man1/mdv.1"
+# mandoc ships with macOS; its linter fails on mdoc errors from either half of the page (style warnings pass).
+if command -v mandoc > /dev/null; then
+  mandoc -T lint -W error "$out/man/man1/mdv.1"
+fi
+
+"$bin/mdv" --generate-completion-script zsh > "$out/completions/_mdv"
+"$bin/mdv" --generate-completion-script bash > "$out/completions/mdv.bash"
+"$bin/mdv" --generate-completion-script fish > "$out/completions/mdv.fish"
+
+echo "generate-cli-docs: wrote $out/man/man1/mdv.1 and $out/completions" >&2

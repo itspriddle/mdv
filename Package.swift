@@ -9,6 +9,8 @@ let package = Package(
     ],
     products: [
         .library(name: "MdvCore", targets: ["MdvCore"]),
+        // The CLI's logic, so the Xcode `mdv-cli` target and the tests share it.
+        .library(name: "MdvCLIKit", targets: ["MdvCLIKit"]),
         .executable(name: "mdv", targets: ["MdvCLI"]),
     ],
     dependencies: [
@@ -27,13 +29,27 @@ let package = Package(
             // Syntax highlighting runs highlight.js in-process (system framework).
             linkerSettings: [.linkedFramework("JavaScriptCore")]
         ),
-        .executableTarget(
-            name: "MdvCLI",
+        .target(
+            name: "MdvCLIKit",
             dependencies: [
                 "MdvCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
-            path: "CLI"
+            path: "CLI/MdvCLIKit"
+        ),
+        .executableTarget(
+            name: "MdvCLI",
+            dependencies: ["MdvCLIKit"],
+            path: "CLI/Main"
+        ),
+        // Build tool, not shipped: `make cli-docs` finishes generate-manual's page with it (#71).
+        .executableTarget(
+            name: "MdvManualTool",
+            dependencies: [
+                "MdvCLIKit",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            path: "CLI/ManualTool"
         ),
         .testTarget(
             name: "MdvCoreTests",
@@ -41,6 +57,12 @@ let package = Package(
                 "MdvCore",
                 .product(name: "cmark-gfm", package: "swift-cmark"),
             ],
+            resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "MdvCLITests",
+            // MdvCLI so `swift test` builds the binary the end-to-end tests run.
+            dependencies: ["MdvCLIKit", "MdvCLI", "MdvCore"],
             resources: [.copy("Fixtures")]
         ),
     ]

@@ -36,6 +36,9 @@ jobs:
         run: brew install xcodegen
       - name: Core tests
         run: make test-core
+        env:
+          # Render wall-clock bounds are report-only here (Tests/MdvCoreTests/RenderTiming.swift).
+          MDV_TIMING_REPORT_ONLY: "1"
       - name: Build and test app
         run: make build test-app SIGN=0
         env:

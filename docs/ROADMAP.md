@@ -11,7 +11,7 @@ them when the milestone is broken down.
 | [M2](#m2-viewer-app)                    | Viewer app                     | -         | Done   |
 | [M3](#m3-themes)                        | Themes                         | -         | Done   |
 | [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         | Done   |
-| [M5](#m5-cli)                           | CLI                            | -         |        |
+| [M5](#m5-cli)                           | CLI                            | -         | Done   |
 | [Gate](#gate-choose-the-name)           | Choose the final name          | -         |        |
 | [M6](#m6-distribution-and-10)           | Distribution                   | **1.0**   |        |
 | [Post-1.0](#post-10)                    | PDF, math, RTL, proofreading…  | 1.x       |        |
@@ -618,55 +618,299 @@ are the ones to compare.
 
 ## M5: CLI
 
+**Status:** Done (2026-11-11; the milestone PR merges after review).
+
 Make the terminal workflow excellent.
 
-- `mdv FILE...` opens files in the running app (or launches it)
-- `cmd | mdv` streams stdin into a new window without leaving files behind in temp
-  directories longer than needed
-- `--theme NAME`, `--flavor NAME`, `--html` / `--output FILE`, `--standalone` (inline CSS).
-  M3 settled the pieces: `ThemeRegistry` is the one place the CLI gets a theme (unknown ids fall
-  back to GitHub), pages are three cascade layers (`ThemeLayer`), and custom themes load with
-  `CustomThemeFolder` (MdvCore). Decide whether `--theme` accepts custom themes (`custom:<file>`
-  from the Themes folder) and whether `mdv FILE --theme X` sets that window's theme in the app
-- What M4 settled for the CLI:
-  - **`--flavor NAME`:** ids come from `FlavorRegistry.bundled` (`gfm`, `commonmark`) and set
-    `RenderOptions.flavor`. Today frontmatter `mdv.flavor` beats `RenderOptions.flavor` inside
-    MdvCore (`RenderOptions.applying(_:)`), as it beats Settings' default in the app. Decide
-    whether an explicit `--flavor` beats the document (as a window's theme pick does, and as
-    VISION says `--theme` will); if so MdvCore needs a way to apply every override but the
-    flavor. An unknown `--flavor` should be a usage error, not a silent fallback (frontmatter
-    falls back because documents are untrusted; flags are the reader's).
-  - **Frontmatter overrides in headless output:** `mdv --html` already applies `mdv.flavor`
-    and `mdv.wikilinks` (in MdvCore) and uses a bundled `mdv.theme` for its page (custom or
-    unknown ids are GitHub). `--theme` should beat `mdv.theme`; `custom:` ids need
-    `CustomThemeFolder`.
-  - **Custom preprocessor:** `mdv --html` doesn't run it. Recommendation: keep it off unless a
-    flag asks for it (headless output of an untrusted file shouldn't run a program implicitly,
-    and the app's setting is an app preference). The runner is in MdvCore (`CustomPreprocessor`;
-    `documentURL: nil` for stdin gives cwd `/`), so a flag is a few lines; decide whether it
-    reads the app's configured program or takes a path.
-  - **Settings > Markdown:** `mdv --html` uses `RenderOptions` defaults (GFM, frontmatter
-    hidden, no wiki links), not the app's Settings. Decide whether the CLI reads them; flags are
-    the reproducible default.
-  - **Wiki links:** `mdv --html` has no `WikiLinkResolver`, so page links render as missing
-    (`[[#Heading]]` works). Pass a `FolderWikiLinkResolver` with a file system reader (move the
-    app's `FileSystemFolderReader` into MdvCore or the CLI) and the document's allowed root
-    (`LocalResourceRoot.forDocument(at:)`); none for stdin.
-- Flags for M1's render options: frontmatter table, sanitize, source lines, highlighting, and
-  remote images (`--html` keeps them, as GitHub does, unless asked to block them; #20)
-- `--wait` blocks until the window closes (for `$EDITOR`-style and git workflows)
-- "Install command line tool" menu item (symlink to `/usr/local/bin` or `~/.local/bin`), plus
-  uninstall
-- Shell completions (ArgumentParser-generated) and a man page
-- CLI integration tests
+- `mdv FILE...` opens files in the app, launching it if needed, through Launch Services with a
+  standard Open Documents Apple Event, as Finder does (#67); `--theme` becomes the windows'
+  View > Theme pick
+- `cmd | mdv` opens standard input in an untitled window, through a private handoff file the
+  app deletes as soon as it has read it (#68)
+- `--html`, `--fragment`, and `-o`/`--output` (#63; `--standalone` was dropped, since pages are
+  already standalone); `--theme` and `--flavor`, custom themes included, plus `--list-themes`
+  and `--list-flavors` (#64)
+- Flags for the render options: frontmatter table, wiki links, source lines, highlighting,
+  heading anchors, remote image placeholders (#65); nothing turns sanitizing off.
+  `--preprocessor PATH` runs a custom preprocessor only when asked (#66)
+- `--wait` blocks until the windows it opened close, or the app quits (#69)
+- Install Command Line Tool in the App menu (`~/.local/bin` or `/usr/local/bin`, with Repair
+  and Uninstall), which links the man page too (#70, #71)
+- Shell completions (zsh, bash, fish) and a man page, generated from the command (#71)
+- CLI integration tests: `MdvCLITests` (in process and with the built binary) under
+  `make test-core`, and UI tests that run the CLI (`CommandLineUITests`,
+  `StandardInputUITests`, `WaitUITests`, `CommandLineToolUITests`)
 
-**Exit criteria:** every example in the README works; CLI tests run in CI.
+**Exit criteria:** every example in the README works; CLI tests run in CI. ✅
+(`ReadmeExampleTests` runs every `mdv` command in the README's `sh` blocks under
+`make test-core`, which CI runs, #72)
+
+**Decisions** (details in [VISION](VISION.md#architecture-overview), "CLI"):
+
+- CLI foundation (#63): the command is the `MdvCLIKit` library with one option group file per
+  concern and a thin `CLI/Main`; `MdvCLITests` runs under `make test-core` (in-process through
+  `MdvCommand.execute(in:)`, plus end-to-end runs of the built binary). `--standalone` is
+  dropped (`--html` pages are already standalone); `--fragment` prints body HTML only;
+  `-o`/`--output` writes atomically and never over an input. Several inputs share an output
+  only as fragments. Exit statuses follow `sysexits(3)` (64, 65, 66, 69, 73, 74). With no FILE
+  and a terminal on standard input, mdv prints usage; `-` reads standard input explicitly.
+- Theme and flavor (#64): `--theme`/`--flavor` beat the document's `mdv:` frontmatter, which
+  beats the default (MdvCore `RenderOptions.pinnedOverrides`; `RenderedDocument.flavor` reports
+  the flavor used). `--theme` accepts `custom:<file name>` from the Themes folder
+  (`MDV_THEMES_FOLDER` overrides it), and a custom frontmatter theme now loads in `--html` too.
+  Unknown flag ids are usage errors; a missing or invalid custom theme exits 66 or 65 with the
+  reason. `--list-themes` and `--list-flavors` added.
+- Render flags (#65): `--frontmatter hidden|table`, `--wiki-links`/`--no-wiki-links` (beats
+  `mdv.wikilinks`), `--source-lines`, `--no-highlight`, `--no-heading-anchors`,
+  `--block-remote-images`; HTML output only (usage error otherwise). No `--no-sanitize`, and the
+  CLI doesn't read Settings > Markdown (both in VISION's security model). File inputs get the
+  app's `linkRoot` and a `FolderWikiLinkResolver` (`FileSystemFolderReader` moved to MdvCore);
+  stdin gets neither. Wiki links stay `.md` in `--output`. Ignored `mdv:` keys are warnings on
+  standard error; `--verbose` adds the flavor and wiki link setting used.
+- Custom preprocessor (#66): `--preprocessor PATH` plus repeatable `--preprocessor-arg`, HTML
+  output only; the app's setting is never read. Same runner and limits as the app; stdin runs
+  in `/`. Failure exits 70 with the reason and stderr tail, no HTML, no fallback flag. Ctrl-C
+  (also `SIGTERM`, `SIGHUP`) cancels the run, stops its process group, then ends mdv with the
+  signal (end-to-end test with the built binary).
+- `mdv FILE` (#67): the CLI gives Launch Services a standard Open Documents Apple Event with
+  mdv's own parameters (`mdvT` theme id; `AppOpenEvent` in MdvCore), so opening is Finder's
+  path (no Automation prompt). It opens the app that contains it (a dev build opens itself;
+  outside a bundle, the app with mdv's bundle id); with another copy running it launches or
+  messages its own copy (`mdv /odoc`, since AppKit drops parameters from a directly sent
+  `odoc`). Paths and `--theme` are checked before anything opens (66, 64/66/65). `--theme`
+  becomes the windows' View > Theme pick (an open window switches); `--flavor` without HTML
+  output is a usage error. Parameters are presentation-only and validated in the app as
+  untrusted. #69 added `mdvW` to the same event; `mdvI`, reserved for #68, wasn't needed.
+- `cmd | mdv` (#68): standard input goes to the app as a private handoff file
+  (`$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md`, 0700/0600, `StandardInputHandoff` in MdvCore), one
+  of the Open Documents event's files; `DocumentController` recognizes it by its shape (no
+  `mdvI` parameter: AppKit drops parameters on some launch paths, and any sender could set
+  one), deletes it once read, and shows an untitled "Standard Input" window (titled from the document when it can be) that live reload,
+  Open Recent, and restoration skip. The app deletes only files it verifies are handoffs
+  (shape, owner, permissions, one link, no symbolic links); anything else opens as a file. At
+  most 10 MB; empty (66), larger (65), and non-UTF-8 (65) input open nothing. No allowed root
+  (relative images don't load), no wiki link resolver, preprocessor in `/`. No streaming
+  (deferred). `-` with files opens the files, then standard input. `cmd | mdv --wait` waits for
+  the standard input window.
+- `--wait` (#69): a random token per invocation (`mdvW`); the app posts the Darwin notification
+  `com.itspriddle.mdv.windowsClosed.<token>` once every window that event opened or brought
+  forward (an already-open file's counts) has closed, or on quit; the CLI also watches the
+  app's process, so a crash or force quit ends the wait (exit 0). Ctrl-C ends mdv (130) and
+  leaves the windows open. A forged notification can only end a wait early; the app accepts
+  only a UUID token. `--wait` with HTML output is a usage error. The README's git example
+  pipes into it (`git show HEAD:README.md | mdv --wait`, #68).
+- Install Command Line Tool (#70): one App menu item whose title follows the state (Install,
+  Repair for a link left by a moved or renamed app, Uninstall for this copy's link), read from
+  disk each time the menu opens; nothing is repaired without asking. Both `~/.local/bin` (no
+  password) and `/usr/local/bin` (administrator password via a constant AppleScript `do shell
+  script`, paths passed as parameters) are offered; the default is the first that needs no
+  password and is on the login shell's `PATH`, else `/usr/local/bin`, else the folder of an
+  existing link. After installing somewhere that may not be on `PATH`, the alert shows the
+  `export PATH=…` line. Only our symlink (into an mdv.app with our bundle id, or a gone one) is
+  ever replaced or removed; it is created by atomic rename. With several copies of mdv, the
+  alert names the one the link will use. #71 added the man page as a second
+  `CommandLineToolInstaller.Item` (completions aren't installed). See VISION's security model.
+- Completions and man page (#71): generated from the ArgumentParser command, not committed
+  (`make cli-docs` into `build/cli-docs`; `make test-core` and `make build` run it). zsh, bash,
+  and fish scripts from ArgumentParser; `--theme` completes `--list-themes`' ids when Tab is
+  pressed. The man page is the `generate-manual` plugin's, finished with hand-written sections
+  built from code (`ManualPage`: EXIT STATUS from `ExitStatus.entries`, EXAMPLES from
+  `HelpText`, FILES, ENVIRONMENT, SECURITY CONSIDERATIONS). A test checks every option from
+  `--experimental-dump-help` is in the page and the scripts. The app bundles them in
+  `Contents/Resources/{man/man1,completions}` (paths for the M6 cask); Install Command Line
+  Tool also links the man page into `share/man/man1` beside the command (one password prompt);
+  completions are documented, not installed.
+
+**Decisions at the close-out (#72):**
+
+- The README's examples are tests (`ReadmeExampleTests`; the reader is
+  `Tests/MdvCLITests/Support/ReadmeExamples.swift`). A small shell reader (words, quotes, comments, `|`, `>`, `&&`) takes every `mdv` command
+  out of the `sh` blocks; one it can't read fails the test instead of being skipped. Examples
+  that print or write HTML run the built binary in a temp folder holding the files they name
+  (`README.md` is the real README). Examples that open the app run in process with the
+  recording opener and must send what they say: the files, standard input from a pipe,
+  `--theme`, `--wait`. The completion block's script names are checked against
+  `make cli-docs`' output. Prose mentions in inline code aren't run. The README gained a block
+  of window examples (files, `--theme`, `git show … | mdv --wait`).
+- The CLI-driven stress cases (`StressTests+CommandLine`) are app-side: open events go
+  through `DocumentOpener` as `AppDelegate` sends them, so they run in the hosted suite and
+  under the sanitizers without launching copies of the app or depending on Launch Services
+  timing. They cover 24 `mdv FILE` events at once (files shared between events, standard
+  input in every third: each file opens once, every handoff is deleted), `--wait` tokens when
+  the app quits mid-open (each notified exactly once, including events that finish opening
+  after the quit), the largest standard input the CLI sends (10 MB renders, with the main
+  thread busy at most ~80 ms; one byte more is refused and deleted), and `--theme` re-sent
+  while windows' first renders are in flight (each ends on the last theme, in the window and
+  the page). No app bug turned up.
+- Events sent that fast make about twenty windows in one turn of the main queue, which kept
+  the main thread busy about 0.55 s in Debug, presumably window and web view setup, as when
+  Finder opens that many files at once; the CLI path adds nothing on the main thread but
+  reading the handoff. That test has no main-thread bound; the 10 MB one has (500 ms).
+- **`--theme` and `--wait` were lost on every Launch Services path** (found by CI's UI tests;
+  fixed before the merge). AppKit opens an Open Documents event's files itself for a
+  document-based app (`_handleAEOpenDocumentsForURLs:` → `NSDocumentController`) and never
+  calls the delegate's `application(_:open:)`, so #67's design, checked with a probe app that
+  had no document types, held only for the direct `mdv /odoc` path that local UI tests took
+  while an installed mdv was running. A Carbon handler for `aevt/odoc`
+  (`OpenDocumentsEventTap`, installed in `applicationWillFinishLaunching`) now records each
+  event's parameters by file (`OpenDocumentsEventLog`: taken once per file, 30 s, at most 32)
+  and passes the event on unchanged; `DocumentController.openDocument(…display: true…)` hands
+  a file with mdv parameters to `DocumentOpener.openForOpenDocumentsEvent`, which also covers
+  files AppKit defers until an earlier open finishes (no current event by then).
+  `application(_:open:)` is gone. The CLI sends the direct event with `.noReply`: a modal
+  alert in the app (the first-run default viewer offer) holds up Apple Event handling, and
+  waiting for a reply made the CLI exit 69 for files the app then opened.
+- **The preprocessor `SIGINT` test failed on CI** (fixed before the merge). The test's polling
+  task starved on the cooperative pool and signalled mdv after it had already timed out; it
+  now waits and signals from a dedicated thread, and the run gets a Debug-only longer timeout
+  (`MDV_TEST_PREPROCESSOR_TIMEOUT`). Two product fixes came with it: `InterruptCancellation`
+  records the signal in its `sigaction` handler (and the dispatch source), so a signal landing
+  as a run ends isn't lost, and the re-raise is a process-directed `kill` plus a wait, because
+  the async command runs on workqueue threads, which Darwin never delivers signals to (about 1
+  run in 4 printed "interrupted" before dying of the signal).
+- **Closed windows leaked their document, web view, and web content process** (found by the
+  stress suite on CI's starved runner; fixed before the merge). **This predates M5 and may
+  have affected every build before the fix:** AppKit can keep a closed window alive for minutes, and
+  its content held the document and the web view, so each window a reader closed kept a web
+  content process until AppKit let the window go. `DocumentWindowController` now drops its
+  `contentViewController` on close, and the outline's wait for two animation frames no longer
+  retains the web view (a window that isn't drawing runs no frames, so that wait never ended).
+  `StressTests` checks a closed document is freed.
+- Core render timing bounds (`Tests/MdvCoreTests/RenderTiming.swift`) are report-only on CI
+  (`MDV_TIMING_REPORT_ONLY` in the core step), like the app's main-thread bounds since M4.
+
+**Crash and hang pass (#72):** on feature/m5-cli with every fix above (52d909e), Debug,
+team-signed, macOS 27.2, `AppUITests` with `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1`:
+
+| Suite | Address Sanitizer | Thread Sanitizer |
+| ----- | ----------------- | ---------------- |
+| `AppTests` (431 tests, stress suite included) | passed | passed |
+| `AppUITests` (57 tests) | passed | 56 passed, 1 failed (below) |
+
+No sanitizer reported anything. The one failure,
+`CommandLineUITests.testThemeFlagBecomesTheWindowsPick` ("no pick any more", after choosing
+View > Theme > Document's Theme), failed under TSan in 8 of 9 runs (the whole suite, the class alone, and that test alone). It
+is the UI test's reading, not the app: a probe in the app showed one `setTheme` from the
+`--theme` open, one `clearThemePick` from the click, the page restyled, and every later menu
+validation of Document's Theme returning disabled, while XCUITest went on reading the item as
+enabled for 30 s of re-opened menus. Not fixed; the test passes under ASan, passed in the
+bugfix's plain Debug runs, and passes on CI.
+
+**Performance (#72):** Release, MacBook Air, macOS 27.2, 52d909e, one sitting; load 2.8-4.4
+(no other agents; Spotlight finished indexing the sanitizer builds first).
+`scripts/measure-cold-open -s -f -c -n 4 README.md` and then the 1 MB and 5 MB synthetic
+documents (`FirstRenderTests.largeSource`, 3 launches each), three rounds interleaved; the
+median of the rounds' medians. "Painted" is milliseconds from the process starting; "from the
+command" is from running `open` or `mdv` (Launch Services' part included).
+
+| Document | Size | Painted | Floor (bare `WKWebView`) | Minus floor |
+| -------- | ---- | ------- | ------------------------ | ----------- |
+| mdv README | 13.3 KB | 350 ms | 297 ms | +53 ms |
+| Synthetic | 1 MB | 665 ms | | |
+| Synthetic | 5 MB | 2118 ms | | |
+
+| README by path | Painted | From the command |
+| -------------- | ------- | ---------------- |
+| `open -n -a mdv.app README.md` (Finder's path) | 363 ms | 408 ms |
+| `mdv README.md` (the CLI) | 344 ms | 387 ms |
+
+- **`mdv FILE` is as fast as Finder's path:** 21 ms quicker from the command in this sitting
+  (#67 measured 4 ms slower), inside the rounds' spread (open 400-412 ms, mdv 379-393 ms), so
+  the CLI's Apple Event costs nothing measurable.
+- The README is three times the size it was at M4 (4.4 KB then), so +53 ms over the floor
+  isn't comparable with M4's +37 ms; the rounds gave +31, +27, and +59 ms. Re-check the
+  README against the 0-50 ms target on a quiet machine before 1.0.
+- 1 MB and 5 MB are M4's 643 ms and 2200 ms within this machine's noise.
+
+`mdv --html`, the Release helper, median of 10 runs after a warm-up (wall clock, file cache
+warm, `MDV_THEMES_FOLDER` pointing nowhere):
+
+| Command | Median |
+| ------- | ------ |
+| `mdv --version` (process start) | 5.6 ms |
+| `mdv --html README.md` | 16.7 ms |
+| `mdv --html --no-highlight README.md` | 7.3 ms |
+| `mdv --html` 1 MB | 125 ms |
+| `mdv --html --no-highlight` 1 MB | 75 ms |
+| `mdv --html` 5 MB | 394 ms |
+| `mdv --html --no-highlight` 5 MB | 336 ms |
+
+Starting the CLI costs about 6 ms. highlight.js in JavaScriptCore is most of a small page's
+time (about 9 ms of the README's 17) and stays near 50-60 ms at
+1 MB and 5 MB because of the 256 KB per-document highlighting budget.
+
+**Deferred from M5** (from the issue handoffs; none blocks 1.0 on its own):
+
+- Output: no `--output-dir` (#63); root-relative URLs in `--html FILE` become absolute paths
+  of the reader's folders, with no flag to keep them as written (#65); wiki links stay `.md`
+  in `--output` (#65).
+- Opening: no `--background` (#67). Files sent while the app shows a modal alert (the
+  first-run default viewer offer) open only once it closes; the CLI no longer waits for them.
+- Testing: `CommandLineUITests.testThemeFlagBecomesTheWindowsPick` fails under the Thread
+  Sanitizer only (XCUITest reads Document's Theme as enabled after the app disabled it; see
+  the crash pass above). A UI test that drives the pure Launch Services path while an
+  installed mdv runs isn't possible (Launch Services routes by bundle id); it runs locally only
+  with the installed copy quit, and always on CI.
+- Standard input: no streaming (`tail -f log.md | mdv` never opens, #68); relative images in a
+  standard input window show as broken images, not a placeholder (#68).
+- Preprocessor: the CLI passes the script the decoded input re-encoded as UTF-8, not the
+  file's raw bytes (differs only when a byte order mark was dropped; the app passes exact
+  bytes, #66).
+- Completions: in bash, `:` splits words, so `--theme custom:<Tab>` doesn't complete (complete
+  from `cu<Tab>`, #71); interactive zsh completion was checked by reading the script, not by
+  driving a shell (#71). The app doesn't install completions (documented, #71).
+- Install Command Line Tool: the administrator path is tested without a real password (same
+  handler and scripts minus the privilege clause); `PATH` entries set only in `.zshrc` aren't
+  seen by the login-shell probe, so the alert words it as "may not be on your PATH" (#70).
+- Small cleanups: the app's `DocumentWikiLinks` could use MdvCore's
+  `FolderWikiLinkResolver.fileSystem(forDocumentAt:root:)` (#65).
 
 ## Gate: choose the name
 
 Before distribution work starts, pick the final name. Bundle identifier, repository name, Sparkle
 feed URL, Homebrew cask, and website all depend on it, and changing them after release breaks
 updates. Rename `PRODUCT_BUNDLE_IDENTIFIER_BASE`, targets, and docs in one pass.
+
+The CLI made the name user-facing in many more places (M5, #72). Everything that says `mdv`
+today, grouped by who would notice a rename:
+
+- **Readers' files and habits** (keep working, or migrate, after a rename): the `mdv` command
+  itself (ArgumentParser `commandName`, SwiftPM product `mdv`, Xcode `mdv-cli`'s
+  `PRODUCT_NAME`, `mdv.app/Contents/Helpers/mdv`, `CommandLineToolInstaller.Item.command`, and
+  `AppLocator`'s bundle layout check); the links Install Command Line Tool made
+  (`~/.local/bin/mdv` or `/usr/local/bin/mdv`, and `share/man/man1/mdv.1`), which the new
+  name's installer won't recognize as its own; frontmatter's `mdv:` key
+  (`DocumentOverrides.frontmatterKey`) in readers' documents; the custom theme header
+  `/* mdv-theme` (`CustomTheme.headerMarker`) and the Themes folder
+  `~/Library/Application Support/mdv/Themes` (`CustomThemeLibrary`, `ThemeResolver`,
+  `ManualPage`); `MDV_DOCUMENT_PATH`, which readers' preprocessor scripts read; and
+  `MDV_THEMES_FOLDER`. Each needs a decision: rename and accept the break before 1.0, or read
+  the old name as well.
+- **Generated and bundled files:** the man page (`mdv.1`, its NAME and every example), the
+  completion scripts (`_mdv`, `mdv.bash`, `mdv.fish`, and the `#compdef mdv` / `complete -c
+  mdv` lines ArgumentParser writes from the command name), the bundle paths
+  `Contents/Resources/{man/man1,completions}` (the M6 cask's stanzas), and `HelpText`
+  examples. These follow the command name once it changes.
+- **Between the CLI and the app** (old CLI and new app, or the reverse, won't talk; fine
+  before 1.0): the bundle id `com.itspriddle.mdv` (`PRODUCT_BUNDLE_IDENTIFIER_BASE`,
+  `MdvCommand.appBundleIdentifier`, the exported UTI, which CLAUDE.md keeps in sync); the
+  `--wait` Darwin notification `com.itspriddle.mdv.windowsClosed.<token>`
+  (`AppOpenEvent.windowsClosedNotificationPrefix`); the Apple Event codes, event class
+  `mdv ` (`0x6D647620`, `AppOpenEvent.directEventClass`) and parameters `mdvT` and `mdvW`
+  (`mdvI` is unused); the standard input handoff `$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md`
+  (`StandardInputHandoff.folderPrefix`); `MDV_LAUNCH_TIMING` and `MDV_LAUNCH_TIMING_LOG`, the
+  only environment the CLI forwards.
+- **App internals with the name in them:** the `mdv-doc:` URL scheme
+  (`DocumentURLScheme.name`), the content world `"mdv"` (`AppScripts.world`), cascade layer
+  names `mdv-base`/`mdv-theme`/`mdv-user` (theme authors may target them, `docs/THEMES.md`),
+  the `os.Logger` fallback subsystem, UserDefaults and saved state (keyed by the bundle id, so
+  a new id starts with fresh settings), and the Debug-only `-MdvUITest…` launch arguments.
+- **Repository:** `itspriddle/mdv`, the `Mdv` module and type prefixes (`MdvCore`,
+  `MdvCLIKit`, `MdvApp`, `MdvCommand`, …), test-only variables (`MDV_CLI_BINARY`,
+  `MDV_CLI_DOCS`, `MDV_RECORD_SNAPSHOTS`, `MDV_RECORD_MISSING_SNAPSHOTS`,
+  `MDV_TIMING_REPORT_ONLY`, `MDV_UI_TEST_RESTORATION`, `MDV_CORPUS_DIFF_DIR`,
+  `MDV_BENCHMARK`, `MDV_FUZZ_*`), and the docs. Renaming the modules is optional; the rest is
+  one pass.
 
 ## M6: Distribution and 1.0
 

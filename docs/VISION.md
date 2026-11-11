@@ -108,8 +108,8 @@ editor or a browser.
   a field changes a render. Unknown keys and wrong types are ignored, never an error page, and
   reported in `RenderedDocument.overrides.ignored` with a reason. The flavor is applied in
   MdvCore before parsing, so `mdv --html` gets it too; the theme is reported for the caller to
-  resolve (the app below; `mdv --html` takes a bundled id and otherwise GitHub, and M5's
-  `--theme` will beat it). **TOML `[mdv]` is unsupported** (documented): TOML frontmatter isn't
+  resolve (the app below; `mdv --html` through `ThemeResolver`, #64, where `--theme` beats
+  it). **TOML `[mdv]` is unsupported** (documented): TOML frontmatter isn't
   parsed (no TOML parser, and none added for this); a TOML block that mentions `mdv` is reported
   as ignored. `RenderOptions.appliesDocumentOverrides` turns overrides off (spec mode does).
 - **Parsing:** [`swiftlang/swift-cmark`](https://github.com/swiftlang/swift-cmark) (cmark-gfm, the
@@ -434,8 +434,10 @@ editor or a browser.
     (`FolderWikiLinkResolver.defaultEntryLimit`), so a huge repository can't stall a render.
     MdvCore stays filesystem-free: the renderer takes an injected `WikiLinkResolver`, the search
     rules are `FolderWikiLinkResolver` over an injected `WikiLinkFolderReader`, and the app
-    supplies the file system reader (`DocumentWikiLinks`). `mdv --html` has no resolver, so
-    every page link is missing there (M5 can add one).
+    supplies the file system reader (`DocumentWikiLinks`). `FileSystemFolderReader` (regular
+    files and folders only) lives in MdvCore so `mdv --html` uses the same one (#65,
+    `FolderWikiLinkResolver.fileSystem(forDocumentAt:root:)`); standard input has no resolver,
+    so its page links are missing.
   - **Output:** a found page is `<a class="wikilink" href="Page-Name.md#slug">`, its path
     relative to the document with every part percent-encoded (nothing in a name can add a
     scheme, query, or attribute), so it goes through `LinkPolicy` like any relative link (opens
@@ -484,6 +486,230 @@ editor or a browser.
   share) and `takeSnapshot` (visible area only, at the display's scale).
 - **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
   symlinked onto `PATH` from the app.
+  - Structure (#63): the command is the `MdvCLIKit` library (`CLI/MdvCLIKit`); the executable
+    (`CLI/Main`, SwiftPM's `MdvCLI` and Xcode's `mdv-cli`) only calls `MdvCommand.main()`.
+    Each concern is an `@OptionGroup` in its own file: `InputOptions` (FILE, `-`, stdin),
+    `OutputOptions`, `ThemeFlavorOptions`, `RenderFlagOptions`, `PreprocessorOptions`,
+    `AppOpenOptions`. `MdvCommand.validate()` holds rules that span groups.
+    `execute(in: CLIEnvironment)` runs against injected standard streams and an `AppOpening`
+    opener; `MdvCLITests` (under `swift test`) calls it in-process and runs the built binary
+    end to end.
+  - Output (#63): `--html` prints a complete page, which is already standalone (inline CSS,
+    strict CSP, no external resources), so the roadmap's `--standalone` was dropped.
+    `--fragment` prints the body HTML only (no `<html>`, `<head>`, or CSS) and implies `--html`.
+    `-o`/`--output FILE` implies `--html`, writes atomically (temp file renamed over FILE), and
+    refuses an output that is one of the inputs (same device and inode, so symbolic and hard
+    links count). `-o -` is standard output.
+  - Several inputs (#63): only `--fragment` prints several to one output (in argument order);
+    several full pages, or `--output` with several inputs, is a usage error, because
+    concatenated pages aren't one HTML document. An `--output-dir` was left out until someone
+    needs it. Every input is read and rendered before anything is written, so a bad input
+    leaves no partial output.
+  - Errors and exit codes (#63, `sysexits(3)`): 64 usage (ArgumentParser's errors, several
+    pages to one output, `--output` naming an input, no FILE while standard input is a
+    terminal), 65 input not UTF-8 (or standard input over 10 MB for a window, #68), 66 input
+    missing or unreadable (POSIX message: `No such file or directory`, `Is a directory`,
+    `Permission denied`; or empty standard input for a window, #68), 69 the app couldn't be opened, 70 the
+    `--preprocessor` program couldn't run or failed (#66), 73
+    `--output` not writable, 74 writing standard output failed. Errors are one `mdv: <file>:
+    <reason>` line on standard error. `ExitStatus` is the list; `--help` and the README repeat it.
+  - Standard input (#63): with no FILE, mdv reads standard input, unless it is a terminal; then
+    it prints usage and exits 64 rather than waiting silently. `-` reads standard input
+    explicitly (once), even from a terminal.
+  - Theme and flavor (#64): **precedence is flag > frontmatter > default**, as a window's
+    View > Theme pick beats `mdv.theme`: a flag is the reader's explicit choice for this run.
+    `--flavor` sets `RenderOptions.flavor` and pins it (`RenderOptions.pinnedOverrides`, checked
+    in `RenderOptions.applying(_:)`), so `mdv.flavor` doesn't replace it while the document's
+    other overrides (`wikilinks`) still apply; `RenderedDocument.flavor` reports the flavor used.
+    Pinning only keeps the caller's own presentation setting; no safety setting goes through it.
+    `--theme` takes a bundled id (lowercased) or `custom:<file name>`, resolved by
+    `ThemeResolver` (MdvCLIKit, reused by `mdv FILE --theme`): custom themes load through
+    `CustomThemeFolder` with the app's checks, and an id is only matched against the folder's
+    files, never used as a path. Flags are the reader's, so an unknown `--flavor`/`--theme` is a
+    usage error (64), a missing custom theme 66, and one failing its checks 65, each with the
+    reason; frontmatter is untrusted, so its theme falls back to GitHub silently. Without
+    `--theme`, a `custom:` `mdv.theme` now loads too (same folder, same checks as the app). The
+    folder is `~/Library/Application Support/mdv/Themes` (the app's), overridable with
+    `MDV_THEMES_FOLDER` (tests always set it or inject `CLIEnvironment.themesFolder`). The CLI
+    doesn't read the app's default-theme setting; its default is GitHub. `--list-themes` and
+    `--list-flavors` print `id<TAB>name` lines (for completions, #71); theme files that don't
+    load are reported on standard error.
+  - Render flags (#65, `RenderFlagOptions`, help section "Rendering"): `--frontmatter
+    hidden|table`, `--wiki-links`/`--no-wiki-links` (pins `.wikiLinks`, so it beats
+    `mdv.wikilinks`; off by default), `--source-lines`, `--no-highlight`,
+    `--no-heading-anchors`, `--block-remote-images` (#20's placeholder; kept by default, as
+    GitHub does). They change HTML output only, so without `--html`, `--fragment`, or `--output`
+    they are a usage error (64). **The CLI never reads the app's Settings > Markdown**: flags
+    only, so the same command gives the same output whatever the app is set to.
+  - File inputs resolve root-relative URLs and wiki links as the app does: `linkRoot` is the
+    allowed root (`LocalResourceRoot`), so `/docs/x.png` becomes `<root>/docs/x.png`, an
+    absolute path that works when the page is opened from disk but names the reader's folders
+    (don't publish such a page as is). Wiki links search the document's folder, then the root,
+    never through a symbolic link. Links to pages stay `.md` in `--output` (no rewrite to
+    `.html`: mdv renders one file per run and doesn't know where the others will go).
+  - Diagnostics (#65) go to standard error only: frontmatter `mdv:` keys a render ignored are
+    always reported as `mdv: <input>: warning: <reason>` (exit status unchanged), and
+    `--verbose` adds the flavor and wiki link setting used and where each came from (flag,
+    document, default). Control characters from the document are printed as `\u{XX}`, so
+    frontmatter can't send escape sequences to the terminal.
+  - Custom preprocessor (#66, `PreprocessorOptions`, help section "Preprocessor"): **only
+    `--preprocessor PATH` runs one**, with repeatable `--preprocessor-arg ARG` (taken verbatim,
+    even when it starts with `-`). Headless output of an untrusted file never starts a program
+    implicitly, so the app's Settings > Markdown preprocessor is not read (no
+    `--app-preprocessor`: the same command gives the same output whatever the app is set to).
+    PATH is a file path, made absolute against the working directory and checked by
+    `PreprocessorConfiguration`; it is never looked up on `PATH`. Same runner, contract, and
+    limits as the app (`PreprocessorLimits.standard`; `CLIEnvironment.preprocessorLimits` for
+    tests). A file passes `documentURL` (`MDV_DOCUMENT_PATH`, its folder as working directory);
+    standard input passes `nil` and runs in `/`, as in the app, not in the shell's folder. HTML
+    output only, like the Rendering flags (usage error otherwise). **A failure fails the run**:
+    exit 70 (`EX_SOFTWARE`) with `mdv: <input>: <PreprocessorError.message>` (including the
+    quarantine hint) and the stderr tail on the following lines (control characters escaped,
+    tabs and line breaks kept), and no HTML; there is no `--preprocessor-fallback`. The
+    script runs in its own process group, so a terminal's Ctrl-C doesn't reach it: while it
+    runs, `InterruptCancellation` turns `SIGINT`, `SIGTERM`, and `SIGHUP` into cancellation
+    (the runner stops the group and reaps it), then restores the default action and re-raises
+    the signal, so mdv dies of it as shells expect. A signal mdv started out ignoring (`nohup`,
+    background jobs) stays ignored. Only installed around the run, so reading standard input
+    is still interrupted the default way.
+  - CLI to app (#67, `WorkspaceAppOpener`, `AppOpenEvent` in MdvCore, `DocumentOpener` in the
+    app): `mdv FILE` checks every path first (missing, folder, unreadable: exit 66, nothing
+    opens; relative paths resolve against the shell's folder) and `--theme` (`ThemeResolver`,
+    as for `--html`), then builds a standard **Open Documents Apple Event** (`aevt/odoc`, the
+    files as its direct object) with mdv's own optional parameters (`mdvT`: theme id) and hands
+    it to Launch Services as `NSWorkspace.OpenConfiguration.appleEvent`
+    (`openApplication(at:)`). Launch Services launches the app with it as the first event, or
+    sends it to the running app, and activates the app: Finder's path, so no Automation
+    (TCC) prompt, and the app opens files exactly as from Finder. AppKit handles Open
+    Documents events itself and never calls the delegate's `application(_:open:)` for mdv's
+    document types (Launch Services launch or running app, `open -a`, Finder), so
+    `DocumentController.openDocument(withContentsOf:display:completionHandler:)` applies them
+    (`DocumentOpener.openForOpenDocumentsEvent`). While an earlier open is in flight AppKit
+    opens an event's files later, when `NSAppleEventManager.currentAppleEvent` is no longer
+    the event, so `OpenDocumentsEventTap` (an Apple Event Manager handler for `aevt/odoc`
+    that records the event and passes it on to AppKit's) keeps each event's parameters by
+    file in `OpenDocumentsEventLog` (taken once per file, gone after 30 s).
+    (`application(_:open:)` was the first design; it lost `--theme` and `--wait` on every
+    Launch Services path, which CI's single copy caught.) Rejected: `open -b`
+    (no way to pass options, errors were its exit status), launch arguments (launch only), a
+    URL scheme (a web page could trigger it), XPC (needs a launchd service).
+    - Finding the app: the app that contains the executable (`mdv.app/Contents/Helpers/mdv`,
+      symlinks resolved, bundle id checked), so a development build's CLI opens that build; run
+      outside a bundle (`swift run mdv`), the app Launch Services knows by bundle id; neither:
+      exit 69. Launch Services finds a *running* app by bundle id, not path, so with another
+      copy running (an installed mdv next to a dev build) the CLI launches its own copy as a
+      new instance, or, if its copy is running too, sends that process the event directly.
+      Directly sent `odoc` events reach AppKit's scripting handler, not the delegate, and lose
+      the parameters, so the direct path uses mdv's own class `mdv /odoc` (same direct object
+      and parameters; `AppDelegate.handleDirectOpen`). The direct path is also the fallback
+      when Launch Services refuses a sandboxed caller (the UI test runner, whose children
+      inherit its sandbox; `AppUITests.entitlements` allows its Apple Events to mdv).
+    - **Trust model:** any local process can already send the app these events, with any
+      parameters, so they are presentation-only and validated as untrusted input:
+      `AppOpenParameters(event:)` keeps a theme id only if it is UTF-8/UTF-16 text of at most
+      1 KB, 1–256 characters, no control/format characters or surrounding whitespace; the app
+      then uses it only if it is registered or a `custom:` id (which shows Settings' default
+      until its file loads). The direct event's files are `typeFileURL` items only (text is
+      never coerced into a path), at most 1000. Nothing widens what a document can do; files
+      open with the same checks as from Finder.
+    - `--theme` becomes each window's View > Theme pick (beats `mdv.theme`; restoration
+      keeps it), set before a new window first shows; an already-open window switches. An
+      already-open file focuses its window (`DocumentController` finds it by identity).
+      `--flavor` without `--html`/`--fragment`/`--output` is a usage error (64): windows have
+      no per-window flavor (M4); Settings > Markdown and `mdv.flavor` decide. `mdv FILE`
+      activates the app, like `open`; no `--background` until someone needs it.
+    - Further parameters go on the same event (`mdvW`, the `--wait` token, #69), read by
+      `AppOpenParameters` with the same size and type checks. (`mdvI` was reserved for
+      standard input; #68 needed no parameter.) Timing: `MDV_LAUNCH_TIMING` and
+      `MDV_LAUNCH_TIMING_LOG` are the only environment the CLI passes to an app it launches
+      (`scripts/measure-cold-open -c`).
+  - Standard input into a window (#68, `cmd | mdv`, `StandardInputHandoff` in MdvCore):
+    - **Transport: a private handoff file the app deletes once it has read it.** The CLI
+      writes the Markdown to `$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md` (`mkdtemp(3)`: an
+      unpredictable name, created exclusively, mode 0700; the file `O_EXCL|O_NOFOLLOW`, mode
+      0600; `TMPDIR` when absolute, else Foundation's temp folder; a shared `/tmp` is still
+      safe) and puts it last in the Open Documents event's direct object. The app's
+      `DocumentController.openDocument(withContentsOf:display:completionHandler:)` recognizes
+      it, reads it, deletes it and its folder right away, and returns an untitled document;
+      if the event never reached the app, the CLI deletes it. Recognizing the file there, by
+      its shape, rather than by an event parameter (`mdvI`, reserved by #67) works on every
+      path an Open Documents event takes: a cold launch while another copy with the bundle id
+      runs (Launch Services' new instance) gets the event through AppKit's own handler, which
+      never calls the delegate and drops mdv's parameters (seen while building #68; the same
+      launch loses `--theme`). A parameter would add no trust either: any sender can set it.
+      Rejected: the bytes in an event parameter. An Open Documents event with no files never
+      reaches `application(_:open:)`, and Launch Services rewrites custom event classes, so
+      bytes could only go by the direct `mdv /odoc` path, which needs the app already
+      running; two transports weren't worth it. A file is left behind only when the app dies
+      between the CLI's send and its read (the system cleans its temp folder).
+    - **Trust model:** any local process can send that event naming any file, so the app
+      deletes only a file it verifies is a handoff, through descriptors, without following
+      links: a folder named `mdv-stdin.*` owned by this user with no group/other permissions,
+      holding a regular file named `stdin.md`, owned by this user, no group/other
+      permissions, one link (not a hard link to another file); it is read through the checked
+      descriptor. Anything else, `stdin.md` files included, is left alone and opens as an
+      ordinary file. The checks are on shape, not location (a sandboxed caller's temp folder
+      is its container), so a sender (or a Finder open, a drop) can at worst make the app
+      read and delete a file with that exact shape, which only mdv makes, and which a
+      same-user process could delete anyway.
+    - **Limits:** at most 10 MB (`StandardInputHandoff.maximumBytes`, the preprocessor's input
+      bound, twice the largest measured document). The CLI reads no more than that plus a
+      byte (`yes | mdv` ends), and refuses more (65), empty or whitespace-only input (66), and
+      non-UTF-8 (65), with nothing opened. The app checks size and UTF-8 again (a hand-made
+      handoff), deletes it, and presents the error. `--html` keeps reading standard input
+      without a limit. No streaming: input is read to EOF (`tail -f log.md | mdv` never opens;
+      deferred).
+    - **The window:** `MarkdownDocument(standardInput:)`, an untitled document with no file:
+      titled from its frontmatter `title` or first heading, else "Standard Input"; no live
+      reload, nothing in Open Recent, and its window isn't restorable (nothing to reopen).
+      Settings > Markdown, `mdv:` frontmatter, and `--theme` apply as to any document; wiki
+      links have no resolver (page links show as missing), and the custom preprocessor, if on,
+      runs with no document path, in `/`, as in the CLI. **No allowed root:** the page has no
+      base URL, so relative images don't load (a broken image, as for any image outside a
+      root) and relative links go nowhere; the shell's folder isn't used, because piped text
+      (`curl … | mdv`) shouldn't read local files by where the shell happens to be.
+    - `-` mixes standard input with files (`mdv a.md - b.md`): the files open, then standard
+      input's window (`AppOpenRequest` keeps them apart). `cmd | mdv --wait` waits for the
+      standard input window like any other (it joins the token in `DocumentOpener`).
+  - Completions and man page (#71): **generated from the ArgumentParser command, never
+    committed**, so a new flag appears in both with no extra step. zsh, bash, and fish scripts
+    are ArgumentParser's (`--generate-completion-script`). FILE, `--output`, and
+    `--preprocessor` complete paths (`completion: .file()`), `--flavor` the bundled ids, and
+    `--theme` the ids `--list-themes` prints, computed when Tab is pressed
+    (`ThemeFlavorOptions.completionThemeIDs`, `.custom`), so a new custom theme completes
+    without regenerating the script; `custom:` ids are escaped for zsh's `_describe`. The man
+    page is ArgumentParser's `generate-manual` plugin output (NAME, SYNOPSIS, the option
+    list) finished by `ManualPage` (run by the `MdvManualTool` build tool): DESCRIPTION's
+    overview, ENVIRONMENT, FILES, EXIT STATUS, EXAMPLES, and SECURITY CONSIDERATIONS are built
+    from `HelpText`, `ExitStatus.entries`, `ThemeResolver`, and `PreprocessorLimits`, the same
+    values `--help` uses. `make cli-docs` (`scripts/generate-cli-docs`) writes both to
+    `build/cli-docs`; `make test-core` runs it first and checks that every option in
+    `--experimental-dump-help` is in the page and each script, and that `mandoc -T lint`
+    passes. The app build copies them into `Contents/Resources/man/man1/mdv.1` and
+    `Contents/Resources/completions/` (`_mdv`, `mdv.bash`, `mdv.fish`; project.yml script
+    phase; Release fails without the man page), for the Homebrew cask and Install Command Line
+    Tool, which links the man page into `share/man/man1` beside the command's folder (where
+    `man` looks for a `bin` on `PATH`). Completions aren't installed by the app: a shell's
+    setup is the reader's, so the success alert and README point at the scripts instead.
+  - `--wait` (#69, `WindowsClosedWaiter` in the CLI, `WindowWaits` in the app): the CLI
+    makes a random token per invocation (a version 4 UUID), registers for the Darwin
+    notification `com.itspriddle.mdv.windowsClosed.<token>` (`notify(3)`: delivered on a
+    dispatch queue, no run loop, works from the sandboxed UI test runner), then sends the
+    open event with the token as `mdvW`. The app tracks the windows each token opened or
+    brought forward (**an already-open file's window counts**; a tab is a window; a window
+    whose file was deleted stays open, so it still counts), and posts the notification once
+    the event has finished opening and none of them is left open (every file failing posts
+    at once). Two `--wait`s on one file both end when its window closes. Quitting posts every
+    token. The CLI also watches the app's process (`DispatchSource` process exit, from the
+    pid Launch Services or the direct path reports), so a crash or force quit ends the wait;
+    either way mdv exits 0. Ctrl-C keeps its default action: mdv dies of `SIGINT` (130) and
+    the windows stay open. Tokens aren't saved: restored windows wait for no one.
+    **Trust model:** any process can post any Darwin notification, so a forged one can only
+    end a wait early; the app accepts only a well-formed UUID (exactly 36 characters of
+    text), so a forged token can only make it post a name under mdv's prefix when windows
+    close. Nothing in the app acts on a notification. Rejected: holding the open event's
+    reply until close (Launch Services gives no reply), XPC/Mach services (need a launchd
+    job), `NSDistributedNotificationCenter` (needs a run loop the async CLI doesn't run).
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
@@ -507,7 +733,7 @@ editor or a browser.
   - The opt-in lasts for that window until it closes, survives live reloads, and is never
     saved, so reopening a file blocks again. Remembering it per file can come later.
   - `mdv --html` keeps GitHub-compatible output (`.keep`) by default, and its CSP blocks remote
-    images when the page is opened. A flag to block them in the HTML itself is M5 work.
+    images when the page is opened. `--block-remote-images` (#65) writes placeholders instead.
   - Tests use servers on 127.0.0.1 and never the network. A document full of remote images
     makes no request, and a page with no CSP does make them (the control).
 - The web view never gets `file:` access. The app loads each document at
@@ -530,7 +756,8 @@ editor or a browser.
   images and links, and a leading `/` never means the file system root). The renderer rewrites
   them to `<root>/...` (`RenderOptions.linkRoot`, `RootRelativeURL`) with `.`/`..` clamped at
   the root, so `LocalImagePolicy` and `LinkPolicy` see ordinary `mdv-doc` URLs and stay the
-  only checks; `//host` stays remote. `mdv --html` and Copy as HTML keep them as written.
+  only checks; `//host` stays remote. Copy as HTML and `mdv --html` of standard input keep them
+  as written; `mdv --html FILE` rewrites them against the file's root, as the app does (#65).
 - GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` images (and their remote-image
   placeholders) show only in the matching appearance through the base layer's CSS (`ThemeBase`)
   (`img[src$=...]` under `prefers-color-scheme`), so they follow live appearance changes; print
@@ -545,6 +772,14 @@ editor or a browser.
   is passed as an argument, never spliced into script source. Tests prove page scripts stay
   blocked while app scripts run.
 - Raw HTML in Markdown is sanitized per a defined policy rather than passed through blindly.
+  - **No `--no-sanitize` (#65).** The CLI has no way to turn sanitizing off. Headless output is
+    a page meant to be opened in a browser, where page JavaScript isn't disabled as it is in
+    the viewer, so passing raw HTML from an untrusted file through would run its scripts
+    (and the page's CSP is the only other guard). The spec suites turn it off in MdvCore
+    (`RenderOptions.spec`), which is where unsanitized output belongs.
+  - **The CLI doesn't read Settings > Markdown (#65)**: its output depends only on its flags
+    and the file, never on app state. Frontmatter overrides apply as in the app, under the
+    same rules (presentation only); `--flavor` and `--wiki-links`/`--no-wiki-links` beat them.
 - Syntax highlighting runs only the vendored highlight.js, in a private JavaScriptCore context
   with no access to the page, files, or network; code and language names are passed as values,
   never spliced into script. Its output is treated as untrusted: it must be nothing but
@@ -570,10 +805,11 @@ editor or a browser.
   changes the flavor (and #53's wiki links toggle) and nothing else, so sanitizing, the remote
   image policy, `linkRoot`, source lines, and every other setting stay as the reader's app set
   them. The custom preprocessor isn't a render option at all: it is configured only in Settings
-  and runs before frontmatter is read. Any other key under `mdv:` (`sanitize`, `remoteImages`,
-  `preprocessor`, ...) is ignored and reported; unregistered flavors (such as the spec suite's)
-  can't be chosen; a theme id is only looked up in the registry, never read as a path. Tests
-  (`DocumentOverridesSecurityTests`) render a document that tries each of these.
+  (or named by `mdv --html --preprocessor`) and runs before frontmatter is read. Any other key
+  under `mdv:` (`sanitize`, `remoteImages`, `preprocessor`, ...) is ignored and reported;
+  unregistered flavors (such as the spec suite's) can't be chosen; a theme id is only looked up
+  in the registry, never read as a path. Tests (`DocumentOverridesSecurityTests`) render a
+  document that tries each of these.
 - Custom preprocessor scripts run only when the user configures them (#57), and they are the
   first stage of the render pipeline (#51), so their output is still parsed, transformed, and
   sanitized like any file.
@@ -591,8 +827,8 @@ editor or a browser.
   - **Which documents:** every document the app opens while it is on; no extension filter
     (mdv only opens Markdown and plain text, and a script can check `MDV_DOCUMENT_PATH` and pass
     a file through unchanged). The file must still be UTF-8 (the open fails otherwise, as
-    without a preprocessor), and the script gets its exact bytes. `mdv --html` doesn't run it
-    (M5 decides).
+    without a preprocessor), and the script gets its exact bytes. `mdv --html` runs one only
+    when `--preprocessor PATH` names it (#66; the CLI bullets under Architecture).
   - **Failures render the document without it, plus a bar** (`PreprocessorFailureBar`), never an
     alert and never an error page: "Preprocessor failed", the reason (`PreprocessorError.message`),
     and a Show Details disclosure with the stderr tail, shown verbatim. A program that was
@@ -659,6 +895,53 @@ editor or a browser.
   - **Not a sandbox:** the script runs as the user, with the user's file access. A process that
     leaves the group (`setsid`) is out of reach, though mdv stops reading its pipes after the
     grace period. Opting in means trusting the executable.
+- **Install Command Line Tool (#70)** writes outside the app, sometimes as root, so it follows
+  narrow rules (`CommandLineToolInstaller`, unit tested over temp folders):
+  - It only ever creates, replaces, or removes a symbolic link named `mdv` whose absolute
+    destination is `<X>.app/Contents/Helpers/mdv`, where `X.app` is gone (a moved app) or has
+    mdv's bundle identifier. A file, a folder, a relative link, or a link anywhere else
+    (including into another app with the same layout) is shown to the reader and left alone,
+    by install and by uninstall. The man page (#71) follows the same rule as a second item:
+    a link named `mdv.1` in `share/man/man1` beside the command's folder, to
+    `<X>.app/Contents/Resources/man/man1/mdv.1`. It goes along only when this copy has one and
+    nothing foreign is at its path (a page that isn't ours is skipped silently, not shown),
+    and is removed with the command when it is ours. Both go in one batch: every path is
+    checked before anything changes, and the links needing an administrator share one
+    privileged run (the scripts take argument triples or pairs and check them all first).
+  - Links are made atomically: a temporary link beside the target is renamed into place, with
+    `RENAME_EXCL` when nothing was there. A replace or removal re-reads the link first and
+    stops if its destination changed.
+  - `~/.local/bin` needs no privileges. For a folder the reader can't write (`/usr/local/bin`),
+    mdv uses AppleScript's `do shell script … with administrator privileges` (not the deprecated
+    `AuthorizationExecuteWithPrivileges`; a privileged helper tool is out of proportion for one
+    link). Nothing is interpolated into code: the AppleScript source is a constant whose
+    handler receives the shell script and its arguments as Apple event parameters and quotes
+    each with `quoted form of`. The shell scripts are constants too
+    (`privilegedInstallScript`, `privilegedUninstallScript`) and get the paths only as `$1`…,
+    which must be absolute and NUL-free. Run as root, they repeat the ownership check (the
+    link must still have the destination mdv read, and not resolve to a folder) and exit 3
+    otherwise. Tests run the same scripts, and the same AppleScript handler minus the
+    privilege clause, over paths full of quotes, `$(…)`, backticks, and newlines.
+  - The only launch argument, `-MdvUITestCommandLineToolFolder`, is Debug-only; UI-test and
+    hosted unit-test launches without it offer no folders, so tests never touch
+    `/usr/local/bin` or `~/.local/bin`.
+  - To choose the default folder, mdv reads the reader's `PATH` from their login shell
+    (`$SHELL -l -c`, 2 s limit, no input): the reader's own configuration, nothing from a document.
+- **Other processes reaching the app (M5).** The CLI talks to the app only through channels
+  any local process can already use, so the app treats everything arriving on them as
+  untrusted and gives it no more power than a Finder open (details under "CLI" above):
+  - Open Documents events (#67): files open with the same checks as from Finder; mdv's
+    parameters are presentation-only and validated (`mdvT` a plausible, registered or
+    `custom:` theme id; `mdvW` exactly a UUID); the direct `mdv /odoc` event takes only file
+    URL descriptors, at most 1000.
+  - Standard input (#68): the app reads and deletes only a handoff it verifies by shape,
+    owner, permissions, and link count, through descriptors that never follow links; anything
+    else opens as an ordinary file.
+  - `--wait` (#69): the app only posts `com.itspriddle.mdv.windowsClosed.<token>` and acts on
+    no notification; a forged one can only end a CLI's wait early.
+  - Nothing else crosses: the CLI forwards no environment but the launch-timing variables, no
+    preprocessor or render setting travels to the app, and the CLI reads none of the app's
+    Settings.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
 
 ## Success looks like

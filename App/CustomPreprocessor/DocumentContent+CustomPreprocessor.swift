@@ -2,7 +2,9 @@ import Foundation
 import MdvCore
 
 extension DocumentContent {
-    /// Renders `source`, the text of the file at `url`, with `preferences`: through the custom
+    /// Renders `source`, the text of the file at `url` (nil for standard input, #68: titled
+    /// "Standard Input" when it has no title of its own, with no allowed root, so relative
+    /// images and page links resolve to nothing), with `preferences`: through the custom
     /// preprocessor first when `preferences.customPreprocessor` is set (#57), then the rest of
     /// the pipeline. The single render used by opening, reverting, live reload, and Settings
     /// changes (`MarkdownDocument.renderContent`). Runs off the main actor.
@@ -14,11 +16,11 @@ extension DocumentContent {
     /// runner has then stopped the script's process group.
     ///
     /// The file was already decoded as UTF-8 (`source(from:)`), so the script gets exactly the
-    /// file's bytes.
+    /// file's bytes. Standard input's script runs with no document path, in `/`, as in the CLI.
     static func rendering(
-        _ source: String, of url: URL, preferences: MarkdownPreferences
+        _ source: String, of url: URL?, preferences: MarkdownPreferences
     ) async throws -> DocumentContent {
-        let fallbackTitle = url.lastPathComponent
+        let fallbackTitle = url?.lastPathComponent ?? MarkdownDocument.standardInputName
         let linkRoot = linkRoot(forDocumentAt: url)
         guard let preference = preferences.customPreprocessor else {
             return DocumentContent(

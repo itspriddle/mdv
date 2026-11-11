@@ -23,9 +23,16 @@ import os
 /// first render waits for it, each live reload runs it again, and a newer render, a newer
 /// `setContent(_:)`, or closing the document cancels the run in flight, which stops the
 /// script's process group. Changing it in Settings renders open documents again.
+/// Standard input (`cmd | mdv`, #68) is a document with no file (`init(standardInput:)`), the
+/// only untitled document a viewer has: titled from its first heading or "Standard Input", no
+/// live reload, and its window isn't restored. Settings changes render it again as any other.
+///
 /// Registered as `NSDocumentClass` for the document types declared in project.yml.
 @Observable
 final class MarkdownDocument: NSDocument {
+    /// The name of a standard input document (`init(standardInput:)`) with no title of its own.
+    nonisolated static let standardInputName = "Standard Input"
+
     /// The source and rendered page from the last successful read; `nil` until the first
     /// render finishes.
     private(set) var content: DocumentContent?
@@ -76,7 +83,19 @@ final class MarkdownDocument: NSDocument {
             self, selector: selector, name: CustomPreprocessorSettings.didChangeNotification, object: nil)
     }
 
+    /// A document of standard input's Markdown (#68): no file, rendered like a read.
+    convenience init(standardInput source: String) {
+        self.init()
+        render(source, of: nil)
+    }
+
     override static var autosavesInPlace: Bool { false }
+
+    /// What NSDocument names a document with no file (standard input): "Standard Input",
+    /// numbered after the first, rather than "Untitled".
+    override func defaultDraftName() -> String {
+        Self.standardInputName
+    }
 
     /// Signposts for opening (`Read` on main, `Render` off main), in Instruments' Points of
     /// Interest. Release builds keep them; they cost nothing unless recorded.
@@ -86,7 +105,10 @@ final class MarkdownDocument: NSDocument {
     override func makeWindowControllers() {
         LaunchTiming.mark("makeWindowControllers")
         // The first window of the launch gets the web view started at launch (#40).
-        addWindowController(DocumentWindowController(coordinator: WebViewPrewarmer.shared.takeCoordinator()))
+        let controller = DocumentWindowController(coordinator: WebViewPrewarmer.shared.takeCoordinator())
+        addWindowController(controller)
+        // Standard input has no file to reopen: its window isn't restored.
+        controller.window?.isRestorable = fileURL != nil
         startLiveReload()
     }
 
@@ -129,14 +151,15 @@ final class MarkdownDocument: NSDocument {
         }
     }
 
-    /// Renders `source` (the contents of `url`) off the main actor, then shows it with
+    /// Renders `source` (the contents of `url`, or standard input's when nil) off the main
+    /// actor, then shows it with
     /// `setContent(_:)` unless something newer replaced the content or the document closed
     /// first. Starting a render drops the one in flight.
     ///
     /// The first render of an open waits here (for the renderer, and for the custom
     /// preprocessor when one is on, up to its timeout); the window shows its blank,
     /// theme-colored page meanwhile (`DocumentWindowController`, `prepareForFirstLoad()`).
-    func render(_ source: String, of url: URL) {
+    func render(_ source: String, of url: URL?) {
         dropPendingRender()
         let generation = contentGeneration
         let preferences = renderPreferences
@@ -165,7 +188,7 @@ final class MarkdownDocument: NSDocument {
     /// calling task cancels the render, which stops a custom preprocessor run (#57) and throws
     /// `CancellationError`; a render without one finishes and is dropped by the caller.
     nonisolated static func renderContent(
-        _ source: String, of url: URL, preferences: MarkdownPreferences
+        _ source: String, of url: URL?, preferences: MarkdownPreferences
     ) async throws -> DocumentContent {
         let work = Task.detached(priority: .userInitiated) {
             let interval = signposter.beginInterval(
@@ -257,7 +280,7 @@ final class MarkdownDocument: NSDocument {
             }
             return
         }
-        guard let content, let fileURL, content.preferences != preferences else {
+        guard let content, content.preferences != preferences else {
             return
         }
         render(content.source, of: fileURL)
@@ -314,9 +337,10 @@ final class MarkdownDocument: NSDocument {
     }
 }
 
-/// What a render renders: a document's text, its file, and the preferences it is rendered with.
+/// What a render renders: a document's text, its file (nil for standard input), and the
+/// preferences it is rendered with.
 private struct RenderInput {
     let source: String
-    let url: URL
+    let url: URL?
     let preferences: MarkdownPreferences
 }

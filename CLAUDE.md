@@ -8,7 +8,8 @@ process) before planning work.
 
 ```sh
 make generate         # regenerate mdv.xcodeproj from project.yml (run after adding/removing files)
-make test-core        # swift test (MdvCore), fast, no Xcode project needed
+make test-core        # cli-docs, then swift test (MdvCore, CLI), no Xcode project needed
+make cli-docs         # man page + zsh/bash/fish completions into build/cli-docs (generated, #71)
 make test             # core + app unit tests (not UI tests)
 make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
 make record-theme-snapshots  # re-record bundled theme references for this macOS version (#39)
@@ -20,8 +21,9 @@ make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHAT
 make vendor-highlightjs  # re-vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
 make vendor-github-markdown-css  # re-vendor the GitHub theme (GHCSS_VERSION=x.y.z) as generated Swift
 swift run mdv --html FILE   # render to stdout without Xcode
-scripts/measure-cold-open [-f] FILE  # Release cold open to first paint, median of N launches (GUI);
-                                     # -f adds the bare-WKWebView floor (scripts/cold-open-floor.swift)
+scripts/measure-cold-open [-f] [-c] FILE  # Release cold open to first paint, median of N launches
+                                     # (GUI); -f adds the bare-WKWebView floor (scripts/cold-open-floor.swift),
+                                     # -c times `open -n -a` against `mdv FILE` from the command's start
 ```
 
 `.NOTPARALLEL` is set because the user's shell exports `MAKEFLAGS=-j9`; concurrent xcodebuilds
@@ -58,10 +60,11 @@ lock the build database.
     `Rendering/HTMLRenderer+Alerts.swift`) live here, and so do wiki links (`WikiLinks`, #53:
     `[[Page]]` text to `MarkdownNode.Kind.wikiLink`; markup in `HTMLRenderer+WikiLinks.swift`).
   - `WikiLinks/`: wiki link pages and resolution (#53). `WikiPage` (the naming rule),
-    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; MdvCore never reads the
-    disk for it), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
-    an injected `WikiLinkFolderReader`), and `SourceLines` (which bracket bytes were written as
-    is rather than escaped).
+    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; the search rules never
+    read the disk), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
+    an injected `WikiLinkFolderReader`), `FileSystemFolderReader` (the real reader for the app
+    and CLI: regular files and folders only, no symbolic links or packages), and `SourceLines`
+    (which bracket bytes were written as is rather than escaped).
   - `Preprocessor/`: the custom preprocessor runner (#56; VISION's security model has the
     contract and limits). `CustomPreprocessor.run(input:documentURL:)` is async and
     cancellable. `PreprocessorConfiguration` validates the executable and
@@ -87,6 +90,11 @@ lock the build database.
     and `CopyableLink` (what Copy Link copies; never an `mdv-doc:` URL).
   - `Outline/`: `DocumentOutline` (heading tree) and `OutlineTracker` (current section).
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
+  - `AppOpening/`: what the CLI and the app agree on (M5; untrusted on the app's side).
+    `AppOpenEvent` builds and reads the Open Documents event and its parameters
+    (`AppOpenParameters`: `mdvT` theme, `mdvW` wait token in `+Wait`, with the
+    `windowsClosed` notification name), and `StandardInputHandoff` writes, verifies, and takes
+    the `cmd | mdv` handoff file.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make html-entities`,
     `make vendor-highlightjs`); never edit by hand. `Vendor/` holds vendored sources with a
     MANIFEST and license.
@@ -110,8 +118,7 @@ lock the build database.
     built-in preprocessors (one row per `MarkdownSettings.optionalPreprocessors` entry), then
     room for the custom preprocessor (#57).
   - `WikiLinks/`: `DocumentWikiLinks` (a per-render `FolderWikiLinkResolver` for a document,
-    used by `DocumentContent` and Copy as HTML) and `FileSystemFolderReader` (regular files and
-    folders only; no symbolic links or packages).
+    used by `DocumentContent` and Copy as HTML) over MdvCore's `FileSystemFolderReader`.
   - `MarkdownSettings/`: `MarkdownSettings` (the store: default flavor id, frontmatter
     display, built-in preprocessors; one change notification) and `MarkdownPreferences` (the
     value a render takes; `apply(to:)` sets `RenderOptions`). Unlike window defaults these
@@ -126,6 +133,12 @@ lock the build database.
     `MarkdownPreferences.customPreprocessor` (`MarkdownDocument.renderPreferences`), so a change
     re-renders open documents like any Settings > Markdown change. The section view is
     `Settings/CustomPreprocessorSection`.
+  - `CommandLineTool/` (#70): App menu > Install / Repair / Uninstall Command Line Tool….
+    `CommandLineToolInstaller` (the rules over an injected folder and app: state, atomic
+    install, uninstall, and the constant privileged shell scripts; an `Item` per linked file,
+    the hook for #71), `PrivilegedRunning` (`AppleScriptPrivilegedRunner`, values passed as
+    Apple event parameters), `CommandLineToolLocation` (`~/.local/bin`, `/usr/local/bin`, or
+    the UI-test folder; `LoginShellPath`), and `CommandLineToolController` (menu state, alerts).
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
@@ -135,8 +148,15 @@ lock the build database.
     revert goes through `setContent(_:)`, which tells each `DocumentWindowController`
     (and re-renders content made with outdated Markdown settings, #55).
     `DocumentController` (the shared `NSDocumentController`) finds open files by identity,
-    skips gone files on restore, and types extensionless text files (`ExtensionlessText`) as
-    plain text; its `canOpen(_:)` is the one rule for the Open panel and drops.
+    skips gone files on restore, types extensionless text files (`ExtensionlessText`) as
+    plain text, and turns a verified standard input handoff into an untitled
+    `MarkdownDocument(standardInput:)` (#68); its `canOpen(_:)` is the one rule for the Open
+    panel and drops. `DocumentOpener` applies an Open Documents event's mdv parameters
+    (`--theme` as each window's pick, `--wait` tokens through `WindowWaits`, #69): on Launch
+    Services paths `DocumentController.openDocument` hands it files whose parameters
+    `OpenDocumentsEventTap` recorded (`OpenDocumentsEventLog`; AppKit never calls
+    `application(_:open:)` for a document-based app, so don't add it back), and the direct
+    `mdv /odoc` handler calls `open(_:parameters:)`.
   - `Find/`: `FindInPage` (find state and commands, tested with a fake host), `SharedFindQuery`
     (the system find pasteboard), and `FindBar`
     (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
@@ -172,8 +192,31 @@ lock the build database.
   - `Menus/`: `MainMenu` builds the menu bar in code. A feature adds a `MenuContribution` type
     in its own file plus one line in `MainMenu.contributions`. AppKit inserts Open Recent and
     the Window menu's items itself; don't build them.
-- `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
-  `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
+- `CLI/`: ArgumentParser `mdv` tool, embedded at `mdv.app/Contents/Helpers/mdv`.
+  `CLI/MdvCLIKit` (library) is the command: `MdvCommand` (parse, cross-group `validate()`,
+  mode pick, `execute(in: CLIEnvironment)`) plus one `@OptionGroup` file per concern
+  (`InputOptions`, `OutputOptions`, `ThemeFlavorOptions`, `RenderFlagOptions`,
+  `PreprocessorOptions`, `AppOpenOptions`), `MdvCommand+HTML` (headless output),
+  `MdvCommand+App` and `AppOpening` (opening in the app), `ExitStatus` (sysexits codes, listed
+  in `--help`), and `CLIError` (one `mdv: …` stderr line plus a status). `CLI/Main` is the
+  executable (SwiftPM `MdvCLI`, Xcode `mdv-cli`) and only calls `MdvCommand.main()`. A new flag
+  goes in its concern's group file; never read the process's streams directly (use
+  `CLIEnvironment`). Completions and the man page (#71) are generated from the command, so a
+  flag needs nothing more (give a path or id value a `completion:`). Text `--help` and the man
+  page share lives in `HelpText` (overview, examples) and `ExitStatus.entries`; `ManualPage`
+  finishes generate-manual's page with the hand-written sections, run by the `CLI/ManualTool`
+  build tool (`MdvManualTool`, not shipped) from `make cli-docs`. Opening in the app:
+  `WorkspaceAppOpener` (Launch Services, or the direct event to our running copy) with
+  `AppLocator` (which app), `WindowsClosedWaiter` and `DarwinNotification` (`--wait`), and the
+  stdin handoff; `InterruptCancellation` turns signals into cancellation around a preprocessor
+  run.
+- `Tests/MdvCLITests`: CLI tests under `swift test`. `CLIHarness.run` parses and runs the command
+  in-process against a fake `CLIEnvironment` (captured streams, `RecordingAppOpener`);
+  `CLIBinary.run` runs the built `mdv` with stdin and captures stdout, stderr, and the status.
+  `TempFolder` is a per-test folder; fixtures are in `Fixtures/`. `ReadmeExampleTests` runs
+  every `mdv` command in the README's `sh` blocks (#72): a README example must be one its
+  shell reader (`Support/ReadmeExamples.swift`) understands, and must work. Tests reading the
+  generated man page and completions need `MDV_CLI_DOCS` (`make test-core` sets it).
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
   `AppTests/Support/`: `DocumentWindowTestCase` (windows over temp files and throwaway
   settings), `ThrowawayDefaults` (a per-test `UserDefaults` suite in a temp folder; never use
@@ -181,7 +224,7 @@ lock the build database.
   `MainThreadHeartbeat` (main-thread stalls by CPU time), `expectTiming` (`MainThreadTiming`: main-thread
   timing bounds, strict locally, report-only on CI via `TEST_RUNNER_MDV_TIMING_REPORT_ONLY`), `SnapshotImage`, `LoopbackServer`,
   `PreprocessorScripts` (custom preprocessor scripts plus a leaked-process check).
-  `StressTests` (+`Themes`, `ZoomWidth`, `Preprocessor`, `Markdown`) is the crash and hang suite; run it
+  `StressTests` (+`Themes`, `ZoomWidth`, `Preprocessor`, `Markdown`, `CommandLine`) is the crash and hang suite; run it
   under ASan and TSan at each milestone close-out (`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`).
 - `AppUITests/`: XCTest UI tests (see "UI tests" below). `App/Testing/UITestHooks.swift` holds
   the Debug-only launch hooks they use.
@@ -238,7 +281,12 @@ lock the build database.
   <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
   unit tests never load them); `-MdvUITestPreprocessor <abs path>` starts with that custom
   preprocessor on; `-MdvUITestRenderDelay <seconds>` holds up every render (to see the
-  slow-render indicator without a slow script). Preprocessor scripts are executable fixtures
+  slow-render indicator without a slow script); `-MdvUITestCommandLineToolFolder <abs path>`
+  is the only folder Install Command Line Tool… offers (none without it). UI tests that run the
+  CLI (`MdvUITestApp+CommandLine`, `+Wait`) use the built app's helper; the runner is
+  sandboxed, so Launch Services refuses it and the CLI falls back to the direct event
+  (`AppUITests.entitlements` allows it), fixtures are copied to temp first, and standard input
+  comes from a file, never a pipe. Preprocessor scripts are executable fixtures
   (`Fixtures/preprocessors/`): files the sandboxed runner writes are quarantined and won't
   execute (`EPERM`). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with

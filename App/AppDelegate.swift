@@ -7,11 +7,16 @@ import MdvCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
+    /// Opens the files of mdv's events: the direct one, and Open Documents events that carry
+    /// mdv's parameters (through `DocumentController.eventOpener`).
+    let documentOpener = DocumentOpener()
     /// The app-wide appearance (Settings and View > Appearance); injectable for tests.
     let appearanceSettings: AppearanceSettings
     /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
     /// themes folder).
     private(set) var customThemes: CustomThemeLibrary?
+    /// App menu > Install Command Line Tool… (#70).
+    let commandLineTool = CommandLineToolController()
     /// The Settings window, created the first time it is shown and reused after.
     private var settingsWindowController: SettingsWindowController?
 
@@ -30,6 +35,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             WebViewPrewarmer.shared.prewarm()
         }
         MainMenu.install()
+        // Open Documents events (Finder, `open`, `mdv FILE` through Launch Services): AppKit
+        // opens their files through the document controller, never `application(_:open:)`, so
+        // mdv's parameters (`AppOpenParameters`, untrusted) are applied there (#67). AppKit may
+        // open an event's files after the event, so its parameters are recorded as it arrives
+        // (AppKit's own handler is installed by now, and still handles the event).
+        if let controller = NSDocumentController.shared as? DocumentController {
+            controller.eventOpener = documentOpener
+            if !OpenDocumentsEventTap.install(log: controller.eventLog) {
+                NSLog("mdv: no Open Documents handler to record parameters in front of")
+            }
+        }
+        NSAppleEventManager.shared().setEventHandler(
+            self, andSelector: #selector(handleDirectOpen(_:withReplyEvent:)),
+            forEventClass: AppOpenEvent.directEventClass, andEventID: AppOpenEvent.directEventID)
         // Before restoration: restored windows showing a custom theme switch to it as soon as
         // the first load (off the main thread) lands.
         if let folder = CustomThemeLibrary.folderURL {
@@ -67,6 +86,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
     }
 
+    /// mdv's direct open event (`AppOpenEvent.Kind.direct`): the CLI sends it to this copy when
+    /// Launch Services can't (another copy with the same bundle id runs, or a sandboxed caller).
+    /// Same files and parameters as an Open Documents event, opened the same way.
+    @objc func handleDirectOpen(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
+        let urls = AppOpenEvent.files(in: event)
+        guard !urls.isEmpty else {
+            return
+        }
+        documentOpener.open(urls, parameters: AppOpenParameters(event: event))
+        NSApp.activate()
+    }
+
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         true
     }
@@ -82,6 +113,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
         NSDocumentController.shared.openDocument(nil)
         return true
+    }
+
+    /// Quitting ends every `mdv --wait` (#69); windows don't close one by one on quit.
+    func applicationWillTerminate(_ notification: Notification) {
+        documentOpener.waits.notifyAll()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -112,12 +148,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         customThemes?.openFolder()
     }
 
+    /// App menu > Install / Repair / Uninstall Command Line Tool… (`CommandLineToolMenu`).
+    @objc func installCommandLineTool(_ sender: Any?) {
+        Task { await commandLineTool.run() }
+    }
+
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
         case #selector(openThemesFolder(_:)):
             return customThemes != nil
         case #selector(chooseAppearance(_:)):
             return validateAppearanceItem(menuItem)
+        case #selector(installCommandLineTool(_:)):
+            menuItem.isHidden = !commandLineTool.isAvailable
+            menuItem.title = commandLineTool.currentAction().menuTitle
+            return commandLineTool.isAvailable
         default:
             return true
         }

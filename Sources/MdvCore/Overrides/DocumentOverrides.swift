@@ -257,17 +257,18 @@ extension RenderOptions {
     /// (sanitizing, remote images, `linkRoot`, ...) is untouched by construction. The custom
     /// preprocessor isn't a `RenderOptions` setting at all: it runs before frontmatter is read.
     ///
-    /// `wikiLinks` is stored but not applied until #53 adds `MarkdownTransform.wikiLinks`; #53
-    /// inserts or removes it from `builtInPreprocessors` here.
+    /// A key in `pinnedOverrides` (#64) is skipped: the caller's own setting for it stays, as an
+    /// explicit `mdv --flavor` beats `mdv.flavor`. The theme isn't applied here at all (callers
+    /// resolve `overrides.theme`), so pinning `.theme` changes nothing in MdvCore.
     public func applying(_ overrides: DocumentOverrides) -> RenderOptions {
         guard appliesDocumentOverrides else {
             return self
         }
         var options = self
-        if let id = overrides.flavor, FlavorRegistry.bundled.contains(id: id) {
+        if !pinnedOverrides.contains(.flavor), let id = overrides.flavor, FlavorRegistry.bundled.contains(id: id) {
             options.flavor = FlavorRegistry.bundled.flavor(id: id)
         }
-        if let wikiLinks = overrides.wikiLinks {
+        if !pinnedOverrides.contains(.wikiLinks), let wikiLinks = overrides.wikiLinks {
             if wikiLinks {
                 options.builtInPreprocessors.insert(.wikiLinks)
             } else {
