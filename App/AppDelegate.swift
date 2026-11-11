@@ -7,6 +7,8 @@ import MdvCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
+    /// Opens the files of Open Documents events (`application(_:open:)`).
+    let documentOpener = DocumentOpener()
     /// The app-wide appearance (Settings and View > Appearance); injectable for tests.
     let appearanceSettings: AppearanceSettings
     /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
@@ -65,6 +67,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 self?.openUITestDocuments(urls.dropFirst())
             }
         }
+    }
+
+    /// Files from an Open Documents event: Finder, the Dock, `open`, and `mdv FILE` (#67), whose
+    /// event carries `AppOpenParameters` (untrusted; `DocumentOpener` checks them).
+    func application(_ application: NSApplication, open urls: [URL]) {
+        let parameters = AppOpenParameters(event: NSAppleEventManager.shared().currentAppleEvent)
+        documentOpener.open(urls, parameters: parameters)
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {

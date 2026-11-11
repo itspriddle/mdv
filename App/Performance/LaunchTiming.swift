@@ -12,8 +12,14 @@ import os
 ///
 /// Milestones are milliseconds since the kernel started the process (`kinfo_proc.p_starttime`),
 /// so they include dyld and everything before `main`.
+///
+/// With `MDV_LAUNCH_TIMING_LOG` set to a path, the line is appended to that file instead, with
+/// the process start (`processStart`, milliseconds since 1970), so the harness can time a launch
+/// from the command that asked for it (`measure-cold-open -c`: `open`, `mdv FILE`), whose
+/// standard error it can't read.
 enum LaunchTiming {
     static let environmentKey = "MDV_LAUNCH_TIMING"
+    static let logKey = "MDV_LAUNCH_TIMING_LOG"
 
     /// Whether this launch is being measured.
     static let isEnabled = ProcessInfo.processInfo.environment[environmentKey] != nil
@@ -71,9 +77,24 @@ enum LaunchTiming {
             return state.marks
         }
         let fields = marks.map { #""\#($0.name)":\#(String(format: "%.1f", $0.milliseconds))"# }
-        FileHandle.standardError.write(Data("mdv-launch-timing {\(fields.joined(separator: ","))}\n".utf8))
+        report(fields)
         if quitsAfterReport {
             NSApplication.shared.terminate(nil)
         }
+    }
+
+    private static func report(_ fields: [String]) {
+        guard let path = ProcessInfo.processInfo.environment[logKey], !path.isEmpty, let processStart else {
+            FileHandle.standardError.write(Data("mdv-launch-timing {\(fields.joined(separator: ","))}\n".utf8))
+            return
+        }
+        let start = #""processStart":\#(String(format: "%.1f", processStart * 1000))"#
+        let line = Data("mdv-launch-timing {\((fields + [start]).joined(separator: ","))}\n".utf8)
+        let descriptor = open(path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0o600)
+        guard descriptor >= 0 else {
+            return
+        }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        try? handle.write(contentsOf: line)
     }
 }
