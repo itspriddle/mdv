@@ -50,16 +50,16 @@ final class CommandLineUITests: XCTestCase {
         let window = mdv.waitForWindow(titled: "Document Theme Fixture")
         let paragraph = mdv.waitForRenderedText("This paragraph is set in the theme", in: window)
         let githubWidth = paragraph.frame.width
-        XCTAssertTrue(mdv.documentThemeItemIsEnabled(), "the pick hides the document's theme")
+        XCTAssertTrue(mdv.documentThemeItemIsEnabled(expected: true), "the pick hides the document's theme")
 
         mdv.chooseDocumentTheme()
         waitUntil("the document's Serif restyles the page") { abs(paragraph.frame.width - githubWidth) > 1 }
-        XCTAssertFalse(mdv.documentThemeItemIsEnabled(), "no pick any more")
+        XCTAssertFalse(mdv.documentThemeItemIsEnabled(expected: false), "no pick any more")
 
         // Already open: the window switches to the flag's theme.
         XCTAssertEqual(try MdvUITestApp.runCommandLine(["--theme", "github", themed]).status, 0)
         waitUntil("GitHub again") { abs(paragraph.frame.width - githubWidth) < 1 }
-        XCTAssertTrue(mdv.documentThemeItemIsEnabled())
+        XCTAssertTrue(mdv.documentThemeItemIsEnabled(expected: true))
         mdv.waitForWindowCount(1)
     }
 

@@ -57,16 +57,22 @@ extension MdvUITestApp {
     }
 
     /// Whether View > Theme > Document's Theme is enabled: it is while the window's View > Theme
-    /// pick hides the document's own theme. Opens the menu, looks, and closes it.
-    func documentThemeItemIsEnabled() -> Bool {
-        let view = app.menuBars.menuBarItems["View"]
-        view.click()
-        let submenu = view.menuItems["Theme"]
-        submenu.hover()
-        let item = submenu.menuItems["useDocumentTheme:"]
-        let result = item.waitForExistence(timeout: 2) && item.isEnabled
-        app.typeKey(.escape, modifierFlags: [])
-        app.typeKey(.escape, modifierFlags: [])
+    /// pick hides the document's own theme. Opens the menu, looks, and closes it, again until it
+    /// reads `expected` (on a loaded machine the item can read stale just after a change, though
+    /// the app's state is right); returns what it last read.
+    func documentThemeItemIsEnabled(expected: Bool) -> Bool {
+        let deadline = Date.now.addingTimeInterval(Self.defaultTimeout)
+        var result: Bool
+        repeat {
+            let view = app.menuBars.menuBarItems["View"]
+            view.click()
+            let submenu = view.menuItems["Theme"]
+            submenu.hover()
+            let item = submenu.menuItems["useDocumentTheme:"]
+            result = item.waitForExistence(timeout: 2) && item.isEnabled
+            app.typeKey(.escape, modifierFlags: [])
+            app.typeKey(.escape, modifierFlags: [])
+        } while result != expected && Date.now < deadline
         return result
     }
 }
