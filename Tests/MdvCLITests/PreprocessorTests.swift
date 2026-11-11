@@ -238,7 +238,7 @@ struct PreprocessorTests {
         #expect(pids.count == 2)
         #expect(status.signal == SIGINT, "ended by SIGINT (\(status)); stderr: \(stderr)")
         #expect(interruption.elapsed < timeout, "stopped by SIGINT, not the timeout")
-        #expect(stderr.isEmpty)
+        #expect(stderr.isEmpty, "stderr: \(stderr)")
         #expect((try? Data(contentsOf: URL(filePath: outputPath))) ?? Data() == Data())
         #expect(try await Self.processesGone(pids))
     }

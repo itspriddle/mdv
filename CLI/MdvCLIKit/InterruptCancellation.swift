@@ -44,7 +44,13 @@ enum InterruptCancellation {
             // The source first, then replace the default action: a signal in between still
             // ends the process, before any work has started.
             let source = DispatchSource.makeSignalSource(signal: number, queue: .global(qos: .userInitiated))
-            source.setEventHandler { state.received() }
+            // Record here too: the kernel reports the signal to the source when it is sent, and
+            // may run the handler on a thread only later, after the cancelled run has ended
+            // (seen on CI's macOS 26: mdv printed "interrupted" before the signal killed it).
+            source.setEventHandler {
+                _ = InterruptCancellation.caught.compareExchange(expected: 0, desired: number, ordering: .relaxed)
+                state.received()
+            }
             source.resume()
             var recording = sigaction()
             recording.__sigaction_u.__sa_handler = record
@@ -73,7 +79,14 @@ enum InterruptCancellation {
         if number != 0 {
             // Even if the run finished first (it timed out, failed, or succeeded): the reader
             // asked mdv to stop. Ends the process; returns only if something else handles it.
-            raise(number)
+            // Sent to the process, then wait for it: this code runs on a Swift concurrency
+            // thread (a Darwin workqueue thread), which the kernel never delivers signals to,
+            // so `raise` here could return with the signal undelivered and mdv would go on to
+            // print "interrupted" (seen in the end-to-end test, about one run in four). The
+            // kernel delivers a process-directed signal to a thread that takes it (the main
+            // thread); this thread waits so nothing runs before it lands.
+            kill(getpid(), number)
+            for _ in 0..<100 { usleep(10_000) }
         }
         return try result.get()
     }
