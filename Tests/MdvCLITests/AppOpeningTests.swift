@@ -1,5 +1,5 @@
 import Foundation
-import MdvCLIKit
+@testable import MdvCLIKit
 import Testing
 
 @Suite("Opening in the app")
