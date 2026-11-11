@@ -675,6 +675,11 @@ Make the terminal workflow excellent.
   app's `linkRoot` and a `FolderWikiLinkResolver` (`FileSystemFolderReader` moved to MdvCore);
   stdin gets neither. Wiki links stay `.md` in `--output`. Ignored `mdv:` keys are warnings on
   standard error; `--verbose` adds the flavor and wiki link setting used.
+- Custom preprocessor (#66): `--preprocessor PATH` plus repeatable `--preprocessor-arg`, HTML
+  output only; the app's setting is never read. Same runner and limits as the app; stdin runs
+  in `/`. Failure exits 70 with the reason and stderr tail, no HTML, no fallback flag. Ctrl-C
+  (also `SIGTERM`, `SIGHUP`) cancels the run, stops its process group, then ends mdv with the
+  signal (end-to-end test with the built binary).
 
 ## Gate: choose the name
 

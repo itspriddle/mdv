@@ -18,7 +18,7 @@ extension MdvCommand {
 
     /// One input's output: the page (or fragment) and a trailing newline.
     func renderHTML(_ document: InputDocument, in environment: CLIEnvironment) async throws(CLIError) -> String {
-        let markdown = try await preprocessor.preprocess(document)
+        let markdown = try await preprocessor.preprocess(document, in: environment)
         var options = RenderOptions()
         themeFlavor.apply(to: &options)
         renderFlags.apply(to: &options)
