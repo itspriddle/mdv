@@ -172,8 +172,20 @@ lock the build database.
   - `Menus/`: `MainMenu` builds the menu bar in code. A feature adds a `MenuContribution` type
     in its own file plus one line in `MainMenu.contributions`. AppKit inserts Open Recent and
     the Window menu's items itself; don't build them.
-- `CLI/`: ArgumentParser `mdv` tool (module `MdvCLI`), built both by SwiftPM and by the Xcode
-  `mdv-cli` target, embedded at `mdv.app/Contents/Helpers/mdv`.
+- `CLI/`: ArgumentParser `mdv` tool, embedded at `mdv.app/Contents/Helpers/mdv`.
+  `CLI/MdvCLIKit` (library) is the command: `MdvCommand` (parse, cross-group `validate()`,
+  mode pick, `execute(in: CLIEnvironment)`) plus one `@OptionGroup` file per concern
+  (`InputOptions`, `OutputOptions`, `ThemeFlavorOptions`, `RenderFlagOptions`,
+  `PreprocessorOptions`, `AppOpenOptions`), `MdvCommand+HTML` (headless output),
+  `MdvCommand+App` and `AppOpening` (opening in the app), `ExitStatus` (sysexits codes, listed
+  in `--help`), and `CLIError` (one `mdv: …` stderr line plus a status). `CLI/Main` is the
+  executable (SwiftPM `MdvCLI`, Xcode `mdv-cli`) and only calls `MdvCommand.main()`. A new flag
+  goes in its concern's group file; never read the process's streams directly (use
+  `CLIEnvironment`).
+- `Tests/MdvCLITests`: CLI tests under `swift test`. `CLIHarness.run` parses and runs the command
+  in-process against a fake `CLIEnvironment` (captured streams, `RecordingAppOpener`);
+  `CLIBinary.run` runs the built `mdv` with stdin and captures stdout, stderr, and the status.
+  `TempFolder` is a per-test folder; fixtures are in `Fixtures/`.
 - `Tests/MdvCoreTests`, `AppTests/`: Swift Testing (`import Testing`, `@Test`, `#expect`).
   `AppTests/Support/`: `DocumentWindowTestCase` (windows over temp files and throwaway
   settings), `ThrowawayDefaults` (a per-test `UserDefaults` suite in a temp folder; never use
