@@ -58,10 +58,11 @@ lock the build database.
     `Rendering/HTMLRenderer+Alerts.swift`) live here, and so do wiki links (`WikiLinks`, #53:
     `[[Page]]` text to `MarkdownNode.Kind.wikiLink`; markup in `HTMLRenderer+WikiLinks.swift`).
   - `WikiLinks/`: wiki link pages and resolution (#53). `WikiPage` (the naming rule),
-    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; MdvCore never reads the
-    disk for it), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
-    an injected `WikiLinkFolderReader`), and `SourceLines` (which bracket bytes were written as
-    is rather than escaped).
+    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; the search rules never
+    read the disk), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
+    an injected `WikiLinkFolderReader`), `FileSystemFolderReader` (the real reader for the app
+    and CLI: regular files and folders only, no symbolic links or packages), and `SourceLines`
+    (which bracket bytes were written as is rather than escaped).
   - `Preprocessor/`: the custom preprocessor runner (#56; VISION's security model has the
     contract and limits). `CustomPreprocessor.run(input:documentURL:)` is async and
     cancellable. `PreprocessorConfiguration` validates the executable and
@@ -110,8 +111,7 @@ lock the build database.
     built-in preprocessors (one row per `MarkdownSettings.optionalPreprocessors` entry), then
     room for the custom preprocessor (#57).
   - `WikiLinks/`: `DocumentWikiLinks` (a per-render `FolderWikiLinkResolver` for a document,
-    used by `DocumentContent` and Copy as HTML) and `FileSystemFolderReader` (regular files and
-    folders only; no symbolic links or packages).
+    used by `DocumentContent` and Copy as HTML) over MdvCore's `FileSystemFolderReader`.
   - `MarkdownSettings/`: `MarkdownSettings` (the store: default flavor id, frontmatter
     display, built-in preprocessors; one change notification) and `MarkdownPreferences` (the
     value a render takes; `apply(to:)` sets `RenderOptions`). Unlike window defaults these

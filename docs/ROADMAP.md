@@ -654,6 +654,13 @@ Make the terminal workflow excellent.
   (`MDV_THEMES_FOLDER` overrides it), and a custom frontmatter theme now loads in `--html` too.
   Unknown flag ids are usage errors; a missing or invalid custom theme exits 66 or 65 with the
   reason. `--list-themes` and `--list-flavors` added.
+- Render flags (#65): `--frontmatter hidden|table`, `--wiki-links`/`--no-wiki-links` (beats
+  `mdv.wikilinks`), `--source-lines`, `--no-highlight`, `--no-heading-anchors`,
+  `--block-remote-images`; HTML output only (usage error otherwise). No `--no-sanitize`, and the
+  CLI doesn't read Settings > Markdown (both in VISION's security model). File inputs get the
+  app's `linkRoot` and a `FolderWikiLinkResolver` (`FileSystemFolderReader` moved to MdvCore);
+  stdin gets neither. Wiki links stay `.md` in `--output`. Ignored `mdv:` keys are warnings on
+  standard error; `--verbose` adds the flavor and wiki link setting used.
 
 ## Gate: choose the name
 
