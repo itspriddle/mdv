@@ -142,14 +142,17 @@ public struct WorkspaceAppOpener: AppOpening {
 
     /// Sends mdv's own open event (`AppOpenEvent.Kind.direct`) straight to the copy of the app at
     /// our path, when Launch Services would pick another copy with the same bundle id (a
-    /// development build next to an installed one) or refuses a sandboxed caller. AppKit answers
-    /// an Open Documents event that doesn't come from Launch Services as a scripting command,
-    /// without the app delegate, so it would drop mdv's parameters.
+    /// development build next to an installed one) or refuses a sandboxed caller.
+    ///
+    /// No reply is awaited: the app doesn't handle Apple Events while a modal alert runs (the
+    /// first-run default viewer offer, an open error), so waiting blocked `mdv` until the alert
+    /// closed or the send timed out (exit 69) for files the app then opened anyway. Errors that
+    /// need no reply (no such process, Apple Events not permitted) still throw.
     private static func send(files: [URL], parameters: AppOpenParameters, to processIdentifier: pid_t) throws {
         let event = AppOpenEvent.make(
             files: files, parameters: parameters, target: NSAppleEventDescriptor(processIdentifier: processIdentifier),
             kind: .direct)
-        _ = try event.sendEvent(options: [.waitForReply], timeout: 10)
+        _ = try event.sendEvent(options: [.noReply], timeout: 10)
         NSRunningApplication(processIdentifier: processIdentifier)?.activate()
     }
 
