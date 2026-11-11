@@ -85,9 +85,11 @@ final class WebViewCoordinator: NSObject {
         webView.allowsMagnification = true
         // Behind and around the page (rubber-band overscroll): the theme background.
         webView.themeUnderPageBackgroundColor = .themeBackground(theme.background)
-        // A fresh WKWebView paints white until its first page draws. Keep it hidden until then,
-        // so the window's theme-colored background shows instead (no white flash in dark mode).
-        webView.isHidden = true
+        // A fresh WKWebView paints white until its first page draws. Make it transparent, so the
+        // window's theme-colored background shows instead (no white flash in dark mode). Hiding
+        // it until the load finished didn't work: WebKit doesn't paint a hidden view, so showing
+        // it put WebKit's white up for a frame or two before the page arrived.
+        webView.hideOpaqueBackground()
         webView.setAccessibilityIdentifier("document-web-view")
         webView.copyLinkHandler = { [weak self] in self?.copyContextMenuLink() }
         webView.copyImageHandler = { [weak self] in self?.copyContextMenuImage() }
@@ -180,7 +182,6 @@ final class WebViewCoordinator: NSObject {
             pendingLoads[ObjectIdentifier(navigation)] = continuation
         }
         hasLoadedPage = true
-        webView.isHidden = false
     }
 
     /// Shows `theme`: paints the under-page area at once and swaps the theme into the loaded

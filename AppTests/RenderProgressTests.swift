@@ -107,7 +107,7 @@ final class RenderProgressTests: DocumentWindowTestCase {
         #expect(progress.indicator == nil, "not before the delay")
         try await until("the indicator") { progress.indicator == .firstPage }
         #expect(document.content == nil, "still rendering")
-        #expect(controller.coordinator.webView.isHidden, "over the theme background")
+        #expect(!controller.coordinator.webView.isOpaque, "over the theme background")
 
         try await until("the first page") { controller.coordinator.hasLoadedPage }
         #expect(progress.indicator == nil, "gone at first paint")
@@ -153,7 +153,6 @@ final class RenderProgressTests: DocumentWindowTestCase {
         try await until("the update indicator") { progress.indicator == .update }
         #expect(document.isRendering)
         #expect(try await bodyText(controller).contains("first version"), "the old page stays")
-        #expect(!controller.coordinator.webView.isHidden)
 
         try await until("the reload") { try await bodyText(controller).contains("second version") }
         #expect(progress.indicator == nil)

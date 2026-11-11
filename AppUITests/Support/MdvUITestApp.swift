@@ -99,8 +99,8 @@ struct MdvUITestApp {
     }
 
     /// Waits for the document web view (`webView(in:)`) in `window` and returns it, failing the
-    /// test if it never appears. The app keeps the web view hidden, and out of the accessibility
-    /// tree, until its first page load finishes.
+    /// test if it never appears. The web view is up (transparent) before the first page loads;
+    /// wait for rendered text (`waitForRenderedText(_:in:)`) to know the page is there.
     @discardableResult
     func waitForWebView(
         in window: XCUIElement? = nil,

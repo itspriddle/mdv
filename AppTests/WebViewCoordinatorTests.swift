@@ -38,11 +38,12 @@ struct WebViewCoordinatorTests {
 
     // MARK: Loading
 
-    @Test("shows the web view only after the first page loads")
-    func revealsAfterLoad() async throws {
-        #expect(coordinator.webView.isHidden)
+    @Test("the web view is transparent, before and after the first page loads")
+    func transparentAroundLoad() async throws {
+        #expect(!coordinator.webView.isOpaque, "the window's theme background shows, not WebKit's white")
         #expect(!coordinator.hasLoadedPage)
         try await load("# Hello")
+        #expect(!coordinator.webView.isOpaque)
         #expect(!coordinator.webView.isHidden)
         #expect(coordinator.hasLoadedPage)
         #expect(try await evaluate("return document.title;") as? String == "Hello")

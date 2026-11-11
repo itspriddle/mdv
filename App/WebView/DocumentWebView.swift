@@ -39,8 +39,9 @@ final class DocumentWebView: WKWebView {
         self?.copyLinkHandler?()
     }
 
-    /// What WebKit paints behind and around the page (rubber-band overscroll, and before the
-    /// first paint): a dynamic color, resolved for this view's appearance.
+    /// What WebKit paints behind and around the page (rubber-band overscroll): a dynamic color,
+    /// resolved for this view's appearance. It doesn't cover the view before the first paint;
+    /// `hideOpaqueBackground()` does that.
     ///
     /// Use this, not `underPageBackgroundColor`, for a dynamic color. Some WebKit versions
     /// (macOS 26) store that color resolved for the appearance current when it is set, so a dark
@@ -48,6 +49,22 @@ final class DocumentWebView: WKWebView {
     /// sets it resolved and sets it again whenever the effective appearance changes.
     var themeUnderPageBackgroundColor: NSColor? {
         didSet { applyThemeUnderPageBackgroundColor() }
+    }
+
+    /// Stops WebKit from painting its own opaque white background behind the page, so the
+    /// window's theme background shows through until the first page paints (the page's CSS then
+    /// paints the same color). Returns whether WebKit took the setting.
+    ///
+    /// There is no public API for this: `drawsBackground` is WebKit SPI, reached through
+    /// key-value coding (which finds `_setDrawsBackground:`). The check keeps a WebKit without it
+    /// from raising; the web view then only flashes white before the first paint, as before.
+    @discardableResult
+    func hideOpaqueBackground() -> Bool {
+        guard responds(to: NSSelectorFromString("_setDrawsBackground:")) else {
+            return false
+        }
+        setValue(false, forKey: "drawsBackground")
+        return !isOpaque
     }
 
     override func viewDidChangeEffectiveAppearance() {
