@@ -2,8 +2,11 @@ import AppKit
 import MdvCore
 
 /// Opens the files of an Open Documents Apple Event: Finder, the Dock, `open`, and `mdv FILE`
-/// (#67), which adds `AppOpenParameters` to the event (`AppOpenEvent`). `AppDelegate`'s
-/// `application(_:open:)` calls it with the parameters of the event being handled.
+/// (#67), which adds `AppOpenParameters` to the event (`AppOpenEvent`). AppKit opens an Open
+/// Documents event's files itself, through the document controller, and never calls the app
+/// delegate's `application(_:open:)` for mdv's document types; `DocumentController` passes each
+/// file of an event that carries parameters to `openForOpenDocumentsEvent`. mdv's direct event
+/// (`AppDelegate.handleDirectOpen`) calls `open(_:parameters:)`.
 ///
 /// Files open one after another (so a repeated file finds the first one open) through the
 /// document controller, as AppKit would open them; an already-open file brings its window
@@ -81,6 +84,42 @@ final class DocumentOpener {
                     }
                 }
                 self.open(urls.dropFirst(), themeID: themeID, waitToken: waitToken, completion: completion)
+            }
+        }
+    }
+
+    /// One file of an Open Documents event that AppKit is opening itself (Launch Services,
+    /// Finder, `open`): AppKit never calls the delegate's `application(_:open:)` for mdv's
+    /// document types, so `DocumentController` hands each such file here when the event carries
+    /// `parameters`. `open` opens the file without showing it; this shows it as `open(_:parameters:)`
+    /// would (theme pick first, `--wait` token), then calls `completion` (AppKit presents errors).
+    ///
+    /// AppKit asks for an event's files one after another; the token's opening ends on the next
+    /// turn of the run loop, so a file that fails first doesn't end a wait the next file joins.
+    func openForOpenDocumentsEvent(
+        parameters: AppOpenParameters,
+        open: (_ completion: @escaping (NSDocument?, Bool, (any Error)?) -> Void) -> Void,
+        completion: @escaping (NSDocument?, Bool, (any Error)?) -> Void
+    ) {
+        let themeID = usableThemeID(parameters.themeID)
+        let waitToken = parameters.waitToken
+        if let waitToken {
+            waits.begin(waitToken)
+        }
+        open { [weak self] document, alreadyOpen, error in
+            MainActor.assumeIsolated {
+                if let self, let document {
+                    self.show(document, alreadyOpen: alreadyOpen, themeID: themeID)
+                    if let waitToken {
+                        self.waits.add(document.windowControllers.compactMap(\.window), to: waitToken)
+                    }
+                }
+                if let waitToken {
+                    Task { @MainActor [weak self] in
+                        self?.waits.endOpening(waitToken)
+                    }
+                }
+                completion(document, alreadyOpen, error)
             }
         }
     }

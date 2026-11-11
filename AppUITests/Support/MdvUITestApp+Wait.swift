@@ -61,8 +61,15 @@ extension MdvUITestApp {
         try RunningCommandLine(arguments: arguments, standardInput: standardInput, environment: environment)
     }
 
-    /// Closes `window` with its close button.
+    /// Closes `window`: brings it to the front from the Window menu, then File > Close (⌘W).
+    /// Not its close button: another window may cover it (two windows opened at once can land
+    /// on the same spot), and XCTest's interruption handling for a covered element then threw
+    /// "Can't do regex matching on object 1." on macOS 26.
     func close(_ window: XCUIElement) {
-        window.buttons[XCUIIdentifierCloseWindow].click()
+        let title = window.title
+        let windowMenu = app.menuBars.menuBarItems["Window"]
+        windowMenu.click()
+        windowMenu.menuItems[title].click()
+        app.typeKey("w", modifierFlags: .command)
     }
 }

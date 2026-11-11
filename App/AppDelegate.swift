@@ -7,7 +7,8 @@ import MdvCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
-    /// Opens the files of Open Documents events (`application(_:open:)`).
+    /// Opens the files of mdv's events: the direct one, and Open Documents events that carry
+    /// mdv's parameters (through `DocumentController.eventOpener`).
     let documentOpener = DocumentOpener()
     /// The app-wide appearance (Settings and View > Appearance); injectable for tests.
     let appearanceSettings: AppearanceSettings
@@ -34,6 +35,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             WebViewPrewarmer.shared.prewarm()
         }
         MainMenu.install()
+        // Open Documents events (Finder, `open`, `mdv FILE` through Launch Services): AppKit
+        // opens their files through the document controller, never `application(_:open:)`, so
+        // mdv's parameters (`AppOpenParameters`, untrusted) are applied there (#67). AppKit may
+        // open an event's files after the event, so its parameters are recorded as it arrives
+        // (AppKit's own handler is installed by now, and still handles the event).
+        if let controller = NSDocumentController.shared as? DocumentController {
+            controller.eventOpener = documentOpener
+            if !OpenDocumentsEventTap.install(log: controller.eventLog) {
+                NSLog("mdv: no Open Documents handler to record parameters in front of")
+            }
+        }
         NSAppleEventManager.shared().setEventHandler(
             self, andSelector: #selector(handleDirectOpen(_:withReplyEvent:)),
             forEventClass: AppOpenEvent.directEventClass, andEventID: AppOpenEvent.directEventID)
@@ -72,13 +84,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 self?.openUITestDocuments(urls.dropFirst())
             }
         }
-    }
-
-    /// Files from an Open Documents event: Finder, the Dock, `open`, and `mdv FILE` (#67), whose
-    /// event carries `AppOpenParameters` (untrusted; `DocumentOpener` checks them).
-    func application(_ application: NSApplication, open urls: [URL]) {
-        let parameters = AppOpenParameters(event: NSAppleEventManager.shared().currentAppleEvent)
-        documentOpener.open(urls, parameters: parameters)
     }
 
     /// mdv's direct open event (`AppOpenEvent.Kind.direct`): the CLI sends it to this copy when
