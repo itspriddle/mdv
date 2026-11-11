@@ -682,25 +682,25 @@ editor or a browser.
     Tool, which links the man page into `share/man/man1` beside the command's folder (where
     `man` looks for a `bin` on `PATH`). Completions aren't installed by the app: a shell's
     setup is the reader's, so the success alert and README point at the scripts instead.
-    - `--wait` (#69, `WindowsClosedWaiter` in the CLI, `WindowWaits` in the app): the CLI
-      makes a random token per invocation (a version 4 UUID), registers for the Darwin
-      notification `com.itspriddle.mdv.windowsClosed.<token>` (`notify(3)`: delivered on a
-      dispatch queue, no run loop, works from the sandboxed UI test runner), then sends the
-      open event with the token as `mdvW`. The app tracks the windows each token opened or
-      brought forward (**an already-open file's window counts**; a tab is a window; a window
-      whose file was deleted stays open, so it still counts), and posts the notification once
-      the event has finished opening and none of them is left open (every file failing posts
-      at once). Two `--wait`s on one file both end when its window closes. Quitting posts every
-      token. The CLI also watches the app's process (`DispatchSource` process exit, from the
-      pid Launch Services or the direct path reports), so a crash or force quit ends the wait;
-      either way mdv exits 0. Ctrl-C keeps its default action: mdv dies of `SIGINT` (130) and
-      the windows stay open. Tokens aren't saved: restored windows wait for no one.
-      **Trust model:** any process can post any Darwin notification, so a forged one can only
-      end a wait early; the app accepts only a well-formed UUID (exactly 36 characters of
-      text), so a forged token can only make it post a name under mdv's prefix when windows
-      close. Nothing in the app acts on a notification. Rejected: holding the open event's
-      reply until close (Launch Services gives no reply), XPC/Mach services (need a launchd
-      job), `NSDistributedNotificationCenter` (needs a run loop the async CLI doesn't run).
+  - `--wait` (#69, `WindowsClosedWaiter` in the CLI, `WindowWaits` in the app): the CLI
+    makes a random token per invocation (a version 4 UUID), registers for the Darwin
+    notification `com.itspriddle.mdv.windowsClosed.<token>` (`notify(3)`: delivered on a
+    dispatch queue, no run loop, works from the sandboxed UI test runner), then sends the
+    open event with the token as `mdvW`. The app tracks the windows each token opened or
+    brought forward (**an already-open file's window counts**; a tab is a window; a window
+    whose file was deleted stays open, so it still counts), and posts the notification once
+    the event has finished opening and none of them is left open (every file failing posts
+    at once). Two `--wait`s on one file both end when its window closes. Quitting posts every
+    token. The CLI also watches the app's process (`DispatchSource` process exit, from the
+    pid Launch Services or the direct path reports), so a crash or force quit ends the wait;
+    either way mdv exits 0. Ctrl-C keeps its default action: mdv dies of `SIGINT` (130) and
+    the windows stay open. Tokens aren't saved: restored windows wait for no one.
+    **Trust model:** any process can post any Darwin notification, so a forged one can only
+    end a wait early; the app accepts only a well-formed UUID (exactly 36 characters of
+    text), so a forged token can only make it post a name under mdv's prefix when windows
+    close. Nothing in the app acts on a notification. Rejected: holding the open event's
+    reply until close (Launch Services gives no reply), XPC/Mach services (need a launchd
+    job), `NSDistributedNotificationCenter` (needs a run loop the async CLI doesn't run).
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
@@ -796,10 +796,11 @@ editor or a browser.
   changes the flavor (and #53's wiki links toggle) and nothing else, so sanitizing, the remote
   image policy, `linkRoot`, source lines, and every other setting stay as the reader's app set
   them. The custom preprocessor isn't a render option at all: it is configured only in Settings
-  and runs before frontmatter is read. Any other key under `mdv:` (`sanitize`, `remoteImages`,
-  `preprocessor`, ...) is ignored and reported; unregistered flavors (such as the spec suite's)
-  can't be chosen; a theme id is only looked up in the registry, never read as a path. Tests
-  (`DocumentOverridesSecurityTests`) render a document that tries each of these.
+  (or named by `mdv --html --preprocessor`) and runs before frontmatter is read. Any other key
+  under `mdv:` (`sanitize`, `remoteImages`, `preprocessor`, ...) is ignored and reported;
+  unregistered flavors (such as the spec suite's) can't be chosen; a theme id is only looked up
+  in the registry, never read as a path. Tests (`DocumentOverridesSecurityTests`) render a
+  document that tries each of these.
 - Custom preprocessor scripts run only when the user configures them (#57), and they are the
   first stage of the render pipeline (#51), so their output is still parsed, transformed, and
   sanitized like any file.
@@ -917,6 +918,21 @@ editor or a browser.
     `/usr/local/bin` or `~/.local/bin`.
   - To choose the default folder, mdv reads the reader's `PATH` from their login shell
     (`$SHELL -l -c`, 2 s limit, no input): the reader's own configuration, nothing from a document.
+- **Other processes reaching the app (M5).** The CLI talks to the app only through channels
+  any local process can already use, so the app treats everything arriving on them as
+  untrusted and gives it no more power than a Finder open (details under "CLI" above):
+  - Open Documents events (#67): files open with the same checks as from Finder; mdv's
+    parameters are presentation-only and validated (`mdvT` a plausible, registered or
+    `custom:` theme id; `mdvW` exactly a UUID); the direct `mdv /odoc` event takes only file
+    URL descriptors, at most 1000.
+  - Standard input (#68): the app reads and deletes only a handoff it verifies by shape,
+    owner, permissions, and link count, through descriptors that never follow links; anything
+    else opens as an ordinary file.
+  - `--wait` (#69): the app only posts `com.itspriddle.mdv.windowsClosed.<token>` and acts on
+    no notification; a forged one can only end a CLI's wait early.
+  - Nothing else crosses: the CLI forwards no environment but the launch-timing variables, no
+    preprocessor or render setting travels to the app, and the CLI reads none of the app's
+    Settings.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
 
 ## Success looks like

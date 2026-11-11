@@ -42,7 +42,7 @@ let package = Package(
             dependencies: ["MdvCLIKit"],
             path: "CLI/Main"
         ),
-        // Build tool, not shipped: `make man` finishes generate-manual's page with it (#71).
+        // Build tool, not shipped: `make cli-docs` finishes generate-manual's page with it (#71).
         .executableTarget(
             name: "MdvManualTool",
             dependencies: [
