@@ -8,7 +8,8 @@ process) before planning work.
 
 ```sh
 make generate         # regenerate mdv.xcodeproj from project.yml (run after adding/removing files)
-make test-core        # swift test (MdvCore), fast, no Xcode project needed
+make test-core        # cli-docs, then swift test (MdvCore, CLI), no Xcode project needed
+make cli-docs         # man page + zsh/bash/fish completions into build/cli-docs (generated, #71)
 make test             # core + app unit tests (not UI tests)
 make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
 make record-theme-snapshots  # re-record bundled theme references for this macOS version (#39)
@@ -187,7 +188,11 @@ lock the build database.
   in `--help`), and `CLIError` (one `mdv: …` stderr line plus a status). `CLI/Main` is the
   executable (SwiftPM `MdvCLI`, Xcode `mdv-cli`) and only calls `MdvCommand.main()`. A new flag
   goes in its concern's group file; never read the process's streams directly (use
-  `CLIEnvironment`).
+  `CLIEnvironment`). Completions and the man page (#71) are generated from the command, so a
+  flag needs nothing more (give a path or id value a `completion:`). Text `--help` and the man
+  page share lives in `HelpText` (overview, examples) and `ExitStatus.entries`; `ManualPage`
+  finishes generate-manual's page with the hand-written sections, run by the `CLI/ManualTool`
+  build tool (`MdvManualTool`, not shipped) from `make cli-docs`.
 - `Tests/MdvCLITests`: CLI tests under `swift test`. `CLIHarness.run` parses and runs the command
   in-process against a fake `CLIEnvironment` (captured streams, `RecordingAppOpener`);
   `CLIBinary.run` runs the built `mdv` with stdin and captures stdout, stderr, and the status.

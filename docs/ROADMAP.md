@@ -680,6 +680,16 @@ Make the terminal workflow excellent.
   in `/`. Failure exits 70 with the reason and stderr tail, no HTML, no fallback flag. Ctrl-C
   (also `SIGTERM`, `SIGHUP`) cancels the run, stops its process group, then ends mdv with the
   signal (end-to-end test with the built binary).
+- Completions and man page (#71): generated from the ArgumentParser command, not committed
+  (`make cli-docs` into `build/cli-docs`; `make test-core` and `make build` run it). zsh, bash,
+  and fish scripts from ArgumentParser; `--theme` completes `--list-themes`' ids when Tab is
+  pressed. The man page is the `generate-manual` plugin's, finished with hand-written sections
+  built from code (`ManualPage`: EXIT STATUS from `ExitStatus.entries`, EXAMPLES from
+  `HelpText`, FILES, ENVIRONMENT, SECURITY CONSIDERATIONS). A test checks every option from
+  `--experimental-dump-help` is in the page and the scripts. The app bundles them in
+  `Contents/Resources/{man/man1,completions}` (paths for the M6 cask); Install Command Line
+  Tool also links the man page into `share/man/man1` beside the command (one password prompt);
+  completions are documented, not installed.
 
 ## Gate: choose the name
 

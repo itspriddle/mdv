@@ -571,6 +571,26 @@ editor or a browser.
     the signal, so mdv dies of it as shells expect. A signal mdv started out ignoring (`nohup`,
     background jobs) stays ignored. Only installed around the run, so reading standard input
     is still interrupted the default way.
+  - Completions and man page (#71): **generated from the ArgumentParser command, never
+    committed**, so a new flag appears in both with no extra step. zsh, bash, and fish scripts
+    are ArgumentParser's (`--generate-completion-script`). FILE, `--output`, and
+    `--preprocessor` complete paths (`completion: .file()`), `--flavor` the bundled ids, and
+    `--theme` the ids `--list-themes` prints, computed when Tab is pressed
+    (`ThemeFlavorOptions.completionThemeIDs`, `.custom`), so a new custom theme completes
+    without regenerating the script; `custom:` ids are escaped for zsh's `_describe`. The man
+    page is ArgumentParser's `generate-manual` plugin output (NAME, SYNOPSIS, the option
+    list) finished by `ManualPage` (run by the `MdvManualTool` build tool): DESCRIPTION's
+    overview, ENVIRONMENT, FILES, EXIT STATUS, EXAMPLES, and SECURITY CONSIDERATIONS are built
+    from `HelpText`, `ExitStatus.entries`, `ThemeResolver`, and `PreprocessorLimits`, the same
+    values `--help` uses. `make cli-docs` (`scripts/generate-cli-docs`) writes both to
+    `build/cli-docs`; `make test-core` runs it first and checks that every option in
+    `--experimental-dump-help` is in the page and each script, and that `mandoc -T lint`
+    passes. The app build copies them into `Contents/Resources/man/man1/mdv.1` and
+    `Contents/Resources/completions/` (`_mdv`, `mdv.bash`, `mdv.fish`; project.yml script
+    phase; Release fails without the man page), for the Homebrew cask and Install Command Line
+    Tool, which links the man page into `share/man/man1` beside the command's folder (where
+    `man` looks for a `bin` on `PATH`). Completions aren't installed by the app: a shell's
+    setup is the reader's, so the success alert and README point at the scripts instead.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
@@ -761,7 +781,13 @@ editor or a browser.
     destination is `<X>.app/Contents/Helpers/mdv`, where `X.app` is gone (a moved app) or has
     mdv's bundle identifier. A file, a folder, a relative link, or a link anywhere else
     (including into another app with the same layout) is shown to the reader and left alone,
-    by install and by uninstall.
+    by install and by uninstall. The man page (#71) follows the same rule as a second item:
+    a link named `mdv.1` in `share/man/man1` beside the command's folder, to
+    `<X>.app/Contents/Resources/man/man1/mdv.1`. It goes along only when this copy has one and
+    nothing foreign is at its path (a page that isn't ours is skipped silently, not shown),
+    and is removed with the command when it is ours. Both go in one batch: every path is
+    checked before anything changes, and the links needing an administrator share one
+    privileged run (the scripts take argument triples or pairs and check them all first).
   - Links are made atomically: a temporary link beside the target is renamed into place, with
     `RENAME_EXCL` when nothing was there. A replace or removal re-reads the link first and
     stops if its destination changed.
