@@ -723,26 +723,111 @@ Make the terminal workflow excellent.
   the main thread busy about 0.55 s in Debug, presumably window and web view setup, as when
   Finder opens that many files at once; the CLI path adds nothing on the main thread but
   reading the handoff. That test has no main-thread bound; the 10 MB one has (500 ms).
+- **`--theme` and `--wait` were lost on every Launch Services path** (found by CI's UI tests;
+  fixed before the merge). AppKit opens an Open Documents event's files itself for a
+  document-based app (`_handleAEOpenDocumentsForURLs:` → `NSDocumentController`) and never
+  calls the delegate's `application(_:open:)`, so #67's design, checked with a probe app that
+  had no document types, held only for the direct `mdv /odoc` path that local UI tests took
+  while an installed mdv was running. A Carbon handler for `aevt/odoc`
+  (`OpenDocumentsEventTap`, installed in `applicationWillFinishLaunching`) now records each
+  event's parameters by file (`OpenDocumentsEventLog`: taken once per file, 30 s, at most 32)
+  and passes the event on unchanged; `DocumentController.openDocument(…display: true…)` hands
+  a file with mdv parameters to `DocumentOpener.openForOpenDocumentsEvent`, which also covers
+  files AppKit defers until an earlier open finishes (no current event by then).
+  `application(_:open:)` is gone. The CLI sends the direct event with `.noReply`: a modal
+  alert in the app (the first-run default viewer offer) holds up Apple Event handling, and
+  waiting for a reply made the CLI exit 69 for files the app then opened.
+- **The preprocessor `SIGINT` test failed on CI** (fixed before the merge). The test's polling
+  task starved on the cooperative pool and signalled mdv after it had already timed out; it
+  now waits and signals from a dedicated thread, and the run gets a Debug-only longer timeout
+  (`MDV_TEST_PREPROCESSOR_TIMEOUT`). Two product fixes came with it: `InterruptCancellation`
+  records the signal in its `sigaction` handler (and the dispatch source), so a signal landing
+  as a run ends isn't lost, and the re-raise is a process-directed `kill` plus a wait, because
+  the async command runs on workqueue threads, which Darwin never delivers signals to (about 1
+  run in 4 printed "interrupted" before dying of the signal).
+- **Closed windows leaked their document, web view, and web content process** (found by the
+  stress suite on CI's starved runner; fixed before the merge). **This predates M5 and may
+  have affected every build before the fix:** AppKit can keep a closed window alive for minutes, and
+  its content held the document and the web view, so each window a reader closed kept a web
+  content process until AppKit let the window go. `DocumentWindowController` now drops its
+  `contentViewController` on close, and the outline's wait for two animation frames no longer
+  retains the web view (a window that isn't drawing runs no frames, so that wait never ended).
+  `StressTests` checks a closed document is freed.
+- Core render timing bounds (`Tests/MdvCoreTests/RenderTiming.swift`) are report-only on CI
+  (`MDV_TIMING_REPORT_ONLY` in the core step), like the app's main-thread bounds since M4.
 
-**Crash and hang pass (#72):** pending: `AppTests` and `AppUITests` under Address Sanitizer
-and Thread Sanitizer run once the open-event parameter and preprocessor `SIGINT` fixes are
-merged.
+**Crash and hang pass (#72):** on feature/m5-cli with every fix above (52d909e), Debug,
+team-signed, macOS 27.2, `AppUITests` with `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1`:
 
-**Performance (#72):** pending: `scripts/measure-cold-open -f` through `mdv FILE` and through
-Finder (`open`), interleaved, and `mdv --html` for the README and 1 MB / 5 MB documents. #67
-measured cold open by both paths in one sitting (Release, median of 10): `mdv FILE` painted
-418.8 ms after the command started, `open -n -a` 414.5 ms (368.2 and 368.9 ms after the
-process started; floor 294.6 ms), so the CLI path costs nothing measurable.
+| Suite | Address Sanitizer | Thread Sanitizer |
+| ----- | ----------------- | ---------------- |
+| `AppTests` (431 tests, stress suite included) | passed | passed |
+| `AppUITests` (57 tests) | passed | 56 passed, 1 failed (below) |
+
+No sanitizer reported anything. The one failure,
+`CommandLineUITests.testThemeFlagBecomesTheWindowsPick` ("no pick any more", after choosing
+View > Theme > Document's Theme), failed under TSan in 8 of 9 runs (the whole suite, the class alone, and that test alone). It
+is the UI test's reading, not the app: a probe in the app showed one `setTheme` from the
+`--theme` open, one `clearThemePick` from the click, the page restyled, and every later menu
+validation of Document's Theme returning disabled, while XCUITest went on reading the item as
+enabled for 30 s of re-opened menus. Not fixed; the test passes under ASan, passed in the
+bugfix's plain Debug runs, and passes on CI.
+
+**Performance (#72):** Release, MacBook Air, macOS 27.2, 52d909e, one sitting; load 2.8-4.4
+(no other agents; Spotlight finished indexing the sanitizer builds first).
+`scripts/measure-cold-open -s -f -c -n 4 README.md` and then the 1 MB and 5 MB synthetic
+documents (`FirstRenderTests.largeSource`, 3 launches each), three rounds interleaved; the
+median of the rounds' medians. "Painted" is milliseconds from the process starting; "from the
+command" is from running `open` or `mdv` (Launch Services' part included).
+
+| Document | Size | Painted | Floor (bare `WKWebView`) | Minus floor |
+| -------- | ---- | ------- | ------------------------ | ----------- |
+| mdv README | 13.3 KB | 350 ms | 297 ms | +53 ms |
+| Synthetic | 1 MB | 665 ms | | |
+| Synthetic | 5 MB | 2118 ms | | |
+
+| README by path | Painted | From the command |
+| -------------- | ------- | ---------------- |
+| `open -n -a mdv.app README.md` (Finder's path) | 363 ms | 408 ms |
+| `mdv README.md` (the CLI) | 344 ms | 387 ms |
+
+- **`mdv FILE` is as fast as Finder's path:** 21 ms quicker from the command in this sitting
+  (#67 measured 4 ms slower), inside the rounds' spread (open 400-412 ms, mdv 379-393 ms), so
+  the CLI's Apple Event costs nothing measurable.
+- The README is three times the size it was at M4 (4.4 KB then), so +53 ms over the floor
+  isn't comparable with M4's +37 ms; the rounds gave +31, +27, and +59 ms. Re-check the
+  README against the 0-50 ms target on a quiet machine before 1.0.
+- 1 MB and 5 MB are M4's 643 ms and 2200 ms within this machine's noise.
+
+`mdv --html`, the Release helper, median of 10 runs after a warm-up (wall clock, file cache
+warm, `MDV_THEMES_FOLDER` pointing nowhere):
+
+| Command | Median |
+| ------- | ------ |
+| `mdv --version` (process start) | 5.6 ms |
+| `mdv --html README.md` | 16.7 ms |
+| `mdv --html --no-highlight README.md` | 7.3 ms |
+| `mdv --html` 1 MB | 125 ms |
+| `mdv --html --no-highlight` 1 MB | 75 ms |
+| `mdv --html` 5 MB | 394 ms |
+| `mdv --html --no-highlight` 5 MB | 336 ms |
+
+Starting the CLI costs about 6 ms. highlight.js in JavaScriptCore is most of a small page's
+time (about 9 ms of the README's 17) and stays near 50-60 ms at
+1 MB and 5 MB because of the 256 KB per-document highlighting budget.
 
 **Deferred from M5** (from the issue handoffs; none blocks 1.0 on its own):
 
 - Output: no `--output-dir` (#63); root-relative URLs in `--html FILE` become absolute paths
   of the reader's folders, with no flag to keep them as written (#65); wiki links stay `.md`
   in `--output` (#65).
-- Opening: no `--background` (#67). A second `mdv` sent straight to a running copy while that
-  copy shows its first-run default viewer offer waited out the 10 s reply timeout and exited
-  69 (seen once in #69's manual testing; the modal alert probably holds up Apple Event
-  handling).
+- Opening: no `--background` (#67). Files sent while the app shows a modal alert (the
+  first-run default viewer offer) open only once it closes; the CLI no longer waits for them.
+- Testing: `CommandLineUITests.testThemeFlagBecomesTheWindowsPick` fails under the Thread
+  Sanitizer only (XCUITest reads Document's Theme as enabled after the app disabled it; see
+  the crash pass above). A UI test that drives the pure Launch Services path while an
+  installed mdv runs isn't possible (Launch Services routes by bundle id); it runs locally only
+  with the installed copy quit, and always on CI.
 - Standard input: no streaming (`tail -f log.md | mdv` never opens, #68); relative images in a
   standard input window show as broken images, not a placeholder (#68).
 - Preprocessor: the CLI passes the script the decoded input re-encoded as UTF-8, not the

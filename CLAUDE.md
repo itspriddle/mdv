@@ -151,9 +151,12 @@ lock the build database.
     skips gone files on restore, types extensionless text files (`ExtensionlessText`) as
     plain text, and turns a verified standard input handoff into an untitled
     `MarkdownDocument(standardInput:)` (#68); its `canOpen(_:)` is the one rule for the Open
-    panel and drops. `DocumentOpener` opens an Open Documents event's files (Finder, `open`,
-    `mdv FILE`; `AppDelegate.application(_:open:)` and the direct `mdv /odoc` handler) with its
-    parameters: `--theme` as each window's pick, `--wait` tokens through `WindowWaits` (#69).
+    panel and drops. `DocumentOpener` applies an Open Documents event's mdv parameters
+    (`--theme` as each window's pick, `--wait` tokens through `WindowWaits`, #69): on Launch
+    Services paths `DocumentController.openDocument` hands it files whose parameters
+    `OpenDocumentsEventTap` recorded (`OpenDocumentsEventLog`; AppKit never calls
+    `application(_:open:)` for a document-based app, so don't add it back), and the direct
+    `mdv /odoc` handler calls `open(_:parameters:)`.
   - `Find/`: `FindInPage` (find state and commands, tested with a fake host), `SharedFindQuery`
     (the system find pasteboard), and `FindBar`
     (SwiftUI bar; the field is an `NSSearchField` whose field editor passes Edit > Find
