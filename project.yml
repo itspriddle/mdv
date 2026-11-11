@@ -148,6 +148,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).uitests
         GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_ENTITLEMENTS: AppUITests/AppUITests.entitlements
     dependencies:
       - target: MdvApp
 

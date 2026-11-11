@@ -57,8 +57,18 @@ public struct WorkspaceAppOpener: AppOpening {
             case .running(let processIdentifier):
                 try Self.send(files: files, parameters: parameters, to: processIdentifier)
             case .launchServices(let createsNewInstance):
-                try await Self.openWithLaunchServices(
-                    app, files: files, parameters: parameters, createsNewInstance: createsNewInstance)
+                do {
+                    try await Self.openWithLaunchServices(
+                        app, files: files, parameters: parameters, createsNewInstance: createsNewInstance)
+                } catch {
+                    // A sandboxed caller (the UI test runner, and so the CLI it runs) can't give
+                    // the app access to the files, and Launch Services refuses the whole open.
+                    // The app isn't sandboxed: a running copy can take the event directly.
+                    guard let running = AppLocator.runningProcess(of: app) else {
+                        throw error
+                    }
+                    try Self.send(files: files, parameters: parameters, to: running)
+                }
             }
         } catch {
             throw CLIError(
@@ -178,9 +188,18 @@ public struct AppLocator: Sendable {
     /// Launch Services finds a running app by bundle id, not path, so with two copies running it
     /// may pick the wrong one. Only then does the opener go around it.
     static func runningTarget(for app: URL) -> Target {
-        let copies = NSRunningApplication.runningApplications(withBundleIdentifier: MdvCommand.appBundleIdentifier)
+        target(for: app, running: runningCopies())
+    }
+
+    /// The process id of `app` when it is running.
+    static func runningProcess(of app: URL) -> pid_t? {
+        let resolved = app.resolvingSymlinksInPath().standardizedFileURL
+        return runningCopies().first { $0.1.resolvingSymlinksInPath().standardizedFileURL == resolved }?.0
+    }
+
+    private static func runningCopies() -> [(pid_t, URL)] {
+        NSRunningApplication.runningApplications(withBundleIdentifier: MdvCommand.appBundleIdentifier)
             .compactMap { running in running.bundleURL.map { (running.processIdentifier, $0) } }
-        return target(for: app, running: copies)
     }
 
     /// `runningTarget(for:)`'s decision, given the running copies' process ids and bundle URLs.
