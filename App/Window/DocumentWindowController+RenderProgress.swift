@@ -35,12 +35,14 @@ extension DocumentWindowController {
     }
 
     /// Waits for `count` animation frames of the loaded page, or `timeout`, whichever is first.
+    /// The frame request never holds the coordinator: a hidden or closed window runs no frames,
+    /// and a request waiting on them forever would keep the web view, the window, and the
+    /// document alive (`requestAnimationFrames(_:completion:)`).
     private func waitForFrames(_ count: Int, timeout: Duration) async {
         let waiter = FirstOf()
         await withCheckedContinuation { continuation in
             waiter.continuation = continuation
-            Task { [coordinator] in
-                try? await coordinator.waitForAnimationFrames(count)
+            coordinator.requestAnimationFrames(count) {
                 waiter.resume()
             }
             Task {

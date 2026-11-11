@@ -117,6 +117,10 @@ final class DocumentWindowController: NSWindowController {
 
     override var document: AnyObject? {
         didSet {
+            if document == nil, oldValue != nil {
+                releaseContent()
+                return
+            }
             guard let markdownDocument, window?.contentViewController == nil else {
                 return
             }
@@ -135,6 +139,17 @@ final class DocumentWindowController: NSWindowController {
             updateRenderProgress()
             documentContentDidChange()
         }
+    }
+
+    /// The document closed (NSDocument removes its window controllers): drop the window's
+    /// content, which holds the document (`DocumentView`), the web view, and with it the web
+    /// content process. AppKit can keep a window that was on screen alive for minutes after it
+    /// closes (seen in the hosted tests, even for a plain `NSWindow`); without this, its
+    /// document, web view, and web content process stayed alive with it.
+    private func releaseContent() {
+        displayTask?.cancel()
+        displayTask = nil
+        window?.contentViewController = nil
     }
 
     /// Called by `MarkdownDocument.setContent(_:)` after every (re)load, and once when the

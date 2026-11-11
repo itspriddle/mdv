@@ -112,6 +112,26 @@ extension WebViewCoordinator {
             arguments: ["count": count])
     }
 
+    /// Calls `completion` after `count` animation frames of the loaded page, or never, when
+    /// WebKit runs no frames for it (a window that isn't on screen, or closed). Unlike
+    /// `waitForAnimationFrames(_:)`, nothing waiting holds the web view: WebKit keeps the
+    /// pending reply only, so a page that never draws doesn't keep its web view, window, and
+    /// document alive (and its web content process running) after the window closes.
+    func requestAnimationFrames(_ count: Int, completion: @escaping @MainActor () -> Void) {
+        guard hasLoadedPage else {
+            completion()
+            return
+        }
+        webView.callAsyncJavaScript(
+            "for (let i = 0; i < count; i++) { await new Promise(resolve => requestAnimationFrame(resolve)); }",
+            arguments: ["count": count], in: nil, in: AppScripts.world
+        ) { _ in
+            MainActor.assumeIsolated {
+                completion()
+            }
+        }
+    }
+
     /// Runs a fixed bridge function body in the app world. `body` must be a literal; pass every
     /// value through `arguments`.
     func callBridge(_ body: StaticString, arguments: [String: Any] = [:]) async throws -> Any? {

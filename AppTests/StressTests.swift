@@ -296,3 +296,36 @@ struct StressTests {
         #expect(try await pageTitle(controller) == "Good")
     }
 }
+
+extension StressTests {
+    @Test("closing windows that were on screen frees their documents and web views")
+    func closeShownWindows() async throws {
+        let urls = try (0..<3).map { try write("# Shown \($0)\n\nBody \($0).\n", to: "shown-\($0).md") }
+        var documents: [WeakBox<MarkdownDocument>] = []
+        var coordinators: [WeakBox<WebViewCoordinator>] = []
+        for url in urls {
+            let (document, controller) = try open(url)
+            document.showWindows()
+            try await until("load", timeout: .seconds(30)) { controller.coordinator.hasLoadedPage }
+            // On screen for a while: AppKit can then keep the closed window itself alive for
+            // minutes (seen in the hosted tests), so the window must not keep its content alive.
+            try await Task.sleep(for: .milliseconds(500))
+            documents.append(WeakBox(document))
+            coordinators.append(WeakBox(controller.coordinator))
+            document.close()
+        }
+        try await until("the closed documents are freed") { documents.allSatisfy { $0.value == nil } }
+        // The web views (and their web content processes) go with them.
+        try await until("the closed windows' web views are freed") { coordinators.allSatisfy { $0.value == nil } }
+    }
+}
+
+/// A weak reference, for checking that closed windows' objects are freed.
+@MainActor
+final class WeakBox<Value: AnyObject> {
+    weak var value: Value?
+
+    init(_ value: Value) {
+        self.value = value
+    }
+}
