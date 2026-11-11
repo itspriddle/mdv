@@ -79,7 +79,10 @@ preprocessor: choose the program with Choose… and add any arguments, one per f
 
 ## Command line
 
-`mdv FILE...` opens files in the app; with no FILE (or `-`), it reads Markdown from standard
+`mdv FILE...` opens files in the app that contains the `mdv` command (launching it if needed),
+like opening them from Finder; a file that is already open comes forward. Every path is checked
+first, so a missing or unreadable file opens nothing. `mdv --theme serif FILE` opens the window
+in that theme, as if picked from View > Theme. With no FILE (or `-`), it reads Markdown from standard
 input. These flags render HTML instead:
 
 ```sh
@@ -97,7 +100,8 @@ mdv --fragment intro.md usage.md > body.html   # body HTML only, for embedding
 - With no FILE and a terminal on standard input, mdv prints usage instead of waiting for input.
 - `--theme NAME` picks the page's theme: `github`, `document`, `serif`, or `custom:<file name>`
   from the Themes folder (`~/Library/Application Support/mdv/Themes`, or `MDV_THEMES_FOLDER`).
-  `--flavor NAME` picks the syntax: `gfm` or `commonmark`. **A flag beats the document's
+  `--flavor NAME` picks the syntax: `gfm` or `commonmark` (HTML output only: windows follow
+  Settings > Markdown and `mdv.flavor`). **A flag beats the document's
   `mdv:` frontmatter, which beats the default** (GitHub, GFM), as a View > Theme pick does in
   the app. An unknown name is a usage error; a custom theme that is missing (66) or fails its
   checks (65) is an error with the reason. Without `--theme`, the document's `mdv.theme`

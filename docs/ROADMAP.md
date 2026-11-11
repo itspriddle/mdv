@@ -680,6 +680,15 @@ Make the terminal workflow excellent.
   in `/`. Failure exits 70 with the reason and stderr tail, no HTML, no fallback flag. Ctrl-C
   (also `SIGTERM`, `SIGHUP`) cancels the run, stops its process group, then ends mdv with the
   signal (end-to-end test with the built binary).
+- `mdv FILE` (#67): the CLI gives Launch Services a standard Open Documents Apple Event with
+  mdv's own parameters (`mdvT` theme id; `AppOpenEvent` in MdvCore), so opening is Finder's
+  path (no Automation prompt). It opens the app that contains it (a dev build opens itself;
+  outside a bundle, the app with mdv's bundle id); with another copy running it launches or
+  messages its own copy (`mdv /odoc`, since AppKit drops parameters from a directly sent
+  `odoc`). Paths and `--theme` are checked before anything opens (66, 64/66/65). `--theme`
+  becomes the windows' View > Theme pick (an open window switches); `--flavor` without HTML
+  output is a usage error. Parameters are presentation-only and validated in the app as
+  untrusted. #68/#69 add parameters to the same event (`mdvI`, `mdvW` reserved).
 
 ## Gate: choose the name
 
