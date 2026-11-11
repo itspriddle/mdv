@@ -24,6 +24,9 @@ import Foundation
 ///   re-renders) waits this long off the main actor before it starts, so a test can see the
 ///   slow-render indicator (#58) without depending on how fast the machine is. The wait is
 ///   cancelled with the render. At most 30 seconds.
+/// - `-MdvUITestCommandLineToolFolder <path>`: App menu > Install Command Line Tool… (#70)
+///   offers only this absolute folder. Without it a UI-test launch offers none (the item is
+///   hidden), so tests never touch `/usr/local/bin` or `~/.local/bin`.
 ///
 /// UI-test launches (and hosted unit tests) never add to Open Recent (`DocumentController`).
 enum UITestHooks {
@@ -38,6 +41,8 @@ enum UITestHooks {
         static let preprocessorKey = "MdvUITestPreprocessor"
         /// Launch argument (a `UserDefaults` key) with a delay, in seconds, added to every render.
         static let renderDelayKey = "MdvUITestRenderDelay"
+        /// Launch argument (a `UserDefaults` key) with an absolute path to install the CLI in.
+        static let commandLineToolFolderKey = "MdvUITestCommandLineToolFolder"
     #endif
 
     /// Whether a UI test launched the app. Always `false` in Release builds.
@@ -110,6 +115,21 @@ enum UITestHooks {
                 return nil
             }
             return .milliseconds(Int(min(seconds, 30) * 1000))
+        #else
+            nil
+        #endif
+    }
+
+    /// The folder a UI test asked the command line tool to be installed in, or nil. Always nil
+    /// in Release.
+    static var commandLineToolFolder: URL? {
+        #if DEBUG
+            guard isUITesting, let path = UserDefaults.standard.string(forKey: commandLineToolFolderKey),
+                path.hasPrefix("/")
+            else {
+                return nil
+            }
+            return URL(filePath: path, directoryHint: .isDirectory)
         #else
             nil
         #endif

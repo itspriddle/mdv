@@ -58,10 +58,11 @@ lock the build database.
     `Rendering/HTMLRenderer+Alerts.swift`) live here, and so do wiki links (`WikiLinks`, #53:
     `[[Page]]` text to `MarkdownNode.Kind.wikiLink`; markup in `HTMLRenderer+WikiLinks.swift`).
   - `WikiLinks/`: wiki link pages and resolution (#53). `WikiPage` (the naming rule),
-    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; MdvCore never reads the
-    disk for it), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
-    an injected `WikiLinkFolderReader`), and `SourceLines` (which bracket bytes were written as
-    is rather than escaped).
+    `WikiLinkResolver` (injected into `HTMLRenderer.wikiLinkResolver`; the search rules never
+    read the disk), `FolderWikiLinkResolver` (document folder, then allowed root, entry cap, over
+    an injected `WikiLinkFolderReader`), `FileSystemFolderReader` (the real reader for the app
+    and CLI: regular files and folders only, no symbolic links or packages), and `SourceLines`
+    (which bracket bytes were written as is rather than escaped).
   - `Preprocessor/`: the custom preprocessor runner (#56; VISION's security model has the
     contract and limits). `CustomPreprocessor.run(input:documentURL:)` is async and
     cancellable. `PreprocessorConfiguration` validates the executable and
@@ -110,8 +111,7 @@ lock the build database.
     built-in preprocessors (one row per `MarkdownSettings.optionalPreprocessors` entry), then
     room for the custom preprocessor (#57).
   - `WikiLinks/`: `DocumentWikiLinks` (a per-render `FolderWikiLinkResolver` for a document,
-    used by `DocumentContent` and Copy as HTML) and `FileSystemFolderReader` (regular files and
-    folders only; no symbolic links or packages).
+    used by `DocumentContent` and Copy as HTML) over MdvCore's `FileSystemFolderReader`.
   - `MarkdownSettings/`: `MarkdownSettings` (the store: default flavor id, frontmatter
     display, built-in preprocessors; one change notification) and `MarkdownPreferences` (the
     value a render takes; `apply(to:)` sets `RenderOptions`). Unlike window defaults these
@@ -126,6 +126,12 @@ lock the build database.
     `MarkdownPreferences.customPreprocessor` (`MarkdownDocument.renderPreferences`), so a change
     re-renders open documents like any Settings > Markdown change. The section view is
     `Settings/CustomPreprocessorSection`.
+  - `CommandLineTool/` (#70): App menu > Install / Repair / Uninstall Command Line Tool….
+    `CommandLineToolInstaller` (the rules over an injected folder and app: state, atomic
+    install, uninstall, and the constant privileged shell scripts; an `Item` per linked file,
+    the hook for #71), `PrivilegedRunning` (`AppleScriptPrivilegedRunner`, values passed as
+    Apple event parameters), `CommandLineToolLocation` (`~/.local/bin`, `/usr/local/bin`, or
+    the UI-test folder; `LoginShellPath`), and `CommandLineToolController` (menu state, alerts).
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
@@ -250,7 +256,8 @@ lock the build database.
   <abs path>` reads custom themes from a temp folder (UI tests without it load none, and hosted
   unit tests never load them); `-MdvUITestPreprocessor <abs path>` starts with that custom
   preprocessor on; `-MdvUITestRenderDelay <seconds>` holds up every render (to see the
-  slow-render indicator without a slow script). Preprocessor scripts are executable fixtures
+  slow-render indicator without a slow script); `-MdvUITestCommandLineToolFolder <abs path>`
+  is the only folder Install Command Line Tool… offers (none without it). Preprocessor scripts are executable fixtures
   (`Fixtures/preprocessors/`): files the sandboxed runner writes are quarantined and won't
   execute (`EPERM`). Tests never add to Open Recent. `MdvUITestApp.launch` also passes `-ApplePersistenceIgnoreState YES` unless
   `restoresState: true`; the restoration UI test writes real saved state, so it runs only with

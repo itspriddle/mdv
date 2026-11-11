@@ -37,7 +37,7 @@ public struct MdvCommand: AsyncParsableCommand {
     @OptionGroup public var input: InputOptions
     @OptionGroup(title: "Output") public var output: OutputOptions
     @OptionGroup public var themeFlavor: ThemeFlavorOptions
-    @OptionGroup public var renderFlags: RenderFlagOptions
+    @OptionGroup(title: "Rendering") public var renderFlags: RenderFlagOptions
     @OptionGroup public var preprocessor: PreprocessorOptions
     @OptionGroup public var app: AppOpenOptions
 
@@ -52,6 +52,9 @@ public struct MdvCommand: AsyncParsableCommand {
             throw ValidationError(
                 "--flavor is for --html, --fragment, and --output; windows use Settings > Markdown "
                     + "or the document's mdv.flavor.")
+        }
+        if renderFlags.isSet, !output.rendersHTML, !themeFlavor.lists {
+            throw ValidationError("The Rendering flags change HTML output; add --html, --fragment, or --output.")
         }
         let inputCount = input.sources.count
         if output.output != nil, inputCount > 1 {

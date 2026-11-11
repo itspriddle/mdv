@@ -637,6 +637,20 @@ Make the terminal workflow excellent.
 - Shell completions (ArgumentParser-generated) and a man page
 - CLI integration tests
 
+**Decisions:**
+
+- Install Command Line Tool (#70): one App menu item whose title follows the state (Install,
+  Repair for a link left by a moved or renamed app, Uninstall for this copy's link), read from
+  disk each time the menu opens; nothing is repaired without asking. Both `~/.local/bin` (no
+  password) and `/usr/local/bin` (administrator password via a constant AppleScript `do shell
+  script`, paths passed as parameters) are offered; the default is the first that needs no
+  password and is on the login shell's `PATH`, else `/usr/local/bin`, else the folder of an
+  existing link. After installing somewhere that may not be on `PATH`, the alert shows the
+  `export PATH=…` line. Only our symlink (into an mdv.app with our bundle id, or a gone one) is
+  ever replaced or removed; it is created by atomic rename. With several copies of mdv, the
+  alert names the one the link will use. #71 adds completions and the man page as more
+  `CommandLineToolInstaller.Item`s. See VISION's security model.
+
 **Exit criteria:** every example in the README works; CLI tests run in CI.
 
 **Decisions** (details in [VISION](VISION.md#architecture-overview), "CLI"):
@@ -654,6 +668,13 @@ Make the terminal workflow excellent.
   (`MDV_THEMES_FOLDER` overrides it), and a custom frontmatter theme now loads in `--html` too.
   Unknown flag ids are usage errors; a missing or invalid custom theme exits 66 or 65 with the
   reason. `--list-themes` and `--list-flavors` added.
+- Render flags (#65): `--frontmatter hidden|table`, `--wiki-links`/`--no-wiki-links` (beats
+  `mdv.wikilinks`), `--source-lines`, `--no-highlight`, `--no-heading-anchors`,
+  `--block-remote-images`; HTML output only (usage error otherwise). No `--no-sanitize`, and the
+  CLI doesn't read Settings > Markdown (both in VISION's security model). File inputs get the
+  app's `linkRoot` and a `FolderWikiLinkResolver` (`FileSystemFolderReader` moved to MdvCore);
+  stdin gets neither. Wiki links stay `.md` in `--output`. Ignored `mdv:` keys are warnings on
+  standard error; `--verbose` adds the flavor and wiki link setting used.
 
 ## Gate: choose the name
 

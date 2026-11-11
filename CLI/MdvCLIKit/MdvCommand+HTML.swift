@@ -24,7 +24,7 @@ extension MdvCommand {
         renderFlags.apply(to: &options)
         let renderer = renderFlags.renderer(options: options, for: document.source)
         let rendered = renderer.render(markdown)
-        renderFlags.report(rendered, for: document.source, in: environment)
+        renderFlags.report(rendered, options: options, for: document.source, in: environment)
         if output.fragment {
             return rendered.html.hasSuffix("\n") || rendered.html.isEmpty ? rendered.html : rendered.html + "\n"
         }
