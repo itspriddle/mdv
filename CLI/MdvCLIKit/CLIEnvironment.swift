@@ -57,8 +57,22 @@ public struct CLIEnvironment: Sendable {
             standardError: FileHandleSink(.standardError),
             appOpener: WorkspaceAppOpener(),
             themesFolder: ThemeResolver.themesFolder(environment: ProcessInfo.processInfo.environment),
+            preprocessorLimits: livePreprocessorLimits(environment: ProcessInfo.processInfo.environment),
             cancelsOnInterrupt: true
         )
+    }
+
+    /// `.standard`. Debug builds only: `MDV_TEST_PREPROCESSOR_TIMEOUT` (seconds) replaces the
+    /// timeout, so the end-to-end signal test can tell "stopped by the signal" from "timed out"
+    /// on a starved CI runner. Compiled out of Release.
+    static func livePreprocessorLimits(environment: [String: String]) -> PreprocessorLimits {
+        var limits = PreprocessorLimits.standard
+        #if DEBUG
+            if let text = environment["MDV_TEST_PREPROCESSOR_TIMEOUT"], let seconds = Int(text), seconds > 0 {
+                limits.timeout = .seconds(seconds)
+            }
+        #endif
+        return limits
     }
 
     /// Reads `handle` to its end, or until it has read more than `maximumBytes`.

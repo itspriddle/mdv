@@ -50,16 +50,66 @@ enum DefaultSignalProcess {
         var description: String { signal.map { "signal \($0)" } ?? "exit \((raw >> 8) & 0xff)" }
     }
 
-    /// Waits up to 20 s for `pid` to exit (polling, so no thread blocks in `waitpid`).
-    static func waitForExit(_ pid: pid_t) async throws -> ExitStatus {
-        var status: Int32 = 0
-        for _ in 0..<2000 {
-            if waitpid(pid, &status, WNOHANG) == pid { return ExitStatus(raw: status) }
-            try await Task.sleep(for: .milliseconds(10))
+    /// What `signal(_:whenFileAppears:)` saw.
+    struct Interruption {
+        /// The pids the program wrote, or `nil` if the file never appeared.
+        var pids: [pid_t]?
+        /// Whether the process had already exited when the signal was due (so it wasn't sent).
+        var exitedBeforeSignal: Bool
+        var status: ExitStatus
+        /// From `start` to the process's exit, as seen by a thread that polls every 10 ms.
+        var elapsed: Duration
+    }
+
+    /// Waits for `path` to hold a line of pids, sends `signal` to `pid`, and waits for `pid` to
+    /// exit (killing it after `limit`). All on a dedicated thread: on a test runner whose
+    /// cooperative pool is busy (other tests blocking it in `waitUntilExit`, a starved CI
+    /// runner), an async task polling the file got to send the signal 30 s late, long after the
+    /// program it was meant to interrupt had timed out.
+    static func signal(
+        _ signal: Int32, _ pid: pid_t, whenFileAppears path: String, start: ContinuousClock.Instant,
+        limit: Duration
+    ) async -> Interruption {
+        await withCheckedContinuation { continuation in
+            let thread = Thread {
+                continuation.resume(returning: interrupt(pid, signal, path: path, start: start, limit: limit))
+            }
+            thread.name = "mdv-tests.signal"
+            thread.qualityOfService = .userInitiated
+            thread.start()
         }
-        kill(pid, SIGKILL)
-        _ = waitpid(pid, &status, 0)
-        Issue.record("mdv didn't exit within 20 s")
-        return ExitStatus(raw: status)
+    }
+
+    private static func interrupt(
+        _ pid: pid_t, _ signal: Int32, path: String, start: ContinuousClock.Instant, limit: Duration
+    ) -> Interruption {
+        var status: Int32 = 0
+        var pids: [pid_t]?
+        var exitedBeforeSignal = false
+        while ContinuousClock.now - start < limit {
+            if waitpid(pid, &status, WNOHANG) == pid {
+                exitedBeforeSignal = true
+                break
+            }
+            if let text = try? String(contentsOfFile: path, encoding: .utf8), text.hasSuffix("\n") {
+                pids = text.split(whereSeparator: \.isWhitespace).compactMap { pid_t($0) }
+                kill(pid, signal)
+                break
+            }
+            usleep(10_000)
+        }
+        if !exitedBeforeSignal {
+            while waitpid(pid, &status, WNOHANG) != pid {
+                if ContinuousClock.now - start >= limit {
+                    kill(pid, SIGKILL)
+                    _ = waitpid(pid, &status, 0)
+                    break
+                }
+                usleep(10_000)
+            }
+        }
+        return Interruption(
+            pids: pids, exitedBeforeSignal: exitedBeforeSignal, status: ExitStatus(raw: status),
+            elapsed: ContinuousClock.now - start)
     }
 }

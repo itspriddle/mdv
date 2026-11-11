@@ -216,22 +216,29 @@ struct PreprocessorTests {
         let arguments = ["--html", "--preprocessor", script, "--preprocessor-arg", pidFile, document]
         var environment = ProcessInfo.processInfo.environment
         environment["MDV_THEMES_FOLDER"] = folder.path("no-themes")
+        // The run's deadline is at least this long after the spawn, so mdv ending sooner than
+        // that proves the signal stopped it, however starved the runner (on CI's macOS 26 this
+        // test once took 19 s). Only a debug build reads the variable: against a release
+        // binary (`MDV_CLI_BINARY`) the timeout is 5 s and this check proves less.
+        let timeout: Duration = .seconds(60)
+        environment["MDV_TEST_PREPROCESSOR_TIMEOUT"] = "60"
         let start = ContinuousClock.now
         // Not `Process`: a test runner (CI's) may start with SIGINT ignored, and mdv rightly
         // keeps an inherited SIG_IGN.
         let pid = try DefaultSignalProcess.spawn(
             binary.path, arguments: arguments, environment: environment, stdout: outputPath,
             stderr: folder.path("stderr"))
-
-        let pids = try await Self.pids(in: pidFile)
-        #expect(pids.count == 2)
-        kill(pid, SIGINT)
-        let status = try await DefaultSignalProcess.waitForExit(pid)
-        let elapsed = ContinuousClock.now - start
+        let interruption = await DefaultSignalProcess.signal(
+            SIGINT, pid, whenFileAppears: pidFile, start: start, limit: timeout + .seconds(10))
 
         let stderr = (try? String(contentsOfFile: folder.path("stderr"), encoding: .utf8)) ?? ""
+        let status = interruption.status
+        #expect(!interruption.exitedBeforeSignal, "mdv ended before SIGINT (\(status)); stderr: \(stderr)")
+        let pids = try #require(interruption.pids, "no pid file at \(pidFile)")
+        #expect(pids.count == 2)
         #expect(status.signal == SIGINT, "ended by SIGINT (\(status)); stderr: \(stderr)")
-        #expect(elapsed < .seconds(4), "stopped by SIGINT, not the 5 s timeout")
+        #expect(interruption.elapsed < timeout, "stopped by SIGINT, not the timeout")
+        #expect(stderr.isEmpty)
         #expect((try? Data(contentsOf: URL(filePath: outputPath))) ?? Data() == Data())
         #expect(try await Self.processesGone(pids))
     }
