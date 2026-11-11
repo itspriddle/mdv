@@ -14,9 +14,6 @@ configFiles:
 packages:
   mdv:
     path: .
-  swift-argument-parser:
-    url: https://github.com/apple/swift-argument-parser.git
-    from: 1.8.2
 
 targets:
   MdvApp:
@@ -105,8 +102,9 @@ targets:
   mdv-cli:
     type: tool
     platform: macOS
+    # Only the entry point; the command is the package's MdvCLIKit (shared with `swift test`).
     sources:
-      - path: CLI
+      - path: CLI/Main
     settings:
       base:
         PRODUCT_NAME: mdv
@@ -115,9 +113,7 @@ targets:
         SKIP_INSTALL: YES
     dependencies:
       - package: mdv
-        product: MdvCore
-      - package: swift-argument-parser
-        product: ArgumentParser
+        product: MdvCLIKit
 
   AppTests:
     type: bundle.unit-test
