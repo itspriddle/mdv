@@ -79,13 +79,24 @@ public enum AppOpenEvent {
             return []
         }
         guard object.descriptorType == DescType(typeAEList) else {
-            return object.fileURLValue.map { [$0] } ?? []
+            return fileURL(object).map { [$0] } ?? []
         }
         let count = min(object.numberOfItems, maximumFiles)
         guard count > 0 else {
             return []
         }
-        return (1...count).compactMap { object.atIndex($0)?.fileURLValue }.filter(\.isFileURL)
+        return (1...count).compactMap { fileURL(object.atIndex($0)) }
+    }
+
+    /// A `typeFileURL` descriptor's file URL; nil for any other type (text is never coerced
+    /// into a path).
+    private static func fileURL(_ descriptor: NSAppleEventDescriptor?) -> URL? {
+        guard let descriptor, descriptor.descriptorType == DescType(typeFileURL),
+            let url = descriptor.fileURLValue, url.isFileURL
+        else {
+            return nil
+        }
+        return url
     }
 
     /// The text in `descriptor`, when it is UTF-8 or UTF-16 text of at most
