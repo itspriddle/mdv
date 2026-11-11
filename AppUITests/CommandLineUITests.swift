@@ -33,11 +33,7 @@ final class CommandLineUITests: XCTestCase {
 
         let again = try MdvUITestApp.runCommandLine([smoke])
         XCTAssertEqual(again.status, 0, again.stderr)
-        let focused = NSPredicate { _, _ in mdv.frontWindow.title == "Smoke Test Fixture" }
-        XCTAssertEqual(
-            XCTWaiter().wait(
-                for: [XCTNSPredicateExpectation(predicate: focused, object: nil)], timeout: MdvUITestApp.defaultTimeout),
-            .completed, "the open window came forward")
+        waitUntil("the open window came forward") { mdv.frontWindow.title == "Smoke Test Fixture" }
         mdv.waitForWindowCount(2)
     }
 
@@ -71,7 +67,8 @@ final class CommandLineUITests: XCTestCase {
         let predicate = NSPredicate { _, _ in condition() }
         XCTAssertEqual(
             XCTWaiter().wait(
-                for: [XCTNSPredicateExpectation(predicate: predicate, object: nil)], timeout: MdvUITestApp.defaultTimeout),
+                for: [XCTNSPredicateExpectation(predicate: predicate, object: nil)],
+                timeout: MdvUITestApp.defaultTimeout),
             .completed, description)
     }
 

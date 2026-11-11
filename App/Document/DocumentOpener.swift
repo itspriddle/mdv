@@ -48,7 +48,8 @@ final class DocumentOpener {
             completion?()
             return
         }
-        documentController.openDocument(withContentsOf: url, display: false) { [weak self] document, alreadyOpen, error in
+        documentController.openDocument(withContentsOf: url, display: false) { [weak self] in
+            let (document, alreadyOpen, error) = ($0, $1, $2)
             MainActor.assumeIsolated {
                 guard let self else {
                     return

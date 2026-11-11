@@ -2,8 +2,6 @@ import Foundation
 import MdvCLIKit
 import Testing
 
-@testable import MdvCLIKit
-
 @Suite("Opening in the app")
 struct AppOpeningTests {
     @Test("FILEs without an output flag go to the app as absolute URLs, in order")
@@ -71,7 +69,7 @@ struct AppOpeningTests {
         }
     }
 
-    // MARK: --theme and --flavor
+    // MARK: - -theme and --flavor
 
     @Test("--theme goes to the app as the resolved id", arguments: [("serif", "serif"), ("Document", "document")])
     func theme(flag: String, id: String) async throws {
