@@ -110,6 +110,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         return true
     }
 
+    /// Quitting ends every `mdv --wait` (#69); windows don't close one by one on quit.
+    func applicationWillTerminate(_ notification: Notification) {
+        documentOpener.waits.notifyAll()
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }

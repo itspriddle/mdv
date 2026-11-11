@@ -21,8 +21,8 @@ public struct AppOpenRequest: Equatable, Sendable {
 /// Opens documents in the app. `CLIEnvironment.appOpener` holds it, so tests record requests
 /// instead of launching anything. Throw `CLIError` (usually `ExitStatus.unavailable`) on failure.
 ///
-/// #68 decides how standard input reaches the app, and #69 (`--wait`) may make `open` return
-/// only when the windows close.
+/// #68 decides how standard input reaches the app. With `options.wait` (#69), `open` returns
+/// only once the windows it opened are closed or the app quits (`WindowsClosedWaiter`).
 public protocol AppOpening: Sendable {
     func open(_ request: AppOpenRequest, options: AppOpenOptions) async throws(CLIError)
 }
@@ -50,15 +50,29 @@ public struct WorkspaceAppOpener: AppOpening {
             files.append(try Self.saveStandardInput(markdown))
         }
         let app = try locator.locate()
-        let parameters = AppOpenParameters(themeID: request.themeID)
-        let target = AppLocator.runningTarget(for: app)
+        // Registered before the event goes, so a window closed at once isn't missed.
+        let waiter = options.wait ? try WindowsClosedWaiter() : nil
+        let parameters = AppOpenParameters(themeID: request.themeID, waitToken: waiter?.token)
+        let processIdentifier = try await Self.deliver(files: files, parameters: parameters, to: app)
+        if let waiter {
+            // The app's process too, so a quit or crash ends the wait.
+            await waiter.wait(forProcess: processIdentifier ?? AppLocator.runningProcess(of: app))
+        }
+    }
+
+    /// Sends the open event to `app` (`AppLocator.runningTarget(for:)`) and returns the process
+    /// that got it, when known.
+    private static func deliver(
+        files: [URL], parameters: AppOpenParameters, to app: URL
+    ) async throws(CLIError) -> pid_t? {
         do {
-            switch target {
+            switch AppLocator.runningTarget(for: app) {
             case .running(let processIdentifier):
-                try Self.send(files: files, parameters: parameters, to: processIdentifier)
+                try send(files: files, parameters: parameters, to: processIdentifier)
+                return processIdentifier
             case .launchServices(let createsNewInstance):
                 do {
-                    try await Self.openWithLaunchServices(
+                    return try await openWithLaunchServices(
                         app, files: files, parameters: parameters, createsNewInstance: createsNewInstance)
                 } catch {
                     // A sandboxed caller (the UI test runner, and so the CLI it runs) can't give
@@ -67,7 +81,8 @@ public struct WorkspaceAppOpener: AppOpening {
                     guard let running = AppLocator.runningProcess(of: app) else {
                         throw error
                     }
-                    try Self.send(files: files, parameters: parameters, to: running)
+                    try send(files: files, parameters: parameters, to: running)
+                    return running
                 }
             }
         } catch {
@@ -79,9 +94,10 @@ public struct WorkspaceAppOpener: AppOpening {
 
     /// Launch Services: launches `app` with the event as its first event, or sends it to the
     /// running copy, and activates the app (no Automation prompt: this is Finder's path).
+    /// Returns the app's process id.
     private static func openWithLaunchServices(
         _ app: URL, files: [URL], parameters: AppOpenParameters, createsNewInstance: Bool
-    ) async throws {
+    ) async throws -> pid_t? {
         let bundleIdentifier = Bundle(url: app)?.bundleIdentifier ?? MdvCommand.appBundleIdentifier
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.appleEvent = AppOpenEvent.make(
@@ -92,12 +108,12 @@ public struct WorkspaceAppOpener: AppOpening {
         if !environment.isEmpty {
             configuration.environment = environment
         }
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-            NSWorkspace.shared.openApplication(at: app, configuration: configuration) { _, error in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<pid_t?, any Error>) in
+            NSWorkspace.shared.openApplication(at: app, configuration: configuration) { running, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
-                    continuation.resume()
+                    continuation.resume(returning: running?.processIdentifier)
                 }
             }
         }

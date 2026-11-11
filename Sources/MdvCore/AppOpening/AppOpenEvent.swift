@@ -33,7 +33,7 @@ public enum AppOpenEvent {
     /// `mdvT`: the theme id for the opened windows (UTF-8 or UTF-16 text).
     public static let themeKeyword: AEKeyword = 0x6D64_7654
     // Reserved for later M5 issues (see docs/VISION.md, "CLI to app"):
-    // `mdvI` (0x6D64_7649) standard input for #68, `mdvW` (0x6D64_7657) the --wait token for #69.
+    // `mdvI` (0x6D64_7649) standard input for #68. `mdvW` (#69) is `waitKeyword`.
 
     /// The longest parameter value the app decodes, in bytes. A theme id is at most 256
     /// characters (`AppOpenParameters.maximumThemeIDLength`); 4 bytes each covers any encoding.
@@ -60,6 +60,7 @@ public enum AppOpenEvent {
         if let themeID = parameters.themeID {
             event.setParam(NSAppleEventDescriptor(string: themeID), forKeyword: themeKeyword)
         }
+        setWaitToken(parameters.waitToken, on: event)
         return event
     }
 
@@ -121,9 +122,14 @@ public struct AppOpenParameters: Equatable, Sendable {
     /// The theme the windows show, as their View > Theme pick (`mdv --theme`). The app checks
     /// it against its registry; this type only checks it is a plausible id.
     public var themeID: String?
+    /// `mdv --wait` (#69): the invocation's token. The app posts
+    /// `AppOpenEvent.windowsClosedNotificationName(for:)` once every window this event opened
+    /// (or brought forward) has closed.
+    public var waitToken: UUID?
 
-    public init(themeID: String? = nil) {
+    public init(themeID: String? = nil, waitToken: UUID? = nil) {
         self.themeID = themeID
+        self.waitToken = waitToken
     }
 
     /// The parameters in `event`, which may come from any local process: values of the wrong
@@ -135,7 +141,9 @@ public struct AppOpenParameters: Equatable, Sendable {
             return
         }
         let themeID = AppOpenEvent.text(event.paramDescriptor(forKeyword: AppOpenEvent.themeKeyword))
-        self.init(themeID: themeID.flatMap { Self.isPlausibleThemeID($0) ? $0 : nil })
+        self.init(
+            themeID: themeID.flatMap { Self.isPlausibleThemeID($0) ? $0 : nil },
+            waitToken: AppOpenEvent.waitToken(in: event))
     }
 
     /// Whether `id` could be a theme id: 1 to 256 characters, none of them control, format

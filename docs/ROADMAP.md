@@ -699,6 +699,13 @@ Make the terminal workflow excellent.
   `Contents/Resources/{man/man1,completions}` (paths for the M6 cask); Install Command Line
   Tool also links the man page into `share/man/man1` beside the command (one password prompt);
   completions are documented, not installed.
+- `--wait` (#69): a random token per invocation (`mdvW`); the app posts the Darwin notification
+  `com.itspriddle.mdv.windowsClosed.<token>` once every window that event opened or brought
+  forward (an already-open file's counts) has closed, or on quit; the CLI also watches the
+  app's process, so a crash or force quit ends the wait (exit 0). Ctrl-C ends mdv (130) and
+  leaves the windows open. A forged notification can only end a wait early; the app accepts
+  only a UUID token. `--wait` with HTML output is a usage error. No git example yet: the
+  useful ones pipe into mdv (#68).
 
 ## Gate: choose the name
 

@@ -19,6 +19,9 @@ public enum HelpText {
     public static let examples = [
         Example(command: "mdv README.md", explanation: "Open README.md in mdv."),
         Example(
+            command: "mdv --wait notes.md",
+            explanation: "Open notes.md and return once its window closes (or mdv quits)."),
+        Example(
             command: "echo '# Markdown' | mdv", explanation: "Open Markdown from standard input in a new window."),
         Example(
             command: "mdv --html README.md > README.html",

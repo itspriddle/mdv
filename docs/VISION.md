@@ -634,6 +634,25 @@ editor or a browser.
     Tool, which links the man page into `share/man/man1` beside the command's folder (where
     `man` looks for a `bin` on `PATH`). Completions aren't installed by the app: a shell's
     setup is the reader's, so the success alert and README point at the scripts instead.
+    - `--wait` (#69, `WindowsClosedWaiter` in the CLI, `WindowWaits` in the app): the CLI
+      makes a random token per invocation (a version 4 UUID), registers for the Darwin
+      notification `com.itspriddle.mdv.windowsClosed.<token>` (`notify(3)`: delivered on a
+      dispatch queue, no run loop, works from the sandboxed UI test runner), then sends the
+      open event with the token as `mdvW`. The app tracks the windows each token opened or
+      brought forward (**an already-open file's window counts**; a tab is a window; a window
+      whose file was deleted stays open, so it still counts), and posts the notification once
+      the event has finished opening and none of them is left open (every file failing posts
+      at once). Two `--wait`s on one file both end when its window closes. Quitting posts every
+      token. The CLI also watches the app's process (`DispatchSource` process exit, from the
+      pid Launch Services or the direct path reports), so a crash or force quit ends the wait;
+      either way mdv exits 0. Ctrl-C keeps its default action: mdv dies of `SIGINT` (130) and
+      the windows stay open. Tokens aren't saved: restored windows wait for no one.
+      **Trust model:** any process can post any Darwin notification, so a forged one can only
+      end a wait early; the app accepts only a well-formed UUID (exactly 36 characters of
+      text), so a forged token can only make it post a name under mdv's prefix when windows
+      close. Nothing in the app acts on a notification. Rejected: holding the open event's
+      reply until close (Launch Services gives no reply), XPC/Mach services (need a launchd
+      job), `NSDistributedNotificationCenter` (needs a run loop the async CLI doesn't run).
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.

@@ -82,7 +82,9 @@ preprocessor: choose the program with Choose… and add any arguments, one per f
 `mdv FILE...` opens files in the app that contains the `mdv` command (launching it if needed),
 like opening them from Finder; a file that is already open comes forward. Every path is checked
 first, so a missing or unreadable file opens nothing. `mdv --theme serif FILE` opens the window
-in that theme, as if picked from View > Theme. With no FILE (or `-`), it reads Markdown from standard
+in that theme, as if picked from View > Theme. `mdv --wait FILE...` returns only once you've closed
+the windows it opened (a file that was already open counts too), or the app quits; Ctrl-C stops
+waiting and leaves the windows open. With no FILE (or `-`), it reads Markdown from standard
 input. These flags render HTML instead:
 
 ```sh
