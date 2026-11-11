@@ -13,29 +13,44 @@ import Synchronization
 /// Only installed around the work (`CLIEnvironment.cancelsOnInterrupt`), so reading standard
 /// input or writing output is still interrupted the default way. A signal the process was
 /// started ignoring (`nohup`, a background job) stays ignored.
+///
+/// The signal is recorded by the handler itself, when it is delivered, not by the dispatch
+/// source that cancels the work: the source's handler runs later on a queue, and a signal that
+/// came while the run was ending (a timeout, say) would otherwise be lost when the sources are
+/// dropped, and mdv would exit with the run's status instead of dying of the signal. One run at
+/// a time (the CLI renders its inputs in turn).
 enum InterruptCancellation {
     static let signals: [Int32] = [SIGINT, SIGTERM, SIGHUP]
+
+    /// The first signal caught during the current run, or 0. Written only by `record`, the
+    /// signal handler (an atomic store is async-signal-safe).
+    private static let caught = Atomic<Int32>(0)
+
+    /// The handler installed for each signal: records the first one. The dispatch source
+    /// watching the same signal does the cancelling.
+    private static let record: @convention(c) (Int32) -> Void = { number in
+        _ = InterruptCancellation.caught.compareExchange(expected: 0, desired: number, ordering: .relaxed)
+    }
 
     static func run<Value: Sendable>(
         _ operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         let state = InterruptState()
+        caught.store(0, ordering: .relaxed)
         var installed: [Installed] = []
         for number in signals {
             var previous = sigaction()
             guard sigaction(number, nil, &previous) == 0, !isIgnored(previous) else { continue }
             // The source first, then replace the default action: a signal in between still
-            // ends the process, before any work has started. A no-op handler rather than
-            // SIG_IGN: the kernel may discard an ignored signal before the source sees it
-            // (suspected on CI's macOS 26), while a caught one always reaches it.
-            let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
-            source.setEventHandler { state.received(number) }
+            // ends the process, before any work has started.
+            let source = DispatchSource.makeSignalSource(signal: number, queue: .global(qos: .userInitiated))
+            source.setEventHandler { state.received() }
             source.resume()
-            var catchOnly = sigaction()
-            catchOnly.__sigaction_u.__sa_handler = { _ in }
-            sigemptyset(&catchOnly.sa_mask)
-            catchOnly.sa_flags = SA_RESTART
-            sigaction(number, &catchOnly, nil)
+            var recording = sigaction()
+            recording.__sigaction_u.__sa_handler = record
+            sigemptyset(&recording.sa_mask)
+            recording.sa_flags = SA_RESTART
+            sigaction(number, &recording, nil)
             installed.append(Installed(signal: number, previous: previous, source: source))
         }
 
@@ -47,13 +62,18 @@ enum InterruptCancellation {
             task.cancel()
         }
 
-        // Restore before dropping the sources, so a late signal is handled the default way.
+        // Restore before reading what was caught: a signal before this was recorded by the
+        // handler, and one after it is handled the default way. No signal falls in between,
+        // whether or not its source's event handler has run yet.
         for var entry in installed {
             sigaction(entry.signal, &entry.previous, nil)
             entry.source.cancel()
         }
-        if let number = state.signal {
-            raise(number)  // Ends the process; returns only if something else handles it.
+        let number = caught.load(ordering: .relaxed)
+        if number != 0 {
+            // Even if the run finished first (it timed out, failed, or succeeded): the reader
+            // asked mdv to stop. Ends the process; returns only if something else handles it.
+            raise(number)
         }
         return try result.get()
     }
@@ -71,21 +91,19 @@ enum InterruptCancellation {
     }
 }
 
-/// The first signal received and how to cancel the work, shared with the signal sources.
+/// Whether a signal source fired and how to cancel the work, shared with the signal sources.
 private final class InterruptState: Sendable {
     private struct Values: Sendable {
-        var signal: Int32?
+        var signaled = false
         var cancel: (@Sendable () -> Void)?
     }
 
     private let values = Mutex(Values())
 
-    var signal: Int32? { values.withLock { $0.signal } }
-
-    /// Records `number` (the first one wins) and cancels the work, if it has started.
-    func received(_ number: Int32) {
+    /// Notes that a signal came and cancels the work, if it has started.
+    func received() {
         let cancel = values.withLock { values in
-            if values.signal == nil { values.signal = number }
+            values.signaled = true
             return values.cancel
         }
         cancel?()
@@ -95,7 +113,7 @@ private final class InterruptState: Sendable {
     func setCancel(_ cancel: @escaping @Sendable () -> Void) {
         let signaled = values.withLock { values in
             values.cancel = cancel
-            return values.signal != nil
+            return values.signaled
         }
         if signaled { cancel() }
     }
