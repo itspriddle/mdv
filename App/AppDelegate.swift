@@ -12,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// Custom themes (#35); nil where they are off (hosted unit tests, UI tests without a
     /// themes folder).
     private(set) var customThemes: CustomThemeLibrary?
+    /// App menu > Install Command Line Tool… (#70).
+    let commandLineTool = CommandLineToolController()
     /// The Settings window, created the first time it is shown and reused after.
     private var settingsWindowController: SettingsWindowController?
 
@@ -112,12 +114,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         customThemes?.openFolder()
     }
 
+    /// App menu > Install / Repair / Uninstall Command Line Tool… (`CommandLineToolMenu`).
+    @objc func installCommandLineTool(_ sender: Any?) {
+        Task { await commandLineTool.run() }
+    }
+
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
         case #selector(openThemesFolder(_:)):
             return customThemes != nil
         case #selector(chooseAppearance(_:)):
             return validateAppearanceItem(menuItem)
+        case #selector(installCommandLineTool(_:)):
+            menuItem.isHidden = !commandLineTool.isAvailable
+            menuItem.title = commandLineTool.currentAction().menuTitle
+            return commandLineTool.isAvailable
         default:
             return true
         }
