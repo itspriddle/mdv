@@ -90,10 +90,15 @@ final class RecordingAppOpener: AppOpening {
         self.failure = failure
     }
 
+    private let recordedWaits = Mutex<[Bool]>([])
+
     var requests: [AppOpenRequest] { recorded.withLock { $0 } }
+    /// Each request's `AppOpenOptions.wait` (#69).
+    var waits: [Bool] { recordedWaits.withLock { $0 } }
 
     func open(_ request: AppOpenRequest, options: AppOpenOptions) async throws(CLIError) {
         recorded.withLock { $0.append(request) }
+        recordedWaits.withLock { $0.append(options.wait) }
         if let failure { throw failure }
     }
 }

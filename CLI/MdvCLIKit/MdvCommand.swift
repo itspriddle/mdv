@@ -61,6 +61,9 @@ public struct MdvCommand: AsyncParsableCommand {
             throw ValidationError(
                 "--preprocessor changes HTML output only; add --html, --fragment, or --output.")
         }
+        if app.wait, output.rendersHTML || themeFlavor.lists {
+            throw ValidationError("--wait is for opening files in the app, not for --html, --fragment, or --output.")
+        }
         let inputCount = input.sources.count
         if output.output != nil, inputCount > 1 {
             throw ValidationError("--output takes one input; run mdv once per file.")
