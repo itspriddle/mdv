@@ -13,8 +13,8 @@ them when the milestone is broken down.
 | [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         | Done   |
 | [M5](#m5-cli)                           | CLI                            | -         | Done   |
 | [Gate](#gate-choose-the-name)           | Choose the final name          | -         | Done   |
-| [M6](#m6-distribution-and-10)           | Distribution                   | **1.0**   |        |
-| [Post-1.0](#post-10)                    | PDF, math, RTL, proofreading…  | 1.x       |        |
+| [M6](#m6-distribution-and-v010)         | Distribution                   | **0.1.0** |        |
+| [1.0](#10)                              | PDF, math, RTL, proofreading…  | 1.0       |        |
 
 ## M0: Foundation
 
@@ -889,9 +889,9 @@ was renamed in one pass before M6:
 - **Repository:** `itspriddle/mdv` became `itspriddle/peep` (GitHub redirects the old URL).
   Test-only variables are `PEEP_…` (`PEEP_RECORD_SNAPSHOTS`, `TEST_RUNNER_PEEP_…`, and so on).
 
-## M6: Distribution and 1.0
+## M6: Distribution and v0.1.0
 
-Ship it.
+Ship a first public release, v0.1.0.
 
 - Developer ID signing and notarization in CI (secrets in GitHub Actions; signing identity never
   committed)
@@ -907,23 +907,24 @@ Ship it.
 - Acknowledgements for bundled third-party code (highlight.js BSD-3 notice, gemoji data,
   github-markdown-css MIT notice, Octicons MIT notice for the alert icons from #52)
 
-**Exit criteria:** a 1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
-updates itself to 1.0.1 via Sparkle.
+**Exit criteria:** a v0.1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
+updates itself to v0.1.1 via Sparkle.
 
-## Post-1.0
+## 1.0
 
-Rough priority order; each becomes its own milestone when it's next.
+A running list of what 1.0 includes, in rough priority order. Each becomes its own milestone
+(M7 onward) when it's next; 0.x releases ship along the way.
 
-- **M7 PDF export:** `WKWebView.createPDF`/print pipeline, print-specific CSS per theme, page size,
+- **PDF export:** `WKWebView.createPDF`/print pipeline, print-specific CSS per theme, page size,
   margins, headers/footers, `peep --pdf`
-- **M8 Math and diagrams:** KaTeX (bundled) for `$…$` / `$$…$$`, optionally Mermaid; requires the
+- **Math and diagrams:** KaTeX (bundled) for `$…$` / `$$…$$`, optionally Mermaid; requires the
   bundle-only JS policy from M1
-- **M9 Outlining and academic styles:** outline mode, APA-style theme (title page, running head,
+- **Outlining and academic styles:** outline mode, APA-style theme (title page, running head,
   references)
-- **M10 RTL text:** per-paragraph direction detection (`dir="auto"`), RTL-aware themes
-- **M11 Proofreading:** highlight configurable words and phrases to avoid (weasel words, passive
+- **RTL text:** per-paragraph direction detection (`dir="auto"`), RTL-aware themes
+- **Proofreading:** highlight configurable words and phrases to avoid (weasel words, passive
   voice, custom lists) as an overlay toggle
-- **M12 Vim plugin:** open/preview the current buffer in Peep with live updates
+- **Vim plugin:** open/preview the current buffer in Peep with live updates
 
 ## Process
 
