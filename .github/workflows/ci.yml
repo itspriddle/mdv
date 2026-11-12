@@ -3,7 +3,13 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "Site/**"
+      - ".github/workflows/deploy-site.yml"
   pull_request:
+    paths-ignore:
+      - "Site/**"
+      - ".github/workflows/deploy-site.yml"
 
 permissions:
   contents: read
