@@ -393,9 +393,12 @@ editor or a browser.
   at 12.8pt: GitHub keeps 16px, Document 11pt (about 11.7pt), and Serif drops from 19px to
   15px (12pt) on paper. A `<picture>`'s dark `<source>` never prints: WebKit evaluates
   `prefers-color-scheme` as light while printing and restores the screen's image afterwards
-  (checked on PDF output in `AppTests/PrintThemeTests`); rewriting `<source media>` to
-  `screen and (...)` was tried and rejected, because WebKit then kept the light image on
-  screen after printing.
+  (checked on PDF output in `AppTests/PrintThemeTests`). A dark window has never loaded the
+  light image, and fetched mid-print it can arrive after the page is drawn (the dark image
+  then prints), so File > Print first loads every `<picture>` candidate into the page
+  (`MarkdownDocument.prepareForPrinting()`, at most 3 s); WebKit doesn't load an image twice
+  in one document. Rewriting `<source media>` to `screen and (...)` was tried and rejected,
+  because WebKit then kept the light image on screen after printing.
 - **Settings (#36):** App menu > Settings… (Cmd-,) opens one reusable `NSWindowController`
   (`SettingsWindowController`) holding an `NSTabViewController` in toolbar style, one SwiftUI
   `Form` per pane (General, and Markdown since #55); no SwiftUI `Settings` scene, since the app lifecycle is
