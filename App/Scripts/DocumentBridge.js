@@ -218,6 +218,50 @@
     return true;
   }
 
+  // The most <picture> candidates loaded before printing, and how long printing waits for them.
+  const PRINT_PRELOAD_LIMIT = 64;
+  const PRINT_PRELOAD_TIMEOUT_MS = 3000;
+
+  // Loads every <picture> candidate (each <source> and the <img>) into this document before
+  // printing. Printing evaluates `prefers-color-scheme` as light, so a dark window's pictures
+  // switch to their light candidate as the page is printed; one the document never loaded is
+  // fetched then, and the print can be drawn before it arrives, putting the dark image on
+  // paper. WebKit doesn't load an image twice in one document, so a candidate loaded here is
+  // there when the switch happens. Detached images choose from `srcset` and `sizes` as the
+  // picture would. Resolves once all have loaded or failed, or after the timeout.
+  async function preloadPictureSources() {
+    const candidates = [];
+    for (const picture of document.querySelectorAll("picture")) {
+      for (const element of picture.querySelectorAll("source, img")) {
+        if (candidates.length >= PRINT_PRELOAD_LIMIT) {
+          break;
+        }
+        const srcset = element.getAttribute("srcset");
+        const src = element.localName === "img" ? element.getAttribute("src") : null;
+        if (srcset === null && src === null) {
+          continue;
+        }
+        const image = new Image();
+        if (element.hasAttribute("sizes")) {
+          image.sizes = element.getAttribute("sizes");
+        }
+        if (srcset !== null) {
+          image.srcset = srcset;
+        }
+        if (src !== null) {
+          image.src = src;
+        }
+        candidates.push(image.decode().catch(() => null));
+      }
+    }
+    if (candidates.length === 0) {
+      return 0;
+    }
+    const timeout = new Promise((resolve) => setTimeout(resolve, PRINT_PRELOAD_TIMEOUT_MS));
+    await Promise.race([Promise.all(candidates), timeout]);
+    return candidates.length;
+  }
+
   globalThis.mdv = Object.freeze({
     currentSourceLine,
     sectionSourceLine,
@@ -228,5 +272,6 @@
     restorePosition,
     updateContent,
     replaceStyle,
+    preloadPictureSources,
   });
 })();

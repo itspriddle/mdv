@@ -34,6 +34,38 @@ enum DocumentPrinting {
 }
 
 extension MarkdownDocument {
+    /// Documents waiting in `printDocument(_:)` for `prepareForPrinting()`, so a repeated
+    /// File > Print doesn't start a second print behind the first.
+    private static var documentsPreparingToPrint: Set<ObjectIdentifier> = []
+
+    /// File > Print: prepares the page (`prepareForPrinting()`), then prints as `NSDocument`
+    /// does (the print panel, as a sheet on the window).
+    override func printDocument(_ sender: Any?) {
+        let id = ObjectIdentifier(self)
+        guard Self.documentsPreparingToPrint.insert(id).inserted else {
+            return
+        }
+        Task {
+            await prepareForPrinting()
+            Self.documentsPreparingToPrint.remove(id)
+            super.printDocument(sender)
+        }
+    }
+
+    /// Readies the window's page for a print operation: loads each `<picture>`'s candidates, so
+    /// the light image a dark window switches to while printing is already in the page (not
+    /// fetched mid-print, which can put the dark image on paper). Never throws: with no page,
+    /// `printOperation(withSettings:)` reports the error.
+    func prepareForPrinting() async {
+        guard
+            let controller = windowControllers.lazy.compactMap({ $0 as? DocumentWindowController }).first,
+            controller.coordinator.hasLoadedPage
+        else {
+            return
+        }
+        try? await controller.coordinator.preloadPictureSources()
+    }
+
     /// Prints the page shown in this document's window.
     override func printOperation(withSettings printSettings: [NSPrintInfo.AttributeKey: Any]) throws
         -> NSPrintOperation

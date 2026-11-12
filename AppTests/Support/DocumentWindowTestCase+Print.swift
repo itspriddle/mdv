@@ -12,6 +12,8 @@ extension DocumentWindowTestCase {
     {
         let window = try #require(controller.window)
         let pdf = folder.appending(path: name)
+        // As File > Print does (`MarkdownDocument.printDocument(_:)`).
+        await document.prepareForPrinting()
         let operation = try document.printOperation(withSettings: [
             .jobDisposition: NSPrintInfo.JobDisposition.save, .jobSavingURL: pdf,
         ])

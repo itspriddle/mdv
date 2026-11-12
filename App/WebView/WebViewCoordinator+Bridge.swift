@@ -86,6 +86,13 @@ extension WebViewCoordinator {
         return (result as? NSNumber)?.boolValue == true
     }
 
+    /// Loads every `<picture>` candidate into the page before printing, so a dark window's
+    /// pictures can switch to their light image while the page prints (`preloadPictureSources`
+    /// in `DocumentBridge.js`). Returns once they have loaded or failed, or after its timeout.
+    func preloadPictureSources() async throws {
+        _ = try await callBridge("return await mdv.preloadPictureSources();")
+    }
+
     /// The reading position to keep across a reload.
     func readingPosition() async throws -> ReadingPosition {
         let result = try await callBridge("return mdv.readingPosition();")
