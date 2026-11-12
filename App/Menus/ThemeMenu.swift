@@ -5,8 +5,8 @@ import MdvCore
 /// #35) themes in their own section (`ThemeRegistry.pickerSections`), followed by custom theme
 /// files that didn't load (disabled, with the reason). The action is
 /// `DocumentWindowController.selectTheme(_:)`; its validation checks the window's theme. The
-/// items are rebuilt each time the menu opens, so themes added or removed while the app runs
-/// show up. View > Theme starts with "Document's Theme" (#54,
+/// items are rebuilt when the menu opens after the registry changed, so themes added or removed
+/// while the app runs show up. View > Theme starts with "Document's Theme" (#54,
 /// `DocumentWindowController.useDocumentTheme(_:)`), which drops the window's pick so the
 /// frontmatter's `mdv.theme` shows again, and ends with "Open Themes Folder"
 /// (`AppDelegate.openThemesFolder(_:)`).
@@ -102,8 +102,20 @@ final class ThemePickerMenu: NSMenu, NSMenuDelegate {
         fatalError("ThemePickerMenu is created in code")
     }
 
+    /// What the items were last built from. AppKit calls `menuNeedsUpdate(_:)` for every open,
+    /// and accessibility calls it too (reading the menu while it is open); rebuilding then would
+    /// replace validated items (title, checkmark, enabled state) with unvalidated ones, so the
+    /// items are rebuilt only when the themes changed.
+    private var builtFrom: (registry: ThemeRegistry, failures: [CustomThemeFailure])?
+
     func menuNeedsUpdate(_ menu: NSMenu) {
-        var items = ThemeMenu.items(for: settings.registry, failures: settings.customThemeFailures)
+        let registry = settings.registry
+        let failures = settings.customThemeFailures
+        if let builtFrom, builtFrom.registry == registry, builtFrom.failures == failures {
+            return
+        }
+        builtFrom = (registry, failures)
+        var items = ThemeMenu.items(for: registry, failures: failures)
         if includesDocumentThemeItem {
             items = [ThemeMenu.documentThemeItem(), .separator()] + items
         }

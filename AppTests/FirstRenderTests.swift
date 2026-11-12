@@ -95,13 +95,12 @@ struct FirstRenderTests {
         let controller = try #require(document.windowControllers.first as? DocumentWindowController)
         #expect(controller.window?.isVisible == true)
         #expect(controller.window?.title == "large.md", "the file name until the render names it")
-        #expect(controller.coordinator.webView.isHidden, "the theme background shows, not a blank page")
+        #expect(!controller.coordinator.webView.isOpaque, "the theme background shows, not a blank page")
 
         await document.pendingRender?.value
         #expect(document.content?.page.title == "Large Document")
         #expect(controller.window?.title == "Large Document")
         try await until("the page") { controller.coordinator.hasLoadedPage }
-        #expect(!controller.coordinator.webView.isHidden)
     }
 
     /// Opens a 5 MB document while a hang detector runs on the main actor. Reading and decoding
@@ -185,7 +184,7 @@ struct FirstRenderTests {
         let coordinator = WebViewCoordinator()
         coordinator.prepareForFirstLoad()
         #expect(!coordinator.hasLoadedPage)
-        #expect(coordinator.webView.isHidden)
+        #expect(!coordinator.webView.isOpaque)
         if waitForPreparation {
             try await until("the preparation load") { !coordinator.webView.isLoading }
             #expect(coordinator.expectedLoadURL == nil, "the navigation policy allowed the preparation load")
@@ -196,7 +195,6 @@ struct FirstRenderTests {
         let page = DocumentContent(source: "# Page", fallbackTitle: "page.md").page
         try await coordinator.load(page, baseURL: baseURL)
         #expect(coordinator.hasLoadedPage)
-        #expect(!coordinator.webView.isHidden)
         let title =
             try await coordinator.webView.callAsyncJavaScript(
                 "return document.title;", arguments: [:], in: nil, contentWorld: AppScripts.world) as? String

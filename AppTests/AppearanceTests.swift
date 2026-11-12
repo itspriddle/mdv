@@ -49,7 +49,7 @@ struct AppearanceTests {
             let color = try #require(try resolved(windowColor, in: name))
             #expect(Self.matches(color, expected), "\(name.rawValue)")
         }
-        #expect(controller.coordinator.webView.isHidden)
+        #expect(!controller.coordinator.webView.isOpaque)
     }
 
     /// WebKit on macOS 26 keeps `underPageBackgroundColor` resolved for the appearance it was set
