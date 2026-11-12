@@ -134,7 +134,9 @@ struct OpeningTests {
         }
         let declaringTypes = UTType.types(tag: fileExtension, tagClass: .filenameExtension, conformingTo: nil)
         if declaringTypes == [MarkdownContentTypes.otherMarkdownExtensions] {
-            #expect(typeName == MarkdownContentTypes.otherMarkdownExtensions.identifier)
+            // UTType compares identifiers case-insensitively, as Launch Services does: it may
+            // report `now.peep.peep.markdown` for the exported `now.peep.Peep.markdown`.
+            #expect(UTType(typeName) == MarkdownContentTypes.otherMarkdownExtensions)
         }
         let type = try #require(UTType(typeName))
         #expect(type.conforms(to: .plainText))
