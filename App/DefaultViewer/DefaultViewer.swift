@@ -1,11 +1,11 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// Reads and changes whether mdv is the default viewer for Markdown, and decides when to offer.
+/// Reads and changes whether Peep is the default viewer for Markdown, and decides when to offer.
 ///
 /// Offer rules (#23): the offer appears when a document window opens while another app is the
 /// default, at most once per launch. "Don't Ask Again" ends it for good, "Not Now" snoozes it for
-/// `snoozeInterval`, and "Make Default" (or becoming the default any other way) ends it while mdv
+/// `snoozeInterval`, and "Make Default" (or becoming the default any other way) ends it while Peep
 /// stays the default. UI tests never see it (`UITestHooks.suppressesFirstRunPrompts`).
 @MainActor
 final class DefaultViewer {
@@ -17,13 +17,13 @@ final class DefaultViewer {
     }
 
     enum Failure: Error, Equatable {
-        /// mdv has no bundle identifier (not running from an app bundle).
+        /// Peep has no bundle identifier (not running from an app bundle).
         case noBundleIdentifier
         /// Launch Services accepted the change but still reports another default.
         case notApplied
     }
 
-    /// The Markdown types mdv declares as a handler (`LSHandlerRank` other than `None`).
+    /// The Markdown types Peep declares as a handler (`LSHandlerRank` other than `None`).
     static let contentTypes: [UTType] = MarkdownContentTypes.all
 
     /// How long "Not Now" postpones the offer.
@@ -56,7 +56,7 @@ final class DefaultViewer {
         self.now = now
     }
 
-    /// Whether mdv opens every declared Markdown type by default.
+    /// Whether Peep opens every declared Markdown type by default.
     var isDefault: Bool {
         guard let bundleIdentifier else {
             return false
@@ -86,7 +86,7 @@ final class DefaultViewer {
         defaults.set(now(), forKey: Self.lastOfferedKey)
     }
 
-    /// Records the user's answer and, for `.makeDefault`, makes mdv the default.
+    /// Records the user's answer and, for `.makeDefault`, makes Peep the default.
     func respond(_ choice: Choice) async throws {
         switch choice {
         case .makeDefault:
@@ -98,7 +98,7 @@ final class DefaultViewer {
         }
     }
 
-    /// Makes mdv the default for every declared Markdown type, then confirms it took effect.
+    /// Makes Peep the default for every declared Markdown type, then confirms it took effect.
     func makeDefault() async throws {
         guard bundleIdentifier != nil else {
             throw Failure.noBundleIdentifier

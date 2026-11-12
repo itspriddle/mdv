@@ -12,8 +12,8 @@ gh api markdown -f mode=gfm -f text="$(cat NAME.md)" > NAME.html
 ```
 
 `$(...)` drops trailing newlines from the input, which doesn't change the rendering. Re-capture
-a fixture when its Markdown changes, and keep inputs to features mdv renders like GitHub (no
-headings or raw HTML until their issues land, and no fenced code with a language: mdv writes
+a fixture when its Markdown changes, and keep inputs to features Peep renders like GitHub (no
+headings or raw HTML until their issues land, and no fenced code with a language: Peep writes
 highlight.js `hljs-` spans where GitHub writes `<div class="highlight …">` with `pl-` classes).
 
 `mode=gfm` is GitHub's comment rendering, which turns soft line breaks into `<br>`; files
@@ -25,18 +25,18 @@ GitHub's `<br>` back into newlines and compares normalized HTML (see `alertsMatc
 
 ## Comparison
 
-Before comparing, the test removes what github.com adds on top of its Markdown rendering and mdv
+Before comparing, the test removes what github.com adds on top of its Markdown rendering and Peep
 deliberately leaves out:
 
-| GitHub output                                    | Why mdv omits it                                   |
-| ------------------------------------------------ | -------------------------------------------------- |
-| `<markdown-accessiblity-table>` wrapper          | github.com custom element                          |
-| `role="table"` on `<table>`                      | Redundant with the element's implicit role         |
-| `rel="nofollow"` on links                        | SEO hint; mdv never navigates the viewer to links  |
-| `class="notranslate"` on `pre`/`code`            | Browser translation hint for github.com            |
-| `id=""` on task checkboxes                       | Empty attribute                                    |
-| `user-content-` id/href prefix                   | DOM-clobbering guard for github.com's own page ids |
-| `-<32 hex digits>` suffix on footnote ids        | Per-render nonce                                   |
-| `<g-emoji class="g-emoji" alias="…">` wrapper    | github.com custom element; mdv writes the emoji    |
+| GitHub output                                 | Why Peep omits it                                  |
+| --------------------------------------------- | -------------------------------------------------- |
+| `<markdown-accessiblity-table>` wrapper       | github.com custom element                          |
+| `role="table"` on `<table>`                   | Redundant with the element's implicit role         |
+| `rel="nofollow"` on links                     | SEO hint; Peep never navigates the viewer to links |
+| `class="notranslate"` on `pre`/`code`         | Browser translation hint for github.com            |
+| `id=""` on task checkboxes                    | Empty attribute                                    |
+| `user-content-` id/href prefix                | DOM-clobbering guard for github.com's own page ids |
+| `-<32 hex digits>` suffix on footnote ids     | Per-render nonce                                   |
+| `<g-emoji class="g-emoji" alias="…">` wrapper | github.com custom element; Peep writes the emoji   |
 
 Leading and trailing whitespace is trimmed on both sides; everything else must match exactly.

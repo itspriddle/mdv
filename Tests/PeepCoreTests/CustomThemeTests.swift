@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Custom themes (#35): the header, the CSS checks (hostile inputs included), and reading the
 /// folder.
@@ -26,7 +26,7 @@ struct CustomThemeTests {
     func fullHeader() throws {
         let css = """
 
-            /* mdv-theme
+            /* peep-theme
              * Name:  Solarized   Light
              * background: #FDF6E3
              * background-dark: #002b36
@@ -50,14 +50,14 @@ struct CustomThemeTests {
 
     @Test("background-dark defaults to background; neither falls back to the extended theme")
     func backgroundFallbacks() throws {
-        let one = try CustomTheme.make(fileName: "a.css", css: "/* mdv-theme\nbackground: #abc\n*/")
+        let one = try CustomTheme.make(fileName: "a.css", css: "/* peep-theme\nbackground: #abc\n*/")
         #expect(one.background == ThemeBackground(light: ThemeColor(0xAA_BB_CC), dark: ThemeColor(0xAA_BB_CC)))
 
-        let darkOnly = try CustomTheme.make(fileName: "a.css", css: "/* mdv-theme\nbackground-dark: #111111\n*/")
+        let darkOnly = try CustomTheme.make(fileName: "a.css", css: "/* peep-theme\nbackground-dark: #111111\n*/")
         #expect(darkOnly.background.light == ThemeRegistry.bundled.defaultTheme.background.light)
         #expect(darkOnly.background.dark == ThemeColor(0x11_11_11))
 
-        let extended = try CustomTheme.make(fileName: "a.css", css: "/* mdv-theme\nextends: document\n*/")
+        let extended = try CustomTheme.make(fileName: "a.css", css: "/* peep-theme\nextends: document\n*/")
         #expect(extended.background == Theme.document.background)
     }
 
@@ -70,23 +70,23 @@ struct CustomThemeTests {
 
     @Test("a header after other CSS is ignored")
     func lateHeader() throws {
-        let theme = try CustomTheme.make(fileName: "late.css", css: "p {}\n/* mdv-theme\nname: Late\n*/")
+        let theme = try CustomTheme.make(fileName: "late.css", css: "p {}\n/* peep-theme\nname: Late\n*/")
         #expect(theme.displayName == "late")
     }
 
     @Test(
         "bad header lines are errors with their line",
         arguments: [
-            ("/* mdv-theme\nname: A\nbackground: red\n*/", 3),
-            ("/* mdv-theme\nbackground: #12345\n*/", 2),
-            ("/* mdv-theme\nbackground-dark: #ffffff80\n*/", 2),
-            ("/* mdv-theme\nbackground: rgb(0 0 0)\n*/", 2),
-            ("/* mdv-theme\nbackgroud: #fff\n*/", 2),
-            ("/* mdv-theme\nname: A\nname: B\n*/", 3),
-            ("/* mdv-theme\njust some words\n*/", 2),
-            ("/* mdv-theme\nname:   \n*/", 2),
-            ("/* mdv-theme\nname: \u{202E}\u{0007}\n*/", 2),
-            ("\n\n/* mdv-theme\n\nbackground: #zzz\n*/", 5),
+            ("/* peep-theme\nname: A\nbackground: red\n*/", 3),
+            ("/* peep-theme\nbackground: #12345\n*/", 2),
+            ("/* peep-theme\nbackground-dark: #ffffff80\n*/", 2),
+            ("/* peep-theme\nbackground: rgb(0 0 0)\n*/", 2),
+            ("/* peep-theme\nbackgroud: #fff\n*/", 2),
+            ("/* peep-theme\nname: A\nname: B\n*/", 3),
+            ("/* peep-theme\njust some words\n*/", 2),
+            ("/* peep-theme\nname:   \n*/", 2),
+            ("/* peep-theme\nname: \u{202E}\u{0007}\n*/", 2),
+            ("\n\n/* peep-theme\n\nbackground: #zzz\n*/", 5),
         ])
     func badHeader(css: String, line: Int) {
         #expect {
@@ -101,7 +101,7 @@ struct CustomThemeTests {
 
     @Test(
         "truncated headers don't crash",
-        arguments: ["/*/", "/*", " /* mdv-theme", "/**/", "/* mdv-theme */", "/*mdv-theme*/p{}"])
+        arguments: ["/*/", "/*", " /* peep-theme", "/**/", "/* peep-theme */", "/*peep-theme*/p{}"])
     func truncatedHeader(css: String) {
         _ = try? CustomTheme.make(fileName: "t.css", css: css)
     }
@@ -109,10 +109,10 @@ struct CustomThemeTests {
     @Test("extends must name a bundled theme")
     func unknownBase() {
         #expect(throws: CustomThemeProblem.unknownBaseTheme("custom:other.css")) {
-            try CustomTheme.make(fileName: "a.css", css: "/* mdv-theme\nextends: custom:other.css\n*/")
+            try CustomTheme.make(fileName: "a.css", css: "/* peep-theme\nextends: custom:other.css\n*/")
         }
         #expect(throws: CustomThemeProblem.unknownBaseTheme("GitHub")) {
-            try CustomTheme.make(fileName: "a.css", css: "/* mdv-theme\nextends: GitHub\n*/")
+            try CustomTheme.make(fileName: "a.css", css: "/* peep-theme\nextends: GitHub\n*/")
         }
     }
 
@@ -139,7 +139,7 @@ struct CustomThemeTests {
 
     @Test("a custom theme can't shadow a bundled one")
     func namespacedIDs() throws {
-        let theme = try CustomTheme.make(fileName: "github.css", css: "/* mdv-theme\nname: GitHub\n*/")
+        let theme = try CustomTheme.make(fileName: "github.css", css: "/* peep-theme\nname: GitHub\n*/")
         #expect(theme.id == "custom:github.css")
         let registry = ThemeRegistry.bundled.adding([theme])
         #expect(registry.theme(id: "github") == .github)
@@ -164,7 +164,7 @@ struct CustomThemeTests {
             "p { mask: URL('DATA:IMAGE/gif;base64,R0lGOD==') }",
             "p { background: image-set(url(data:image/png;base64,AA) 1x, \"data:image/png;base64,AA\" 2x); }",
             "p { width: calc((100% - 2em) / 3); } [data-x=\"a\"] {}",
-            "@layer mdv-base { p { color: red !important } }",
+            "@layer peep-base { p { color: red !important } }",
             "p { content: \"a\\\nb\"; }",
             "p { grid-template-areas: \"a b\" \"c d\"; } q { quotes: \"«\" \"»\"; }",
             "p { color: red } </style><script>alert(1)</script>",
@@ -194,7 +194,7 @@ struct CustomThemeTests {
             ("p { background: url(x.png) }", .externalURL(line: 1)),
             ("p { background: url() }", .externalURL(line: 1)),
             ("p { background: url(javascript:alert(1)) }", .externalURL(line: 1)),
-            ("p { background: url(mdv-doc://token/x.png) }", .externalURL(line: 1)),
+            ("p { background: url(peep-doc://token/x.png) }", .externalURL(line: 1)),
             ("p { background: url(data:text/html,<b>x</b>) }", .externalURL(line: 1)),
             ("@font-face { font-family: X; src: url(data:font/woff2;base64,AA) }", .externalURL(line: 1)),
             ("p { background: URL(http://x) }", .externalURL(line: 1)),

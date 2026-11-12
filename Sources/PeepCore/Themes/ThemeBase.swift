@@ -9,7 +9,7 @@
 /// either. Protected:
 ///
 /// - `.sr-only` (visually hidden text for assistive technology);
-/// - find highlights (`::highlight(mdv-find)`, `::highlight(mdv-find-current)`, #25), never
+/// - find highlights (`::highlight(peep-find)`, `::highlight(peep-find-current)`, #25), never
 ///   printed;
 /// - the blocked remote-image placeholder's visibility (#20) (its look is a default);
 
@@ -51,19 +51,19 @@ public enum ThemeBase {
            (`a:not([href])`); a dashed underline keeps them distinguishable. */
         .wikilink-missing { border-bottom: 1px dashed; cursor: default; }
         /* Find in page (the app's find bar): every match, and the current one. Never printed. */
-        ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.4) !important; }
-        ::highlight(mdv-find-current) { background-color: #ff9632 !important; color: #1f2328 !important; }
+        ::highlight(peep-find) { background-color: rgb(255 214 0 / 0.4) !important; }
+        ::highlight(peep-find-current) { background-color: #ff9632 !important; color: #1f2328 !important; }
         /* Dark colors are for the screen only: paper is always printed with the light colors. */
         @media screen and (prefers-color-scheme: dark) {
-          ::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.3) !important; }
-          ::highlight(mdv-find-current) { background-color: #ffb454 !important; color: #0d1117 !important; }
+          ::highlight(peep-find) { background-color: rgb(255 214 0 / 0.3) !important; }
+          ::highlight(peep-find-current) { background-color: #ffb454 !important; color: #0d1117 !important; }
           .remote-image { color: #9198a1; background: #151b23; border-color: #3d444d; }
         }
         /* Print (#26, #38): light, no page background, full width, nothing clipped, no hover-only
            anchor icons, link targets written out after external links. Pages break around code,
            rows, images, and alerts where they fit, and never right after a heading. */
         @media print {
-          ::highlight(mdv-find), ::highlight(mdv-find-current) {
+          ::highlight(peep-find), ::highlight(peep-find-current) {
             background-color: transparent !important; color: inherit !important;
           }
           :root { color-scheme: light !important; }

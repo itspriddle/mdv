@@ -1,8 +1,8 @@
 import Foundation
 
-// `mdv FILE...` and `cmd | mdv`: open documents in the app (#67, #68).
+// `peep FILE...` and `cmd | peep`: open documents in the app (#67, #68).
 
-extension MdvCommand {
+extension PeepCommand {
     /// Checks every input and `--theme` first, so a bad path or theme opens nothing; then hands
     /// the request to `environment.appOpener`.
     func openInApp(in environment: CLIEnvironment) async throws(CLIError) {

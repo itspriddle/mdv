@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Renders with source lines on and heading anchors off.
 private func annotated(_ markdown: String, markup: GFMMarkup = .github) -> String {

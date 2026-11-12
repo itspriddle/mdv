@@ -4,7 +4,7 @@ import Synchronization
 
 /// Highlights code with the vendored highlight.js (`HighlightJSSource`) running in an
 /// in-process JavaScriptCore context, so highlighting happens at render time and the output is
-/// static `<span class="hljs-…">` markup (no JavaScript in the viewer or in `mdv --html`).
+/// static `<span class="hljs-…">` markup (no JavaScript in the viewer or in `peep --html`).
 ///
 /// The `JSContext` is created and the scripts are evaluated on first use, then reused. Access
 /// is serialized with a mutex because a `JSContext` isn't safe to use from several threads at
@@ -82,7 +82,7 @@ public final class HighlightJSHighlighter: SyntaxHighlighter {
         guard let context = JSContext() else {
             return nil
         }
-        context.name = "mdv highlight.js \(HighlightJSSource.version)"
+        context.name = "Peep highlight.js \(HighlightJSSource.version)"
         // Exceptions are reported through `context.exception`; don't log them.
         context.exceptionHandler = { context, exception in
             context?.exception = exception
@@ -90,7 +90,7 @@ public final class HighlightJSHighlighter: SyntaxHighlighter {
         // highlight.js may warn through `console`, which JavaScriptCore doesn't provide.
         context.evaluateScript("var console = { log() {}, warn() {}, error() {}, info() {}, debug() {} };")
         for script in HighlightJSSource.scripts {
-            context.evaluateScript(script.source, withSourceURL: URL(string: "mdv-hljs:///\(script.name)"))
+            context.evaluateScript(script.source, withSourceURL: URL(string: "peep-hljs:///\(script.name)"))
             if context.exception != nil {
                 return nil
             }

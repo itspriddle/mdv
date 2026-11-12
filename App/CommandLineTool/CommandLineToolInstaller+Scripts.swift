@@ -30,7 +30,7 @@ extension CommandLineToolInstaller {
           shift 3
           folder=$(/usr/bin/dirname "$link")
           /bin/mkdir -p "$folder"
-          temporary="$folder/.mdv-install-$$"
+          temporary="$folder/.peep-install-$$"
           /bin/ln -s "$target" "$temporary"
           /bin/mv -f "$temporary" "$link" || { /bin/rm -f "$temporary"; exit 1; }
         done
@@ -57,11 +57,11 @@ extension CommandLineToolInstaller {
 
 /// Why installing or removing the command failed.
 enum CommandLineToolError: Error, Equatable, LocalizedError {
-    /// Something that isn't mdv's link is at the path.
+    /// Something that isn't Peep's link is at the path.
     case occupied(CommandLineToolInstaller.Occupant)
     /// Nothing is installed at the path.
     case notInstalled
-    /// The path changed while mdv was looking at it.
+    /// The path changed while Peep was looking at it.
     case changed
     /// The folder needs an administrator to change.
     case needsAdministrator
@@ -82,13 +82,13 @@ enum CommandLineToolError: Error, Equatable, LocalizedError {
         switch self {
         case .occupied(let occupant):
             switch occupant {
-            case .file: "A file that isn’t mdv’s link is in the way."
+            case .file: "A file that isn’t Peep’s link is in the way."
             case .folder: "A folder is in the way."
             case .link(let destination): "A link to \(destination) is in the way."
-            case .other: "Something that isn’t mdv’s link is in the way."
+            case .other: "Something that isn’t Peep’s link is in the way."
             }
         case .notInstalled: "The command line tool isn’t installed there."
-        case .changed: "The file changed while mdv was installing. Try again."
+        case .changed: "The file changed while Peep was installing. Try again."
         case .needsAdministrator: "Changing this folder needs an administrator."
         case .cancelled: "Cancelled."
         case .failed(let message): message

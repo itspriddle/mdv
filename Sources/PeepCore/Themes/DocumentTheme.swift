@@ -32,7 +32,7 @@ enum DocumentTheme {
         body { margin: 0; }
         /* The page: US Letter width (8.5in) with 1in margins, narrower windows get less margin. */
         .markdown-body {
-          box-sizing: border-box; max-width: var(--mdv-content-width, 816px); margin: 32px auto; padding: 96px;
+          box-sizing: border-box; max-width: var(--peep-content-width, 816px); margin: 32px auto; padding: 96px;
           background: var(--doc-page); box-shadow: var(--doc-shadow); color: var(--doc-text);
           font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
           font-size: 11pt; line-height: 1.5;

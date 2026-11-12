@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Minimal files whose leading bytes sniff as each format.
 enum ImageBytes {
@@ -17,7 +17,7 @@ final class TemporaryTree {
     let root: URL
 
     init() throws {
-        let base = FileManager.default.temporaryDirectory.appending(path: "mdv-tests-\(UUID().uuidString)")
+        let base = FileManager.default.temporaryDirectory.appending(path: "peep-tests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         // Real path (`/private/var/...`), so expectations compare with what the policy returns.
         root = URL(filePath: try #require(LocalResourceRoot.realPath(base.path)), directoryHint: .isDirectory)
@@ -53,10 +53,10 @@ struct DocumentURLSchemeTests {
     static let sharedToken = "0a1b2c3d-0000-4000-8000-000000000000"
     let token = sharedToken
 
-    @Test("builds mdv-doc://token/<absolute path>, percent-encoding each segment")
+    @Test("builds peep-doc://token/<absolute path>, percent-encoding each segment")
     func builds() throws {
         let url = try #require(DocumentURLScheme.url(token: token, filePath: "/Users/me/My Docs/a#b?c%d.md"))
-        #expect(url.absoluteString == "mdv-doc://\(token)/Users/me/My%20Docs/a%23b%3Fc%25d.md")
+        #expect(url.absoluteString == "peep-doc://\(token)/Users/me/My%20Docs/a%23b%3Fc%25d.md")
         #expect(DocumentURLScheme.filePath(from: url, token: token) == "/Users/me/My Docs/a#b?c%d.md")
     }
 
@@ -92,21 +92,21 @@ struct DocumentURLSchemeTests {
         arguments: [
             "file:///repo/a.png",
             "https://\(DocumentURLSchemeTests.sharedToken)/repo/a.png",
-            "mdv-doc://another-token/repo/a.png",
-            "mdv-doc://user@\(DocumentURLSchemeTests.sharedToken)/repo/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken):80/repo/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/%2e%2e/etc/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/%2E%2E/etc/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/.%2e/etc/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/../etc/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/./a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/%2e/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/..%2fetc/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo%2f..%2f..%2fetc/a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo//a.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/img/",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)/repo/a%00.png",
-            "mdv-doc://\(DocumentURLSchemeTests.sharedToken)",
+            "peep-doc://another-token/repo/a.png",
+            "peep-doc://user@\(DocumentURLSchemeTests.sharedToken)/repo/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken):80/repo/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/%2e%2e/etc/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/%2E%2E/etc/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/.%2e/etc/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/../etc/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/./a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/%2e/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/..%2fetc/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo%2f..%2f..%2fetc/a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo//a.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/img/",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)/repo/a%00.png",
+            "peep-doc://\(DocumentURLSchemeTests.sharedToken)",
         ])
     func refuses(_ string: String) throws {
         let url = try #require(URL(string: string))
@@ -128,9 +128,9 @@ struct DocumentURLSchemeTests {
         #expect(folder.hasDirectoryPath)
         #expect(try target("sub//") == nil)
         #expect(try target("../%2e%2e/") == nil)
-        let otherToken = try #require(URL(string: "mdv-doc://another-token/repo/sub/"))
+        let otherToken = try #require(URL(string: "peep-doc://another-token/repo/sub/"))
         #expect(DocumentURLScheme.fileURL(from: otherToken, token: token) == nil)
-        #expect(DocumentURLScheme.fileURL(from: try #require(URL(string: "mdv-doc://\(token)/")), token: token) == nil)
+        #expect(DocumentURLScheme.fileURL(from: try #require(URL(string: "peep-doc://\(token)/")), token: token) == nil)
     }
 
     @Test("tokens are random lowercase UUIDs")
@@ -253,7 +253,7 @@ struct ContentSecurityPolicyTests {
     func viewer() {
         #expect(
             ContentSecurityPolicy.viewer.header
-                == "default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;")
+                == "default-src 'none'; style-src 'unsafe-inline'; img-src peep-doc: data:;")
         let html = HTMLDocument(title: "t", body: "", theme: .github, contentSecurityPolicy: .viewer).html
         #expect(html.contains(ContentSecurityPolicy.viewer.header))
         #expect(!html.contains("file:"))

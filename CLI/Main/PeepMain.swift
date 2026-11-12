@@ -1,9 +1,9 @@
-// The `mdv` executable; the command lives in MdvCLIKit so tests can run it in-process.
-import MdvCLIKit
+// The `peep` executable; the command lives in PeepCLIKit so tests can run it in-process.
+import PeepCLIKit
 
 @main
-enum MdvMain {
+enum PeepMain {
     static func main() async {
-        await MdvCommand.main()
+        await PeepCommand.main()
     }
 }

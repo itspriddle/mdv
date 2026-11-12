@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 @Suite("LocalImagePolicy")
 struct LocalImagePolicyTests {
@@ -59,7 +59,7 @@ struct LocalImagePolicyTests {
         try tree.write("root/inside.png", ImageBytes.png)
         #expect(try image("outside/secret.png") == nil)
         // Lexical `..` and encoded forms never reach the file system.
-        let base = "mdv-doc://\(token)\(tree.path("root"))"
+        let base = "peep-doc://\(token)\(tree.path("root"))"
         for spelling in ["/../outside/secret.png", "/%2e%2e/outside/secret.png", "/..%2foutside/secret.png"] {
             let crafted = try #require(URL(string: base + spelling))
             #expect(policy.image(for: crafted) == nil, "\(spelling)")

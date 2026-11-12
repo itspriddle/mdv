@@ -1,9 +1,9 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 /// The app's side of wiki link resolution (#53): a `FolderWikiLinkResolver` over the real file
 /// system for one render of one document. The search rules (document folder, then the allowed
-/// root, the entry cap) and the folder reader (`FileSystemFolderReader`) live in MdvCore.
+/// root, the entry cap) and the folder reader (`FileSystemFolderReader`) live in PeepCore.
 enum DocumentWikiLinks {
     /// A resolver for one render of the document at `fileURL`, searching its folder and then
     /// `linkRoot` (its allowed root, `DocumentContent.linkRoot(forDocumentAt:)`). `nil` without a

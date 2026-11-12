@@ -6,7 +6,7 @@ import Foundation
 /// key is optional:
 ///
 /// ```css
-/// /* mdv-theme
+/// /* peep-theme
 ///    name: Solarized Light
 ///    background: #fdf6e3
 ///    background-dark: #002b36
@@ -15,7 +15,7 @@ import Foundation
 /// ```
 ///
 /// - The header is a `/* … */` comment before anything else in the file (whitespace aside)
-///   whose first line is `mdv-theme`. Each other non-blank line is `key: value`; a leading
+///   whose first line is `peep-theme`. Each other non-blank line is `key: value`; a leading
 ///   `*` (comment decoration) is ignored. Keys are case-insensitive; unknown or repeated keys
 ///   are errors, so a typo doesn't go unnoticed.
 /// - `name`: the picker's name. Default: the file name without `.css`.
@@ -26,7 +26,7 @@ import Foundation
 ///   neither, the extended theme's backgrounds, else the default theme's.
 /// - `extends`: a bundled theme id (`github`, `document`, `serif`). Its CSS goes first in the
 ///   theme layer and this file's CSS after it, so the file only overrides. Without it the
-///   theme starts from the base layer alone: browser defaults plus the rules mdv's features
+///   theme starts from the base layer alone: browser defaults plus the rules Peep's features
 ///   need.
 ///
 /// The id is `custom:<file name>` (e.g. `custom:solarized.css`), a namespace no bundled id
@@ -35,7 +35,7 @@ public enum CustomTheme {
     /// The id prefix of every custom theme.
     public static let idPrefix = "custom:"
     /// The header comment's marker line.
-    public static let headerMarker = "mdv-theme"
+    public static let headerMarker = "peep-theme"
     /// The longest display name; longer names are cut with an ellipsis.
     public static let maximumNameLength = 64
 

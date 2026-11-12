@@ -1,12 +1,12 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 extension NSColor {
     /// A theme's page background (`Theme.background`), resolved for the current appearance.
     /// Windows and web views paint their theme's before the page draws (#34: each window's
     /// own), and it follows system appearance changes live.
     static func themeBackground(_ background: ThemeBackground) -> NSColor {
-        NSColor(name: "mdvThemeBackground") { appearance in
+        NSColor(name: "peepThemeBackground") { appearance in
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             return NSColor(isDark ? background.dark : background.light)
         }

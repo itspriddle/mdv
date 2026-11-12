@@ -1,7 +1,7 @@
 import AppKit
 import XCTest
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// Chooses `title` (System, Light, Dark) in View > Appearance.
     func chooseAppearanceInMenu(_ title: String) {
         let view = app.menuBars.menuBarItems["View"]

@@ -1,10 +1,10 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 private let token = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"
-private let documentLink = "mdv-doc://\(token)/Users/me/docs/guide.md#setup"
+private let documentLink = "peep-doc://\(token)/Users/me/docs/guide.md#setup"
 private let fileLink = "file:///Users/me/docs/guide.md#setup"
 
 private typealias Entry = PasteboardLinkRewriter.Entry
@@ -22,9 +22,9 @@ private func decoded(_ entry: Entry?) throws -> Any? {
     return try PropertyListSerialization.propertyList(from: data, format: nil)
 }
 
-@Suite("PasteboardLinkRewriter: no mdv-doc URLs in drags")
+@Suite("PasteboardLinkRewriter: no peep-doc URLs in drags")
 struct PasteboardLinkRewriterTests {
-    @Test("a pasteboard without mdv-doc URLs is left alone")
+    @Test("a pasteboard without peep-doc URLs is left alone")
     func untouched() {
         let entries = [text("public.url", "https://example.com/"), text("public.utf8-plain-text", "hello")]
         #expect(PasteboardLinkRewriter.rewrite(entries, token: token) == nil)
@@ -45,9 +45,9 @@ struct PasteboardLinkRewriterTests {
             ])
     }
 
-    @Test("the scheme matches in any case", arguments: ["MDV-DOC", "Mdv-Doc"])
+    @Test("the scheme matches in any case", arguments: ["PEEP-DOC", "Peep-Doc"])
     func schemeCase(scheme: String) throws {
-        let link = documentLink.replacingOccurrences(of: "mdv-doc", with: scheme)
+        let link = documentLink.replacingOccurrences(of: "peep-doc", with: scheme)
         let rewritten = try #require(PasteboardLinkRewriter.rewrite([text("public.url", link)], token: token))
         #expect(rewritten == [text("public.url", fileLink)])
     }
@@ -70,7 +70,7 @@ struct PasteboardLinkRewriterTests {
         #expect(actualFormat == format)
     }
 
-    @Test("entries that only mention an mdv-doc URL are dropped; the rest stay")
+    @Test("entries that only mention a peep-doc URL are dropped; the rest stay")
     func dropped() throws {
         let image = Entry(type: "public.tiff", data: Data([0x4D, 0x4D, 0x00, 0x2A]))
         let entries = [
@@ -85,9 +85,9 @@ struct PasteboardLinkRewriterTests {
         #expect(rewritten == [text("public.url", fileLink), image])
     }
 
-    @Test("an mdv-doc URL for another window, or not a file, is dropped")
+    @Test("a peep-doc URL for another window, or not a file, is dropped")
     func unresolvable() throws {
-        let other = "mdv-doc://00000000-0000-0000-0000-000000000000/Users/me/docs/guide.md"
+        let other = "peep-doc://00000000-0000-0000-0000-000000000000/Users/me/docs/guide.md"
         let rewritten = try #require(
             PasteboardLinkRewriter.rewrite(
                 [text("public.url", other), text("public.url-name", "Guide")], token: token))

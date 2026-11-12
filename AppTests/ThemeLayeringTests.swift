@@ -1,9 +1,9 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Hosted `WKWebView` tests for the theme cascade layers (`ThemeLayer`): the base layer's
 /// protected rules survive a hostile theme in WebKit, and ordinary theme rules still apply.

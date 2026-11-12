@@ -2,14 +2,14 @@ import Foundation
 
 /// What the viewer's context menu "Copy Link" puts on the pasteboard (#42).
 ///
-/// Links in the viewer resolve against the page's `mdv-doc://<token>/<path>` URL
+/// Links in the viewer resolve against the page's `peep-doc://<token>/<path>` URL
 /// (`DocumentURLScheme`), an internal URL that means nothing outside the window. A relative link
 /// is copied as the `file:` URL of what it names, keeping its fragment, so it can be pasted into
 /// a browser, Terminal, or another document. Every other URL (`https:`, `mailto:`, ...) is copied
-/// as resolved. An `mdv-doc` URL that names no file in this window is never copied.
+/// as resolved. A `peep-doc` URL that names no file in this window is never copied.
 public enum CopyableLink {
     /// The URL to copy for a link whose resolved URL is `url`, in the window `token`; `nil` to
-    /// copy nothing. Never returns an `mdv-doc` URL.
+    /// copy nothing. Never returns a `peep-doc` URL.
     public static func url(for url: URL, token: String) -> URL? {
         guard let scheme = url.scheme?.lowercased(), !scheme.isEmpty else {
             return nil

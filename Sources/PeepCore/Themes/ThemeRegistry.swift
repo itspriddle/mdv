@@ -1,4 +1,4 @@
-/// The themes mdv knows, by id. The one place the app and CLI ask for a theme: an id that is
+/// The themes Peep knows, by id. The one place the app and CLI ask for a theme: an id that is
 /// missing, unknown, or no longer registered (a deleted custom theme) resolves to the default.
 public struct ThemeRegistry: Sendable, Equatable {
     /// The bundled themes, default first: GitHub, Document, Serif.

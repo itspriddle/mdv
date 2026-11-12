@@ -1,15 +1,15 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
-/// `FileSystemFolderReader` (moved from the app for `mdv --html`, #65) on a real temp folder.
+/// `FileSystemFolderReader` (moved from the app for `peep --html`, #65) on a real temp folder.
 @Suite("File system folder reader")
 struct FileSystemFolderReaderTests {
     @Test("lists regular files and folders; leaves out symbolic links and packages")
     func entries() throws {
         let manager = FileManager.default
-        let folder = manager.temporaryDirectory.appending(path: "mdv-reader-\(UUID().uuidString)")
+        let folder = manager.temporaryDirectory.appending(path: "peep-reader-\(UUID().uuidString)")
         defer { try? manager.removeItem(at: folder) }
         try manager.createDirectory(at: folder.appending(path: "sub"), withIntermediateDirectories: true)
         try manager.createDirectory(at: folder.appending(path: "Tool.app"), withIntermediateDirectories: true)

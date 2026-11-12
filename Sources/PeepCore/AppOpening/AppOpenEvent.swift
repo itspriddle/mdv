@@ -1,15 +1,15 @@
 import CoreServices
 import Foundation
 
-/// The Apple Event `mdv FILE` sends the app (#67): a standard Open Documents event
-/// (`aevt/odoc`, the event Finder sends), its direct object the files, plus mdv's own optional
+/// The Apple Event `peep FILE` sends the app (#67): a standard Open Documents event
+/// (`aevt/odoc`, the event Finder sends), its direct object the files, plus Peep's own optional
 /// parameters (`AppOpenParameters`). The CLI hands it to Launch Services
 /// (`NSWorkspace.OpenConfiguration.appleEvent`), which launches the app with it or sends it to
 /// the running app, so the app opens files exactly as it does from Finder.
 ///
 /// When the CLI must reach a running copy without Launch Services (`Kind.direct`: another copy
 /// with the same bundle id is running, or the caller is sandboxed), it sends the same content as
-/// mdv's own event class instead (`mdv `/`odoc`), which the app handles with the same code.
+/// Peep's own event class instead (`Peep`/`odoc`), which the app handles with the same code.
 /// AppKit answers an Open Documents event that didn't come through Launch Services as a
 /// scripting command, which never reaches the app delegate and would drop the parameters.
 ///
@@ -22,18 +22,18 @@ public enum AppOpenEvent {
     public enum Kind: Sendable {
         /// `aevt/odoc`, through Launch Services.
         case openDocuments
-        /// `mdv /odoc`, sent straight to a running app.
+        /// `Peep/odoc`, sent straight to a running app.
         case direct
     }
 
-    /// `mdv `: the event class of `Kind.direct`.
-    public static let directEventClass: AEEventClass = 0x6D64_7620
+    /// `Peep`: the event class of `Kind.direct`.
+    public static let directEventClass: AEEventClass = 0x5065_6570
     /// `odoc`: the event id of `Kind.direct`.
     public static let directEventID = AEEventID(kAEOpenDocuments)
-    /// `mdvT`: the theme id for the opened windows (UTF-8 or UTF-16 text).
-    public static let themeKeyword: AEKeyword = 0x6D64_7654
-    // `mdvW` (#69) is `waitKeyword`. `mdvI` (0x6D64_7649) was reserved for standard input;
-    // #68 needed no parameter (`StandardInputHandoff`), so it stays unused.
+    /// `PepT`: the theme id for the opened windows (UTF-8 or UTF-16 text).
+    public static let themeKeyword: AEKeyword = 0x5065_7054
+    // `PepW` (#69) is `waitKeyword`. Standard input (#68) needs no parameter
+    // (`StandardInputHandoff`).
 
     /// The longest parameter value the app decodes, in bytes. A theme id is at most 256
     /// characters (`AppOpenParameters.maximumThemeIDLength`); 4 bytes each covers any encoding.
@@ -64,7 +64,7 @@ public enum AppOpenEvent {
         return event
     }
 
-    /// Whether `event` is an Open Documents event, or mdv's direct one.
+    /// Whether `event` is an Open Documents event, or Peep's direct one.
     public static func isOpenDocuments(_ event: NSAppleEventDescriptor) -> Bool {
         (event.eventClass == AEEventClass(kCoreEventClass) || event.eventClass == directEventClass)
             && event.eventID == AEEventID(kAEOpenDocuments)
@@ -113,16 +113,16 @@ public enum AppOpenEvent {
     }
 }
 
-/// mdv's options for the windows an Open Documents event opens (`AppOpenEvent`). Each is
+/// Peep's options for the windows an Open Documents event opens (`AppOpenEvent`). Each is
 /// optional: Finder's events have none, and the app then opens files as it always has.
 public struct AppOpenParameters: Equatable, Sendable {
     /// The longest theme id accepted, in characters (as restorable state's limit).
     public static let maximumThemeIDLength = 256
 
-    /// The theme the windows show, as their View > Theme pick (`mdv --theme`). The app checks
+    /// The theme the windows show, as their View > Theme pick (`peep --theme`). The app checks
     /// it against its registry; this type only checks it is a plausible id.
     public var themeID: String?
-    /// `mdv --wait` (#69): the invocation's token. The app posts
+    /// `peep --wait` (#69): the invocation's token. The app posts
     /// `AppOpenEvent.windowsClosedNotificationName(for:)` once every window this event opened
     /// (or brought forward) has closed.
     public var waitToken: UUID?

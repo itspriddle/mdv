@@ -39,17 +39,17 @@ public enum ContentWidth: String, Sendable, CaseIterable {
     }
 }
 
-/// The reader's style controls: the `mdv-user` cascade layer (`ThemeLayer.user`), above the
+/// The reader's style controls: the `peep-user` cascade layer (`ThemeLayer.user`), above the
 /// theme, so they win over any theme's ordinary rules without specificity games, and below the
 /// base layer's protected (`!important`) rules.
 ///
-/// The layer sets the custom property `--mdv-content-width` and applies it to
+/// The layer sets the custom property `--peep-content-width` and applies it to
 /// `.markdown-body`'s `max-width`. Themes that limit width elsewhere read
-/// `var(--mdv-content-width, <their default>)` there. Everything is screen only, so paper
+/// `var(--peep-content-width, <their default>)` there. Everything is screen only, so paper
 /// always gets the full width (the base layer's print rules force it too).
 public struct UserStyle: Sendable, Equatable {
     /// The custom property themes read for the column width.
-    public static let contentWidthProperty = "--mdv-content-width"
+    public static let contentWidthProperty = "--peep-content-width"
 
     public var contentWidth: ContentWidth
 
@@ -73,7 +73,7 @@ public struct UserStyle: Sendable, Equatable {
             """
     }
 
-    /// The text of the page's `<style id="mdv-user">` element. An in-place change replaces that
+    /// The text of the page's `<style id="peep-user">` element. An in-place change replaces that
     /// element's text with this.
     public var layerCSS: String {
         ThemeLayer.user.wrap(css)

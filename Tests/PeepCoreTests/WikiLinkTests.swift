@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// A resolver over a fixed list of files, with the folder resolver's naming rule
 /// (`WikiPage.matches`), recording what it was asked.

@@ -6,15 +6,15 @@ import os
 ///
 /// The contract (VISION, security model): the document's bytes on stdin, Markdown as UTF-8 on
 /// stdout, exit status 0 for success. The executable gets `configuration.arguments` as its
-/// argv (no shell), a minimal environment with the document's path in `MDV_DOCUMENT_PATH`,
+/// argv (no shell), a minimal environment with the document's path in `PEEP_DOCUMENT_PATH`,
 /// and the document's folder as its working directory (`PreprocessorEnvironment`). Each run
 /// is bounded by `configuration.limits`; a script that hangs, floods output, crashes, or
 /// leaves children behind yields a `PreprocessorError` (or `CancellationError`), never a
 /// hang, and every process it started in its process group is killed and reaped.
 ///
-/// Opting in is the caller's job: nothing in MdvCore runs a preprocessor unless handed one.
+/// Opting in is the caller's job: nothing in PeepCore runs a preprocessor unless handed one.
 public struct CustomPreprocessor: Sendable {
-    static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "mdv", category: "preprocessor")
+    static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "peep", category: "preprocessor")
 
     public let configuration: PreprocessorConfiguration
 
@@ -107,7 +107,7 @@ public struct CustomPreprocessor: Sendable {
             let thread = Thread {
                 continuation.resume(returning: Result { () throws(PreprocessorError) in try body() })
             }
-            thread.name = "mdv.preprocessor"
+            thread.name = "peep.preprocessor"
             thread.qualityOfService = qualityOfService(for: priority)
             thread.start()
         }

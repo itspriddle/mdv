@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// View > Theme (#34): one item per registered theme, bundled themes first and added (custom,
 /// #35) themes in their own section (`ThemeRegistry.pickerSections`), followed by custom theme
@@ -8,7 +8,7 @@ import MdvCore
 /// items are rebuilt when the menu opens after the registry changed, so themes added or removed
 /// while the app runs show up. View > Theme starts with "Document's Theme" (#54,
 /// `DocumentWindowController.useDocumentTheme(_:)`), which drops the window's pick so the
-/// frontmatter's `mdv.theme` shows again, and ends with "Open Themes Folder"
+/// frontmatter's `peep.theme` shows again, and ends with "Open Themes Folder"
 /// (`AppDelegate.openThemesFolder(_:)`).
 enum ThemeMenu: MenuContribution {
     /// The "Document's Theme" item's title; validation adds the theme's name.

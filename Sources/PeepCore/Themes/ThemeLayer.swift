@@ -9,12 +9,12 @@
 ///   (`ThemeBase`) win over every theme, even one that escapes its layer or marks its own rules
 ///   important.
 ///
-/// Each layer is its own `<style id="mdv-…">` element, so the theme (#34) or user controls
+/// Each layer is its own `<style id="peep-…">` element, so the theme (#34) or user controls
 /// (#37) can be swapped in place by replacing one element's text.
 public enum ThemeLayer: String, Sendable, CaseIterable {
-    case base = "mdv-base"
-    case theme = "mdv-theme"
-    case user = "mdv-user"
+    case base = "peep-base"
+    case theme = "peep-theme"
+    case user = "peep-user"
 
     /// The cascade layer name, also the id of the layer's `<style>` element.
     public var name: String { rawValue }

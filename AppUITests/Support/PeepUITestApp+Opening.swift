@@ -1,12 +1,12 @@
 import XCTest
 
-extension MdvUITestApp {
-    /// Launches mdv opening several fixtures, in order (`-MdvUITestOpen` as a property-list
+extension PeepUITestApp {
+    /// Launches Peep opening several fixtures, in order (`-PeepUITestOpen` as a property-list
     /// array).
     @discardableResult
-    static func launch(openingFixtures names: [String], restoresState: Bool = false) throws -> MdvUITestApp {
+    static func launch(openingFixtures names: [String], restoresState: Bool = false) throws -> PeepUITestApp {
         let paths = try names.map { try Fixtures.url(named: $0).path(percentEncoded: false) }
-        return launch(arguments: ["-MdvUITestOpen", propertyListArray(paths)], restoresState: restoresState)
+        return launch(arguments: ["-PeepUITestOpen", propertyListArray(paths)], restoresState: restoresState)
     }
 
     /// An old-style property-list array of strings, as the `UserDefaults` argument domain parses.
@@ -32,7 +32,7 @@ extension MdvUITestApp {
         app.windows["open-panel"]
     }
 
-    /// Waits until mdv has exactly `count` windows.
+    /// Waits until Peep has exactly `count` windows.
     func waitForWindowCount(
         _ count: Int, timeout: TimeInterval = defaultTimeout, file: StaticString = #filePath, line: UInt = #line
     ) {
@@ -45,7 +45,7 @@ extension MdvUITestApp {
     }
 }
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// In the open Open panel, goes to `file`'s folder (Go to Folder, Shift-Cmd-G), selects
     /// `file` in the list, and clicks Open. Fails if Open stays disabled: typing a file's path
     /// into Go to Folder would open even a greyed-out file, so the file is clicked instead.

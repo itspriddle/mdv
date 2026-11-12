@@ -9,7 +9,7 @@ with at least one fixture, and every folder must be a registered flavor.
 Re-record after an intended output change, and review the diff:
 
 ```sh
-MDV_RECORD_SNAPSHOTS=1 swift test --filter FlavorCorpusTests
+PEEP_RECORD_SNAPSHOTS=1 swift test --filter FlavorCorpusTests
 ```
 
 - `commonmark/`: GFM syntax (tables, task lists, strikethrough, extended autolinks, footnotes,

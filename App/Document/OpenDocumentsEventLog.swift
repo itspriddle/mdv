@@ -1,12 +1,12 @@
 import AppKit
 import CoreServices
-import MdvCore
+import PeepCore
 
-/// mdv's parameters (`mdv --theme`, `--wait`) of recent Open Documents events, by file, so
+/// Peep's parameters (`peep --theme`, `--wait`) of recent Open Documents events, by file, so
 /// `DocumentController` can apply them to the files AppKit opens for each event (#67, #69).
 ///
 /// AppKit handles Open Documents events itself (it never calls the delegate's
-/// `application(_:open:)` for mdv's document types) and, while an earlier open is still in
+/// `application(_:open:)` for Peep's document types) and, while an earlier open is still in
 /// flight, opens an event's files later, when `NSAppleEventManager.currentAppleEvent` is no
 /// longer the event. So the parameters are taken as the event arrives (`OpenDocumentsEventTap`)
 /// and looked up by file when AppKit opens it. Each file's entry is taken once; entries expire

@@ -1,10 +1,10 @@
-/// Text that `mdv --help` and the man page share (#71), so neither goes stale. The flags
+/// Text that `peep --help` and the man page share (#71), so neither goes stale. The flags
 /// themselves are documented once, in their option groups; ArgumentParser generates both the
 /// help's option list and the man page's from them.
 public enum HelpText {
-    /// What mdv does, one paragraph each: the help's discussion and the man page's DESCRIPTION.
+    /// What Peep does, one paragraph each: the help's discussion and the man page's DESCRIPTION.
     public static let overview = [
-        "Opens FILE(s) in mdv. With no FILE, reads Markdown from standard input. "
+        "Opens FILE(s) in Peep. With no FILE, reads Markdown from standard input. "
             + "--html, --fragment, or --output render HTML instead of opening the app.",
         "Several FILEs print one after another only with --fragment; --output takes one.",
         "Standard input opens in an untitled window (up to 10 MB, read to its end, no file left "
@@ -19,34 +19,34 @@ public enum HelpText {
 
     /// The help's examples (commands only) and the man page's EXAMPLES section.
     public static let examples = [
-        Example(command: "mdv README.md", explanation: "Open README.md in mdv."),
+        Example(command: "peep README.md", explanation: "Open README.md in Peep."),
         Example(
-            command: "mdv --wait notes.md",
-            explanation: "Open notes.md and return once its window closes (or mdv quits)."),
+            command: "peep --wait notes.md",
+            explanation: "Open notes.md and return once its window closes (or Peep quits)."),
         Example(
-            command: "echo '# Markdown' | mdv", explanation: "Open Markdown from standard input in a new window."),
+            command: "echo '# Markdown' | peep", explanation: "Open Markdown from standard input in a new window."),
         Example(
-            command: "git show HEAD:README.md | mdv --wait",
+            command: "git show HEAD:README.md | peep --wait",
             explanation: "Open the committed README in a new window and return once it closes."),
         Example(
-            command: "mdv --html README.md > README.html",
+            command: "peep --html README.md > README.html",
             explanation: "Render a complete HTML page, CSS inline, to standard output."),
         Example(
-            command: "mdv -o README.html README.md",
+            command: "peep -o README.html README.md",
             explanation: "Write the page to README.html, replacing it atomically."),
         Example(
-            command: "mdv --fragment intro.md usage.md > body.html",
+            command: "peep --fragment intro.md usage.md > body.html",
             explanation: "Render the body HTML of two files, one after the other, for embedding in another page."),
         Example(
-            command: "mdv --html --theme serif --flavor commonmark notes.md",
+            command: "peep --html --theme serif --flavor commonmark notes.md",
             explanation:
                 "Render with the Serif theme and plain CommonMark, whatever the document's frontmatter asks for."),
         Example(
-            command: "mdv --html --preprocessor ~/bin/expand --preprocessor-arg -v notes.md",
+            command: "peep --html --preprocessor ~/bin/expand --preprocessor-arg -v notes.md",
             explanation: "Run ~/bin/expand -v on the Markdown first and render what it prints."),
     ]
 
-    /// `MdvCommand`'s help discussion: the overview, the example commands, and the exit statuses.
+    /// `PeepCommand`'s help discussion: the overview, the example commands, and the exit statuses.
     static var discussion: String {
         let commands = examples.map { "  " + $0.command }.joined(separator: "\n")
         return """

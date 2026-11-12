@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The document's folder deleted, recreated, or renamed (#41).
 extension FileWatcherTests {

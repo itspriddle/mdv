@@ -1,7 +1,7 @@
 import XCTest
 
-extension MdvUITestApp {
-    /// The CLI embedded in the app under test (`mdv.app/Contents/Helpers/mdv`), next to the UI
+extension PeepUITestApp {
+    /// The CLI embedded in the app under test (`Peep.app/Contents/Helpers/peep`), next to the UI
     /// test runner in the build products folder. Running it opens that app, the one the test
     /// launched (#67).
     static func commandLineTool() throws -> URL {
@@ -9,7 +9,7 @@ extension MdvUITestApp {
         let products = Bundle(for: CommandLineUITests.self).bundleURL
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
-        let tool = products.appending(path: "mdv.app/Contents/Helpers/mdv")
+        let tool = products.appending(path: "Peep.app/Contents/Helpers/peep")
         guard FileManager.default.isExecutableFile(atPath: tool.path(percentEncoded: false)) else {
             throw XCTSkip("No embedded CLI at \(tool.path(percentEncoded: false))")
         }
@@ -19,14 +19,14 @@ extension MdvUITestApp {
     /// A copy of the fixture `name` in a new temp folder (the caller removes the folder).
     static func temporaryCopy(ofFixture name: String) throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-ui-cli-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-ui-cli-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let copy = folder.appending(path: (name as NSString).lastPathComponent)
         try FileManager.default.copyItem(at: try Fixtures.url(named: name), to: copy)
         return copy
     }
 
-    /// Runs `mdv arguments…` and returns its exit status and standard error. Gives up after 20 s.
+    /// Runs `peep arguments…` and returns its exit status and standard error. Gives up after 20 s.
     /// Standard input is the file `standardInput` (a file, so a run that stops reading early
     /// can't raise `SIGPIPE` here), else empty; `environment` adds to the runner's.
     @discardableResult
@@ -50,7 +50,7 @@ extension MdvUITestApp {
         }
         if process.isRunning {
             process.terminate()
-            XCTFail("mdv \(arguments) didn't exit")
+            XCTFail("peep \(arguments) didn't exit")
         }
         let stderr = String(bytes: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         return (process.terminationStatus, stderr)

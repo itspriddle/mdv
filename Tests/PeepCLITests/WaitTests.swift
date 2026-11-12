@@ -1,11 +1,11 @@
 import Darwin
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvCLIKit
+@testable import PeepCLIKit
 
-/// `mdv --wait` (#69): the flag's rules, and `WindowsClosedWaiter`, which ends on the app's
+/// `peep --wait` (#69): the flag's rules, and `WindowsClosedWaiter`, which ends on the app's
 /// notification for its token or the app's process exiting.
 @Suite("Waiting for windows", .timeLimit(.minutes(1)))
 struct WaitTests {
@@ -21,7 +21,7 @@ struct WaitTests {
         #expect(plain.waits == [false])
     }
 
-    @Test("cmd | mdv --wait: standard input reaches the opener with the wait (#68)")
+    @Test("cmd | peep --wait: standard input reaches the opener with the wait (#68)")
     func standardInput() async {
         let opener = RecordingAppOpener()
         let result = await CLIHarness.run(["--wait"], stdin: Data("# Piped\n".utf8), appOpener: opener)

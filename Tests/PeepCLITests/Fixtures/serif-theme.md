@@ -1,5 +1,5 @@
 ---
-mdv:
+peep:
   theme: serif
 ---
 

@@ -8,7 +8,7 @@ final class TempFolder {
     init() throws {
         // Realpath'd: /var is a link to /private/var, and paths in messages should match.
         let base = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
-        url = base.appending(path: "mdv-cli-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        url = base.appending(path: "peep-cli-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 
@@ -29,7 +29,7 @@ final class TempFolder {
         return fileURL.path
     }
 
-    /// Copies the bundled fixture `name` (`Tests/MdvCLITests/Fixtures`) here.
+    /// Copies the bundled fixture `name` (`Tests/PeepCLITests/Fixtures`) here.
     @discardableResult
     func fixture(_ name: String) throws -> String {
         guard let source = Bundle.module.url(forResource: name, withExtension: nil, subdirectory: "Fixtures") else {

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 private func html(_ markdown: String, options: RenderOptions = RenderOptions()) -> String {
     HTMLRenderer(options: options).render(markdown).html

@@ -1,7 +1,7 @@
 import AppKit
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 @MainActor
 @Suite("MainMenu")

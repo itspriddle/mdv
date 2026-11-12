@@ -1,9 +1,9 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 // Headless output: `--html`, `--fragment`, `--output`.
 
-extension MdvCommand {
+extension PeepCommand {
     /// Reads and renders every input before writing anything, so a bad input leaves no partial
     /// output (and no `--output` file).
     func writeHTML(in environment: CLIEnvironment) async throws(CLIError) {

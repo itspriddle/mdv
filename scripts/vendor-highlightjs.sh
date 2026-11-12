@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Vendors a pinned highlight.js build into MdvCore as generated Swift source.
+# Vendors a pinned highlight.js build into PeepCore as generated Swift source.
 #
 #   scripts/vendor-highlightjs.sh 11.12.0     (or: make vendor-highlightjs HLJS_VERSION=11.12.0)
 #
 # Fetches the common bundle plus EXTRA_LANGUAGES from highlightjs/cdn-release at the given tag,
 # records each file's URL and SHA-256 in Vendor/highlight.js/MANIFEST, copies the BSD-3
-# license, and writes Sources/MdvCore/Highlighting/HighlightJSSource.generated.swift.
+# license, and writes Sources/PeepCore/Highlighting/HighlightJSSource.generated.swift.
 set -euo pipefail
 
 VERSION="${1:-}"
@@ -20,7 +20,7 @@ EXTRA_LANGUAGES=(cmake dart dockerfile elixir haskell nginx powershell scala)
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BASE_URL="https://raw.githubusercontent.com/highlightjs/cdn-release/$VERSION"
 VENDOR_DIR="$ROOT/Vendor/highlight.js"
-OUTPUT="$ROOT/Sources/MdvCore/Highlighting/HighlightJSSource.generated.swift"
+OUTPUT="$ROOT/Sources/PeepCore/Highlighting/HighlightJSSource.generated.swift"
 
 WORK="$(mktemp -d)"
 trap 'command rm -rf "$WORK"' EXIT

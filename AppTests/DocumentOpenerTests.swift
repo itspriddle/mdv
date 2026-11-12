@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// Open Documents events (#67): `DocumentOpener` opens the files and applies `mdv --theme`'s
+/// Open Documents events (#67): `DocumentOpener` opens the files and applies `peep --theme`'s
 /// parameter, which is untrusted input.
 @MainActor
 @Suite("Opening from Open Documents events", .serialized, .timeLimit(.minutes(1)))
@@ -17,9 +17,9 @@ final class DocumentOpenerTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-opener-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-opener-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        throwawayDefaults = try ThrowawayDefaults("mdv-opener-tests")
+        throwawayDefaults = try ThrowawayDefaults("peep-opener-tests")
     }
 
     deinit {

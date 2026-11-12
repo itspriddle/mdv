@@ -1,4 +1,4 @@
-/// A node in mdv's Markdown syntax tree.
+/// A node in Peep's Markdown syntax tree.
 ///
 /// Built by `MarkdownParser` from cmark's tree, then rendered by `HTMLRenderer`. The tree is a
 /// plain value: it holds no C pointers and is safe to share across concurrency domains.
@@ -16,7 +16,7 @@ public struct MarkdownNode: Sendable, Equatable {
 }
 
 extension MarkdownNode {
-    /// Every node type mdv understands: all CommonMark kinds plus the GFM extensions.
+    /// Every node type Peep understands: all CommonMark kinds plus the GFM extensions.
     public enum Kind: Sendable, Equatable {
         // MARK: CommonMark blocks
 
@@ -68,7 +68,7 @@ extension MarkdownNode {
         /// text; cmark's own HTML renderer outputs only the children.
         case attribute(String)
 
-        // MARK: mdv transforms
+        // MARK: Peep transforms
 
         /// An emoji shortcode such as `:tada:`, replaced by `EmojiShortcodes` (#10). `shortcode`
         /// is the alias without colons; `character` is the emoji it stands for.

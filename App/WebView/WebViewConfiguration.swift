@@ -15,7 +15,7 @@ enum WebViewConfiguration {
         for script in AppScripts.userScripts {
             configuration.userContentController.addUserScript(script)
         }
-        // The `mdv-doc` scheme handler is per window: `WebViewCoordinator.init` installs it.
+        // The `peep-doc` scheme handler is per window: `WebViewCoordinator.init` installs it.
         return configuration
     }
 }

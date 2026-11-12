@@ -1,5 +1,5 @@
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
 @Suite("Output flags")
@@ -14,7 +14,7 @@ struct OutputTests {
         #expect(result.stdout.hasPrefix("<!doctype html>"))
         #expect(result.stdout.hasSuffix("</html>\n"))
         #expect(result.stdout.contains("<title>Hello</title>"))
-        #expect(result.stdout.contains("<style id=\"mdv-theme\">"))
+        #expect(result.stdout.contains("<style id=\"peep-theme\">"))
         #expect(result.stdout.contains("<em>Markdown</em>"))
         #expect(result.stdout.components(separatedBy: "<!doctype html>").count == 2)
     }
@@ -57,7 +57,7 @@ struct OutputTests {
         let result = await CLIHarness.run(flags + [try folder.fixture("hello.md"), try folder.fixture("second.md")])
         #expect(result.status == 64)
         #expect(result.stdout.isEmpty)
-        #expect(result.stderr.contains("run mdv once per file"))
+        #expect(result.stderr.contains("run peep once per file"))
         #expect(!FileManager.default.fileExists(atPath: "out.html"))
     }
 
@@ -127,7 +127,7 @@ struct OutputTests {
         for target in [input, folder.path("link.md"), folder.path("hard.md"), folder.url.path + "/./doc.md"] {
             let result = await CLIHarness.run(["-o", target, input])
             #expect(result.status == 64, "\(target)")
-            #expect(result.stderr == "mdv: \(target): refusing to overwrite an input file\n")
+            #expect(result.stderr == "peep: \(target): refusing to overwrite an input file\n")
             #expect(try folder.contents("doc.md") == "# Keep me\n")
         }
     }
@@ -138,7 +138,7 @@ struct OutputTests {
         let target = folder.path("missing/out.html")
         let result = await CLIHarness.run(["-o", target], stdin: "# x\n")
         #expect(result.status == 73)
-        #expect(result.stderr.hasPrefix("mdv: \(target): "))
+        #expect(result.stderr.hasPrefix("peep: \(target): "))
         #expect(result.stderr.split(separator: "\n").count == 1)
         #expect(!FileManager.default.fileExists(atPath: folder.path("missing")))
     }
@@ -154,6 +154,6 @@ struct OutputTests {
         struct Broken: Error {}
         let result = await CLIHarness.run(["--html"], stdin: Data("x".utf8), failingOutput: Broken())
         #expect(result.status == 74)
-        #expect(result.stderr.hasPrefix("mdv: stdout: "))
+        #expect(result.stderr.hasPrefix("peep: stdout: "))
     }
 }

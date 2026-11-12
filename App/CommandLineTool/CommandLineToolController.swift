@@ -109,7 +109,7 @@ final class CommandLineToolController {
             showOccupied(occupant, at: location, installer: installer)
             return
         } catch {
-            showFailure("mdv couldn’t install the command line tool.", error)
+            showFailure("Peep couldn’t install the command line tool.", error)
             return
         }
         showInstalled(at: location, withManPage: manPage != nil, onPath: pathFolders.map(location.isOnPath))
@@ -130,26 +130,26 @@ final class CommandLineToolController {
         return installer
     }
 
-    /// Asks where to install, saying which copy of mdv the link will use. Returns nil on Cancel.
+    /// Asks where to install, saying which copy of Peep the link will use. Returns nil on Cancel.
     private func askToInstall(selecting initial: CommandLineToolLocation, isRepair: Bool) -> CommandLineToolLocation? {
         let alert = NSAlert()
         let thisApp = Bundle.main.bundleURL
         if isRepair, case .dangling(let destination) = makeInstaller(initial).state() {
-            alert.messageText = "Repair the mdv command line tool?"
+            alert.messageText = "Repair the Peep command line tool?"
             alert.informativeText =
-                "\(initial.displayPath)/mdv points to \(destination), which is gone (mdv was moved or "
-                + "renamed). Repairing points it to this copy of mdv:\n\n\(thisApp.path(percentEncoded: false))"
+                "\(initial.displayPath)/peep points to \(destination), which is gone (Peep was moved or "
+                + "renamed). Repairing points it to this copy of peep:\n\n\(thisApp.path(percentEncoded: false))"
             alert.addButton(withTitle: "Repair")
         } else {
-            alert.messageText = "Install the mdv command line tool?"
+            alert.messageText = "Install the Peep command line tool?"
             var text =
-                "This adds a link named mdv that runs the command line tool in this copy of mdv:\n\n"
+                "This adds a link named peep that runs the command line tool in this copy of Peep:\n\n"
                 + thisApp.path(percentEncoded: false)
             if case .otherCopy(let app, _) = makeInstaller(initial).state() {
                 let copy = app.path(percentEncoded: false)
                 text += "\n\nThe link in \(initial.displayPath) now points to the copy at \(copy)."
             } else if !Self.otherCopies().isEmpty {
-                text += "\n\nThere are other copies of mdv on this Mac; the link uses this one."
+                text += "\n\nThere are other copies of Peep on this Mac; the link uses this one."
             }
             alert.informativeText = text
             alert.addButton(withTitle: "Install")
@@ -175,17 +175,17 @@ final class CommandLineToolController {
 
     private func showInstalled(at location: CommandLineToolLocation, withManPage: Bool, onPath: Bool?) {
         let alert = NSAlert()
-        alert.messageText = "The mdv command line tool is installed."
-        var text = "\(location.displayPath)/mdv runs the command line tool in this copy of mdv. Try `mdv --help`"
-        text += withManPage ? " or `man mdv`." : "."
+        alert.messageText = "The Peep command line tool is installed."
+        var text = "\(location.displayPath)/peep runs the command line tool in this copy of Peep. Try `peep --help`"
+        text += withManPage ? " or `man peep`." : "."
         let completions = Bundle.main.bundleURL.appending(path: Self.completionsPathInBundle).path(
             percentEncoded: false)
         text +=
             "\n\nShell completions for zsh, bash, and fish are in \(completions) "
-            + "(mdv’s README explains how to use them)."
+            + "(Peep’s README explains how to use them)."
         if onPath != true {
             text +=
-                "\n\n\(location.displayPath) may not be on your PATH. If `mdv` isn’t found in a new terminal "
+                "\n\n\(location.displayPath) may not be on your PATH. If `peep` isn’t found in a new terminal "
                 + "window, add this line to your shell’s startup file (~/.zshrc for zsh):\n\n\(location.pathLine)"
         }
         alert.informativeText = text
@@ -199,10 +199,10 @@ final class CommandLineToolController {
     ) {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "mdv didn’t install the command line tool."
+        alert.messageText = "Peep didn’t install the command line tool."
         var text =
             "\(installer.linkURL.path(percentEncoded: false)) is already there: \(Self.describe(occupant)). "
-            + "mdv only replaces or removes its own link, so it left this alone. Move or delete it and try again"
+            + "Peep only replaces or removes its own link, so it left this alone. Move or delete it and try again"
         text += locations.count > 1 ? ", or choose the other location." : "."
         alert.informativeText = text
         alert.runModal()
@@ -213,9 +213,9 @@ final class CommandLineToolController {
     private func uninstall(from location: CommandLineToolLocation) async {
         let installer = makeInstaller(location)
         let alert = NSAlert()
-        alert.messageText = "Uninstall the mdv command line tool?"
+        alert.messageText = "Uninstall the Peep command line tool?"
         alert.informativeText =
-            "This removes the link \(installer.linkURL.path(percentEncoded: false)). mdv itself stays where it is."
+            "This removes the link \(installer.linkURL.path(percentEncoded: false)). Peep itself stays where it is."
         alert.addButton(withTitle: "Uninstall")
         alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else {
@@ -230,7 +230,7 @@ final class CommandLineToolController {
         } catch .cancelled {
             return
         } catch {
-            showFailure("mdv couldn’t uninstall the command line tool.", error)
+            showFailure("Peep couldn’t uninstall the command line tool.", error)
         }
     }
 
@@ -257,7 +257,7 @@ final class CommandLineToolController {
         }
     }
 
-    /// Other copies of mdv Launch Services knows about (dev builds, a copy in Downloads).
+    /// Other copies of Peep Launch Services knows about (dev builds, a copy in Downloads).
     private static func otherCopies() -> [URL] {
         guard let identifier = Bundle.main.bundleIdentifier else {
             return []

@@ -1,7 +1,7 @@
 import XCTest
 
-/// `mdv --wait` running in the background (#69): started with
-/// `MdvUITestApp.startCommandLine(_:)`, it should keep running until its windows close.
+/// `peep --wait` running in the background (#69): started with
+/// `PeepUITestApp.startCommandLine(_:)`, it should keep running until its windows close.
 @MainActor
 final class RunningCommandLine {
     let process: Process
@@ -10,7 +10,7 @@ final class RunningCommandLine {
 
     init(arguments: [String], standardInput: URL? = nil, environment: [String: String] = [:]) throws {
         process = Process()
-        process.executableURL = try MdvUITestApp.commandLineTool()
+        process.executableURL = try PeepUITestApp.commandLineTool()
         process.arguments = arguments
         process.standardInput = try standardInput.map { try FileHandle(forReadingFrom: $0) } ?? FileHandle.nullDevice
         if !environment.isEmpty {
@@ -52,8 +52,8 @@ final class RunningCommandLine {
     }
 }
 
-extension MdvUITestApp {
-    /// Starts `mdv arguments…` without waiting for it; standard input is the file
+extension PeepUITestApp {
+    /// Starts `peep arguments…` without waiting for it; standard input is the file
     /// `standardInput`, else empty, and `environment` adds to the runner's.
     static func startCommandLine(
         _ arguments: [String], standardInput: URL? = nil, environment: [String: String] = [:]

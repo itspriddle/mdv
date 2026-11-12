@@ -3,7 +3,7 @@ import Foundation
 import Synchronization
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// `FileWatcher` against real files, changed the way editors change them. Writes run in a
 /// separate process (`/bin/sh`, `/usr/bin/vim`) where that's how editors do it, since the
@@ -45,7 +45,7 @@ struct FileWatcherTests {
 
     static func makeFolder() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-watcher-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-watcher-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }

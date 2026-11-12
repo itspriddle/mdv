@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Custom preprocessor scripts (#57) for app tests, written into a test's folder with their
 /// executable bit set. Scripts that start processes append their pids to `pidFile`, so a test
@@ -29,7 +29,7 @@ struct PreprocessorScripts {
         try write("upcase.sh", "tr '[:lower:]' '[:upper:]'")
     }
 
-    /// Writes its arguments (one per line) and `MDV_DOCUMENT_PATH` as a code block after the
+    /// Writes its arguments (one per line) and `PEEP_DOCUMENT_PATH` as a code block after the
     /// document.
     func report() throws -> String {
         try write(
@@ -38,7 +38,7 @@ struct PreprocessorScripts {
             cat
             printf '\\n```\\n'
             for argument in "$@"; do printf 'arg:%s\\n' "$argument"; done
-            printf 'path:%s\\n' "$MDV_DOCUMENT_PATH"
+            printf 'path:%s\\n' "$PEEP_DOCUMENT_PATH"
             printf '```\\n'
             """)
     }

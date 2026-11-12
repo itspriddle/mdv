@@ -1,11 +1,11 @@
 import AppKit
-import MdvCore
+import PeepCore
 
-/// Opens the files of an Open Documents Apple Event: Finder, the Dock, `open`, and `mdv FILE`
+/// Opens the files of an Open Documents Apple Event: Finder, the Dock, `open`, and `peep FILE`
 /// (#67), which adds `AppOpenParameters` to the event (`AppOpenEvent`). AppKit opens an Open
 /// Documents event's files itself, through the document controller, and never calls the app
-/// delegate's `application(_:open:)` for mdv's document types; `DocumentController` passes each
-/// file of an event that carries parameters to `openForOpenDocumentsEvent`. mdv's direct event
+/// delegate's `application(_:open:)` for Peep's document types; `DocumentController` passes each
+/// file of an event that carries parameters to `openForOpenDocumentsEvent`. Peep's direct event
 /// (`AppDelegate.handleDirectOpen`) calls `open(_:parameters:)`.
 ///
 /// Files open one after another (so a repeated file finds the first one open) through the
@@ -15,11 +15,11 @@ import MdvCore
 /// The parameters are untrusted (any local process can send the event) and presentation-only:
 /// a theme id is used only if it is registered or a `custom:` id (whose file may load later,
 /// and which falls back to Settings' default until it does), and becomes each window's View >
-/// Theme pick, so it beats the document's `mdv.theme` and restoration keeps it. An
+/// Theme pick, so it beats the document's `peep.theme` and restoration keeps it. An
 /// already-open window switches to it. A `--wait` token (#69) makes `waits` track the windows
 /// shown for it, already-open ones included, until they close.
 ///
-/// Standard input (`cmd | mdv`, #68) is one of the files: the document controller recognizes
+/// Standard input (`cmd | peep`, #68) is one of the files: the document controller recognizes
 /// its handoff file and returns an untitled document, which shows and joins a `--wait` token
 /// like any other.
 @MainActor
@@ -28,7 +28,7 @@ final class DocumentOpener {
     private let themeSettings: ThemeSettings
     /// Shows an open failure; the document controller's alert unless a test records it.
     private let presentError: @MainActor (any Error) -> Void
-    /// `mdv --wait`'s tokens and their windows (#69).
+    /// `peep --wait`'s tokens and their windows (#69).
     let waits: WindowWaits
 
     init(
@@ -89,7 +89,7 @@ final class DocumentOpener {
     }
 
     /// One file of an Open Documents event that AppKit is opening itself (Launch Services,
-    /// Finder, `open`): AppKit never calls the delegate's `application(_:open:)` for mdv's
+    /// Finder, `open`): AppKit never calls the delegate's `application(_:open:)` for Peep's
     /// document types, so `DocumentController` hands each such file here when the event carries
     /// `parameters`. `open` opens the file without showing it; this shows it as `open(_:parameters:)`
     /// would (theme pick first, `--wait` token), then calls `completion` (AppKit presents errors).

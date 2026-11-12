@@ -1,13 +1,13 @@
 import CoreServices
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-/// `mdv FILE`'s Open Documents event (#67): what the CLI builds, and how the app reads it as
+/// `peep FILE`'s Open Documents event (#67): what the CLI builds, and how the app reads it as
 /// untrusted input.
 @Suite("App open event")
 struct AppOpenEventTests {
-    static var target: NSAppleEventDescriptor { NSAppleEventDescriptor(bundleIdentifier: "com.itspriddle.mdv") }
+    static var target: NSAppleEventDescriptor { NSAppleEventDescriptor(bundleIdentifier: "now.peep.Peep") }
 
     static func openDocuments() -> NSAppleEventDescriptor {
         NSAppleEventDescriptor.appleEvent(
@@ -28,7 +28,7 @@ struct AppOpenEventTests {
         #expect(AppOpenParameters(event: event) == AppOpenParameters(themeID: "serif"))
     }
 
-    @Test("without options, the event has no mdv parameters (as Finder's)")
+    @Test("without options, the event has no Peep parameters (as Finder's)")
     func noOptions() {
         let event = AppOpenEvent.make(files: [], parameters: AppOpenParameters(), target: Self.target)
         #expect(event.paramDescriptor(forKeyword: AppOpenEvent.themeKeyword) == nil)
@@ -88,7 +88,7 @@ struct AppOpenEventTests {
         #expect(AppOpenParameters(event: event) == AppOpenParameters())
     }
 
-    @Test("the direct event carries the same files and parameters as mdv's own class")
+    @Test("the direct event carries the same files and parameters as Peep's own class")
     func direct() {
         let files = [URL(filePath: "/tmp/a.md"), URL(filePath: "/tmp/b.md")]
         let event = AppOpenEvent.make(

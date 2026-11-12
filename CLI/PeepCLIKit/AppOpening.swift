@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 
-/// What `mdv` without an output flag hands to the app: the files named (absolute URLs, checked
-/// readable by `MdvCommand.openInApp(in:)`), standard input's Markdown when it was read (no
+/// What `peep` without an output flag hands to the app: the files named (absolute URLs, checked
+/// readable by `PeepCommand.openInApp(in:)`), standard input's Markdown when it was read (no
 /// FILE, or `-`), and the windows' options.
 public struct AppOpenRequest: Equatable, Sendable {
     public var files: [URL]
@@ -37,8 +37,8 @@ public protocol AppOpening: Sendable {
 /// untitled window. This opener deletes it if the event never got to the app.
 public struct WorkspaceAppOpener: AppOpening {
     /// Environment variables passed on to an app this opener launches: `LaunchTiming`'s, so
-    /// `scripts/measure-cold-open -c` can time `mdv FILE`. They only make the app report timings.
-    static let forwardedEnvironment = ["MDV_LAUNCH_TIMING", "MDV_LAUNCH_TIMING_LOG"]
+    /// `scripts/measure-cold-open -c` can time `peep FILE`. They only make the app report timings.
+    static let forwardedEnvironment = ["PEEP_LAUNCH_TIMING", "PEEP_LAUNCH_TIMING_LOG"]
 
     private let locator: AppLocator
     /// Where standard input's handoff folder is made (`temporaryFolder(environment:)`).
@@ -119,7 +119,7 @@ public struct WorkspaceAppOpener: AppOpening {
     private static func openWithLaunchServices(
         _ app: URL, files: [URL], parameters: AppOpenParameters, createsNewInstance: Bool
     ) async throws -> pid_t? {
-        let bundleIdentifier = Bundle(url: app)?.bundleIdentifier ?? MdvCommand.appBundleIdentifier
+        let bundleIdentifier = Bundle(url: app)?.bundleIdentifier ?? PeepCommand.appBundleIdentifier
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.appleEvent = AppOpenEvent.make(
             files: files, parameters: parameters, target: NSAppleEventDescriptor(bundleIdentifier: bundleIdentifier))
@@ -140,12 +140,12 @@ public struct WorkspaceAppOpener: AppOpening {
         }
     }
 
-    /// Sends mdv's own open event (`AppOpenEvent.Kind.direct`) straight to the copy of the app at
+    /// Sends Peep's own open event (`AppOpenEvent.Kind.direct`) straight to the copy of the app at
     /// our path, when Launch Services would pick another copy with the same bundle id (a
     /// development build next to an installed one) or refuses a sandboxed caller.
     ///
     /// No reply is awaited: the app doesn't handle Apple Events while a modal alert runs (the
-    /// first-run default viewer offer, an open error), so waiting blocked `mdv` until the alert
+    /// first-run default viewer offer, an open error), so waiting blocked `peep` until the alert
     /// closed or the send timed out (exit 69) for files the app then opened anyway. Errors that
     /// need no reply (no such process, Apple Events not permitted) still throw.
     private static func send(files: [URL], parameters: AppOpenParameters, to processIdentifier: pid_t) throws {
@@ -180,10 +180,10 @@ public struct WorkspaceAppOpener: AppOpening {
     }
 }
 
-/// Finds the mdv.app to open (#67): the app that contains this executable
-/// (`mdv.app/Contents/Helpers/mdv`, through any symlinks, #70), so a development build's CLI
-/// never opens another installed copy; else, run outside a bundle (`swift run mdv`), the app
-/// Launch Services knows by `MdvCommand.appBundleIdentifier`.
+/// Finds the Peep.app to open (#67): the app that contains this executable
+/// (`Peep.app/Contents/Helpers/peep`, through any symlinks, #70), so a development build's CLI
+/// never opens another installed copy; else, run outside a bundle (`swift run peep`), the app
+/// Launch Services knows by `PeepCommand.appBundleIdentifier`.
 public struct AppLocator: Sendable {
     /// The real path of the running executable.
     var executablePath: @Sendable () -> String?
@@ -207,23 +207,23 @@ public struct AppLocator: Sendable {
         if let path = executablePath(), let app = Self.containingApp(ofExecutableAt: path) {
             return app
         }
-        if let app = applicationForBundleIdentifier(MdvCommand.appBundleIdentifier) {
+        if let app = applicationForBundleIdentifier(PeepCommand.appBundleIdentifier) {
             return app
         }
         throw CLIError(
-            "can't find mdv.app (\(MdvCommand.appBundleIdentifier)); install it, or use --html",
+            "can't find Peep.app (\(PeepCommand.appBundleIdentifier)); install it, or use --html",
             status: ExitStatus.unavailable)
     }
 
     /// The `.app` bundle whose `Contents/Helpers` holds the executable at `path` (already
-    /// resolved), when its bundle id is mdv's; nil otherwise.
+    /// resolved), when its bundle id is Peep's; nil otherwise.
     public static func containingApp(ofExecutableAt path: String) -> URL? {
         let helpers = URL(filePath: path).deletingLastPathComponent()
         let contents = helpers.deletingLastPathComponent()
         let app = contents.deletingLastPathComponent()
         guard helpers.lastPathComponent == "Helpers", contents.lastPathComponent == "Contents",
             app.pathExtension == "app",
-            Bundle(url: app)?.bundleIdentifier == MdvCommand.appBundleIdentifier
+            Bundle(url: app)?.bundleIdentifier == PeepCommand.appBundleIdentifier
         else {
             return nil
         }
@@ -261,7 +261,7 @@ public struct AppLocator: Sendable {
     }
 
     private static func runningCopies() -> [(pid_t, URL)] {
-        NSRunningApplication.runningApplications(withBundleIdentifier: MdvCommand.appBundleIdentifier)
+        NSRunningApplication.runningApplications(withBundleIdentifier: PeepCommand.appBundleIdentifier)
             .compactMap { running in running.bundleURL.map { (running.processIdentifier, $0) } }
     }
 

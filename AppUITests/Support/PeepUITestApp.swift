@@ -1,12 +1,12 @@
 import XCTest
 
-/// Drives mdv in UI tests: launches it in UI-test mode (see `UITestHooks` in the app) and finds
+/// Drives Peep in UI tests: launches it in UI-test mode (see `UITestHooks` in the app) and finds
 /// the document UI.
 ///
 /// Features extend this type with their own finders and actions in
-/// `AppUITests/Support/MdvUITestApp+<Feature>.swift`.
+/// `AppUITests/Support/PeepUITestApp+<Feature>.swift`.
 @MainActor
-struct MdvUITestApp {
+struct PeepUITestApp {
     /// How long to wait for a window or rendered content to appear.
     static let defaultTimeout: TimeInterval = 10
 
@@ -15,9 +15,9 @@ struct MdvUITestApp {
 
     let app: XCUIApplication
 
-    /// Launches a fresh mdv, optionally opening `document`.
+    /// Launches a fresh Peep, optionally opening `document`.
     ///
-    /// Every launch sets `-MdvUITesting YES` (no Open panel at launch, no first-run prompts) and,
+    /// Every launch sets `-PeepUITesting YES` (no Open panel at launch, no first-run prompts) and,
     /// unless `restoresState`, `-ApplePersistenceIgnoreState YES` (no restored windows from
     /// earlier runs; state is written to a temporary folder). `restoresState` instead saves and
     /// restores windows for real, even when quitting with Cmd-Q (`NSQuitAlwaysKeepsWindows`).
@@ -27,15 +27,15 @@ struct MdvUITestApp {
         arguments: [String] = [],
         environment: [String: String] = [:],
         restoresState: Bool = false
-    ) -> MdvUITestApp {
+    ) -> PeepUITestApp {
         let app = XCUIApplication()
-        app.launchArguments = ["-MdvUITesting", "YES"]
+        app.launchArguments = ["-PeepUITesting", "YES"]
         app.launchArguments +=
             restoresState
             ? ["-ApplePersistenceIgnoreState", "NO", "-NSQuitAlwaysKeepsWindows", "YES"]
             : ["-ApplePersistenceIgnoreState", "YES"]
         if let document {
-            app.launchArguments += ["-MdvUITestOpen", document.path(percentEncoded: false)]
+            app.launchArguments += ["-PeepUITestOpen", document.path(percentEncoded: false)]
         }
         app.launchArguments += arguments
         app.launchEnvironment.merge(environment) { _, new in new }
@@ -45,12 +45,12 @@ struct MdvUITestApp {
             app.launchEnvironment[key] = ProcessInfo.processInfo.environment[key]
         }
         app.launch()
-        return MdvUITestApp(app: app)
+        return PeepUITestApp(app: app)
     }
 
-    /// Launches mdv opening the named fixture from `AppUITests/Fixtures`.
+    /// Launches Peep opening the named fixture from `AppUITests/Fixtures`.
     @discardableResult
-    static func launch(openingFixture name: String, arguments: [String] = []) throws -> MdvUITestApp {
+    static func launch(openingFixture name: String, arguments: [String] = []) throws -> PeepUITestApp {
         launch(opening: try Fixtures.url(named: name), arguments: arguments)
     }
 

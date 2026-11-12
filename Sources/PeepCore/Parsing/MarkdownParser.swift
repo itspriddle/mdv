@@ -137,7 +137,7 @@ private struct TreeBuilder {
         )
     }
 
-    /// Returns `nil` for nodes mdv does not model (custom nodes); their children are kept.
+    /// Returns `nil` for nodes Peep does not model (custom nodes); their children are kept.
     private mutating func convert(_ node: CmarkNode) -> MarkdownNode.Kind? {
         if cmark_node_get_syntax_extension(node) != nil, let kind = convertExtension(node) {
             return kind

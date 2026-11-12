@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Runs every CommonMark/GFM spec example (`Fixtures/spec`) through `HTMLRenderer` in spec mode
 /// and compares normalized HTML. Examples listed in `Fixtures/spec/exceptions.json` are expected

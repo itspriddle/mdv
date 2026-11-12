@@ -12,7 +12,7 @@ them when the milestone is broken down.
 | [M3](#m3-themes)                        | Themes                         | -         | Done   |
 | [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         | Done   |
 | [M5](#m5-cli)                           | CLI                            | -         | Done   |
-| [Gate](#gate-choose-the-name)           | Choose the final name          | -         |        |
+| [Gate](#gate-choose-the-name)           | Choose the final name          | -         | Done   |
 | [M6](#m6-distribution-and-10)           | Distribution                   | **1.0**   |        |
 | [Post-1.0](#post-10)                    | PDF, math, RTL, proofreading…  | 1.x       |        |
 
@@ -22,9 +22,9 @@ them when the milestone is broken down.
 
 Get a buildable, tested, linted walking skeleton and a shared plan.
 
-- Swift package `MdvCore` with a minimal renderer (swift-markdown `HTMLFormatter`) and tests
+- Swift package `PeepCore` with a minimal renderer (swift-markdown `HTMLFormatter`) and tests
 - SwiftUI app that opens `.md` files read-only and renders them in a `WKWebView`
-- `mdv` CLI target embedded in the app bundle; `--html` and `--version` work
+- `peep` CLI target embedded in the app bundle; `--html` and `--version` work
 - XcodeGen `project.yml`, xcconfig-based settings with a gitignored local signing override
 - SwiftLint + swift-format, `Makefile`, GitHub Actions CI
 - `docs/VISION.md`, `docs/ROADMAP.md`, `README.md`
@@ -57,7 +57,7 @@ Make the rendered output correct and complete.
   GFM autolinks or footnotes and forces smart punctuation. Our own `MarkdownNode` AST and
   `HTMLRenderer` sit on top.
 - Syntax highlighting is native, at render time: a vendored, pinned highlight.js (BSD-3) in
-  JavaScriptCore inside `MdvCore`, emitting static class-based spans, so `--html` works and the
+  JavaScriptCore inside `PeepCore`, emitting static class-based spans, so `--html` works and the
   viewer keeps JavaScript off.
 - Raw HTML goes through our own allowlist sanitizer modeled on GitHub's (no SwiftSoup); it only
   touches raw-HTML nodes, since renderer output is trusted.
@@ -67,9 +67,9 @@ Make the rendered output correct and complete.
 - Generated ids are unique per document: on a collision, footnote ids yield and heading slugs
   keep their GitHub value.
 
-**Exceptions:** [spec](../Tests/MdvCoreTests/Fixtures/spec/exceptions.json) (GFM `tagfilter`
+**Exceptions:** [spec](../Tests/PeepCoreTests/Fixtures/spec/exceptions.json) (GFM `tagfilter`
 only, permanent: the sanitizer replaces it) and
-[README corpus](../Tests/MdvCoreTests/Fixtures/corpus/README.md#exceptions).
+[README corpus](../Tests/PeepCoreTests/Fixtures/corpus/README.md#exceptions).
 
 **Exit criteria:** GFM spec examples pass (or have documented exceptions); a representative
 corpus of READMEs renders to match GitHub; renderer is fuzz/stress tested on large inputs. ✅
@@ -84,7 +84,7 @@ A pleasant, Mac-native document viewer.
 - Offer to become the default `.md` handler
 - Live reload on file change, preserving the reading position
 - Relative images and links resolve against the file, with scoped file access
-- Link handling: local `.md` opens in mdv, anchors scroll, external URLs open in the browser;
+- Link handling: local `.md` opens in Peep, anchors scroll, external URLs open in the browser;
   a navigation policy for every other link
 - Remote images blocked by default, with a per-window opt-in
 - Find in page, zoom (Cmd +/-/0), print, copy as HTML / Markdown source
@@ -100,22 +100,22 @@ A pleasant, Mac-native document viewer.
   window controller, restoration, and the responder chain. Positions are fractional source
   lines. App scripts are bundled `.js` run in an isolated content world; page JS stays off.
 - **UI tests (#17):** an XCTest `AppUITests` target in its own CI job, driven by Debug-only
-  launch hooks (`UITestHooks`); the Xcode app target is `MdvApp` so the runner doesn't launch
-  the SwiftPM `mdv` CLI.
-- **Local resources (#18):** a `WKURLSchemeHandler` (`mdv-doc://<window token>/<absolute
+  launch hooks (`UITestHooks`); the Xcode app target is `PeepApp` so the runner doesn't launch
+  the SwiftPM `peep` CLI.
+- **Local resources (#18):** a `WKURLSchemeHandler` (`peep-doc://<window token>/<absolute
   path>`), not `loadFileURL` plus a temp file; it serves only images that `LocalImagePolicy`
   approves inside the allowed root, the enclosing git work tree or else the document's folder
   (never home or `/`); extension and sniffed format must match. Root-relative `/x` links and
   images resolve against that root, as on GitHub, and `#gh-dark-mode-only` /
   `#gh-light-mode-only` images follow the appearance (CSS).
 - **Links (#19):** one tested `LinkPolicy`; the main frame never leaves the document. Local
-  Markdown opens in mdv (Cmd-click or middle-click: a new tab); other local files and folders
+  Markdown opens in Peep (Cmd-click or middle-click: a new tab); other local files and folders
   are revealed in Finder, never opened; `http`/`https`/`mailto` open in the default app; other
   schemes are blocked silently with the reason in the link status overlay. Fragments try the
   raw id, the decoded id, then `user-content-`. Raw HTML headings get GitHub-style anchors.
-- **Remote images (#20):** blocked in `MdvCore` (labeled placeholders) and by the CSP; the
+- **Remote images (#20):** blocked in `PeepCore` (labeled placeholders) and by the CSP; the
   opt-in is per window, unsaved, and `https:` only; the bar appears only when an `https:` image
-  was blocked. `mdv --html` keeps remote images by default (its CSP blocks them when opened).
+  was blocked. `peep --html` keeps remote images by default (its CSP blocks them when opened).
 - **Live reload (#21):** a kqueue watcher by path (measured: `NSFilePresenter` reported other
   apps' edits ~1 s late and went silent after a delete), reading and rendering off the main
   actor, bypassing `NSDocument.revert`; an in-place body swap that keeps the reading position
@@ -124,10 +124,10 @@ A pleasant, Mac-native document viewer.
 - **Opening (#22):** an already-open file is found by identity and focused; drops on a window
   open as tabs; tabs follow the system "Prefer tabs" setting; restoration (including each
   window's reading position) follows the system "Close windows when quitting" setting, so
-  `mdv FILE` doesn't bring back old windows (confirmed with the user); with no windows, launch
+  `peep FILE` doesn't bring back old windows (confirmed with the user); with no windows, launch
   and Dock click show the Open panel; plain text opens but is never claimed; `.mdown`/`.mkd`/
-  `.mkdn` are mdv's own exported type (the system Markdown type lists only `.md`/`.markdown`).
-- **Default handler (#23):** `LSHandlerRank` stays `Alternate`; mdv offers once in a
+  `.mkdn` are Peep's own exported type (the system Markdown type lists only `.md`/`.markdown`).
+- **Default handler (#23):** `LSHandlerRank` stays `Alternate`; Peep offers once in a
   non-modal panel ("Not Now" snoozes 30 days, "Don't Ask Again" is permanent) and has an app
   menu item until Settings exists.
 - **Outline (#24):** an AppKit `NSOutlineView` sidebar split item (arrows browse, Return or
@@ -139,7 +139,7 @@ A pleasant, Mac-native document viewer.
 - **Zoom, print, copy (#26):** one app-wide, persisted zoom level for Cmd +/-/0, with pinch as
   a per-window magnification override; print through `NSDocument` and the print panel (Save
   as PDF) with `@media print` rules that always use light colors; Copy as HTML copies the
-  `mdv --html` body fragment; the web view's context menu drops browser-only items
+  `peep --html` body fragment; the web view's context menu drops browser-only items
   (a blocklist, so new system items keep working).
 - **Close-out (#27):** AppKit inserts and maintains Open Recent (a code-built one can't be
   marked as the recents menu and showed up twice). The first open of a document still reads
@@ -150,7 +150,7 @@ A pleasant, Mac-native document viewer.
 **Crash and hang pass (#27):** `AppTests` (183 tests, including a stress suite: many windows
 opened, reloaded, and closed mid-load; files deleted, renamed, and rewritten while open; a
 removed folder; malformed and non-UTF-8 files) and `AppUITests` pass under Address Sanitizer
-and Thread Sanitizer in Debug with no reports; `MdvCoreTests` under both sanitizers fail only
+and Thread Sanitizer in Debug with no reports; `PeepCoreTests` under both sanitizers fail only
 their wall-clock budgets (sanitizer slowdown). `make test-ui` passed 5 consecutive runs locally
 (20 tests, the opt-in restoration test skipped) with no retries; CI (macOS 26, Xcode 26.6)
 runs the full UI suite, including restoration, and was green on the merged PR (#28).
@@ -161,7 +161,7 @@ build, Apple silicon, median of 6 launches with the file as an argument:
 
 | Document | Size | First open read + render (main thread) | Cold open to first paint |
 | -------- | ---- | -------------------------------------- | ------------------------ |
-| mdv README | 1.7 KB | 3 ms | 372 ms |
+| peep README | 1.7 KB | 3 ms | 372 ms |
 | `bat` README (corpus) | 34 KB | 8 ms | 422 ms |
 | Synthetic (code, tables, lists) | 1 MB | 161 ms | 737 ms |
 | Synthetic | 5 MB | 392 ms | 1816 ms |
@@ -181,25 +181,25 @@ launching the WebContent process), and 100 ms to the painted frame. That misses 
 CSS themes as a first-class feature.
 
 - Bundled themes: GitHub (Primer, light and dark), a word-processor style ("Document"), minimal/serif
-- Theme model in `MdvCore`: name, stylesheet(s), light/dark variants, optional print CSS
+- Theme model in `PeepCore`: name, stylesheet(s), light/dark variants, optional print CSS
   (print themes; M2 ships basic `@media print` rules); owns the highlight.js token CSS
-- Custom themes: CSS files in `~/Library/Application Support/mdv/Themes`, hot-reloaded
+- Custom themes: CSS files in `~/Library/Application Support/Peep/Themes`, hot-reloaded
 - Theme picker per window plus a global default in a Settings window
 - Content width controls layered on top of any theme (font size dropped: zoom covers it, #37)
 - Theme authoring guide (the only doc written for end users before 1.0)
 - Viewer follow-ups from M2:
-  - Settings window: theme default, outline default, zoom; move "Make mdv the Default
+  - Settings window: theme default, outline default, zoom; move "Make Peep the Default
     Markdown Viewer" there; optionally remember the remote image opt-in per file (deferred, #36)
   - Performance: cold open to first paint under 200 ms for README-sized docs (422 ms in M2;
     replaced by the agreed `WKWebView` floor, #40),
     and the first open's read and render off the main thread (161 ms for 1 MB)
   - Smaller viewer polish, filed as issues: a document folder deleted and recreated isn't
     noticed; extensionless files (`README`) can't be opened from the Open panel; "Copy Link"
-    on a relative link copies the internal `mdv-doc:` URL; the find pasteboard
+    on a relative link copies the internal `peep-doc:` URL; the find pasteboard
 
 **Decisions:**
 
-- CSS layering (#31): cascade layers, `@layer mdv-base, mdv-theme, mdv-user`, one `<style>` per
+- CSS layering (#31): cascade layers, `@layer peep-base, peep-theme, peep-user`, one `<style>` per
   layer. The base layer's `!important` rules (find highlights, placeholders, light/dark-only
   images, structural print rules) can't be undone by any theme; see VISION.
 - GitHub theme source (#33): vendor `sindresorhus/github-markdown-css` (MIT, pinned 5.9.0,
@@ -208,17 +208,17 @@ CSS themes as a first-class feature.
   the serif theme is "Serif" (id `serif`).
 - Font size vs zoom (#37): no font size control; zoom (Cmd +/-, reflowing `pageZoom`) is the
   text size control. Content width is four presets (narrow, theme default, wide, full) in
-  View > Content Width, global and persisted, applied live via the `mdv-user` layer
-  (`--mdv-content-width`); print ignores it. See VISION. **Reversed after M3 (#47):** zoom and
+  View > Content Width, global and persisted, applied live via the `peep-user` layer
+  (`--peep-content-width`); print ignores it. See VISION. **Reversed after M3 (#47):** zoom and
   content width move to per window, like themes, with Settings setting the default for new
   windows. A global change re-laid out every open window at once, which was jarring. Landed;
   VISION's #26 and #37 entries record it.
 
-- Theme switch (#34): in-place swap of the `mdv-theme` `<style>` text by app script (same
-  `mdv.replaceStyle` as #37), keeping the reading position, find, zoom, and remote-image
+- Theme switch (#34): in-place swap of the `peep-theme` `<style>` text by app script (same
+  `peep.replaceStyle` as #37), keeping the reading position, find, zoom, and remote-image
   opt-in; no reload. Theme is per window (restorable); the default for new windows is set in
   Settings (#36). Print uses the window's theme; Copy as HTML stays theme-free.
-- Custom theme metadata (#35): an optional leading `/* mdv-theme … */` header comment with
+- Custom theme metadata (#35): an optional leading `/* peep-theme … */` header comment with
   `name`, `background`, `background-dark` (hex), and `extends` (a bundled id; default: base layer
   only). Ids are `custom:<file name>`. `@import`, `expression()`, non-`data:image` URLs, and
   unbalanced brackets reject the file (shown disabled in the picker with the reason) rather than
@@ -232,7 +232,7 @@ CSS themes as a first-class feature.
   SwiftUI forms (no SwiftUI `Settings` scene). General: appearance (System, Light, or Dark,
   app-wide via `NSApp.appearance`; also View > Appearance), default theme (Settings owns it; View >
   Theme changes one window), outline in new windows, zoom, content width, Open Themes Folder,
-  Make mdv the Default Markdown Viewer (moved from the app menu). It surfaces the existing
+  Make Peep the Default Markdown Viewer (moved from the app menu). It surfaces the existing
   stores rather than duplicating them. The remote-image opt-in is not remembered per file
   (deferred; a stored allowlist is a privacy record and a standing exception to "no remote
   content"). See VISION.
@@ -247,22 +247,22 @@ CSS themes as a first-class feature.
   checks that the guide embeds it verbatim, runs every CSS snippet through the custom theme
   check, and matches the quoted error messages and limits against the code.
 - 200 ms (#40, accepted at the close-out): not reachable with `WKWebView`; the agreed target is
-  the floor instead: mdv's cold open stays within about 0-50 ms of the floor's, measured in the
+  the floor instead: Peep's cold open stays within about 0-50 ms of the floor's, measured in the
   same run. The floor is a
-  bare AppKit app that loads the same page into one `WKWebView` (configured like mdv's) first
-  thing at launch, in one plain window (`scripts/cold-open-floor.swift`). mdv is now within
+  bare AppKit app that loads the same page into one `WKWebView` (configured like Peep's) first
+  thing at launch, in one plain window (`scripts/cold-open-floor.swift`). Peep is now within
   0-50 ms of it (run to run), and what remains is mostly WebKit's: the web content process takes about 130 ms from the first load to a
   finished page, and the first frames another 40-90 ms, after AppKit is up (about 45 ms) and the
-  web view exists (about 50 ms). mdv starts its first window's web view first thing at launch
+  web view exists (about 50 ms). Peep starts its first window's web view first thing at launch
   (`WebViewPrewarmer`), so that bring-up overlaps the rest of the launch, the document read, and
   the window build. A regression is anything clearly slower than the floor, measured in the same
   sitting (`scripts/measure-cold-open -f`). See VISION.
 - Opening and live reload edge cases (#41): while the document's folder is missing, the
   watcher sits on the nearest existing ancestor and follows the path back down; extensionless
   files that sniff as UTF-8 text open as plain text (`DocumentController.canOpen(_:)`, the one
-  rule for the Open panel and drops). mdv still declares only Markdown (`Alternate`) and plain
+  rule for the Open panel and drops). Peep still declares only Markdown (`Alternate`) and plain
   text (`None`), never `public.data`.
-- Copy Link and find (#42): Copy Link never copies an `mdv-doc:` URL (`CopyableLink`); the find
+- Copy Link and find (#42): Copy Link never copies a `peep-doc:` URL (`CopyableLink`); the find
   bar shares the system find pasteboard; Jump to Selection (Cmd-J).
 - No per-file zoom (#43): it would make Cmd +/- mean "this file" or "every file" depending on
   history; pinch already covers a one-off. (#47 makes zoom per window, not per file.) The outline gained Expand/Collapse All and a
@@ -280,8 +280,8 @@ CSS themes as a first-class feature.
   for the whole app (`NSApp.appearance`); printing stays light.
 - The toolbar's theme menu was dropped (a pull-down toolbar menu hid its first item, GitHub);
   View > Theme is the one picker.
-- Dragging a link out of the page, Share on a link, and Copy Image no longer expose `mdv-doc:`
-  URLs (`PasteboardLinkRewriter` in MdvCore). Copy Image of a local image copies the file's
+- Dragging a link out of the page, Share on a link, and Copy Image no longer expose `peep-doc:`
+  URLs (`PasteboardLinkRewriter` in PeepCore). Copy Image of a local image copies the file's
   bytes plus a PNG, and works for SVG.
 - `docs/github-soft-dark.css`: an `extends: github` example theme (github.com's "Soft dark",
   Primer `dark_dimmed`), checked by `ThemeGuideTests`.
@@ -296,21 +296,21 @@ README); compare within a column set, not with #27.
 
 | Document | Size | Before #40 | After #40 | Floor (bare `WKWebView`) |
 | -------- | ---- | ---------- | --------- | ------------------------ |
-| mdv README | 1.7 KB | 398 ms | 341 ms | 348 ms |
+| peep README | 1.7 KB | 398 ms | 341 ms | 348 ms |
 | `bat` README (corpus) | 34 KB | 415 ms | 363 ms | 376 ms |
 | Synthetic | 1 MB | 645 ms | 646 ms | |
 | Synthetic | 5 MB | 1945 ms | 1921 ms | |
 
 The gain varies with how long WebKit takes to start its content process: 13-78 ms for the
 README across runs. The bare app's numbers include no menus, toolbar, sidebar, or SwiftUI;
-mdv's come within 0-50 ms of it (another sitting: 338 ms vs 287 ms), because WebKit, not mdv,
+Peep's come within 0-50 ms of it (another sitting: 338 ms vs 287 ms), because WebKit, not Peep,
 is most of the critical path.
 
 **Crash and hang pass (#45):** `AppTests` (289 tests, including the stress suite, extended with
 theme switches racing rapid live reloads and a custom themes folder edited, broken, deleted, and
 refilled while windows open and close) and `AppUITests` (33 tests, restoration included) pass
 under Address Sanitizer and Thread Sanitizer in Debug, with no sanitizer reports. The Thread
-Performance Checker flagged one priority inversion in mdv's code: the YAML frontmatter parser's
+Performance Checker flagged one priority inversion in Peep's code: the YAML frontmatter parser's
 large-stack thread ran at default QoS while a user-initiated render waited for it; it now runs
 at the caller's QoS, and a TSan re-run is clean. The UI runs' remaining runtime warnings come
 from the XCUITest runner ("should not be called on the main thread", one per test; a QoS
@@ -326,12 +326,12 @@ launches, 8 for the large files) is in brackets.
 
 | Document | Size | M3 (before #45) | M3 | Floor (bare `WKWebView`) | M3 minus floor |
 | -------- | ---- | --------------- | -- | ------------------------ | -------------- |
-| mdv README | 1.9 KB | 333 ms | 336 ms (344) | 305 ms (300) | +31 ms (+44) |
+| peep README | 1.9 KB | 333 ms | 336 ms (344) | 305 ms (300) | +31 ms (+44) |
 | `bat` README (corpus) | 34 KB | 360 ms | 360 ms (389) | 328 ms (324) | +32 ms (+65) |
 | Synthetic | 1 MB | 674 ms | 658 ms (682) | | |
 | Synthetic | 5 MB | 2092 ms | 2069 ms (2146) | | |
 
-mdv stays within the agreed 0-50 ms of the floor in the interleaved run (the separate run's
+Peep stays within the agreed 0-50 ms of the floor in the interleaved run (the separate run's
 `bat` gap, 65 ms, came with load rising to 10). The 1 MB and 5 MB numbers match the build
 before #45 in the same sitting; they run about 10% above #40's table, which was measured under
 lighter load. The outline's first fill (about 20 ms on the main thread when a 5 MB render lands
@@ -344,7 +344,7 @@ with the sidebar shown) is still there; deferred, below.
   (a symlinked folder works); `os.Logger` instead of `NSLog` for theme failures; Copy as HTML
   with theme CSS (would revisit #38's "unaffected"); stripping unused vendored GitHub CSS
   (`.pl-*`, `.csv-data`, `g-emoji`); narrow-window padding for GitHub.
-- Theme guide: screenshots; its paths say `mdv` (rename with the app before M6); `@font-face
+- Theme guide: screenshots (its paths were renamed with the app at the name gate); `@font-face
   { src: local(…) }` is neither rejected nor tested; `ThemeBase`'s comment says pages break
   around code, but only rows, images, and placeholders have `break-inside: avoid`.
 - Print: a print-panel "Print backgrounds" option; no UI test drives the print panel (PDF output
@@ -361,7 +361,7 @@ with the sidebar shown) is still there; deferred, below.
   (#58); no performance check in CI (needs a GUI session and Release; CI timing is too noisy); the prewarmed web
   view lingers if no document window ever opens.
 - Opening and links: the find pasteboard isn't re-read on app
-  activation while the bar is open; dropping an extensionless file from Finder and `mdv
+  activation while the bar is open; dropping an extensionless file from Finder and `peep
   CHANGELOG` are manual checks only; the Open panel sniffs every extensionless file it lists
   (fine locally, maybe slow on a large network folder); while a document's folder is missing,
   the watcher may sit on a busy ancestor such as `~`.
@@ -383,7 +383,7 @@ Control how source becomes Markdown.
   and shown hidden or as a table. Include/transclusion: not done (deferred, below)
 - Custom preprocessor: user-configured executable, document on stdin, Markdown on stdout,
   timeout and size limits, explicit opt-in with a clear warning (#56, #57)
-- Per-document overrides via frontmatter (`mdv: { flavor: commonmark, theme: github }`, #54).
+- Per-document overrides via frontmatter (`peep: { flavor: commonmark, theme: github }`, #54).
   The window's pick beats the document's theme, which beats Settings' default; restoration keeps
   only the pick
 - Frontmatter display as a table in Settings > Markdown (#55); `docs/THEMES.md` documents
@@ -411,7 +411,7 @@ manual checklist is in the milestone PR)
   (wiki links, #53) are `RenderOptions.builtInPreprocessors`, also independent of the flavor.
   `FlavorRegistry` resolves ids; unknown ids are GFM. See VISION.
 - Render pipeline (#51): custom preprocessor (whole file, opt-in) → frontmatter extraction →
-  flavor resolution (frontmatter `mdv.flavor`, #54) → parse → AST transforms → HTML, in
+  flavor resolution (frontmatter `peep.flavor`, #54) → parse → AST transforms → HTML, in
   `HTMLRenderer.render(_:)`. Built-in preprocessors are AST transforms over text nodes, not text
   passes, so code and raw HTML are never rewritten. Transforms (`MarkdownTransform`) run in one
   fixed order, whatever enabled them: alerts, wiki links, emoji. After a custom preprocessor,
@@ -426,44 +426,44 @@ manual checklist is in the milestone PR)
   (shaded callout, unshaded on paper) and Serif (rule and small-caps title); `ThemeBase` gives
   a theme without `extends` a left rule and title layout, and keeps alerts whole on paper where
   they fit. Known divergence: a quote between raw HTML tags (`<details>` … `</details>` in
-  separate HTML blocks) is top level in mdv's tree, so it becomes an alert; github.com keeps it
+  separate HTML blocks) is top level in Peep's tree, so it becomes an alert; github.com keeps it
   a block quote.
 - Settings > Markdown (#55): default flavor, frontmatter display (hidden or a table), and
   opt-in built-in preprocessors in one `MarkdownSettings` store; changes re-render open
   documents in place (the live reload swap, reading position kept), and frontmatter
-  `mdv.flavor` (#54) still wins. No per-window flavor menu: flavor belongs to the file
+  `peep.flavor` (#54) still wins. No per-window flavor menu: flavor belongs to the file
   (frontmatter) or the reader's one default, and is per document, not per window. The bundled
   themes already style `table.frontmatter` and `pre.frontmatter` (light, dark, print); no theme
   CSS or snapshot change. See VISION.
-- Wiki links (#53): an opt-in built-in preprocessor (Settings > Markdown, or `mdv.wikilinks`,
+- Wiki links (#53): an opt-in built-in preprocessor (Settings > Markdown, or `peep.wikilinks`,
   which beats Settings both ways), independent of the flavor. `[[Page]]`, `[[Page|label]]`
   (label second, unlike Gollum), `[[Page#Heading]]`, `[[#Heading]]`; plain text only, brackets
   written as is (`\[[` stays literal, checked against the source line). GitHub wiki naming
   (`Page Name` → `Page-Name.md`, case-insensitive, space = hyphen, Markdown extensions only).
   Searched in the document's folder, then the allowed root breadth first, never outside it,
-  skipping hidden entries and symbolic links, capped at 10,000 entries. MdvCore takes an
+  skipping hidden entries and symbolic links, capped at 10,000 entries. PeepCore takes an
   injected `WikiLinkResolver` (`FolderWikiLinkResolver` over an injected folder reader; the app
   reads the disk). Found: a relative, percent-encoded `a.wikilink` through `LinkPolicy`;
   missing: `a.wikilink.wikilink-missing` with no `href` (dashed underline from the base
-  layer, no theme CSS or snapshot change). Resolved at render time only; `mdv --html` has no
+  layer, no theme CSS or snapshot change). Resolved at render time only; `peep --html` has no
   resolver yet (M5). Fixtures `Fixtures/flavors/*/wiki-links*.md`. See VISION.
-- Per-flavor corpus (#51): `Tests/MdvCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
-  `.html`, `MDV_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
+- Per-flavor corpus (#51): `Tests/PeepCoreTests/Fixtures/flavors/<id>/` (`.md` plus recorded
+  `.html`, `PEEP_RECORD_SNAPSHOTS=1`), one folder per registered flavor; GFM is also checked
   against github.com by the README corpus.
-- Per-document overrides (#54): `DocumentOverrides` (MdvCore) reads `flavor`, `theme`, and
-  `wikilinks` from the YAML frontmatter's `mdv:` mapping; other keys and wrong types are
+- Per-document overrides (#54): `DocumentOverrides` (PeepCore) reads `flavor`, `theme`, and
+  `wikilinks` from the YAML frontmatter's `peep:` mapping; other keys and wrong types are
   ignored and reported in `RenderedDocument.overrides`. Presentation only: frontmatter can't
   enable the custom preprocessor, turn off sanitizing, allow remote images, or change any other
   setting (`RenderOptions.applying(_:)` touches only the flavor; tests prove each). The flavor
-  beats `RenderOptions.flavor` before parsing (`mdv --html` too); an unknown one keeps the
+  beats `RenderOptions.flavor` before parsing (`peep --html` too); an unknown one keeps the
   reader's default. Theme precedence: the window's View > Theme pick, then the document's
   theme, then Settings' default; same fallback as a pick. Restoration saves only the pick. A
-  live reload that changes `mdv.theme` swaps the theme in place. View > Theme checks the shown
-  theme and has "Document's Theme" to drop the pick. TOML `[mdv]` is unsupported (documented,
-  reported as ignored); no TOML parser. `mdv --html` uses a bundled frontmatter theme. See
+  live reload that changes `peep.theme` swaps the theme in place. View > Theme checks the shown
+  theme and has "Document's Theme" to drop the pick. TOML `[peep]` is unsupported (documented,
+  reported as ignored); no TOML parser. `peep --html` uses a bundled frontmatter theme. See
   VISION.
-- Custom preprocessor runner (#56): `CustomPreprocessor` in `MdvCore`. The document's path is
-  passed in `MDV_DOCUMENT_PATH`, never as an argument. The working directory is the document's
+- Custom preprocessor runner (#56): `CustomPreprocessor` in `PeepCore`. The document's path is
+  passed in `PEEP_DOCUMENT_PATH`, never as an argument. The working directory is the document's
   folder (`/` without a file). The environment is fixed (`PATH` with Homebrew's folders,
   `HOME`, `TMPDIR`, `LANG`). The executable is an absolute path, never looked up on `PATH`,
   and it is validated when configured and again before each run (links followed only for
@@ -502,7 +502,7 @@ this table, not with #45's.
 
 | Document | Size | Before #58 | After #58 | Floor (bare `WKWebView`) | After minus floor |
 | -------- | ---- | ---------- | --------- | ------------------------ | ----------------- |
-| mdv README | 4.4 KB | 336 ms | 335 ms | 298 ms | +37 ms |
+| peep README | 4.4 KB | 336 ms | 335 ms | 298 ms | +37 ms |
 | `bat` README (corpus) | 34 KB | 358 ms | 357 ms | 320 ms | +37 ms |
 | Synthetic | 1 MB | 654 ms | 643 ms | | |
 | Synthetic | 5 MB | 2126 ms | 2200 ms | | |
@@ -519,7 +519,7 @@ absolute numbers are wanted.
 
 **Decisions at the close-out (#59):**
 
-- UI tests hold up renders with a Debug-only launch hook, `-MdvUITestRenderDelay <seconds>`
+- UI tests hold up renders with a Debug-only launch hook, `-PeepUITestRenderDelay <seconds>`
   (`UITestHooks.renderDelay`, compiled out of Release, at most 30 s, cancelled with the
   render), instead of a 4 s preprocessor script, which a slow CI launch could outlast.
 - When `posix_spawn` refuses a preprocessor that passed the executable check (`EPERM` or
@@ -528,18 +528,18 @@ absolute numbers are wanted.
   and System Settings > Privacy & Security to try. Seen with scripts the sandboxed UI test
   runner writes; a quarantined script launched from a terminal ran, so the cause isn't
   confirmed for downloads.
-- The GitHub repository became public (it was to stay private until 1.0); M6 renames it rather
-  than publishing it.
+- The GitHub repository became public (it was to stay private until 1.0); the name gate renamed it
+  rather than publishing it.
 
 **Crash and hang pass (#59):** `AppTests` (365 tests, including the stress suite) and
 `AppUITests` (46 tests, restoration included, run separately with
-`TEST_RUNNER_MDV_UI_TEST_RESTORATION=1`) pass under Address Sanitizer and Thread Sanitizer in
-Debug, with no sanitizer reports and no runtime issues from mdv's code. The stress suite gained
+`TEST_RUNNER_PEEP_UI_TEST_RESTORATION=1`) pass under Address Sanitizer and Thread Sanitizer in
+Debug, with no sanitizer reports and no runtime issues from Peep's code. The stress suite gained
 `StressTests+Markdown`:
 
 - Settings > Markdown (flavor, frontmatter table, wiki links) changing during first renders
   (a 1 MB document among them) and rapid live reloads;
-- frontmatter `mdv.theme` and `mdv.flavor` changing under rapid live reloads, with the reader
+- frontmatter `peep.theme` and `peep.flavor` changing under rapid live reloads, with the reader
   picking and dropping a theme and changing both defaults meanwhile;
 - one preprocessor script that hangs, crashes, floods stdout, or fails depending on the file,
   switched by live reload, with its arguments changing mid-run.
@@ -574,7 +574,7 @@ the fix; the stress suite then passed three runs in a row without sanitizers.
   `ThemePickerTests` regression test failed every time on the old code with no CPU load.
 - **Main-thread timing bounds are report-only on CI** (`expectTiming`,
   `AppTests/Support/MainThreadTiming.swift`). CI's app-test step sets
-  `TEST_RUNNER_MDV_TIMING_REPORT_ONLY`; `xcodebuild` forwards only `TEST_RUNNER_` variables to
+  `TEST_RUNNER_PEEP_TIMING_REPORT_ONLY`; `xcodebuild` forwards only `TEST_RUNNER_` variables to
   the test process, never `CI`. The runners showed 0.26-0.67 s main-thread gaps with almost no
   CPU used, and 18-27 ms busy times on code that measures 1.3-1.5 ms on a real Mac with every
   core loaded. A throwaway experiment (#61) ruled out #58's progress indicator. On CI a miss is
@@ -599,12 +599,12 @@ are the ones to compare.
 
 - Pipeline and flavors: include/transclusion (no design yet); `RenderedDocument` doesn't report
   the flavor a document actually rendered with, so the UI can't say "this document overrides
-  to CommonMark"; no UI for `RenderedDocument.overrides.ignored` (frontmatter keys mdv ignored
+  to CommonMark"; no UI for `RenderedDocument.overrides.ignored` (frontmatter keys Peep ignored
   and why).
 - Alerts: a quote between raw HTML blocks (`<details>` … `</details>`) becomes an alert where
   github.com keeps a block quote (known divergence, #52); titles are always English, as on
   GitHub.
-- Wiki links: `mdv --html` has no resolver, so page links render as missing there (M5); a link
+- Wiki links: `peep --html` has no resolver, so page links render as missing there (M5); a link
   to a heading goes to the first heading with that text (slugs aren't de-duplicated against the
   target); no tooltip on missing links; a `.markdown` and `.md` tie in one folder goes to name
   order; targets appearing or disappearing don't re-render (the next render picks them up).
@@ -613,7 +613,7 @@ are the ones to compare.
   unconfirmed for downloaded scripts (no reproduction outside the UI test runner).
 - Slow renders: the corner indicator hides when the render lands, not when the in-place swap
   finishes (a few hundred ms more at 5 MB); no indicator while a reload only reads the file.
-- Settings > Markdown: the flavor picker's note doesn't mention that frontmatter `mdv.flavor`
+- Settings > Markdown: the flavor picker's note doesn't mention that frontmatter `peep.flavor`
   wins.
 
 ## M5: CLI
@@ -622,10 +622,10 @@ are the ones to compare.
 
 Make the terminal workflow excellent.
 
-- `mdv FILE...` opens files in the app, launching it if needed, through Launch Services with a
+- `peep FILE...` opens files in the app, launching it if needed, through Launch Services with a
   standard Open Documents Apple Event, as Finder does (#67); `--theme` becomes the windows'
   View > Theme pick
-- `cmd | mdv` opens standard input in an untitled window, through a private handoff file the
+- `cmd | peep` opens standard input in an untitled window, through a private handoff file the
   app deletes as soon as it has read it (#68)
 - `--html`, `--fragment`, and `-o`/`--output` (#63; `--standalone` was dropped, since pages are
   already standalone); `--theme` and `--flavor`, custom themes included, plus `--list-themes`
@@ -637,68 +637,68 @@ Make the terminal workflow excellent.
 - Install Command Line Tool in the App menu (`~/.local/bin` or `/usr/local/bin`, with Repair
   and Uninstall), which links the man page too (#70, #71)
 - Shell completions (zsh, bash, fish) and a man page, generated from the command (#71)
-- CLI integration tests: `MdvCLITests` (in process and with the built binary) under
+- CLI integration tests: `PeepCLITests` (in process and with the built binary) under
   `make test-core`, and UI tests that run the CLI (`CommandLineUITests`,
   `StandardInputUITests`, `WaitUITests`, `CommandLineToolUITests`)
 
 **Exit criteria:** every example in the README works; CLI tests run in CI. ✅
-(`ReadmeExampleTests` runs every `mdv` command in the README's `sh` blocks under
+(`ReadmeExampleTests` runs every `peep` command in the README's `sh` blocks under
 `make test-core`, which CI runs, #72)
 
 **Decisions** (details in [VISION](VISION.md#architecture-overview), "CLI"):
 
-- CLI foundation (#63): the command is the `MdvCLIKit` library with one option group file per
-  concern and a thin `CLI/Main`; `MdvCLITests` runs under `make test-core` (in-process through
-  `MdvCommand.execute(in:)`, plus end-to-end runs of the built binary). `--standalone` is
+- CLI foundation (#63): the command is the `PeepCLIKit` library with one option group file per
+  concern and a thin `CLI/Main`; `PeepCLITests` runs under `make test-core` (in-process through
+  `PeepCommand.execute(in:)`, plus end-to-end runs of the built binary). `--standalone` is
   dropped (`--html` pages are already standalone); `--fragment` prints body HTML only;
   `-o`/`--output` writes atomically and never over an input. Several inputs share an output
   only as fragments. Exit statuses follow `sysexits(3)` (64, 65, 66, 69, 73, 74). With no FILE
-  and a terminal on standard input, mdv prints usage; `-` reads standard input explicitly.
-- Theme and flavor (#64): `--theme`/`--flavor` beat the document's `mdv:` frontmatter, which
-  beats the default (MdvCore `RenderOptions.pinnedOverrides`; `RenderedDocument.flavor` reports
+  and a terminal on standard input, Peep prints usage; `-` reads standard input explicitly.
+- Theme and flavor (#64): `--theme`/`--flavor` beat the document's `peep:` frontmatter, which
+  beats the default (PeepCore `RenderOptions.pinnedOverrides`; `RenderedDocument.flavor` reports
   the flavor used). `--theme` accepts `custom:<file name>` from the Themes folder
-  (`MDV_THEMES_FOLDER` overrides it), and a custom frontmatter theme now loads in `--html` too.
+  (`PEEP_THEMES_FOLDER` overrides it), and a custom frontmatter theme now loads in `--html` too.
   Unknown flag ids are usage errors; a missing or invalid custom theme exits 66 or 65 with the
   reason. `--list-themes` and `--list-flavors` added.
 - Render flags (#65): `--frontmatter hidden|table`, `--wiki-links`/`--no-wiki-links` (beats
-  `mdv.wikilinks`), `--source-lines`, `--no-highlight`, `--no-heading-anchors`,
+  `peep.wikilinks`), `--source-lines`, `--no-highlight`, `--no-heading-anchors`,
   `--block-remote-images`; HTML output only (usage error otherwise). No `--no-sanitize`, and the
   CLI doesn't read Settings > Markdown (both in VISION's security model). File inputs get the
-  app's `linkRoot` and a `FolderWikiLinkResolver` (`FileSystemFolderReader` moved to MdvCore);
-  stdin gets neither. Wiki links stay `.md` in `--output`. Ignored `mdv:` keys are warnings on
+  app's `linkRoot` and a `FolderWikiLinkResolver` (`FileSystemFolderReader` moved to PeepCore);
+  stdin gets neither. Wiki links stay `.md` in `--output`. Ignored `peep:` keys are warnings on
   standard error; `--verbose` adds the flavor and wiki link setting used.
 - Custom preprocessor (#66): `--preprocessor PATH` plus repeatable `--preprocessor-arg`, HTML
   output only; the app's setting is never read. Same runner and limits as the app; stdin runs
   in `/`. Failure exits 70 with the reason and stderr tail, no HTML, no fallback flag. Ctrl-C
-  (also `SIGTERM`, `SIGHUP`) cancels the run, stops its process group, then ends mdv with the
+  (also `SIGTERM`, `SIGHUP`) cancels the run, stops its process group, then ends Peep with the
   signal (end-to-end test with the built binary).
-- `mdv FILE` (#67): the CLI gives Launch Services a standard Open Documents Apple Event with
-  mdv's own parameters (`mdvT` theme id; `AppOpenEvent` in MdvCore), so opening is Finder's
+- `peep FILE` (#67): the CLI gives Launch Services a standard Open Documents Apple Event with
+  Peep's own parameters (`peepT` theme id; `AppOpenEvent` in PeepCore), so opening is Finder's
   path (no Automation prompt). It opens the app that contains it (a dev build opens itself;
-  outside a bundle, the app with mdv's bundle id); with another copy running it launches or
-  messages its own copy (`mdv /odoc`, since AppKit drops parameters from a directly sent
+  outside a bundle, the app with Peep's bundle id); with another copy running it launches or
+  messages its own copy (`Peep/odoc`, since AppKit drops parameters from a directly sent
   `odoc`). Paths and `--theme` are checked before anything opens (66, 64/66/65). `--theme`
   becomes the windows' View > Theme pick (an open window switches); `--flavor` without HTML
   output is a usage error. Parameters are presentation-only and validated in the app as
-  untrusted. #69 added `mdvW` to the same event; `mdvI`, reserved for #68, wasn't needed.
-- `cmd | mdv` (#68): standard input goes to the app as a private handoff file
-  (`$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md`, 0700/0600, `StandardInputHandoff` in MdvCore), one
+  untrusted. #69 added `peepW` to the same event; `peepI`, reserved for #68, wasn't needed.
+- `cmd | peep` (#68): standard input goes to the app as a private handoff file
+  (`$TMPDIR/peep-stdin.XXXXXXXX/stdin.md`, 0700/0600, `StandardInputHandoff` in PeepCore), one
   of the Open Documents event's files; `DocumentController` recognizes it by its shape (no
-  `mdvI` parameter: AppKit drops parameters on some launch paths, and any sender could set
+  `peepI` parameter: AppKit drops parameters on some launch paths, and any sender could set
   one), deletes it once read, and shows an untitled "Standard Input" window (titled from the document when it can be) that live reload,
   Open Recent, and restoration skip. The app deletes only files it verifies are handoffs
   (shape, owner, permissions, one link, no symbolic links); anything else opens as a file. At
   most 10 MB; empty (66), larger (65), and non-UTF-8 (65) input open nothing. No allowed root
   (relative images don't load), no wiki link resolver, preprocessor in `/`. No streaming
-  (deferred). `-` with files opens the files, then standard input. `cmd | mdv --wait` waits for
+  (deferred). `-` with files opens the files, then standard input. `cmd | peep --wait` waits for
   the standard input window.
-- `--wait` (#69): a random token per invocation (`mdvW`); the app posts the Darwin notification
-  `com.itspriddle.mdv.windowsClosed.<token>` once every window that event opened or brought
+- `--wait` (#69): a random token per invocation (`peepW`); the app posts the Darwin notification
+  `now.peep.Peep.windowsClosed.<token>` once every window that event opened or brought
   forward (an already-open file's counts) has closed, or on quit; the CLI also watches the
-  app's process, so a crash or force quit ends the wait (exit 0). Ctrl-C ends mdv (130) and
+  app's process, so a crash or force quit ends the wait (exit 0). Ctrl-C ends Peep (130) and
   leaves the windows open. A forged notification can only end a wait early; the app accepts
   only a UUID token. `--wait` with HTML output is a usage error. The README's git example
-  pipes into it (`git show HEAD:README.md | mdv --wait`, #68).
+  pipes into it (`git show HEAD:README.md | peep --wait`, #68).
 - Install Command Line Tool (#70): one App menu item whose title follows the state (Install,
   Repair for a link left by a moved or renamed app, Uninstall for this copy's link), read from
   disk each time the menu opens; nothing is repaired without asking. Both `~/.local/bin` (no
@@ -706,8 +706,8 @@ Make the terminal workflow excellent.
   script`, paths passed as parameters) are offered; the default is the first that needs no
   password and is on the login shell's `PATH`, else `/usr/local/bin`, else the folder of an
   existing link. After installing somewhere that may not be on `PATH`, the alert shows the
-  `export PATH=…` line. Only our symlink (into an mdv.app with our bundle id, or a gone one) is
-  ever replaced or removed; it is created by atomic rename. With several copies of mdv, the
+  `export PATH=…` line. Only our symlink (into a Peep.app with our bundle id, or a gone one) is
+  ever replaced or removed; it is created by atomic rename. With several copies of Peep, the
   alert names the one the link will use. #71 added the man page as a second
   `CommandLineToolInstaller.Item` (completions aren't installed). See VISION's security model.
 - Completions and man page (#71): generated from the ArgumentParser command, not committed
@@ -724,18 +724,18 @@ Make the terminal workflow excellent.
 **Decisions at the close-out (#72):**
 
 - The README's examples are tests (`ReadmeExampleTests`; the reader is
-  `Tests/MdvCLITests/Support/ReadmeExamples.swift`). A small shell reader (words, quotes, comments, `|`, `>`, `&&`) takes every `mdv` command
+  `Tests/PeepCLITests/Support/ReadmeExamples.swift`). A small shell reader (words, quotes, comments, `|`, `>`, `&&`) takes every `peep` command
   out of the `sh` blocks; one it can't read fails the test instead of being skipped. Examples
   that print or write HTML run the built binary in a temp folder holding the files they name
   (`README.md` is the real README). Examples that open the app run in process with the
   recording opener and must send what they say: the files, standard input from a pipe,
   `--theme`, `--wait`. The completion block's script names are checked against
   `make cli-docs`' output. Prose mentions in inline code aren't run. The README gained a block
-  of window examples (files, `--theme`, `git show … | mdv --wait`).
+  of window examples (files, `--theme`, `git show … | peep --wait`).
 - The CLI-driven stress cases (`StressTests+CommandLine`) are app-side: open events go
   through `DocumentOpener` as `AppDelegate` sends them, so they run in the hosted suite and
   under the sanitizers without launching copies of the app or depending on Launch Services
-  timing. They cover 24 `mdv FILE` events at once (files shared between events, standard
+  timing. They cover 24 `peep FILE` events at once (files shared between events, standard
   input in every third: each file opens once, every handoff is deleted), `--wait` tokens when
   the app quits mid-open (each notified exactly once, including events that finish opening
   after the quit), the largest standard input the CLI sends (10 MB renders, with the main
@@ -750,20 +750,20 @@ Make the terminal workflow excellent.
   fixed before the merge). AppKit opens an Open Documents event's files itself for a
   document-based app (`_handleAEOpenDocumentsForURLs:` → `NSDocumentController`) and never
   calls the delegate's `application(_:open:)`, so #67's design, checked with a probe app that
-  had no document types, held only for the direct `mdv /odoc` path that local UI tests took
-  while an installed mdv was running. A Carbon handler for `aevt/odoc`
+  had no document types, held only for the direct `Peep/odoc` path that local UI tests took
+  while an installed Peep was running. A Carbon handler for `aevt/odoc`
   (`OpenDocumentsEventTap`, installed in `applicationWillFinishLaunching`) now records each
   event's parameters by file (`OpenDocumentsEventLog`: taken once per file, 30 s, at most 32)
   and passes the event on unchanged; `DocumentController.openDocument(…display: true…)` hands
-  a file with mdv parameters to `DocumentOpener.openForOpenDocumentsEvent`, which also covers
+  a file with Peep parameters to `DocumentOpener.openForOpenDocumentsEvent`, which also covers
   files AppKit defers until an earlier open finishes (no current event by then).
   `application(_:open:)` is gone. The CLI sends the direct event with `.noReply`: a modal
   alert in the app (the first-run default viewer offer) holds up Apple Event handling, and
   waiting for a reply made the CLI exit 69 for files the app then opened.
 - **The preprocessor `SIGINT` test failed on CI** (fixed before the merge). The test's polling
-  task starved on the cooperative pool and signalled mdv after it had already timed out; it
+  task starved on the cooperative pool and signalled Peep after it had already timed out; it
   now waits and signals from a dedicated thread, and the run gets a Debug-only longer timeout
-  (`MDV_TEST_PREPROCESSOR_TIMEOUT`). Two product fixes came with it: `InterruptCancellation`
+  (`PEEP_TEST_PREPROCESSOR_TIMEOUT`). Two product fixes came with it: `InterruptCancellation`
   records the signal in its `sigaction` handler (and the dispatch source), so a signal landing
   as a run ends isn't lost, and the re-raise is a process-directed `kill` plus a wait, because
   the async command runs on workqueue threads, which Darwin never delivers signals to (about 1
@@ -776,11 +776,11 @@ Make the terminal workflow excellent.
   `contentViewController` on close, and the outline's wait for two animation frames no longer
   retains the web view (a window that isn't drawing runs no frames, so that wait never ended).
   `StressTests` checks a closed document is freed.
-- Core render timing bounds (`Tests/MdvCoreTests/RenderTiming.swift`) are report-only on CI
-  (`MDV_TIMING_REPORT_ONLY` in the core step), like the app's main-thread bounds since M4.
+- Core render timing bounds (`Tests/PeepCoreTests/RenderTiming.swift`) are report-only on CI
+  (`PEEP_TIMING_REPORT_ONLY` in the core step), like the app's main-thread bounds since M4.
 
 **Crash and hang pass (#72):** on feature/m5-cli with every fix above (52d909e), Debug,
-team-signed, macOS 27.2, `AppUITests` with `TEST_RUNNER_MDV_UI_TEST_RESTORATION=1`:
+team-signed, macOS 27.2, `AppUITests` with `TEST_RUNNER_PEEP_UI_TEST_RESTORATION=1`:
 
 | Suite | Address Sanitizer | Thread Sanitizer |
 | ----- | ----------------- | ---------------- |
@@ -801,39 +801,39 @@ bugfix's plain Debug runs, and passes on CI.
 `scripts/measure-cold-open -s -f -c -n 4 README.md` and then the 1 MB and 5 MB synthetic
 documents (`FirstRenderTests.largeSource`, 3 launches each), three rounds interleaved; the
 median of the rounds' medians. "Painted" is milliseconds from the process starting; "from the
-command" is from running `open` or `mdv` (Launch Services' part included).
+command" is from running `open` or `peep` (Launch Services' part included).
 
 | Document | Size | Painted | Floor (bare `WKWebView`) | Minus floor |
 | -------- | ---- | ------- | ------------------------ | ----------- |
-| mdv README | 13.3 KB | 350 ms | 297 ms | +53 ms |
+| peep README | 13.3 KB | 350 ms | 297 ms | +53 ms |
 | Synthetic | 1 MB | 665 ms | | |
 | Synthetic | 5 MB | 2118 ms | | |
 
 | README by path | Painted | From the command |
 | -------------- | ------- | ---------------- |
-| `open -n -a mdv.app README.md` (Finder's path) | 363 ms | 408 ms |
-| `mdv README.md` (the CLI) | 344 ms | 387 ms |
+| `open -n -a Peep.app README.md` (Finder's path) | 363 ms | 408 ms |
+| `peep README.md` (the CLI) | 344 ms | 387 ms |
 
-- **`mdv FILE` is as fast as Finder's path:** 21 ms quicker from the command in this sitting
-  (#67 measured 4 ms slower), inside the rounds' spread (open 400-412 ms, mdv 379-393 ms), so
+- **`peep FILE` is as fast as Finder's path:** 21 ms quicker from the command in this sitting
+  (#67 measured 4 ms slower), inside the rounds' spread (open 400-412 ms, Peep 379-393 ms), so
   the CLI's Apple Event costs nothing measurable.
 - The README is three times the size it was at M4 (4.4 KB then), so +53 ms over the floor
   isn't comparable with M4's +37 ms; the rounds gave +31, +27, and +59 ms. Re-check the
   README against the 0-50 ms target on a quiet machine before 1.0.
 - 1 MB and 5 MB are M4's 643 ms and 2200 ms within this machine's noise.
 
-`mdv --html`, the Release helper, median of 10 runs after a warm-up (wall clock, file cache
-warm, `MDV_THEMES_FOLDER` pointing nowhere):
+`peep --html`, the Release helper, median of 10 runs after a warm-up (wall clock, file cache
+warm, `PEEP_THEMES_FOLDER` pointing nowhere):
 
 | Command | Median |
 | ------- | ------ |
-| `mdv --version` (process start) | 5.6 ms |
-| `mdv --html README.md` | 16.7 ms |
-| `mdv --html --no-highlight README.md` | 7.3 ms |
-| `mdv --html` 1 MB | 125 ms |
-| `mdv --html --no-highlight` 1 MB | 75 ms |
-| `mdv --html` 5 MB | 394 ms |
-| `mdv --html --no-highlight` 5 MB | 336 ms |
+| `peep --version` (process start) | 5.6 ms |
+| `peep --html README.md` | 16.7 ms |
+| `peep --html --no-highlight README.md` | 7.3 ms |
+| `peep --html` 1 MB | 125 ms |
+| `peep --html --no-highlight` 1 MB | 75 ms |
+| `peep --html` 5 MB | 394 ms |
+| `peep --html --no-highlight` 5 MB | 336 ms |
 
 Starting the CLI costs about 6 ms. highlight.js in JavaScriptCore is most of a small page's
 time (about 9 ms of the README's 17) and stays near 50-60 ms at
@@ -849,9 +849,9 @@ time (about 9 ms of the README's 17) and stays near 50-60 ms at
 - Testing: `CommandLineUITests.testThemeFlagBecomesTheWindowsPick` fails under the Thread
   Sanitizer only (XCUITest reads Document's Theme as enabled after the app disabled it; see
   the crash pass above). A UI test that drives the pure Launch Services path while an
-  installed mdv runs isn't possible (Launch Services routes by bundle id); it runs locally only
+  installed Peep runs isn't possible (Launch Services routes by bundle id); it runs locally only
   with the installed copy quit, and always on CI.
-- Standard input: no streaming (`tail -f log.md | mdv` never opens, #68); relative images in a
+- Standard input: no streaming (`tail -f log.md | peep` never opens, #68); relative images in a
   standard input window show as broken images, not a placeholder (#68).
 - Preprocessor: the CLI passes the script the decoded input re-encoded as UTF-8, not the
   file's raw bytes (differs only when a byte order mark was dropped; the app passes exact
@@ -862,55 +862,32 @@ time (about 9 ms of the README's 17) and stays near 50-60 ms at
 - Install Command Line Tool: the administrator path is tested without a real password (same
   handler and scripts minus the privilege clause); `PATH` entries set only in `.zshrc` aren't
   seen by the login-shell probe, so the alert words it as "may not be on your PATH" (#70).
-- Small cleanups: the app's `DocumentWikiLinks` could use MdvCore's
+- Small cleanups: the app's `DocumentWikiLinks` could use PeepCore's
   `FolderWikiLinkResolver.fileSystem(forDocumentAt:root:)` (#65).
 
 ## Gate: choose the name
 
-Before distribution work starts, pick the final name. Bundle identifier, repository name, Sparkle
-feed URL, Homebrew cask, and website all depend on it, and changing them after release breaks
-updates. Rename `PRODUCT_BUNDLE_IDENTIFIER_BASE`, targets, and docs in one pass.
+Done. The working name `mdv` became **Peep**, with the site at [peep.now](https://peep.now)
+(Cloudflare Workers). Bundle identifier, repository name, Sparkle feed URL, Homebrew cask, and
+website all depend on the name, and changing them after release breaks updates, so everything
+was renamed in one pass before M6:
 
-The CLI made the name user-facing in many more places (M5, #72). Everything that says `mdv`
-today, grouped by who would notice a rename:
-
-- **Readers' files and habits** (keep working, or migrate, after a rename): the `mdv` command
-  itself (ArgumentParser `commandName`, SwiftPM product `mdv`, Xcode `mdv-cli`'s
-  `PRODUCT_NAME`, `mdv.app/Contents/Helpers/mdv`, `CommandLineToolInstaller.Item.command`, and
-  `AppLocator`'s bundle layout check); the links Install Command Line Tool made
-  (`~/.local/bin/mdv` or `/usr/local/bin/mdv`, and `share/man/man1/mdv.1`), which the new
-  name's installer won't recognize as its own; frontmatter's `mdv:` key
-  (`DocumentOverrides.frontmatterKey`) in readers' documents; the custom theme header
-  `/* mdv-theme` (`CustomTheme.headerMarker`) and the Themes folder
-  `~/Library/Application Support/mdv/Themes` (`CustomThemeLibrary`, `ThemeResolver`,
-  `ManualPage`); `MDV_DOCUMENT_PATH`, which readers' preprocessor scripts read; and
-  `MDV_THEMES_FOLDER`. Each needs a decision: rename and accept the break before 1.0, or read
-  the old name as well.
-- **Generated and bundled files:** the man page (`mdv.1`, its NAME and every example), the
-  completion scripts (`_mdv`, `mdv.bash`, `mdv.fish`, and the `#compdef mdv` / `complete -c
-  mdv` lines ArgumentParser writes from the command name), the bundle paths
-  `Contents/Resources/{man/man1,completions}` (the M6 cask's stanzas), and `HelpText`
-  examples. These follow the command name once it changes.
-- **Between the CLI and the app** (old CLI and new app, or the reverse, won't talk; fine
-  before 1.0): the bundle id `com.itspriddle.mdv` (`PRODUCT_BUNDLE_IDENTIFIER_BASE`,
-  `MdvCommand.appBundleIdentifier`, the exported UTI, which CLAUDE.md keeps in sync); the
-  `--wait` Darwin notification `com.itspriddle.mdv.windowsClosed.<token>`
-  (`AppOpenEvent.windowsClosedNotificationPrefix`); the Apple Event codes, event class
-  `mdv ` (`0x6D647620`, `AppOpenEvent.directEventClass`) and parameters `mdvT` and `mdvW`
-  (`mdvI` is unused); the standard input handoff `$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md`
-  (`StandardInputHandoff.folderPrefix`); `MDV_LAUNCH_TIMING` and `MDV_LAUNCH_TIMING_LOG`, the
-  only environment the CLI forwards.
-- **App internals with the name in them:** the `mdv-doc:` URL scheme
-  (`DocumentURLScheme.name`), the content world `"mdv"` (`AppScripts.world`), cascade layer
-  names `mdv-base`/`mdv-theme`/`mdv-user` (theme authors may target them, `docs/THEMES.md`),
-  the `os.Logger` fallback subsystem, UserDefaults and saved state (keyed by the bundle id, so
-  a new id starts with fresh settings), and the Debug-only `-MdvUITest…` launch arguments.
-- **Repository:** `itspriddle/mdv`, the `Mdv` module and type prefixes (`MdvCore`,
-  `MdvCLIKit`, `MdvApp`, `MdvCommand`, …), test-only variables (`MDV_CLI_BINARY`,
-  `MDV_CLI_DOCS`, `MDV_RECORD_SNAPSHOTS`, `MDV_RECORD_MISSING_SNAPSHOTS`,
-  `MDV_TIMING_REPORT_ONLY`, `MDV_UI_TEST_RESTORATION`, `MDV_CORPUS_DIFF_DIR`,
-  `MDV_BENCHMARK`, `MDV_FUZZ_*`), and the docs. Renaming the modules is optional; the rest is
-  one pass.
+- **Names:** the app is `Peep.app` (display name Peep, Xcode project `Peep.xcodeproj`, scheme
+  `Peep`); the command is `peep` (`Peep.app/Contents/Helpers/peep`, Xcode target `peep-cli`,
+  SwiftPM product `peep`); modules and types use the `Peep` prefix (`PeepCore`, `PeepCLIKit`,
+  `PeepApp`, `PeepCommand`, `PeepInfo`, `PeepUITestApp`).
+- **Identifiers:** bundle id base `now.peep.Peep` (the CLI is `.cli`, the exported UTI
+  `.markdown`); the `--wait` notification `now.peep.Peep.windowsClosed.<token>`; Apple Event
+  class `Peep` (`0x50656570`) with parameters `PepT` (theme) and `PepW` (wait).
+- **Readers' files:** frontmatter `peep:`, custom theme header `/* peep-theme`, the Themes folder
+  `~/Library/Application Support/Peep/Themes`, `PEEP_DOCUMENT_PATH` and `PEEP_THEMES_FOLDER`,
+  cascade layers `peep-base`/`peep-theme`/`peep-user`, and the `peep-doc:` URL scheme.
+- **Clean break:** nothing had shipped, so the old names aren't read as fallbacks: an `mdv:`
+  frontmatter key is ignored like any other key, an `mdv-theme` header doesn't load, the old Themes
+  folder and settings (keyed by the old bundle id) are left behind, and links made by the old
+  Install Command Line Tool aren't recognized as the new installer's own.
+- **Repository:** `itspriddle/mdv` became `itspriddle/peep` (GitHub redirects the old URL).
+  Test-only variables are `PEEP_…` (`PEEP_RECORD_SNAPSHOTS`, `TEST_RUNNER_PEEP_…`, and so on).
 
 ## M6: Distribution and 1.0
 
@@ -919,14 +896,14 @@ Ship it.
 - Developer ID signing and notarization in CI (secrets in GitHub Actions; signing identity never
   committed)
 - DMG (or zip) packaging with app and CLI
-- [Sparkle 2](https://sparkle-project.org): EdDSA signing keys, appcast hosted on GitHub Pages or
-  the project site, update channel settings
+- [Sparkle 2](https://sparkle-project.org): EdDSA signing keys, appcast hosted on
+  [peep.now](https://peep.now) (Cloudflare Workers), update channel settings
 - Tag-driven release workflow: build → sign → notarize → staple → publish GitHub Release → update
   appcast
-- Version bumping keeps `MARKETING_VERSION` and `MdvInfo.version` in sync
+- Version bumping keeps `MARKETING_VERSION` and `PeepInfo.version` in sync
 - Homebrew cask
-- Rename `itspriddle/mdv` to the final name (public since M4's close-out); project site /
-  landing page; CONTRIBUTING and issue templates
+- Project site / landing page at [peep.now](https://peep.now) (Cloudflare Workers); CONTRIBUTING
+  and issue templates
 - Acknowledgements for bundled third-party code (highlight.js BSD-3 notice, gemoji data,
   github-markdown-css MIT notice, Octicons MIT notice for the alert icons from #52)
 
@@ -938,7 +915,7 @@ updates itself to 1.0.1 via Sparkle.
 Rough priority order; each becomes its own milestone when it's next.
 
 - **M7 PDF export:** `WKWebView.createPDF`/print pipeline, print-specific CSS per theme, page size,
-  margins, headers/footers, `mdv --pdf`
+  margins, headers/footers, `peep --pdf`
 - **M8 Math and diagrams:** KaTeX (bundled) for `$…$` / `$$…$$`, optionally Mermaid; requires the
   bundle-only JS policy from M1
 - **M9 Outlining and academic styles:** outline mode, APA-style theme (title page, running head,
@@ -946,13 +923,13 @@ Rough priority order; each becomes its own milestone when it's next.
 - **M10 RTL text:** per-paragraph direction detection (`dir="auto"`), RTL-aware themes
 - **M11 Proofreading:** highlight configurable words and phrases to avoid (weasel words, passive
   voice, custom lists) as an overlay toggle
-- **M12 Vim plugin:** open/preview the current buffer in mdv with live updates
+- **M12 Vim plugin:** open/preview the current buffer in Peep with live updates
 
 ## Process
 
 1. **Plan a milestone:** in a dedicated session, break the milestone into GitHub issues
    (user-story style, with acceptance criteria) under a matching GitHub milestone in
-   `itspriddle/mdv` (public).
+   `itspriddle/peep` (public).
 2. **Work issues:** one branch per issue following
    [Conventional Branch](https://conventional-branch.github.io) (`feature/…`, `bugfix/…`), commits
    following [Conventional Commits](https://www.conventionalcommits.org). Issue branches merge

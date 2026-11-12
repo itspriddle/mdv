@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Reading the custom themes folder (#35): what loads, what is reported, and what is ignored.
 @Suite("Custom theme folder")
@@ -10,14 +10,14 @@ struct CustomThemeFolderTests {
     /// A temporary folder, removed by the caller.
     static func makeFolder() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-custom-themes-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-custom-themes-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }
 
     @Test("a missing folder has no themes and no failures")
     func missingFolder() {
-        let folder = FileManager.default.temporaryDirectory.appending(path: "mdv-missing-\(UUID().uuidString)")
+        let folder = FileManager.default.temporaryDirectory.appending(path: "peep-missing-\(UUID().uuidString)")
         #expect(CustomThemeFolder(url: folder).load() == .empty)
     }
 
@@ -28,7 +28,7 @@ struct CustomThemeFolderTests {
         func write(_ name: String, _ text: String) throws {
             try Data(text.utf8).write(to: folder.appending(path: name))
         }
-        try write("zeta.css", "/* mdv-theme\nname: Alpha\n*/\np {}")
+        try write("zeta.css", "/* peep-theme\nname: Alpha\n*/\np {}")
         try write("beta.CSS", "p {}")
         try write("imports.css", "@import 'x.css';")
         try write("notes.txt", "not a theme")
@@ -74,7 +74,7 @@ struct CustomThemeFolderTests {
         let real = try Self.makeFolder()
         defer { try? FileManager.default.removeItem(at: real) }
         try Data("p {}".utf8).write(to: real.appending(path: "linked.css"))
-        let link = FileManager.default.temporaryDirectory.appending(path: "mdv-themes-link-\(UUID().uuidString)")
+        let link = FileManager.default.temporaryDirectory.appending(path: "peep-themes-link-\(UUID().uuidString)")
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
         defer { try? FileManager.default.removeItem(at: link) }
         #expect(CustomThemeFolder(url: link).load().themes.map(\.id) == ["custom:linked.css"])

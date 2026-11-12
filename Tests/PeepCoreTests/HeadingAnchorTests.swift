@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 // How the expected slugs were verified (2026-11-06): each heading was rendered by GitHub with
 //
@@ -115,7 +115,7 @@ struct HeadingSlugTests {
 
     @Test("empty slugs still get unique ids (GitHub: \"\", -1, -2, ...)")
     func emptySlugs() {
-        // GitHub gives the first empty slug `id=""` and later ones `-1`, `-2`; mdv uses `-0` first.
+        // GitHub gives the first empty slug `id=""` and later ones `-1`, `-2`; Peep uses `-0` first.
         #expect(slugs("# ???\n# !!!") == ["-0", "-1"])
         #expect(slugs("#\n#\n# 🎉") == ["-0", "-1", "-2"])
         #expect(slugs("# -0\n#") == ["-0", "-1"])

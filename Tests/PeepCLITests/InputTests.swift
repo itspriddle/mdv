@@ -47,7 +47,7 @@ struct InputTests {
         let result = await CLIHarness.run(["--html", missing])
         #expect(result.status == 66)
         #expect(result.stdout.isEmpty)
-        #expect(result.stderr == "mdv: \(missing): No such file or directory\n")
+        #expect(result.stderr == "peep: \(missing): No such file or directory\n")
     }
 
     @Test("a folder exits 66")
@@ -55,7 +55,7 @@ struct InputTests {
         let folder = try TempFolder()
         let result = await CLIHarness.run(["--html", folder.url.path])
         #expect(result.status == 66)
-        #expect(result.stderr == "mdv: \(folder.url.path): Is a directory\n")
+        #expect(result.stderr == "peep: \(folder.url.path): Is a directory\n")
     }
 
     @Test("an unreadable FILE exits 66")
@@ -66,7 +66,7 @@ struct InputTests {
         defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: input) }
         let result = await CLIHarness.run(["--html", input])
         #expect(result.status == 66)
-        #expect(result.stderr == "mdv: \(input): Permission denied\n")
+        #expect(result.stderr == "peep: \(input): Permission denied\n")
     }
 
     @Test("invalid UTF-8 exits 65, from a FILE or standard input")
@@ -76,11 +76,11 @@ struct InputTests {
         let fromFile = await CLIHarness.run(["--html", input])
         #expect(fromFile.status == 65)
         #expect(fromFile.stdout.isEmpty)
-        #expect(fromFile.stderr == "mdv: \(input): not valid UTF-8\n")
+        #expect(fromFile.stderr == "peep: \(input): not valid UTF-8\n")
 
         let fromStdin = await CLIHarness.run(["--html"], stdin: Data([0x23, 0x20, 0xFF, 0x0A]))
         #expect(fromStdin.status == 65)
-        #expect(fromStdin.stderr == "mdv: stdin: not valid UTF-8\n")
+        #expect(fromStdin.stderr == "peep: stdin: not valid UTF-8\n")
     }
 
     @Test("one bad input among several prints nothing")
@@ -97,16 +97,16 @@ struct InputTests {
     func standardInputReadFailure() async {
         let result = await CLIHarness.run(["--html"], stdinError: CocoaError(.fileReadUnknown))
         #expect(result.status == 66)
-        #expect(result.stderr.hasPrefix("mdv: stdin: "))
+        #expect(result.stderr.hasPrefix("peep: stdin: "))
     }
 
-    @Test("with no FILE and a terminal on standard input, mdv prints usage instead of waiting")
+    @Test("with no FILE and a terminal on standard input, Peep prints usage instead of waiting")
     func terminalStandardInput() async {
         for flags in [[], ["--html"]] {
             let result = await CLIHarness.run(flags, stdinIsTerminal: true)
             #expect(result.status == 64)
             #expect(result.stdout.isEmpty)
-            #expect(result.stderr.hasPrefix("mdv: no FILE given and standard input is a terminal\nUsage: mdv"))
+            #expect(result.stderr.hasPrefix("peep: no FILE given and standard input is a terminal\nUsage: peep"))
             #expect(result.openedInApp.isEmpty)
         }
     }

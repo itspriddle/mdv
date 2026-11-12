@@ -4,7 +4,7 @@ import XCTest
 /// small document opened with it isn't held up behind the render.
 @MainActor
 final class LargeDocumentUITests: XCTestCase {
-    private var mdv: MdvUITestApp?
+    private var peep: PeepUITestApp?
     private var folder: URL?
 
     override func setUp() async throws {
@@ -12,8 +12,8 @@ final class LargeDocumentUITests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        mdv?.terminate()
-        mdv = nil
+        peep?.terminate()
+        peep = nil
         if let folder {
             try? FileManager.default.removeItem(at: folder)
         }
@@ -22,7 +22,7 @@ final class LargeDocumentUITests: XCTestCase {
     /// Writes about 5 MB of Markdown titled "Large Document" (a heading every few KB).
     private func writeLargeDocument() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-ui-large-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-ui-large-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         self.folder = folder
         let section = (1...4).map { _ in
@@ -54,11 +54,11 @@ final class LargeDocumentUITests: XCTestCase {
     func testLargeDocumentRendersWithoutHoldingUpOtherWindows() throws {
         let large = try writeLargeDocument()
         let small = try Fixtures.url(named: "smoke.md")
-        let mdv = MdvUITestApp.launch(arguments: [
-            "-MdvUITestOpen",
-            MdvUITestApp.propertyListArray([large, small].map { $0.path(percentEncoded: false) }),
+        let peep = PeepUITestApp.launch(arguments: [
+            "-PeepUITestOpen",
+            PeepUITestApp.propertyListArray([large, small].map { $0.path(percentEncoded: false) }),
         ])
-        self.mdv = mdv
+        self.peep = peep
 
         // The small document opens and renders while the large one is still rendering (or
         // done, on a fast machine); either way the large one's window is up, titled with the
@@ -66,15 +66,15 @@ final class LargeDocumentUITests: XCTestCase {
         // count, avoids `windows.count`, which snapshots the whole app, the 5 MB page included,
         // on every poll: once it failed with both windows listed, the snapshots outlasting the
         // default timeout while the large page loaded.
-        let smallWindow = mdv.waitForWindow(titled: "Smoke Test Fixture", timeout: 30)
-        mdv.waitForRenderedText("The quick brown fox renders in mdv.", in: smallWindow)
-        let largeWindow = mdv.app.windows.matching(
+        let smallWindow = peep.waitForWindow(titled: "Smoke Test Fixture", timeout: 30)
+        peep.waitForRenderedText("The quick brown fox renders in Peep.", in: smallWindow)
+        let largeWindow = peep.app.windows.matching(
             NSPredicate(format: "title IN %@", ["large.md", "Large Document"])
         ).firstMatch
         XCTAssertTrue(largeWindow.waitForExistence(timeout: 30), "the large document's window is up")
 
         // The large document's window takes its title from the render once it lands. Its page
         // isn't queried: the accessibility tree of a 5 MB page is too slow to snapshot.
-        mdv.waitForWindow(titled: "Large Document", timeout: 60)
+        peep.waitForWindow(titled: "Large Document", timeout: 60)
     }
 }

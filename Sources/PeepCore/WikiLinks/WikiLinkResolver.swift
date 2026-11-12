@@ -1,5 +1,5 @@
 /// Finds the file a wiki link's page names (#53). Injected into `HTMLRenderer`
-/// (`wikiLinkResolver`), so MdvCore never touches the file system itself: the app passes a
+/// (`wikiLinkResolver`), so PeepCore never touches the file system itself: the app passes a
 /// `FolderWikiLinkResolver` over the real folders; tests pass fakes.
 ///
 /// A renderer asks once per distinct page in a render. Resolvers are made for one render, so

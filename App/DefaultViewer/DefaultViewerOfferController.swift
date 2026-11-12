@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// Shows the offer to become the default Markdown viewer in a small non-modal panel, and runs
-/// Settings' "Make mdv the Default Markdown Viewer". The policy lives in `DefaultViewer`.
+/// Settings' "Make Peep the Default Markdown Viewer". The policy lives in `DefaultViewer`.
 @MainActor
 final class DefaultViewerOfferController: NSObject {
     let viewer: DefaultViewer
@@ -57,8 +57,8 @@ final class DefaultViewerOfferController: NSObject {
         }
     }
 
-    /// Settings > General, "Make mdv the Default Markdown Viewer" (#36): closes the offer if it
-    /// is showing, makes mdv the default, and shows an alert if that fails.
+    /// Settings > General, "Make Peep the Default Markdown Viewer" (#36): closes the offer if it
+    /// is showing, makes Peep the default, and shows an alert if that fails.
     func makeDefault() async {
         panel?.close()
         panel = nil
@@ -71,7 +71,7 @@ final class DefaultViewerOfferController: NSObject {
 
     private static func reportFailure(_ error: any Error) {
         let alert = NSAlert()
-        alert.messageText = "mdv couldn’t become the default Markdown viewer."
+        alert.messageText = "Peep couldn’t become the default Markdown viewer."
         alert.informativeText =
             "You can choose it in Finder: select a Markdown file, choose File > Get Info, and use "
             + "“Open with”. (\(error.localizedDescription))"
@@ -90,8 +90,8 @@ private struct DefaultViewerOfferView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Make mdv your default Markdown viewer?").font(.headline)
-            Text("Markdown files you double-click in Finder will open in mdv.")
+            Text("Make Peep your default Markdown viewer?").font(.headline)
+            Text("Markdown files you double-click in Finder will open in Peep.")
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Button("Don’t Ask Again") { answer(.dontAskAgain) }

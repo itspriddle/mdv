@@ -1,7 +1,7 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// The Launch Services calls mdv makes to read and change the default app for a content type.
+/// The Launch Services calls Peep makes to read and change the default app for a content type.
 ///
 /// `NSWorkspace` changes the user's real system defaults, so tests use a fake.
 @MainActor

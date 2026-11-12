@@ -1,10 +1,10 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The M3 crash and hang pass (#45): theme switches racing live reloads, and custom themes
 /// added, edited, broken, and deleted (in a temporary folder, never the reader's) while windows
@@ -26,10 +26,10 @@ extension StressTests {
         return (document, controller)
     }
 
-    /// The text of the page's `mdv-theme` layer.
+    /// The text of the page's `peep-theme` layer.
     func pageThemeCSS(_ controller: DocumentWindowController) async throws -> String? {
         (try await controller.coordinator.webView.callAsyncJavaScript(
-            "return document.getElementById('mdv-theme').textContent;", arguments: [:], in: nil,
+            "return document.getElementById('peep-theme').textContent;", arguments: [:], in: nil,
             contentWorld: AppScripts.world) as? String)?
             .trimmingCharacters(in: .newlines)
     }
@@ -47,7 +47,7 @@ extension StressTests {
 
     @Test("theme switches during rapid live reloads end on the newest content and the last theme")
     func themeSwitchDuringReloads() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let settings = themeSettings(defaults)
         let themes = settings.registry.themes
         let urls = try (0..<4).map { try write("# Start \($0)", to: "themed-\($0).md") }
@@ -87,7 +87,7 @@ extension StressTests {
 
     @Test("custom themes added, edited, broken, and deleted while windows open and close")
     func customThemeChurn() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let settings = themeSettings(defaults)
         let themes = try ChurningThemesFolder(folder.appending(path: "Themes", directoryHint: .isDirectory))
         let library = CustomThemeLibrary(
@@ -199,7 +199,7 @@ private struct ChurningThemesFolder {
         if round.isMultiple(of: 3) {
             delete("b.css")
         } else {
-            try write("/* mdv-theme\nname: B\nextends: serif\n*/\np { margin: \(round)px; }", to: "b.css")
+            try write("/* peep-theme\nname: B\nextends: serif\n*/\np { margin: \(round)px; }", to: "b.css")
         }
         // Broken on odd rounds (shown as a failure), valid on even ones.
         try write(round.isMultiple(of: 2) ? "p { color: red; }" : "@import 'x.css';", to: "c.css")

@@ -1,12 +1,12 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 private let token = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"
 
 /// The page URL of `/Users/me/docs/README.md` in the window `token`, as the app loads it.
-private let page = URL(string: "mdv-doc://\(token)/Users/me/docs/README.md")
+private let page = URL(string: "peep-doc://\(token)/Users/me/docs/README.md")
 
 /// Resolves `href` against the page, as WebKit does, then picks what Copy Link copies.
 private func copied(_ href: String) throws -> String? {
@@ -52,26 +52,26 @@ struct CopyableLinkTests {
     }
 
     @Test(
-        "an mdv-doc URL that names no file in this window copies nothing",
+        "a peep-doc URL that names no file in this window copies nothing",
         arguments: [
-            "mdv-doc://another-token/Users/me/docs/guide.md",
-            "MDV-DOC://another-token/x.md",
-            "mdv-doc://\(token)/a/%2E%2E/b.md",
-            "mdv-doc://\(token)/a/%2Fb.md",
-            "mdv-doc://\(token)",
-            "mdv-doc:relative",
-            "mdv-doc://user@\(token)/x.md",
-            "mdv-doc://\(token):80/x.md",
+            "peep-doc://another-token/Users/me/docs/guide.md",
+            "PEEP-DOC://another-token/x.md",
+            "peep-doc://\(token)/a/%2E%2E/b.md",
+            "peep-doc://\(token)/a/%2Fb.md",
+            "peep-doc://\(token)",
+            "peep-doc:relative",
+            "peep-doc://user@\(token)/x.md",
+            "peep-doc://\(token):80/x.md",
         ])
     func refused(href: String) throws {
         let url = try #require(URL(string: href))
         #expect(CopyableLink.url(for: url, token: token) == nil)
     }
 
-    @Test("never copies an mdv-doc URL", arguments: ["guide.md", "#x", "", "sub/", "a%23b.md#c%20d", "//\(token)/y"])
+    @Test("never copies a peep-doc URL", arguments: ["guide.md", "#x", "", "sub/", "a%23b.md#c%20d", "//\(token)/y"])
     func neverInternal(href: String) throws {
         let result = try copied(href)
-        #expect(result?.lowercased().hasPrefix("mdv-doc:") != true)
+        #expect(result?.lowercased().hasPrefix("peep-doc:") != true)
     }
 
     @Test("a URL without a scheme copies nothing")

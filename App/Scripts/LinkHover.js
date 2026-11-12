@@ -1,7 +1,7 @@
-// mdv link hover: reports the link under the pointer (or keyboard focus) to the app, which
+// Peep link hover: reports the link under the pointer (or keyboard focus) to the app, which
 // shows where it goes in a status overlay.
 //
-// Runs only in the app's isolated content world ("mdv", see AppScripts.swift); page JavaScript
+// Runs only in the app's isolated content world ("peep", see AppScripts.swift); page JavaScript
 // is disabled. The `linkHover` message handler is registered in that world only, so the page
 // can neither see it nor post to it. The message is the link's resolved `href` (a string), or
 // "" when no link is hovered; the app treats it as display text and never acts on it (clicks
@@ -29,7 +29,7 @@
     }
   }
 
-  // Listeners on the document survive in-place content swaps (`mdv.replaceContent`).
+  // Listeners on the document survive in-place content swaps (`peep.replaceContent`).
   document.addEventListener("mouseover", (event) => report(hrefFor(event.target)), true);
   document.addEventListener(
     "mouseout",

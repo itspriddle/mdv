@@ -1,9 +1,9 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 /// Turns theme ids into themes for the CLI (#64): a bundled id (`github`, compared lowercased) or
-/// `custom:<file name>` from the Themes folder. `--theme` and `mdv FILE --theme` (#67) use
-/// `theme(id:)`, which fails with a reason; a document's `mdv.theme` uses `documentTheme(id:)`,
+/// `custom:<file name>` from the Themes folder. `--theme` and `peep FILE --theme` (#67) use
+/// `theme(id:)`, which fails with a reason; a document's `peep.theme` uses `documentTheme(id:)`,
 /// which falls back to GitHub silently because documents are untrusted.
 ///
 /// Custom themes load through `CustomThemeFolder` with the same checks as the app's
@@ -12,7 +12,7 @@ import MdvCore
 public struct ThemeResolver: Sendable {
     /// The environment variable that overrides the Themes folder (tests, or themes kept
     /// elsewhere).
-    public static let themesFolderVariable = "MDV_THEMES_FOLDER"
+    public static let themesFolderVariable = "PEEP_THEMES_FOLDER"
 
     /// The bundled themes, which `extends:` may name and which no custom theme can shadow.
     public static let base = ThemeRegistry.bundled
@@ -24,9 +24,9 @@ public struct ThemeResolver: Sendable {
         self.themesFolder = themesFolder
     }
 
-    /// The Themes folder for this process: `MDV_THEMES_FOLDER` when set and not empty (relative
+    /// The Themes folder for this process: `PEEP_THEMES_FOLDER` when set and not empty (relative
     /// paths resolve against the working directory), else the app's
-    /// `~/Library/Application Support/mdv/Themes` (`CustomThemeLibrary.folderURL`).
+    /// `~/Library/Application Support/Peep/Themes` (`CustomThemeLibrary.folderURL`).
     public static func themesFolder(environment: [String: String]) -> URL? {
         if let path = environment[themesFolderVariable], !path.isEmpty {
             return URL(fileURLWithPath: path, isDirectory: true).absoluteURL
@@ -37,7 +37,7 @@ public struct ThemeResolver: Sendable {
         }
         return
             support
-            .appending(path: "mdv", directoryHint: .isDirectory)
+            .appending(path: "Peep", directoryHint: .isDirectory)
             .appending(path: "Themes", directoryHint: .isDirectory)
     }
 
@@ -74,7 +74,7 @@ public struct ThemeResolver: Sendable {
         throw .notFound(id: id, folder: themesFolder?.path(percentEncoded: false), folderProblem: folderProblem)
     }
 
-    /// A document's `mdv.theme` (already normalized by `DocumentOverrides`): the theme it names
+    /// A document's `peep.theme` (already normalized by `DocumentOverrides`): the theme it names
     /// when it resolves, else the default (GitHub). Never fails.
     public func documentTheme(id: String?) -> Theme {
         guard let id else {
@@ -110,7 +110,7 @@ public enum ThemeResolutionError: Error, Sendable, Equatable, CustomStringConver
         switch self {
         case .unknown(let id):
             return "unknown theme \"\(Self.shortened(id))\"; use \(ThemeResolver.bundledIDs), "
-                + "or custom:<file name> (mdv --list-themes)"
+                + "or custom:<file name> (peep --list-themes)"
         case .notFound(let id, let folder, let folderProblem):
             let fileName = String(id.dropFirst(CustomTheme.idPrefix.count))
             var message = "theme \"\(Self.shortened(id))\": no \(Self.shortened(fileName)) in the Themes folder"
@@ -126,7 +126,7 @@ public enum ThemeResolutionError: Error, Sendable, Equatable, CustomStringConver
         }
     }
 
-    /// 64 for an id that names nothing mdv knows, 66 for a missing theme file (like a missing
+    /// 64 for an id that names nothing Peep knows, 66 for a missing theme file (like a missing
     /// input), 65 for a theme file that fails its checks (like an input that isn't UTF-8).
     public var exitStatus: Int32 {
         switch self {

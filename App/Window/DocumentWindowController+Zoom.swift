@@ -8,11 +8,11 @@ import WebKit
 /// Size resets both.
 extension DocumentWindowController {
     /// The restorable-state key for the window's magnification (a `Double`, absent at 1).
-    static let magnificationStateKey = "mdvMagnification"
+    static let magnificationStateKey = "peepMagnification"
 
     /// The restorable-state key for the window's page zoom (a `Double`, always written; absent
     /// only in state saved before #47, which then keeps Settings' default).
-    static let pageZoomStateKey = "mdvPageZoom"
+    static let pageZoomStateKey = "peepPageZoom"
 
     /// The magnification range pinch-to-zoom and restoration allow.
     nonisolated static let magnificationRange = 0.5...5.0

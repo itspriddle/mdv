@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Scripts that misbehave (#56's acceptance criteria): each yields a typed error within the
 /// limits, leaves no process behind, and leaves no descriptor open.
@@ -100,7 +100,7 @@ extension CustomPreprocessorTests {
         #expect(PreprocessorDescriptors.openCount == 0)
     }
 
-    @Test("a script that closes stdin doesn't raise SIGPIPE in mdv")
+    @Test("a script that closes stdin doesn't raise SIGPIPE in Peep")
     func closesStdin() async throws {
         let fixtures = try PreprocessorFixtures()
         let input = Data(repeating: UInt8(ascii: "a"), count: 1024 * 1024)

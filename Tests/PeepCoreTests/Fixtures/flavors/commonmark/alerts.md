@@ -169,7 +169,7 @@ Verified on GitHub but not in the API fixture (headings, scripts, or raw HTML ar
 > [!NOTE]
 > ---
 
-Known divergence: github.com keeps a quote between raw HTML tags a block quote; mdv's tree has it
+Known divergence: github.com keeps a quote between raw HTML tags a block quote; Peep's tree has it
 at the top level, so it becomes an alert.
 
 <details>

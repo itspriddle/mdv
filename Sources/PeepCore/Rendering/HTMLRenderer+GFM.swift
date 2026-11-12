@@ -95,7 +95,7 @@ extension HTMLRenderer {
     }
 
     /// GitHub's task list checkbox and the space after it (the item's text starts after the
-    /// `[ ] ` marker). Always disabled: mdv is a viewer.
+    /// `[ ] ` marker). Always disabled: Peep is a viewer.
     func writeTaskCheckbox(isChecked: Bool, into output: inout HTMLOutput) {
         output.raw(
             isChecked

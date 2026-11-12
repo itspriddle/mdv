@@ -1,11 +1,11 @@
 import Foundation
 import Testing
 
-/// The built `mdv` executable, for end-to-end tests. `swift test` builds it (the test target
-/// depends on `MdvCLI`) next to the test bundle; `MDV_CLI_BINARY` overrides the path.
+/// The built `peep` executable, for end-to-end tests. `swift test` builds it (the test target
+/// depends on `PeepCLI`) next to the test bundle; `PEEP_CLI_BINARY` overrides the path.
 enum CLIBinary {
     static var url: URL {
-        if let path = ProcessInfo.processInfo.environment["MDV_CLI_BINARY"] {
+        if let path = ProcessInfo.processInfo.environment["PEEP_CLI_BINARY"] {
             return URL(fileURLWithPath: path)
         }
         // The products folder holds the binary. The tests' resource bundle is in it (native
@@ -19,28 +19,28 @@ enum CLIBinary {
             }
             candidate = candidate.deletingLastPathComponent()
         }
-        return folder.appending(path: "mdv")
+        return folder.appending(path: "peep")
     }
 
     /// Runs the binary with `arguments` in `directory`, feeding `stdin` (closed after), and waits
     /// for it to exit. Records an issue and returns `nil` when the binary is missing.
-    /// `themesFolder` is passed as `MDV_THEMES_FOLDER`; by default a folder that doesn't exist, so
+    /// `themesFolder` is passed as `PEEP_THEMES_FOLDER`; by default a folder that doesn't exist, so
     /// a run never reads the reader's own Themes folder. `environment` adds variables.
     static func run(
         _ arguments: [String], stdin: Data = Data(), in directory: URL? = nil, themesFolder: URL? = nil,
         environment extra: [String: String] = [:]
     ) throws -> CLIResult? {
         guard FileManager.default.isExecutableFile(atPath: url.path) else {
-            Issue.record("mdv binary not found at \(url.path); set MDV_CLI_BINARY")
+            Issue.record("peep binary not found at \(url.path); set PEEP_CLI_BINARY")
             return nil
         }
         let process = Process()
         process.executableURL = url
         process.arguments = arguments
         if let directory { process.currentDirectoryURL = directory }
-        let noThemes = FileManager.default.temporaryDirectory.appending(path: "mdv-no-themes-\(UUID().uuidString)")
+        let noThemes = FileManager.default.temporaryDirectory.appending(path: "peep-no-themes-\(UUID().uuidString)")
         var environment = ProcessInfo.processInfo.environment
-        environment["MDV_THEMES_FOLDER"] = (themesFolder ?? noThemes).path
+        environment["PEEP_THEMES_FOLDER"] = (themesFolder ?? noThemes).path
         environment.merge(extra) { _, new in new }
         process.environment = environment
         let input = Pipe()

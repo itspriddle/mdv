@@ -1,11 +1,11 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Keeps the theme authoring guide (`docs/THEMES.md`, #44) honest: its example theme loads, its
 /// CSS snippets pass the custom theme check, and the error messages and limits it quotes are
-/// the ones mdv uses.
+/// the ones Peep uses.
 @Suite("Theme authoring guide")
 struct ThemeGuideTests {
     static let docs = URL(filePath: #filePath).deletingLastPathComponent()
@@ -45,7 +45,7 @@ struct ThemeGuideTests {
     @Test("the example theme loads from a Themes folder with its header's name and backgrounds")
     func exampleLoads() throws {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-theme-guide-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-theme-guide-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         try Data(try Self.exampleTheme().utf8).write(to: folder.appending(path: "Notebook.css"))
@@ -63,7 +63,7 @@ struct ThemeGuideTests {
     @Test("the GitHub Soft Dark example extends GitHub and loads with its dark background")
     func softDarkLoads() throws {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-theme-guide-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-theme-guide-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let css = try String(contentsOf: Self.docs.appending(path: "github-soft-dark.css"), encoding: .utf8)
@@ -106,7 +106,7 @@ struct ThemeGuideTests {
         }
     }
 
-    @Test("the guide quotes mdv's own messages for rejected themes")
+    @Test("the guide quotes Peep's own messages for rejected themes")
     func errorMessages() throws {
         let guide = try Self.guide()
         func problem(_ css: String) -> CustomThemeProblem? {
@@ -125,11 +125,11 @@ struct ThemeGuideTests {
             problem("p { color: red;"),
             problem("/* never closed"),
             problem("p::before { content: \"x; }"),
-            problem("/* mdv-theme\nbackground: white\n*/"),
-            problem("/* mdv-theme\ncolour: red\n*/"),
-            problem("/* mdv-theme\nname: A\nname: B\n*/"),
-            problem("/* mdv-theme\njust text\n*/"),
-            problem("/* mdv-theme\nextends: GitHub\n*/"),
+            problem("/* peep-theme\nbackground: white\n*/"),
+            problem("/* peep-theme\ncolour: red\n*/"),
+            problem("/* peep-theme\nname: A\nname: B\n*/"),
+            problem("/* peep-theme\njust text\n*/"),
+            problem("/* peep-theme\nextends: GitHub\n*/"),
             .symbolicLink,
             .tooLarge(bytes: 600 * 1024, limit: CustomThemeFolder.maximumFileSize),
             .notUTF8,
@@ -142,7 +142,7 @@ struct ThemeGuideTests {
         }
     }
 
-    @Test("the element table documents the alert markup mdv writes (#52)")
+    @Test("the element table documents the alert markup Peep writes (#52)")
     func alertMarkup() throws {
         let guide = try Self.guide()
         let rendered = HTMLRenderer().render("> [!NOTE]\n> Body.\n").html
@@ -155,7 +155,7 @@ struct ThemeGuideTests {
         }
     }
 
-    @Test("the guide's wiki link markup is what mdv writes (#53)")
+    @Test("the guide's wiki link markup is what Peep writes (#53)")
     func wikiLinkMarkup() throws {
         let guide = try Self.guide()
         var options = RenderOptions()
@@ -168,7 +168,7 @@ struct ThemeGuideTests {
         #expect(ThemeBase.css.contains(".wikilink-missing {"))
     }
 
-    @Test("the limits and values the guide states match mdv's")
+    @Test("the limits and values the guide states match Peep's")
     func limits() throws {
         let guide = try Self.guide()
         #expect(guide.contains("at most \(CustomThemeFolder.maximumFileSize / 1024) KB"))
@@ -192,7 +192,7 @@ struct ThemeGuideTests {
         }
     }
 
-    @Test("the frontmatter markup the guide shows is what mdv renders (#55)")
+    @Test("the frontmatter markup the guide shows is what Peep renders (#55)")
     func frontmatterMarkup() throws {
         var options = RenderOptions()
         options.frontmatterDisplay = .table

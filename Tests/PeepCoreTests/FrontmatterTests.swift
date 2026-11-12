@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Start lines of every heading, in document order.
 private func headingLines(_ root: MarkdownNode) -> [Int?] {

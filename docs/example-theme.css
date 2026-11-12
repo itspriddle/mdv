@@ -1,11 +1,11 @@
-/* mdv-theme
+/* peep-theme
    name: Notebook
    background: #fbfaf7
    background-dark: #1c1b19
 */
 
 /* Notebook: a complete theme written from scratch (no `extends`). Copy it to
-   ~/Library/Application Support/mdv/Themes/ and pick View > Theme > Notebook. */
+   ~/Library/Application Support/Peep/Themes/ and pick View > Theme > Notebook. */
 
 /* Colors, light first. Dark colors are screen only, so paper always prints light. */
 .markdown-body {
@@ -26,7 +26,7 @@
 /* The page and the reading column. */
 body { margin: 0; }
 .markdown-body {
-  box-sizing: border-box; max-width: var(--mdv-content-width, 44em); margin: 0 auto;
+  box-sizing: border-box; max-width: var(--peep-content-width, 44em); margin: 0 auto;
   padding: 48px 32px 64px; color: var(--nb-text);
   font-family: -apple-system, "Helvetica Neue", sans-serif; font-size: 17px; line-height: 1.6;
   overflow-wrap: break-word;

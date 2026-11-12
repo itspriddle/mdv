@@ -1,9 +1,9 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Content width (#37, per window since #47): the default for new windows, each window's own
 /// preset applied live without a reload, restoration, the menu, and the user layer over every

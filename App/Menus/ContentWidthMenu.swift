@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// View > Content Width: a submenu with one item per `ContentWidth` preset, the current one
 /// checked. The action is `DocumentWindowController.setContentWidth(_:)` (`+ContentWidth.swift`),

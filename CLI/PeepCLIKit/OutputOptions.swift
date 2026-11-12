@@ -9,7 +9,7 @@ import Foundation
 /// - `--output FILE`: written atomically, never over an input.
 ///
 /// Several inputs print back to back only as fragments: concatenated pages aren't a valid HTML
-/// document, and `--output` takes one input (`MdvCommand.validate()`).
+/// document, and `--output` takes one input (`PeepCommand.validate()`).
 public struct OutputOptions: ParsableArguments, Sendable {
     @Flag(name: .long, help: "Print a complete HTML page (CSS inline) instead of opening the app.")
     public var html = false

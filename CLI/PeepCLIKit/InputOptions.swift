@@ -1,6 +1,6 @@
 import ArgumentParser
 import Foundation
-import MdvCore
+import PeepCore
 
 /// The documents to read: FILE arguments, `-` for standard input, or standard input alone when
 /// there are none. In the app, standard input opens as an untitled window (#68), after the files.
@@ -75,7 +75,7 @@ public struct InputDocument: Equatable, Sendable {
         return try decode(data, from: source)
     }
 
-    /// Reads standard input for a window (`cmd | mdv`, #68): at most
+    /// Reads standard input for a window (`cmd | peep`, #68): at most
     /// `StandardInputHandoff.maximumBytes` (more is `ExitStatus.dataError`, read no further),
     /// and not empty or only whitespace (`ExitStatus.noInput`), so nothing opens for either.
     static func readForWindow(in environment: CLIEnvironment) throws(CLIError) -> InputDocument {
@@ -83,7 +83,7 @@ public struct InputDocument: Equatable, Sendable {
         let data = try readStandardInput(in: environment, maximumBytes: limit)
         guard data.count <= limit else {
             throw CLIError(
-                "stdin: larger than \(limit / 1024 / 1024) MB, the most mdv opens in a window (--html has no limit)",
+                "stdin: larger than \(limit / 1024 / 1024) MB, the most Peep opens in a window (--html has no limit)",
                 status: ExitStatus.dataError)
         }
         let document = try decode(data, from: .standardInput)

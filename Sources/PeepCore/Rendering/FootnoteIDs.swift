@@ -3,7 +3,7 @@
 /// Footnote ids follow GitHub: `fn-KEY` on the note, `fnref-KEY` on its first reference and
 /// `fnref-KEY-N` on the Nth, and `footnote-label` on the section's heading, where `KEY` is the
 /// label percent-encoded like an `href` (`houdini_escape_href`). github.com keeps them apart from
-/// heading ids with a `user-content-` prefix and a per-render nonce; mdv writes neither, so they
+/// heading ids with a `user-content-` prefix and a per-render nonce; Peep writes neither, so they
 /// can collide: `# fn 1` slugs to `fn-1`, the id of footnote `[^1]`; footnote `[^a]` referenced
 /// twice has `fnref-a-2`, which is also the first reference id of `[^a-2]`; and labels `a b` and
 /// `a%20b` encode to the same key.

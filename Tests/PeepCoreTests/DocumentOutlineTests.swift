@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 private func outline(_ source: String) -> DocumentOutline {
     var options = RenderOptions()

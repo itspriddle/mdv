@@ -1,6 +1,6 @@
 import Foundation
-import MdvCore
 import Observation
+import PeepCore
 import WebKit
 
 /// What a window's link status overlay shows: where the hovered link goes, or a short message

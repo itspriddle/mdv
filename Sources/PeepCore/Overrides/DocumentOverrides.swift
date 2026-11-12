@@ -1,8 +1,8 @@
-/// Per-document presentation choices read from the `mdv:` mapping of YAML frontmatter (#54):
+/// Per-document presentation choices read from the `peep:` mapping of YAML frontmatter (#54):
 ///
 /// ```yaml
 /// ---
-/// mdv:
+/// peep:
 ///   flavor: commonmark
 ///   theme: serif
 ///   wikilinks: true
@@ -14,34 +14,34 @@
 /// preprocessor, turn off sanitizing, allow remote images, or change any other `RenderOptions`
 /// setting. There is no generic mapping from frontmatter to options: each key is read here into
 /// a typed field, and `RenderOptions.applying(_:)` is the one place a field changes a render.
-/// Anything else under `mdv:` (including the names of safety settings) is ignored and reported
+/// Anything else under `peep:` (including the names of safety settings) is ignored and reported
 /// in `ignored`; a wrong value never fails the render or shows an error page.
 ///
 /// - `flavor`: a registered flavor id (`FlavorRegistry.bundled`), compared lowercased. Applied in
-///   MdvCore before the body is parsed (pipeline stage 3), so `mdv --html` gets it too, and it
+///   PeepCore before the body is parsed (pipeline stage 3), so `peep --html` gets it too, and it
 ///   beats `RenderOptions.flavor` (the app's default). An unknown id is ignored, so the document
 ///   renders with `RenderOptions.flavor`, not the registry's default.
 /// - `theme`: a theme id, bundled (`github`, compared lowercased) or `custom:<file name>` (kept
 ///   as written). Not resolved here: the app resolves it in its theme registry like a window's
-///   pick (`ThemeSettings`), and `mdv --html` in `ThemeRegistry.bundled`. It is only ever looked
+///   pick (`ThemeSettings`), and `peep --html` in `ThemeRegistry.bundled`. It is only ever looked
 ///   up by id, never read as a path.
 /// - `wikilinks`: `true` or `false`, turning wiki links (#53) on or off for this document. It beats
 ///   Settings' built-in preprocessors in both directions (`RenderOptions.applying(_:)`).
 ///
 /// Only YAML frontmatter is read. TOML frontmatter (`+++`) isn't parsed at all (no TOML parser,
-/// by decision), so a TOML `[mdv]` table is reported as ignored rather than silently dropped.
+/// by decision), so a TOML `[peep]` table is reported as ignored rather than silently dropped.
 public struct DocumentOverrides: Sendable, Equatable {
     /// The top-level frontmatter key that holds the overrides.
-    public static let frontmatterKey = "mdv"
+    public static let frontmatterKey = "peep"
 
-    /// The keys a document can set under `mdv:`.
+    /// The keys a document can set under `peep:`.
     public enum Key: String, CaseIterable, Sendable {
         case flavor
         case theme
         case wikiLinks = "wikilinks"
     }
 
-    /// No overrides (a document without an `mdv:` mapping).
+    /// No overrides (a document without a `peep:` mapping).
     public static let none = DocumentOverrides()
 
     /// The longest theme id read (the app's `isPlausibleThemeID` limit).
@@ -53,7 +53,7 @@ public struct DocumentOverrides: Sendable, Equatable {
     public var theme: String?
     /// Turns wiki links on or off for this document (#53).
     public var wikiLinks: Bool?
-    /// What was ignored under `mdv:` and why, in document order, for diagnostics.
+    /// What was ignored under `peep:` and why, in document order, for diagnostics.
     public var ignored: [IgnoredOverride]
 
     public init(flavor: String? = nil, theme: String? = nil, wikiLinks: Bool? = nil, ignored: [IgnoredOverride] = []) {
@@ -63,7 +63,7 @@ public struct DocumentOverrides: Sendable, Equatable {
         self.ignored = ignored
     }
 
-    /// Reads the `mdv:` mapping of `frontmatter`. A missing, null, or unparsed (malformed YAML)
+    /// Reads the `peep:` mapping of `frontmatter`. A missing, null, or unparsed (malformed YAML)
     /// block gives no overrides; flavor ids are checked against `FlavorRegistry.bundled`.
     public init(frontmatter: Frontmatter?) {
         self.init()
@@ -180,8 +180,8 @@ public struct DocumentOverrides: Sendable, Equatable {
         return text.lowercased()
     }
 
-    /// Whether TOML frontmatter looks like it sets mdv options: an `[mdv]` table, or an `mdv`
-    /// key (`mdv.theme = …`, `mdv = { … }`).
+    /// Whether TOML frontmatter looks like it sets Peep options: an `[peep]` table, or a `peep`
+    /// key (`peep.theme = …`, `peep = { … }`).
     static func mentionsOverrides(toml raw: String) -> Bool {
         raw.split(whereSeparator: \.isNewline).contains { line in
             let line = line.trimmingCharacters(in: .whitespaces)
@@ -195,7 +195,7 @@ public struct DocumentOverrides: Sendable, Equatable {
     }
 }
 
-/// Something under `mdv:` that a render ignored, and why (`DocumentOverrides.ignored`).
+/// Something under `peep:` that a render ignored, and why (`DocumentOverrides.ignored`).
 public struct IgnoredOverride: Sendable, Equatable, CustomStringConvertible {
     public enum ValueType: String, Sendable, Equatable {
         case mapping
@@ -213,11 +213,11 @@ public struct IgnoredOverride: Sendable, Equatable, CustomStringConvertible {
         case unknownFlavor(String)
         /// `theme` is too long, has control characters, or is `custom:` without a file name.
         case invalidThemeID
-        /// TOML frontmatter sets mdv options; only YAML frontmatter is read.
+        /// TOML frontmatter sets Peep options; only YAML frontmatter is read.
         case tomlFrontmatter
     }
 
-    /// Where it was: `mdv.<key>`, or `mdv` for the whole block.
+    /// Where it was: `peep.<key>`, or `peep` for the whole block.
     public var key: String
     public var reason: Reason
 
@@ -258,8 +258,8 @@ extension RenderOptions {
     /// preprocessor isn't a `RenderOptions` setting at all: it runs before frontmatter is read.
     ///
     /// A key in `pinnedOverrides` (#64) is skipped: the caller's own setting for it stays, as an
-    /// explicit `mdv --flavor` beats `mdv.flavor`. The theme isn't applied here at all (callers
-    /// resolve `overrides.theme`), so pinning `.theme` changes nothing in MdvCore.
+    /// explicit `peep --flavor` beats `peep.flavor`. The theme isn't applied here at all (callers
+    /// resolve `overrides.theme`), so pinning `.theme` changes nothing in PeepCore.
     public func applying(_ overrides: DocumentOverrides) -> RenderOptions {
         guard appliesDocumentOverrides else {
             return self

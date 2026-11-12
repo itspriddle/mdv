@@ -1,13 +1,13 @@
 import Darwin
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvCLIKit
+@testable import PeepCLIKit
 
-/// `--preprocessor` and `--preprocessor-arg` (#66): MdvCore's runner on request, with its
+/// `--preprocessor` and `--preprocessor-arg` (#66): PeepCore's runner on request, with its
 /// contract and limits, failing loudly. Scripts are `Fixtures/preprocessors` (copies of
-/// MdvCoreTests' fixtures).
+/// PeepCoreTests' fixtures).
 @Suite("Preprocessor")
 struct PreprocessorTests {
     /// Short limits so misbehaving scripts cost a fraction of a second each.
@@ -33,7 +33,7 @@ struct PreprocessorTests {
         #expect(result.stderr.isEmpty)
     }
 
-    @Test("arguments are passed as given; a file gets MDV_DOCUMENT_PATH and its folder")
+    @Test("arguments are passed as given; a file gets PEEP_DOCUMENT_PATH and its folder")
     func argumentsAndEnvironment() async throws {
         let folder = try TempFolder()
         let document = try folder.file("doc.md", "ignored\n")
@@ -47,10 +47,10 @@ struct PreprocessorTests {
         let realFolder = try #require(realpath(folder.url.path, nil))
         defer { free(realFolder) }
         #expect(lines.contains("pwd=\(String(cString: realFolder))"))
-        #expect(lines.contains("env=MDV_DOCUMENT_PATH=\(document)"))
+        #expect(lines.contains("env=PEEP_DOCUMENT_PATH=\(document)"))
     }
 
-    @Test("standard input gets no MDV_DOCUMENT_PATH and runs in /")
+    @Test("standard input gets no PEEP_DOCUMENT_PATH and runs in /")
     func standardInput() async throws {
         let folder = try TempFolder()
         let script = try Self.script("report", in: folder)
@@ -58,7 +58,7 @@ struct PreprocessorTests {
         #expect(result.status == 0)
         let lines = Self.lines(result.stdout)
         #expect(lines.contains("pwd=/"))
-        #expect(!lines.contains { $0.hasPrefix("env=MDV_DOCUMENT_PATH=") })
+        #expect(!lines.contains { $0.hasPrefix("env=PEEP_DOCUMENT_PATH=") })
     }
 
     @Test("standard input is the document's bytes on the program's stdin")
@@ -73,7 +73,7 @@ struct PreprocessorTests {
     @Test("without --preprocessor nothing runs, even when the document asks")
     func optInOnly() async {
         let result = await CLIHarness.run(
-            ["--fragment"], stdin: Data("---\nmdv:\n  preprocessor: /bin/echo\n---\n# plain\n".utf8))
+            ["--fragment"], stdin: Data("---\npeep:\n  preprocessor: /bin/echo\n---\n# plain\n".utf8))
         #expect(result.status == 0)
         #expect(result.stdout.contains(">plain</h1>"))
     }
@@ -88,7 +88,7 @@ struct PreprocessorTests {
         let result = await CLIHarness.run(["--html", "--preprocessor", script, document])
         #expect(result.status == 70)
         #expect(result.stdout.isEmpty)
-        #expect(result.stderr == "mdv: \(document): The preprocessor exited with status 3.\nsomething went wrong\n")
+        #expect(result.stderr == "peep: \(document): The preprocessor exited with status 3.\nsomething went wrong\n")
     }
 
     @Test("a script that hangs is stopped at the timeout, with nothing left running")
@@ -201,7 +201,7 @@ struct PreprocessorTests {
         #expect(result.stdout.contains(">TITLE</h1>"))
     }
 
-    @Test("end to end: SIGINT stops the script and its children, then ends mdv with SIGINT")
+    @Test("end to end: SIGINT stops the script and its children, then ends Peep with SIGINT")
     func interrupt() async throws {
         let folder = try TempFolder()
         let document = try folder.file("doc.md", "# Title\n")
@@ -209,21 +209,21 @@ struct PreprocessorTests {
         let pidFile = folder.path("pids")
         let binary = CLIBinary.url
         guard FileManager.default.isExecutableFile(atPath: binary.path) else {
-            Issue.record("mdv binary not found at \(binary.path); set MDV_CLI_BINARY")
+            Issue.record("peep binary not found at \(binary.path); set PEEP_CLI_BINARY")
             return
         }
         let outputPath = folder.path("stdout")
         let arguments = ["--html", "--preprocessor", script, "--preprocessor-arg", pidFile, document]
         var environment = ProcessInfo.processInfo.environment
-        environment["MDV_THEMES_FOLDER"] = folder.path("no-themes")
-        // The run's deadline is at least this long after the spawn, so mdv ending sooner than
+        environment["PEEP_THEMES_FOLDER"] = folder.path("no-themes")
+        // The run's deadline is at least this long after the spawn, so Peep ending sooner than
         // that proves the signal stopped it, however starved the runner (on CI's macOS 26 this
         // test once took 19 s). Only a debug build reads the variable: against a release
-        // binary (`MDV_CLI_BINARY`) the timeout is 5 s and this check proves less.
+        // binary (`PEEP_CLI_BINARY`) the timeout is 5 s and this check proves less.
         let timeout: Duration = .seconds(60)
-        environment["MDV_TEST_PREPROCESSOR_TIMEOUT"] = "60"
+        environment["PEEP_TEST_PREPROCESSOR_TIMEOUT"] = "60"
         let start = ContinuousClock.now
-        // Not `Process`: a test runner (CI's) may start with SIGINT ignored, and mdv rightly
+        // Not `Process`: a test runner (CI's) may start with SIGINT ignored, and Peep rightly
         // keeps an inherited SIG_IGN.
         let pid = try DefaultSignalProcess.spawn(
             binary.path, arguments: arguments, environment: environment, stdout: outputPath,
@@ -233,7 +233,7 @@ struct PreprocessorTests {
 
         let stderr = (try? String(contentsOfFile: folder.path("stderr"), encoding: .utf8)) ?? ""
         let status = interruption.status
-        #expect(!interruption.exitedBeforeSignal, "mdv ended before SIGINT (\(status)); stderr: \(stderr)")
+        #expect(!interruption.exitedBeforeSignal, "peep ended before SIGINT (\(status)); stderr: \(stderr)")
         let pids = try #require(interruption.pids, "no pid file at \(pidFile)")
         #expect(pids.count == 2)
         #expect(status.signal == SIGINT, "ended by SIGINT (\(status)); stderr: \(stderr)")

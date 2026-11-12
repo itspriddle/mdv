@@ -1,7 +1,7 @@
 import Foundation
 
-/// A failure the CLI reports as one line on standard error (`mdv: <message>`) plus an exit status.
-/// Every failure `MdvCommand.execute(in:)` can hit becomes one of these: no Swift error dumps.
+/// A failure the CLI reports as one line on standard error (`peep: <message>`) plus an exit status.
+/// Every failure `PeepCommand.execute(in:)` can hit becomes one of these: no Swift error dumps.
 public struct CLIError: Error, Equatable, Sendable {
     public var message: String
     public var status: Int32

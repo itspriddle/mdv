@@ -1,6 +1,6 @@
 import Foundation
-import MdvCLIKit
-import MdvCore
+import PeepCLIKit
+import PeepCore
 import Testing
 
 /// `--theme`, `--flavor`, and the list modes (#64). Custom themes come from a temp Themes folder
@@ -8,7 +8,7 @@ import Testing
 @Suite("Theme and flavor flags")
 struct ThemeFlavorTests {
     private static let strikethrough = "~~gone~~\n"
-    private static let validTheme = "/* mdv-theme\n   name: Test Theme\n*/\nbody { color: #123456; }\n"
+    private static let validTheme = "/* peep-theme\n   name: Test Theme\n*/\nbody { color: #123456; }\n"
 
     /// A temp Themes folder holding `files` (name to CSS).
     private static func themesFolder(_ files: [String: String]) throws -> TempFolder {
@@ -44,10 +44,10 @@ struct ThemeFlavorTests {
     }
 
     @Test(
-        "--flavor beats the document's mdv.flavor, in both directions",
+        "--flavor beats the document's peep.flavor, in both directions",
         arguments: [("commonmark", "gfm", true), ("gfm", "commonmark", false)])
     func flavorBeatsFrontmatter(document: String, flag: String, strikes: Bool) async {
-        let source = "---\nmdv:\n  flavor: \(document)\n  wikilinks: true\n---\n\(Self.strikethrough)\n[[#Top]]\n"
+        let source = "---\npeep:\n  flavor: \(document)\n  wikilinks: true\n---\n\(Self.strikethrough)\n[[#Top]]\n"
         let result = await CLIHarness.run(["--fragment", "--flavor", flag], stdin: source)
         #expect(result.status == 0)
         #expect(result.stdout.contains("<del>gone</del>") == strikes)
@@ -55,10 +55,10 @@ struct ThemeFlavorTests {
         #expect(result.stdout.contains("class=\"wikilink\""))
     }
 
-    @Test("without --flavor, the document's mdv.flavor applies")
+    @Test("without --flavor, the document's peep.flavor applies")
     func frontmatterFlavor() async {
         let result = await CLIHarness.run(
-            ["--fragment"], stdin: "---\nmdv: { flavor: commonmark }\n---\n\(Self.strikethrough)")
+            ["--fragment"], stdin: "---\npeep: { flavor: commonmark }\n---\n\(Self.strikethrough)")
         #expect(result.status == 0)
         #expect(!result.stdout.contains("<del>"))
     }
@@ -106,14 +106,14 @@ struct ThemeFlavorTests {
         #expect(result.status == 66)
         #expect(result.stdout.isEmpty)
         let folder = themes.url.path(percentEncoded: false)
-        #expect(result.stderr == "mdv: theme \"custom:test.css\": no test.css in the Themes folder (\(folder))\n")
+        #expect(result.stderr == "peep: theme \"custom:test.css\": no test.css in the Themes folder (\(folder))\n")
     }
 
     @Test("a custom --theme with no Themes folder exits 66")
     func noThemesFolder() async {
         let result = await CLIHarness.run(["--html", "--theme", "custom:Test.css"], stdin: "# Hi\n")
         #expect(result.status == 66)
-        #expect(result.stderr == "mdv: theme \"custom:Test.css\": no Test.css in the Themes folder\n")
+        #expect(result.stderr == "peep: theme \"custom:Test.css\": no Test.css in the Themes folder\n")
     }
 
     @Test("a custom --theme that fails its checks exits 65 with the reason")
@@ -123,7 +123,7 @@ struct ThemeFlavorTests {
             ["--html", "--theme", "custom:Bad.css"], stdin: Data("# Hi\n".utf8), themesFolder: themes.url)
         #expect(result.status == 65)
         #expect(result.stdout.isEmpty)
-        #expect(result.stderr == "mdv: theme \"custom:Bad.css\": @import isn’t allowed (line 1)\n")
+        #expect(result.stderr == "peep: theme \"custom:Bad.css\": @import isn’t allowed (line 1)\n")
     }
 
     @Test("a custom id is matched against the folder's files, never read as a path")
@@ -137,7 +137,7 @@ struct ThemeFlavorTests {
         #expect(!result.stdout.contains("#123456"))
     }
 
-    @Test("--theme beats the document's mdv.theme")
+    @Test("--theme beats the document's peep.theme")
     func themeBeatsFrontmatter() async throws {
         let folder = try TempFolder()
         let result = await CLIHarness.run(["--html", "--theme", "document", try folder.fixture("serif-theme.md")])
@@ -146,27 +146,27 @@ struct ThemeFlavorTests {
         #expect(!result.stdout.contains(Theme.serif.layerCSS))
     }
 
-    @Test("a custom --theme beats a bundled mdv.theme, and a bundled one beats a custom mdv.theme")
+    @Test("a custom --theme beats a bundled peep.theme, and a bundled one beats a custom peep.theme")
     func themePrecedenceBothWays() async throws {
         let themes = try Self.themesFolder(["Test.css": Self.validTheme])
-        let serifDocument = Data("---\nmdv: { theme: serif }\n---\n# Hi\n".utf8)
+        let serifDocument = Data("---\npeep: { theme: serif }\n---\n# Hi\n".utf8)
         let custom = await CLIHarness.run(
             ["--html", "--theme", "custom:Test.css"], stdin: serifDocument, themesFolder: themes.url)
         #expect(custom.stdout.contains("#123456"))
         #expect(!custom.stdout.contains(Theme.serif.layerCSS))
 
-        let customDocument = Data("---\nmdv: { theme: \"custom:Test.css\" }\n---\n# Hi\n".utf8)
+        let customDocument = Data("---\npeep: { theme: \"custom:Test.css\" }\n---\n# Hi\n".utf8)
         let bundled = await CLIHarness.run(
             ["--html", "--theme", "serif"], stdin: customDocument, themesFolder: themes.url)
         #expect(bundled.stdout.contains(Theme.serif.layerCSS))
         #expect(!bundled.stdout.contains("#123456"))
     }
 
-    @Test("without --theme, a custom mdv.theme loads from the Themes folder")
+    @Test("without --theme, a custom peep.theme loads from the Themes folder")
     func frontmatterCustomTheme() async throws {
         let themes = try Self.themesFolder(["Test.css": Self.validTheme])
         let result = await CLIHarness.run(
-            ["--html"], stdin: Data("---\nmdv: { theme: \"custom:Test.css\" }\n---\n# Hi\n".utf8),
+            ["--html"], stdin: Data("---\npeep: { theme: \"custom:Test.css\" }\n---\n# Hi\n".utf8),
             themesFolder: themes.url)
         #expect(result.status == 0)
         #expect(result.stdout.contains("#123456"))
@@ -178,7 +178,7 @@ struct ThemeFlavorTests {
     func frontmatterThemeFallback(id: String) async throws {
         let themes = try Self.themesFolder(["Bad.css": "@import url(other.css);\n"])
         let result = await CLIHarness.run(
-            ["--html"], stdin: Data("---\nmdv: { theme: \"\(id)\" }\n---\n# Hi\n".utf8), themesFolder: themes.url)
+            ["--html"], stdin: Data("---\npeep: { theme: \"\(id)\" }\n---\n# Hi\n".utf8), themesFolder: themes.url)
         #expect(result.status == 0)
         #expect(result.stderr.isEmpty)
         #expect(result.stdout.contains(Theme.github.layerCSS))
@@ -199,7 +199,7 @@ struct ThemeFlavorTests {
         let result = await CLIHarness.run(["--list-themes"], stdinIsTerminal: true, themesFolder: themes.url)
         #expect(result.status == 0)
         #expect(result.stdout == "github\tGitHub\ndocument\tDocument\nserif\tSerif\ncustom:Test.css\tTest Theme\n")
-        #expect(result.stderr == "mdv: custom:Bad.css: @import isn’t allowed (line 1)\n")
+        #expect(result.stderr == "peep: custom:Bad.css: @import isn’t allowed (line 1)\n")
     }
 
     @Test("the list modes take no FILE, and only one at a time")
@@ -212,15 +212,15 @@ struct ThemeFlavorTests {
     }
 }
 
-/// `ThemeResolver`, which `mdv FILE --theme` (#67) reuses.
+/// `ThemeResolver`, which `peep FILE --theme` (#67) reuses.
 @Suite("Theme resolver")
 struct ThemeResolverTests {
-    @Test("MDV_THEMES_FOLDER overrides the Themes folder; otherwise it is under Application Support")
+    @Test("PEEP_THEMES_FOLDER overrides the Themes folder; otherwise it is under Application Support")
     func themesFolder() {
-        let override = ThemeResolver.themesFolder(environment: ["MDV_THEMES_FOLDER": "/tmp/themes"])
+        let override = ThemeResolver.themesFolder(environment: ["PEEP_THEMES_FOLDER": "/tmp/themes"])
         #expect(override?.path(percentEncoded: false) == "/tmp/themes/")
-        let standard = ThemeResolver.themesFolder(environment: ["MDV_THEMES_FOLDER": ""])
-        #expect(standard?.path(percentEncoded: false).hasSuffix("/Library/Application Support/mdv/Themes/") == true)
+        let standard = ThemeResolver.themesFolder(environment: ["PEEP_THEMES_FOLDER": ""])
+        #expect(standard?.path(percentEncoded: false).hasSuffix("/Library/Application Support/Peep/Themes/") == true)
     }
 
     @Test("errors carry their exit status")

@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 import SwiftUI
 
 /// One document window: an AppKit window hosting `DocumentView` (SwiftUI), with a
@@ -68,7 +68,7 @@ final class DocumentWindowController: NSWindowController {
     /// deleted custom theme); the window then shows the default (`theme`), and shows the picked
     /// one again if it comes back.
     var pickedThemeID: String?
-    /// The theme the document's frontmatter names (`mdv.theme`, #54), from its latest render.
+    /// The theme the document's frontmatter names (`peep.theme`, #54), from its latest render.
     var documentThemeID: String?
     /// Settings' default theme when the window opened: what it shows with neither a pick nor a
     /// document theme. A later change to the default applies to new windows only.
@@ -172,13 +172,13 @@ final class DocumentWindowController: NSWindowController {
         }
         synchronizeWindowTitleWithDocumentName()
         // Before the page loads (or swaps), so a first load uses the document's theme and a live
-        // reload that changed `mdv.theme` swaps the stylesheet in place.
+        // reload that changed `peep.theme` swaps the stylesheet in place.
         documentThemeDidChange(page.documentThemeID)
         if !isWaitingForFirstPage {
             outlineController.show(DocumentOutline(headings: page.headings))
         }
         coordinator.documentFileURL = markdownDocument.fileURL
-        // mdv-doc://<window>/<path>: relative images resolve against the document and are
+        // peep-doc://<window>/<path>: relative images resolve against the document and are
         // served only from its allowed root (`LocalResourceSchemeHandler`). A moved file gets a
         // new base URL (and root), so the page is loaded again rather than swapped in place.
         let baseURL = coordinator.documentURL(forFileAt: markdownDocument.fileURL)

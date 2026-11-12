@@ -1,12 +1,12 @@
 import Foundation
 
-/// Files with no extension (`README`, `CHANGELOG`, `LICENSE`) that mdv opens as plain text (#41).
+/// Files with no extension (`README`, `CHANGELOG`, `LICENSE`) that Peep opens as plain text (#41).
 ///
-/// Launch Services types such a file as `public.data`, which no document type of mdv's
+/// Launch Services types such a file as `public.data`, which no document type of Peep's
 /// declares, so the Open panel greys it out and a drop rejects it. Declaring `public.data` (or
-/// raising the plain text rank) would make mdv a handler for every file, so instead the
+/// raising the plain text rank) would make Peep a handler for every file, so instead the
 /// `DocumentController` asks this type when the file's own type has no document class: an
-/// extensionless regular file whose first bytes are UTF-8 text opens as plain text. mdv never
+/// extensionless regular file whose first bytes are UTF-8 text opens as plain text. Peep never
 /// registers for these files; Finder's Open With and default-app choices are unchanged.
 enum ExtensionlessText {
     /// How much of the file is read to decide. Enough to reject binaries quickly.

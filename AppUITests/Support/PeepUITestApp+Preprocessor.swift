@@ -1,6 +1,6 @@
 import XCTest
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// The launch arguments that start the app with fixture script `name` (in
     /// `Fixtures/preprocessors`) as its custom preprocessor (#57).
     ///
@@ -8,7 +8,7 @@ extension MdvUITestApp {
     /// the runner is sandboxed, files it writes are quarantined, and the system refuses to run
     /// a quarantined script (`EPERM`), as it would a downloaded one.
     static func preprocessorArguments(fixture name: String) throws -> [String] {
-        ["-MdvUITestPreprocessor", try Fixtures.url(named: "preprocessors/\(name)").path(percentEncoded: false)]
+        ["-PeepUITestPreprocessor", try Fixtures.url(named: "preprocessors/\(name)").path(percentEncoded: false)]
     }
 
     /// The custom preprocessor's failure bar in `window`.

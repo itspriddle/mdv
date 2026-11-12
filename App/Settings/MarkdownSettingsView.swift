@@ -1,4 +1,4 @@
-import MdvCore
+import PeepCore
 import SwiftUI
 
 /// Settings > Markdown (#55): how documents are read. Each control reads `SettingsModel` and

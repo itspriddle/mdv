@@ -1,20 +1,20 @@
 import Foundation
 
-/// How `cmd | mdv` hands standard input to the app (#68): a private file the app deletes as
+/// How `cmd | peep` hands standard input to the app (#68): a private file the app deletes as
 /// soon as it has read it.
 ///
-/// The CLI writes the Markdown to `<temp>/mdv-stdin.XXXXXXXX/stdin.md` (`write(_:inFolder:)`):
+/// The CLI writes the Markdown to `<temp>/peep-stdin.XXXXXXXX/stdin.md` (`write(_:inFolder:)`):
 /// a new folder from `mkdtemp(3)` (unpredictable name, created exclusively, mode 0700) holding
 /// one file created exclusively with mode 0600. It sends the file in the Open Documents event's
 /// direct object, so the event reaches the app like any open (an event with no files never
 /// does). The app's document controller recognizes it by its shape, reads it with `take(_:)`,
 /// which deletes it and its folder, and shows an untitled window instead of opening the file
-/// as a document. No event parameter marks it: AppKit drops mdv's parameters on some paths, and
+/// as a document. No event parameter marks it: AppKit drops Peep's parameters on some paths, and
 /// a marker would add no trust, since any sender could set it.
 ///
 /// Trust model: any local process can send that event naming any file. `take(_:)` only reads
 /// and deletes a file it can verify is a handoff, without following symbolic links: a folder
-/// named `mdv-stdin.*` owned by this user with no group or other permissions, holding a
+/// named `peep-stdin.*` owned by this user with no group or other permissions, holding a
 /// regular file named `stdin.md`, owned by this user, with no group or other permissions and a
 /// single link (so it can't be a hard link to another file). Anything else is
 /// `Failure.notAHandoff` and left alone; the app then opens it as an ordinary file. The file is
@@ -22,7 +22,7 @@ import Foundation
 /// checked, so it can't be swapped between the check and the read.
 public enum StandardInputHandoff {
     /// The handoff folder's name before `mkdtemp`'s random part.
-    public static let folderPrefix = "mdv-stdin."
+    public static let folderPrefix = "peep-stdin."
     /// The handoff file's name in its folder.
     public static let fileName = "stdin.md"
     /// The most standard input a window opens, in bytes: 10 MB, the custom preprocessor's
@@ -44,9 +44,9 @@ public enum StandardInputHandoff {
         public var errorDescription: String? {
             switch self {
             case .notAHandoff:
-                "The file isn’t standard input from the mdv command."
+                "The file isn’t standard input from the peep command."
             case .tooLarge:
-                "Standard input is larger than \(maximumBytes / 1024 / 1024) MB, the most mdv opens in a window."
+                "Standard input is larger than \(maximumBytes / 1024 / 1024) MB, the most Peep opens in a window."
             case .notUTF8:
                 "Standard input isn’t valid UTF-8."
             case .unreadable(let code):

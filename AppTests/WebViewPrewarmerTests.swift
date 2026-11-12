@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The web view started at launch (#40): the first window takes it, already preparing, and
 /// later windows make their own.

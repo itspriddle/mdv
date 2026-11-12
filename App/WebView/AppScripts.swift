@@ -10,7 +10,7 @@ import WebKit
 @MainActor
 enum AppScripts {
     /// The isolated world app scripts run in. Shares the DOM with the page, not its globals.
-    static let world = WKContentWorld.world(name: "mdv")
+    static let world = WKContentWorld.world(name: "peep")
 
     /// Scripts installed in every document web view, at document start, main frame only.
     static let userScripts: [WKUserScript] = bundledScriptNames.map { name in

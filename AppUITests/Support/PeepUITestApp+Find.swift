@@ -1,7 +1,7 @@
 import AppKit
 import XCTest
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// The find bar's search field in `window` (`FindField` in the app).
     func findField(in window: XCUIElement? = nil) -> XCUIElement {
         (window ?? frontWindow).searchFields["find-field"].firstMatch

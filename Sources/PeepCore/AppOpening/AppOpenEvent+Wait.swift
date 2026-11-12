@@ -1,7 +1,7 @@
 import CoreServices
 import Foundation
 
-// `mdv --wait` (#69): the CLI puts a random token on its open event (`mdvW`); the app remembers
+// `peep --wait` (#69): the CLI puts a random token on its open event (`peepW`); the app remembers
 // which windows the event opened or brought forward, and when the last of them closes (or the
 // app quits) it posts a Darwin notification (`notify(3)`) named for the token. The CLI waits
 // for that notification or for the app's process to exit, whichever comes first.
@@ -14,11 +14,11 @@ import Foundation
 // only a well-formed UUID, so the name it posts is always the prefix plus 36 characters.
 
 extension AppOpenEvent {
-    /// `mdvW`: the `--wait` token, a UUID string (UTF-8 or UTF-16 text).
-    public static let waitKeyword: AEKeyword = 0x6D64_7657
+    /// `PepW`: the `--wait` token, a UUID string (UTF-8 or UTF-16 text).
+    public static let waitKeyword: AEKeyword = 0x5065_7057
 
     /// The prefix of every "windows closed" notification name.
-    public static let windowsClosedNotificationPrefix = "com.itspriddle.mdv.windowsClosed."
+    public static let windowsClosedNotificationPrefix = "now.peep.Peep.windowsClosed."
 
     /// The Darwin notification the app posts when the windows of the open event carrying `token`
     /// have all closed, or the app is quitting.
@@ -26,7 +26,7 @@ extension AppOpenEvent {
         windowsClosedNotificationPrefix + token.uuidString
     }
 
-    /// Adds `token` to `event` as `mdvW`; nothing when it is nil.
+    /// Adds `token` to `event` as `peepW`; nothing when it is nil.
     static func setWaitToken(_ token: UUID?, on event: NSAppleEventDescriptor) {
         guard let token else {
             return
@@ -34,7 +34,7 @@ extension AppOpenEvent {
         event.setParam(NSAppleEventDescriptor(string: token.uuidString), forKeyword: waitKeyword)
     }
 
-    /// The `mdvW` token in `event`: text that is exactly a UUID string (36 characters); nil for
+    /// The `peepW` token in `event`: text that is exactly a UUID string (36 characters); nil for
     /// anything else.
     static func waitToken(in event: NSAppleEventDescriptor) -> UUID? {
         guard let text = text(event.paramDescriptor(forKeyword: waitKeyword)), text.utf8.count == 36 else {

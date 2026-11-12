@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 private func html(_ markdown: String, markup: GFMMarkup = .github) -> String {
     var options = RenderOptions()

@@ -1,12 +1,12 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Timings for the PR and for VISION's 200 ms open-to-display target. Opt-in, since timings are
-/// noisy: `MDV_BENCHMARK=1 swift test --filter HighlightingBenchmark` (add `-c release` for
+/// noisy: `PEEP_BENCHMARK=1 swift test --filter HighlightingBenchmark` (add `-c release` for
 /// shipping numbers).
-@Suite("Highlighting benchmark", .enabled(if: ProcessInfo.processInfo.environment["MDV_BENCHMARK"] != nil))
+@Suite("Highlighting benchmark", .enabled(if: ProcessInfo.processInfo.environment["PEEP_BENCHMARK"] != nil))
 struct HighlightingBenchmarkTests {
     @Test("cold context and a typical README")
     func benchmark() throws {

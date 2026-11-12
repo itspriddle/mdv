@@ -1,10 +1,10 @@
 import Darwin
 import Dispatch
 import Foundation
-import MdvCore
+import PeepCore
 import Synchronization
 
-/// `mdv --wait` (#69): waits for the app to say the windows of one open event have closed, or
+/// `peep --wait` (#69): waits for the app to say the windows of one open event have closed, or
 /// for the app's process to exit (quit, crash, force quit), whichever comes first.
 ///
 /// Create it before sending the open event, so a window closed at once isn't missed: it
@@ -13,7 +13,7 @@ import Synchronization
 /// notifications (`notify(3)`) arrive on a dispatch queue, so no run loop is needed. Any process
 /// can post one, so a forged notification only ends the wait early (VISION, "CLI to app").
 ///
-/// Ctrl-C is left to its default action: it ends mdv, and the windows stay open.
+/// Ctrl-C is left to its default action: it ends Peep, and the windows stay open.
 final class WindowsClosedWaiter: Sendable {
     /// The random token for this invocation, sent to the app as `AppOpenParameters.waitToken`.
     let token: UUID
@@ -74,7 +74,7 @@ private final class Core: Sendable {
         var processSource: (any DispatchSourceProcess)?
     }
 
-    let queue = DispatchQueue(label: "mdv.wait")
+    let queue = DispatchQueue(label: "peep.wait")
     private let state = Mutex(State())
 
     var isFinished: Bool { state.withLock { $0.isFinished } }

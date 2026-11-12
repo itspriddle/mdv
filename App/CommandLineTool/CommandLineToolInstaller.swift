@@ -1,12 +1,12 @@
 import Darwin
 import Foundation
 
-/// Installs and removes the `mdv` command (#70): a symbolic link at `<folder>/mdv` to the CLI
-/// inside an mdv.app (`Contents/Helpers/mdv`).
+/// Installs and removes the `peep` command (#70): a symbolic link at `<folder>/peep` to the CLI
+/// inside a Peep.app (`Contents/Helpers/peep`).
 ///
 /// The folder and the app are injected, so tests run over temp folders and fake app bundles.
 /// The rules:
-/// - **Ours** is a symbolic link whose absolute destination is `<X>.app/Contents/Helpers/mdv`,
+/// - **Ours** is a symbolic link whose absolute destination is `<X>.app/Contents/Helpers/peep`,
 ///   where `X.app` is gone (the app moved: `dangling`) or is an app with our bundle identifier.
 ///   Anything else at the path (a file, a folder, a link elsewhere or into another app) is
 ///   `occupied`: install shows it and stops, uninstall refuses.
@@ -28,20 +28,20 @@ struct CommandLineToolInstaller: Sendable {
         /// The link's destination, relative to the app bundle.
         let pathInBundle: String
 
-        /// The `mdv` command.
-        static let command = Item(name: "mdv", pathInBundle: "Contents/Helpers/mdv")
+        /// The `peep` command.
+        static let command = Item(name: "peep", pathInBundle: "Contents/Helpers/peep")
 
-        /// The man page (#71), linked into `CommandLineToolLocation.manFolder`, where `man mdv`
+        /// The man page (#71), linked into `CommandLineToolLocation.manFolder`, where `man peep`
         /// finds it for a command on the `PATH`. The build copies it into the bundle
         /// (project.yml, from `make cli-docs`).
-        static let manPage = Item(name: "mdv.1", pathInBundle: "Contents/Resources/man/man1/mdv.1")
+        static let manPage = Item(name: "peep.1", pathInBundle: "Contents/Resources/man/man1/peep.1")
     }
 
     /// What isn't ours at the link's path.
     enum Occupant: Equatable, Sendable {
         case file
         case folder
-        /// A symbolic link that doesn't point into an mdv.app.
+        /// A symbolic link that doesn't point into a Peep.app.
         case link(destination: String)
         /// Something else (a socket, a device, or a path that couldn't be read).
         case other
@@ -51,11 +51,11 @@ struct CommandLineToolInstaller: Sendable {
     enum State: Equatable, Sendable {
         /// Nothing (the folder may not exist yet).
         case notInstalled
-        /// Our link, to this copy of mdv.
+        /// Our link, to this copy of Peep.
         case installed
-        /// Our link, to another copy of mdv that still exists.
+        /// Our link, to another copy of Peep that still exists.
         case otherCopy(app: URL, destination: String)
-        /// Our link, to an mdv.app that was moved, renamed, or deleted.
+        /// Our link, to a Peep.app that was moved, renamed, or deleted.
         case dangling(destination: String)
         /// Not ours: never replaced or removed.
         case occupied(Occupant)
@@ -73,7 +73,7 @@ struct CommandLineToolInstaller: Sendable {
 
     let folder: URL
     let item: Item
-    /// This copy of mdv.
+    /// This copy of Peep.
     let app: URL
     /// The bundle identifier an existing app must have for a link into it to count as ours.
     let bundleIdentifier: String
@@ -88,12 +88,12 @@ struct CommandLineToolInstaller: Sendable {
         self.bundleIdentifier = bundleIdentifier
     }
 
-    /// The link's path, `<folder>/mdv`.
+    /// The link's path, `<folder>/peep`.
     var linkURL: URL {
         folder.appending(path: item.name, directoryHint: .notDirectory)
     }
 
-    /// The file the link points to in this copy of mdv.
+    /// The file the link points to in this copy of Peep.
     var target: URL {
         app.appending(path: item.pathInBundle, directoryHint: .notDirectory)
     }
@@ -182,7 +182,7 @@ struct CommandLineToolInstaller: Sendable {
 // MARK: - Install and uninstall
 
 extension CommandLineToolInstaller {
-    /// Links `<folder>/mdv` to this copy, creating the folder if needed. Does nothing when it is
+    /// Links `<folder>/peep` to this copy, creating the folder if needed. Does nothing when it is
     /// already installed; replaces our link to another copy or a moved app; throws `occupied`
     /// for anything else. With `privileged`, a folder the reader can't write is handled by the
     /// privileged script (an administrator password prompt); without it, that throws
@@ -220,7 +220,7 @@ extension CommandLineToolInstaller {
             privileged, script: privilegedInstallScript, arguments: pending, installers: installers)
     }
 
-    /// Removes our link (to any copy of mdv, or a moved one). Throws `notInstalled` when nothing
+    /// Removes our link (to any copy of Peep, or a moved one). Throws `notInstalled` when nothing
     /// is there and `occupied` for anything that isn't ours.
     func uninstall(privileged: (any PrivilegedRunning)? = nil) async throws(CommandLineToolError) {
         if state() == .notInstalled {

@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// The fixture scripts in `Fixtures/preprocessors`, copied into a temporary folder (with
 /// their executable bit set, which a resource copy needn't keep) so tests also have a
@@ -21,7 +21,7 @@ struct PreprocessorFixtures: ~Copyable {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-preprocessor-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-preprocessor-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 

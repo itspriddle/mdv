@@ -1,8 +1,8 @@
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 @Suite("DocumentContent")
 struct DocumentContentTests {

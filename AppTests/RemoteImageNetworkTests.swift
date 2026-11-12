@@ -1,10 +1,10 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Remote images in a real `WKWebView`, observed from servers on 127.0.0.1 (never the
 /// network): by default nothing leaves the viewer, not even through raw HTML the sanitizer
@@ -25,11 +25,11 @@ struct RemoteImageNetworkTests {
         window.isReleasedWhenClosed = false
         window.contentView = coordinator.webView
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-app-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-app-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 
-    /// The `mdv-doc` base URL of a document in the test folder (as a window loads it).
+    /// The `peep-doc` base URL of a document in the test folder (as a window loads it).
     func baseURL() throws -> URL {
         let file = folder.appending(path: "README.md")
         try Data("x".utf8).write(to: file)

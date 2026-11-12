@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 @Suite("Install Command Line Tool: privileged scripts")
 struct CommandLineToolScriptTests {
@@ -10,7 +10,7 @@ struct CommandLineToolScriptTests {
 
     init() throws {
         sandbox = try CommandLineToolSandbox()
-        app = try sandbox.makeApp("mdv.app")
+        app = try sandbox.makeApp("Peep.app")
     }
 
     func runInstall(target: URL, expected: String = "") async throws(PrivilegedRunError) {
@@ -19,7 +19,7 @@ struct CommandLineToolScriptTests {
             arguments: [target.path(percentEncoded: false), sandbox.link.path(percentEncoded: false), expected])
     }
 
-    var target: URL { app.appending(path: "Contents/Helpers/mdv") }
+    var target: URL { app.appending(path: "Contents/Helpers/peep") }
 
     @Test("install script: links a fresh path, creating the folder, and leaves no temporary link")
     func fresh() async throws {
@@ -27,21 +27,21 @@ struct CommandLineToolScriptTests {
         try FileManager.default.removeItem(at: sandbox.bin)
         try await runInstall(target: target)
         #expect(try sandbox.destination() == target.path(percentEncoded: false))
-        #expect(try sandbox.binContents() == ["mdv"])
+        #expect(try sandbox.binContents() == ["peep"])
     }
 
     @Test("install script: replaces our link only when it has the expected destination")
     func replace() async throws {
         defer { sandbox.remove() }
-        try sandbox.makeLink(to: "/Old/mdv.app/Contents/Helpers/mdv")
+        try sandbox.makeLink(to: "/Old/Peep.app/Contents/Helpers/peep")
         await #expect(throws: PrivilegedRunError.self) { try await runInstall(target: target) }
         await #expect(throws: PrivilegedRunError.self) {
-            try await runInstall(target: target, expected: "/Elsewhere/mdv.app/Contents/Helpers/mdv")
+            try await runInstall(target: target, expected: "/Elsewhere/Peep.app/Contents/Helpers/peep")
         }
-        #expect(try sandbox.destination() == "/Old/mdv.app/Contents/Helpers/mdv")
-        try await runInstall(target: target, expected: "/Old/mdv.app/Contents/Helpers/mdv")
+        #expect(try sandbox.destination() == "/Old/Peep.app/Contents/Helpers/peep")
+        try await runInstall(target: target, expected: "/Old/Peep.app/Contents/Helpers/peep")
         #expect(try sandbox.destination() == target.path(percentEncoded: false))
-        #expect(try sandbox.binContents() == ["mdv"])
+        #expect(try sandbox.binContents() == ["peep"])
     }
 
     @Test("install script: refuses a file, and a link to a folder, with status 3")
@@ -53,7 +53,7 @@ struct CommandLineToolScriptTests {
         #expect(try String(contentsOf: sandbox.link, encoding: .utf8) == "x")
 
         try FileManager.default.removeItem(at: sandbox.link)
-        let folder = sandbox.root.appending(path: "Folder/mdv.app/Contents/Helpers/mdv", directoryHint: .isDirectory)
+        let folder = sandbox.root.appending(path: "Folder/Peep.app/Contents/Helpers/peep", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try sandbox.makeLink(to: folder.path(percentEncoded: false))
         await #expect(throws: PrivilegedRunError.self) {
@@ -66,9 +66,9 @@ struct CommandLineToolScriptTests {
     func hostilePaths() async throws {
         defer { sandbox.remove() }
         let marker = sandbox.root.appending(path: "pwned")
-        let name = "it's \"mdv\" $(touch \(marker.path(percentEncoded: false))) `id`;.app"
+        let name = "it's \"Peep\" $(touch \(marker.path(percentEncoded: false))) `id`;.app"
         let hostile = try sandbox.makeApp(name)
-        let target = hostile.appending(path: "Contents/Helpers/mdv")
+        let target = hostile.appending(path: "Contents/Helpers/peep")
         try await runInstall(target: target)
         #expect(try sandbox.destination() == target.path(percentEncoded: false))
         #expect(!FileManager.default.fileExists(atPath: marker.path(percentEncoded: false)))
@@ -82,9 +82,9 @@ struct CommandLineToolScriptTests {
         #expect(AppleScriptPrivilegedRunner.source.contains("with administrator privileges"))
         #expect(!AppleScriptPrivilegedRunner.unprivilegedSource.contains("administrator"))
         let marker = sandbox.root.appending(path: "pwned")
-        let name = "it's \"mdv\" $(touch \(marker.path(percentEncoded: false))) `id`; \\ \n.app"
+        let name = "it's \"Peep\" $(touch \(marker.path(percentEncoded: false))) `id`; \\ \n.app"
         let hostile = try sandbox.makeApp(name)
-        let target = hostile.appending(path: "Contents/Helpers/mdv").path(percentEncoded: false)
+        let target = hostile.appending(path: "Contents/Helpers/peep").path(percentEncoded: false)
         try await runner.run(
             script: CommandLineToolInstaller.privilegedInstallScript,
             arguments: [target, sandbox.link.path(percentEncoded: false), ""])
@@ -132,7 +132,7 @@ struct CommandLineToolControllerTests {
 
     init() throws {
         sandbox = try CommandLineToolSandbox()
-        app = try sandbox.makeApp("mdv.app")
+        app = try sandbox.makeApp("Peep.app")
         user = CommandLineToolLocation(folder: sandbox.bin, displayPath: "~/.local/bin")
         system = CommandLineToolLocation(
             folder: sandbox.root.appending(path: "usr-local-bin", directoryHint: .isDirectory),
@@ -154,9 +154,9 @@ struct CommandLineToolControllerTests {
         #expect(controller.currentAction() == .install(preferred: nil))
         #expect(controller.currentAction().menuTitle == "Install Command Line Tool…")
 
-        let systemLink = system.folder.appending(path: "mdv").path(percentEncoded: false)
+        let systemLink = system.folder.appending(path: "peep").path(percentEncoded: false)
         try FileManager.default.createSymbolicLink(
-            atPath: systemLink, withDestinationPath: "/Gone/mdv.app/Contents/Helpers/mdv")
+            atPath: systemLink, withDestinationPath: "/Gone/Peep.app/Contents/Helpers/peep")
         #expect(controller.currentAction() == .repair(system))
         #expect(controller.currentAction().menuTitle == "Repair Command Line Tool…")
 
@@ -169,10 +169,10 @@ struct CommandLineToolControllerTests {
     func otherCopyAndForeign() throws {
         defer { sandbox.remove() }
         try Data().write(to: sandbox.link)
-        let copy = try sandbox.makeApp("mdv copy.app")
+        let copy = try sandbox.makeApp("Peep copy.app")
         try FileManager.default.createSymbolicLink(
-            atPath: system.folder.appending(path: "mdv").path(percentEncoded: false),
-            withDestinationPath: copy.appending(path: "Contents/Helpers/mdv").path(percentEncoded: false))
+            atPath: system.folder.appending(path: "peep").path(percentEncoded: false),
+            withDestinationPath: copy.appending(path: "Contents/Helpers/peep").path(percentEncoded: false))
         #expect(controller().currentAction() == .install(preferred: system))
     }
 
@@ -192,7 +192,7 @@ struct CommandLineToolControllerTests {
         #expect(!CommandLineToolLocation.usrLocalBin.isOnPath(["/usr/bin"]))
         #expect(!user.needsAdministrator)
         #expect(
-            CommandLineToolLocation(folder: URL(filePath: "/System/mdv-test/bin"), displayPath: "").needsAdministrator)
+            CommandLineToolLocation(folder: URL(filePath: "/System/peep-test/bin"), displayPath: "").needsAdministrator)
     }
 
     @Test("the menu shows the item in the App menu after Settings")

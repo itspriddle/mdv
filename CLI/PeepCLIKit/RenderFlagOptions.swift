@@ -1,6 +1,6 @@
 import ArgumentParser
 import Foundation
-import MdvCore
+import PeepCore
 
 /// Headless render options (#65): frontmatter display, wiki links, source lines, highlighting,
 /// remote images, heading anchors, and frontmatter diagnostics.
@@ -30,7 +30,7 @@ public struct RenderFlagOptions: ParsableArguments, Sendable {
 
     @Flag(
         inversion: .prefixedNo,
-        help: "Turn [[wiki links]] on or off. Beats the document's mdv.wikilinks (default: off).")
+        help: "Turn [[wiki links]] on or off. Beats the document's peep.wikilinks (default: off).")
     public var wikiLinks: Bool?
 
     @Flag(help: "Add data-source-line attributes (the line each block starts on).")
@@ -51,7 +51,7 @@ public struct RenderFlagOptions: ParsableArguments, Sendable {
     public init() {}
 
     /// Whether any flag here was given. They change headless output only, so without `--html`,
-    /// `--fragment`, or `--output` they are a usage error (`MdvCommand.validate()`).
+    /// `--fragment`, or `--output` they are a usage error (`PeepCommand.validate()`).
     var isSet: Bool {
         frontmatter != .hidden || wikiLinks != nil || sourceLines || noHighlight || noHeadingAnchors
             || blockRemoteImages || verbose
@@ -60,7 +60,7 @@ public struct RenderFlagOptions: ParsableArguments, Sendable {
     /// Sets this group's `RenderOptions`. Without flags these are `RenderOptions`' defaults
     /// (frontmatter hidden, no wiki links, no `data-source-line`, highlighting and heading
     /// anchors on, remote images kept). `--wiki-links`/`--no-wiki-links` pin `.wikiLinks`, so
-    /// the document's `mdv.wikilinks` doesn't replace the flag.
+    /// the document's `peep.wikilinks` doesn't replace the flag.
     func apply(to options: inout RenderOptions) {
         options.frontmatterDisplay = frontmatter.display
         if let wikiLinks {
@@ -95,7 +95,7 @@ public struct RenderFlagOptions: ParsableArguments, Sendable {
     }
 
     /// Reports what a render noticed on standard error, never standard output: frontmatter
-    /// `mdv:` keys it ignored and why (always), and with `--verbose` the flavor and wiki link
+    /// `peep:` keys it ignored and why (always), and with `--verbose` the flavor and wiki link
     /// setting used and where each came from. `options` are the options before the document's
     /// overrides (what `apply(to:)` set).
     func report(
@@ -106,7 +106,7 @@ public struct RenderFlagOptions: ParsableArguments, Sendable {
         }
     }
 
-    /// The lines `report` prints, without the `mdv: <input>: ` prefix.
+    /// The lines `report` prints, without the `peep: <input>: ` prefix.
     func diagnostics(_ rendered: RenderedDocument, options: RenderOptions) -> [String] {
         var lines: [String] = []
         if verbose {
@@ -121,11 +121,11 @@ public struct RenderFlagOptions: ParsableArguments, Sendable {
         let asked = rendered.overrides.flavor
         if options.pinnedOverrides.contains(.flavor) {
             if let asked, asked != rendered.flavor.id {
-                return "--flavor; the document's mdv.flavor \(asked) wasn't used"
+                return "--flavor; the document's peep.flavor \(asked) wasn't used"
             }
             return "--flavor"
         }
-        return asked == rendered.flavor.id ? "the document's mdv.flavor" : "default"
+        return asked == rendered.flavor.id ? "the document's peep.flavor" : "default"
     }
 
     private func wikiLinksLine(_ overrides: DocumentOverrides, options: RenderOptions) -> String {
@@ -136,11 +136,11 @@ public struct RenderFlagOptions: ParsableArguments, Sendable {
             isOn = flag
             origin = flag ? "--wiki-links" : "--no-wiki-links"
             if let document = overrides.wikiLinks, document != flag {
-                origin += "; the document's mdv.wikilinks wasn't used"
+                origin += "; the document's peep.wikilinks wasn't used"
             }
         } else if let document = overrides.wikiLinks {
             isOn = document
-            origin = "the document's mdv.wikilinks"
+            origin = "the document's peep.wikilinks"
         } else {
             isOn = flag
             origin = "default"

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 // Seeded fuzzing of the whole pipeline (frontmatter, parser, transforms, sanitizer, highlighter,
 // renderer) with random Markdown mixed with raw HTML. Every failure message includes the seed and
@@ -9,7 +9,7 @@ import Testing
 //
 // The default run is short enough for `make test-core`. For a longer local run:
 //
-//     MDV_FUZZ_ITERATIONS=200000 MDV_FUZZ_SEED=$RANDOM swift test --filter RendererFuzzTests
+//     PEEP_FUZZ_ITERATIONS=200000 PEEP_FUZZ_SEED=$RANDOM swift test --filter RendererFuzzTests
 
 /// Builds random Markdown documents from GFM building blocks, hostile raw HTML, and text chosen
 /// to provoke id collisions (`# fn 1` beside footnote `[^1]`, repeated headings, ...).
@@ -186,7 +186,7 @@ private struct MarkdownFuzzer {
 private func violations(in html: String, input: String, expectsSentinel: Bool) -> [String] {
     var problems = OutputChecker.problems(in: html, isMarkdown: true, extraElements: ["section", "input"])
 
-    // Every element id mdv generates (headings, footnotes) is unique. Raw HTML ids belong to the
+    // Every element id Peep generates (headings, footnotes) is unique. Raw HTML ids belong to the
     // author and are namespaced by the sanitizer.
     let ids = html.matches(of: /\sid="([^"]*)"/.matchingSemantics(.unicodeScalar)).map { String($0.1) }
     let generated = ids.filter { !$0.hasPrefix("user-content-") }
@@ -224,8 +224,8 @@ private func violations(in html: String, input: String, expectsSentinel: Bool) -
 @Suite("Renderer: fuzz")
 struct RendererFuzzTests {
     static let environment = ProcessInfo.processInfo.environment
-    static let iterations = environment["MDV_FUZZ_ITERATIONS"].flatMap(Int.init) ?? 3_000
-    static let seed = environment["MDV_FUZZ_SEED"].flatMap(UInt64.init) ?? 0x6D64_7631_32
+    static let iterations = environment["PEEP_FUZZ_ITERATIONS"].flatMap(Int.init) ?? 3_000
+    static let seed = environment["PEEP_FUZZ_SEED"].flatMap(UInt64.init) ?? 0x6D64_7631_32
 
     @Test("random Markdown and HTML: safe, unique ids, complete UTF-8, deterministic")
     func randomDocuments() {

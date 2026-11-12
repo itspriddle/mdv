@@ -3,7 +3,7 @@ import cmark_gfm
 /// Optional syntax on top of CommonMark. `MarkdownParser` enables these per `RenderOptions`.
 ///
 /// Most map to a cmark-gfm syntax extension attached to the parser; footnotes are a parser
-/// option instead. The `tagfilter` extension is deliberately absent: raw HTML is handled by mdv's
+/// option instead. The `tagfilter` extension is deliberately absent: raw HTML is handled by Peep's
 /// own sanitizer (#7).
 public enum MarkdownExtension: String, CaseIterable, Sendable {
     case table

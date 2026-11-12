@@ -1,31 +1,31 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// The overrides `source`'s frontmatter declares.
 private func overrides(_ source: String) -> DocumentOverrides {
     DocumentOverrides(frontmatter: Frontmatter.extract(from: source)?.frontmatter)
 }
 
-/// Frontmatter overrides (#54): parsing the `mdv:` mapping and applying the flavor.
+/// Frontmatter overrides (#54): parsing the `peep:` mapping and applying the flavor.
 @Suite("Document overrides")
 struct DocumentOverridesTests {
     // MARK: Parsing
 
-    @Test("reads flavor, theme, and wikilinks from the mdv mapping")
+    @Test("reads flavor, theme, and wikilinks from the Peep mapping")
     func parses() {
-        let block = overrides("---\ntitle: T\nmdv:\n  flavor: commonmark\n  theme: serif\n  wikilinks: true\n---\nx")
+        let block = overrides("---\ntitle: T\npeep:\n  flavor: commonmark\n  theme: serif\n  wikilinks: true\n---\nx")
         #expect(block == DocumentOverrides(flavor: "commonmark", theme: "serif", wikiLinks: true))
         #expect(!block.isEmpty)
-        let flow = overrides("---\nmdv: { flavor: gfm, theme: \"custom:My Theme.css\", wikilinks: False }\n---\n")
+        let flow = overrides("---\npeep: { flavor: gfm, theme: \"custom:My Theme.css\", wikilinks: False }\n---\n")
         #expect(flow == DocumentOverrides(flavor: "gfm", theme: "custom:My Theme.css", wikiLinks: false))
     }
 
-    @Test("no frontmatter, no mdv key, a null mdv, or malformed YAML give no overrides")
+    @Test("no frontmatter, no Peep key, a null Peep, or malformed YAML give no overrides")
     func absent() {
         for source in [
-            "# Just Markdown", "---\ntitle: T\n---\n", "---\nmdv:\n---\n", "---\nmdv: ~\n---\n",
-            "---\nmdv: [unclosed\n---\n", "---\nmdv:\n  theme: ~\n---\n",
+            "# Just Markdown", "---\ntitle: T\n---\n", "---\npeep:\n---\n", "---\npeep: ~\n---\n",
+            "---\npeep: [unclosed\n---\n", "---\npeep:\n  theme: ~\n---\n",
         ] {
             #expect(overrides(source) == .none, "\(source)")
         }
@@ -36,16 +36,16 @@ struct DocumentOverridesTests {
     @Test("bundled ids compare lowercased; custom theme ids keep their case")
     func normalization() {
         #expect(
-            overrides("---\nmdv: { flavor: \" CommonMark \", theme: GitHub }\n---\n")
+            overrides("---\npeep: { flavor: \" CommonMark \", theme: GitHub }\n---\n")
                 == DocumentOverrides(flavor: "commonmark", theme: "github"))
-        #expect(overrides("---\nmdv: { theme: custom:Dark.CSS }\n---\n").theme == "custom:Dark.CSS")
+        #expect(overrides("---\npeep: { theme: custom:Dark.CSS }\n---\n").theme == "custom:Dark.CSS")
     }
 
     @Test("unknown keys and wrong types are ignored and reported, in document order")
     func ignored() {
         let source = """
             ---
-            mdv:
+            peep:
               theme: [serif]
               colour: red
               flavor: markdown
@@ -57,29 +57,29 @@ struct DocumentOverridesTests {
         #expect(result.isEmpty)
         #expect(
             result.ignored == [
-                IgnoredOverride(key: "mdv.theme", reason: .wrongType(expected: .string)),
-                IgnoredOverride(key: "mdv.colour", reason: .unknownKey),
-                IgnoredOverride(key: "mdv.flavor", reason: .unknownFlavor("markdown")),
-                IgnoredOverride(key: "mdv.wikilinks", reason: .wrongType(expected: .boolean)),
-                IgnoredOverride(key: "mdv.Theme", reason: .unknownKey),
+                IgnoredOverride(key: "peep.theme", reason: .wrongType(expected: .string)),
+                IgnoredOverride(key: "peep.colour", reason: .unknownKey),
+                IgnoredOverride(key: "peep.flavor", reason: .unknownFlavor("markdown")),
+                IgnoredOverride(key: "peep.wikilinks", reason: .wrongType(expected: .boolean)),
+                IgnoredOverride(key: "peep.Theme", reason: .unknownKey),
             ])
         #expect(
-            overrides("---\nmdv: commonmark\n---\n").ignored == [
-                IgnoredOverride(key: "mdv", reason: .wrongType(expected: .mapping))
+            overrides("---\npeep: commonmark\n---\n").ignored == [
+                IgnoredOverride(key: "peep", reason: .wrongType(expected: .mapping))
             ])
-        #expect(overrides("---\nmdv: [a]\n---\n").ignored.map(\.key) == ["mdv"])
+        #expect(overrides("---\npeep: [a]\n---\n").ignored.map(\.key) == ["peep"])
         #expect(
-            overrides("---\nmdv: { flavor: { id: gfm } }\n---\n").ignored == [
-                IgnoredOverride(key: "mdv.flavor", reason: .wrongType(expected: .string))
+            overrides("---\npeep: { flavor: { id: gfm } }\n---\n").ignored == [
+                IgnoredOverride(key: "peep.flavor", reason: .wrongType(expected: .string))
             ])
     }
 
     @Test("a valid key beside ignored ones still applies; duplicate keys are malformed YAML")
     func partial() {
-        let result = overrides("---\nmdv:\n  bogus: 1\n  theme: serif\n---\n")
+        let result = overrides("---\npeep:\n  bogus: 1\n  theme: serif\n---\n")
         #expect(result.theme == "serif")
-        #expect(result.ignored == [IgnoredOverride(key: "mdv.bogus", reason: .unknownKey)])
-        #expect(overrides("---\nmdv: { theme: a, theme: b }\n---\n") == .none)
+        #expect(result.ignored == [IgnoredOverride(key: "peep.bogus", reason: .unknownKey)])
+        #expect(overrides("---\npeep: { theme: a, theme: b }\n---\n") == .none)
     }
 
     @Test(
@@ -96,37 +96,37 @@ struct DocumentOverridesTests {
     @Test("an invalid theme id is reported")
     func invalidTheme() {
         #expect(
-            overrides("---\nmdv: { theme: \"custom:\" }\n---\n").ignored == [
-                IgnoredOverride(key: "mdv.theme", reason: .invalidThemeID)
+            overrides("---\npeep: { theme: \"custom:\" }\n---\n").ignored == [
+                IgnoredOverride(key: "peep.theme", reason: .invalidThemeID)
             ])
     }
 
-    @Test("TOML frontmatter isn't read; an mdv table in it is reported")
+    @Test("TOML frontmatter isn't read; a Peep table in it is reported")
     func toml() {
         for source in [
-            "+++\n[mdv]\ntheme = \"serif\"\n+++\n", "+++\nmdv.theme = \"serif\"\n+++\n",
-            "+++\nmdv = { theme = \"serif\" }\n+++\n", "+++\n[ mdv.extra ]\n+++\n",
+            "+++\n[peep]\ntheme = \"serif\"\n+++\n", "+++\npeep.theme = \"serif\"\n+++\n",
+            "+++\npeep = { theme = \"serif\" }\n+++\n", "+++\n[ peep.extra ]\n+++\n",
         ] {
             #expect(
                 overrides(source)
-                    == DocumentOverrides(ignored: [IgnoredOverride(key: "mdv", reason: .tomlFrontmatter)]),
+                    == DocumentOverrides(ignored: [IgnoredOverride(key: "peep", reason: .tomlFrontmatter)]),
                 "\(source)")
         }
-        #expect(overrides("+++\ntitle = \"mdv rocks\"\n[mdvx]\n+++\n") == .none)
+        #expect(overrides("+++\ntitle = \"Peep rocks\"\n[peepx]\n+++\n") == .none)
     }
 
     @Test("ignored entries explain themselves without repeating long untrusted text")
     func descriptions() {
         #expect(
-            IgnoredOverride(key: "mdv.sanitize", reason: .unknownKey).description
-                == "mdv.sanitize isn't a setting a document can change (only flavor, theme, wikilinks); ignored.")
+            IgnoredOverride(key: "peep.sanitize", reason: .unknownKey).description
+                == "peep.sanitize isn't a setting a document can change (only flavor, theme, wikilinks); ignored.")
         #expect(
-            IgnoredOverride(key: "mdv.flavor", reason: .unknownFlavor("md")).description
-                == "mdv.flavor \"md\" isn't a flavor (gfm, commonmark); ignored.")
+            IgnoredOverride(key: "peep.flavor", reason: .unknownFlavor("md")).description
+                == "peep.flavor \"md\" isn't a flavor (gfm, commonmark); ignored.")
         #expect(
-            IgnoredOverride(key: "mdv.theme", reason: .wrongType(expected: .string)).description
-                == "mdv.theme must be a string; ignored.")
-        let long = IgnoredOverride(key: "mdv." + String(repeating: "k", count: 500), reason: .unknownKey)
+            IgnoredOverride(key: "peep.theme", reason: .wrongType(expected: .string)).description
+                == "peep.theme must be a string; ignored.")
+        let long = IgnoredOverride(key: "peep." + String(repeating: "k", count: 500), reason: .unknownKey)
         #expect(long.description.count < 200)
     }
 
@@ -135,14 +135,14 @@ struct DocumentOverridesTests {
     @Test("the frontmatter flavor applies before the body is parsed and beats the options' flavor")
     func flavorBeforeParsing() {
         let table = "| a | b |\n| - | - |\n| 1 | 2 |\n\n:smile: ~~gone~~\n"
-        let gfm = HTMLRenderer().render("---\nmdv: { flavor: commonmark }\n---\n" + table)
+        let gfm = HTMLRenderer().render("---\npeep: { flavor: commonmark }\n---\n" + table)
         #expect(!gfm.html.contains("<table"))
         #expect(!gfm.html.contains("<del>"))
         #expect(gfm.html.contains(":smile:"))
         #expect(gfm.overrides.flavor == "commonmark")
 
         let commonmark = HTMLRenderer(options: RenderOptions(flavor: .commonmark))
-        let upgraded = commonmark.render("---\nmdv:\n  flavor: gfm\n---\n" + table)
+        let upgraded = commonmark.render("---\npeep:\n  flavor: gfm\n---\n" + table)
         #expect(upgraded.html.contains("<table"))
         #expect(upgraded.html.contains("😄"))
     }
@@ -150,9 +150,9 @@ struct DocumentOverridesTests {
     @Test("an unknown flavor falls back to the options' flavor, not the registry's default")
     func unknownFlavorKeepsOptions() {
         let renderer = HTMLRenderer(options: RenderOptions(flavor: .commonmark))
-        let rendered = renderer.render("---\nmdv: { flavor: spec }\n---\n| a |\n| - |\n| 1 |\n")
+        let rendered = renderer.render("---\npeep: { flavor: spec }\n---\n| a |\n| - |\n| 1 |\n")
         #expect(!rendered.html.contains("<table"))
-        #expect(rendered.overrides.ignored == [IgnoredOverride(key: "mdv.flavor", reason: .unknownFlavor("spec"))])
+        #expect(rendered.overrides.ignored == [IgnoredOverride(key: "peep.flavor", reason: .unknownFlavor("spec"))])
     }
 
     @Test("source lines and the title are unaffected by an override")
@@ -160,7 +160,7 @@ struct DocumentOverridesTests {
         var options = RenderOptions()
         options.sourceLines = true
         let rendered = HTMLRenderer(options: options).render(
-            "---\ntitle: Doc\nmdv:\n  flavor: commonmark\n---\n# Head\n")
+            "---\ntitle: Doc\npeep:\n  flavor: commonmark\n---\n# Head\n")
         #expect(rendered.html.contains("data-source-line=\"6\""))
         #expect(rendered.title == "Doc")
     }
@@ -168,16 +168,16 @@ struct DocumentOverridesTests {
     @Test("the theme is reported for the caller and doesn't change the HTML")
     func themeReported() {
         let plain = HTMLRenderer().render("---\ntitle: T\n---\n# Hi\n")
-        let themed = HTMLRenderer().render("---\ntitle: T\nmdv: { theme: serif }\n---\n# Hi\n")
+        let themed = HTMLRenderer().render("---\ntitle: T\npeep: { theme: serif }\n---\n# Hi\n")
         #expect(themed.overrides.theme == "serif")
         #expect(themed.html == plain.html)
     }
 
-    @Test("turning overrides off (and spec mode) ignores the mdv mapping")
+    @Test("turning overrides off (and spec mode) ignores the Peep mapping")
     func disabled() {
         var options = RenderOptions()
         options.appliesDocumentOverrides = false
-        let rendered = HTMLRenderer(options: options).render("---\nmdv: { flavor: commonmark }\n---\n~~x~~\n")
+        let rendered = HTMLRenderer(options: options).render("---\npeep: { flavor: commonmark }\n---\n~~x~~\n")
         #expect(rendered.html.contains("<del>"))
         #expect(rendered.overrides == .none)
         #expect(!RenderOptions.spec.appliesDocumentOverrides)
@@ -192,18 +192,18 @@ struct DocumentOverridesTests {
         options.builtInPreprocessors = [.wikiLinks]
         #expect(options.applying(DocumentOverrides(wikiLinks: false)).builtInPreprocessors.isEmpty)
         #expect(options.applying(DocumentOverrides()) == options)
-        #expect(HTMLRenderer().render("---\nmdv: { wikilinks: true }\n---\nx").overrides.wikiLinks == true)
+        #expect(HTMLRenderer().render("---\npeep: { wikilinks: true }\n---\nx").overrides.wikiLinks == true)
         #expect(
-            HTMLRenderer().render("---\nmdv: { wikilinks: true }\n---\n[[#Top]]").html
+            HTMLRenderer().render("---\npeep: { wikilinks: true }\n---\n[[#Top]]").html
                 == "<p><a class=\"wikilink\" href=\"#top\">#Top</a></p>\n")
         var enabled = RenderOptions()
         enabled.builtInPreprocessors = [.wikiLinks]
         #expect(
-            HTMLRenderer(options: enabled).render("---\nmdv: { wikilinks: false }\n---\n[[#Top]]").html
+            HTMLRenderer(options: enabled).render("---\npeep: { wikilinks: false }\n---\n[[#Top]]").html
                 == "<p>[[#Top]]</p>\n")
     }
 
-    @Test("a pinned flavor survives mdv.flavor; other overrides still apply")
+    @Test("a pinned flavor survives peep.flavor; other overrides still apply")
     func pinnedFlavor() {
         var options = RenderOptions(flavor: .gfm)
         options.pinnedOverrides = [.flavor]
@@ -213,14 +213,14 @@ struct DocumentOverridesTests {
         #expect(applied.builtInPreprocessors == [.wikiLinks])
 
         let rendered = HTMLRenderer(options: options).render(
-            "---\nmdv: { flavor: commonmark, wikilinks: true }\n---\n~~x~~ [[#Top]]\n")
+            "---\npeep: { flavor: commonmark, wikilinks: true }\n---\n~~x~~ [[#Top]]\n")
         #expect(rendered.html.contains("<del>x</del>"))
         #expect(rendered.html.contains("class=\"wikilink\""))
         #expect(rendered.flavor == .gfm)
         #expect(rendered.overrides.flavor == "commonmark")
     }
 
-    @Test("a pinned wikilinks setting survives mdv.wikilinks in both directions")
+    @Test("a pinned wikilinks setting survives peep.wikilinks in both directions")
     func pinnedWikiLinks() {
         var options = RenderOptions()
         options.pinnedOverrides = [.wikiLinks]
@@ -234,7 +234,7 @@ struct DocumentOverridesTests {
         #expect(RenderOptions().pinnedOverrides.isEmpty)
         #expect(HTMLRenderer().render("# Hi\n").flavor == .gfm)
         #expect(HTMLRenderer(options: RenderOptions(flavor: .commonmark)).render("# Hi\n").flavor == .commonmark)
-        #expect(HTMLRenderer().render("---\nmdv: { flavor: commonmark }\n---\nx\n").flavor == .commonmark)
-        #expect(HTMLRenderer().render("---\nmdv: { flavor: nope }\n---\nx\n").flavor == .gfm)
+        #expect(HTMLRenderer().render("---\npeep: { flavor: commonmark }\n---\nx\n").flavor == .commonmark)
+        #expect(HTMLRenderer().render("---\npeep: { flavor: nope }\n---\nx\n").flavor == .gfm)
     }
 }

@@ -1,9 +1,9 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Hosted `WKWebView` tests for GitHub's image conventions: root-relative URLs resolve against
 /// the repository (`RootRelativeURL`), and `#gh-dark-mode-only` / `#gh-light-mode-only` images
@@ -21,7 +21,7 @@ struct GitHubImageTests {
     init() throws {
         window.isReleasedWhenClosed = false
         window.contentView = coordinator.webView
-        let base = FileManager.default.temporaryDirectory.appending(path: "mdv-app-tests-\(UUID().uuidString)")
+        let base = FileManager.default.temporaryDirectory.appending(path: "peep-app-tests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         let real = try #require(realpath(base.path(percentEncoded: false), nil))
         defer { free(real) }
@@ -41,7 +41,7 @@ struct GitHubImageTests {
     }
 
     /// Writes `source` at `relative` and loads it as a document window does (content rendered
-    /// with the document's link root, page at its `mdv-doc` URL).
+    /// with the document's link root, page at its `peep-doc` URL).
     func loadDocument(_ source: String, at relative: String = "repo/docs/guide/README.md") async throws {
         let fileURL = folder.appending(path: relative)
         try write(relative, Data(source.utf8))
@@ -146,7 +146,7 @@ struct GitHubImageTests {
         #expect(
             actions[2]
                 == .revealInFinder(URL(filePath: folder.appending(path: "repo").path(), directoryHint: .isDirectory)))
-        #expect(hrefs[3] == "mdv-doc://example.com/x", "scheme-relative links are untouched")
+        #expect(hrefs[3] == "peep-doc://example.com/x", "scheme-relative links are untouched")
     }
 
     // MARK: Light and dark images

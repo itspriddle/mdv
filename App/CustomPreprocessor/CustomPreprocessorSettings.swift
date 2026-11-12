@@ -1,5 +1,5 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 /// The custom preprocessor a render runs (#57): the executable and its arguments as Settings
 /// stores them, before validation. Part of `MarkdownPreferences`, so turning the preprocessor
@@ -38,7 +38,7 @@ struct CustomPreprocessorRun: Equatable, Sendable {
 @MainActor
 final class CustomPreprocessorSettings {
     /// The app's settings. UI tests and hosted unit tests keep them in memory, starting off
-    /// (or, in a Debug UI test, at `-MdvUITestPreprocessor`'s executable), so neither reads nor
+    /// (or, in a Debug UI test, at `-PeepUITestPreprocessor`'s executable), so neither reads nor
     /// writes the reader's preprocessor.
     static let shared: CustomPreprocessorSettings = {
         let settings = CustomPreprocessorSettings(
@@ -51,10 +51,10 @@ final class CustomPreprocessorSettings {
     }()
 
     /// Posted (object: the settings) after any setting changes. Open documents render again.
-    static let didChangeNotification = Notification.Name("MdvCustomPreprocessorSettingsDidChange")
+    static let didChangeNotification = Notification.Name("PeepCustomPreprocessorSettingsDidChange")
     /// Posted (object: the settings) after a run is recorded (`lastRun`). Only Settings follows
     /// it: a document finishing its run must not make other documents render again.
-    static let lastRunDidChangeNotification = Notification.Name("MdvCustomPreprocessorLastRunDidChange")
+    static let lastRunDidChangeNotification = Notification.Name("PeepCustomPreprocessorLastRunDidChange")
 
     /// `UserDefaults` keys. Each is absent at its default.
     static let enabledKey = "CustomPreprocessorEnabled"

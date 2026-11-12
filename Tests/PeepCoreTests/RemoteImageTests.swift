@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 @Suite("RemoteImage")
 struct RemoteImageTests {
@@ -91,7 +91,7 @@ struct RemoteImageRenderingTests {
         <picture><source srcset="https://raw.example/wide.png 2x"><img src="img/narrow.png" alt="Narrow"></picture>
         """
 
-    @Test("by default (and for mdv --html) remote images are kept, as on GitHub")
+    @Test("by default (and for peep --html) remote images are kept, as on GitHub")
     func keepIsDefault() {
         #expect(RenderOptions().remoteImages == .keep)
         #expect(RenderOptions.spec.remoteImages == .keep)
@@ -228,7 +228,7 @@ struct RemoteImageContentSecurityPolicyTests {
     func viewerAllowingRemoteImages() {
         #expect(
             ContentSecurityPolicy.viewerAllowingRemoteImages.header
-                == "default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data: https:;")
+                == "default-src 'none'; style-src 'unsafe-inline'; img-src peep-doc: data: https:;")
         #expect(!ContentSecurityPolicy.viewerAllowingRemoteImages.header.contains("http:"))
         #expect(!ContentSecurityPolicy.viewerAllowingRemoteImages.header.contains("*"))
     }

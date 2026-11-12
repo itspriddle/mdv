@@ -4,48 +4,48 @@ import XCTest
 /// live, and stay in step with each other. (GitHub's page background is #0d1117 / #ffffff.)
 @MainActor
 final class AppearanceUITests: XCTestCase {
-    private var mdv: MdvUITestApp?
+    private var peep: PeepUITestApp?
 
     override func setUp() async throws {
         continueAfterFailure = false
     }
 
     override func tearDown() async throws {
-        mdv?.terminate()
-        mdv = nil
+        peep?.terminate()
+        peep = nil
     }
 
     private static let line = "A short line in the theme."
 
-    private func launch() throws -> (MdvUITestApp, XCUIElement) {
-        let mdv = try MdvUITestApp.launch(openingFixture: "settings/first.md")
-        self.mdv = mdv
-        let window = mdv.waitForWindow(titled: "Settings First")
-        mdv.waitForRenderedText(Self.line, in: window)
-        return (mdv, mdv.webViewContainer(in: window))
+    private func launch() throws -> (PeepUITestApp, XCUIElement) {
+        let peep = try PeepUITestApp.launch(openingFixture: "settings/first.md")
+        self.peep = peep
+        let window = peep.waitForWindow(titled: "Settings First")
+        peep.waitForRenderedText(Self.line, in: window)
+        return (peep, peep.webViewContainer(in: window))
     }
 
     func testSettingsAppearanceOverridesTheSystemLive() throws {
-        let (mdv, page) = try launch()
-        mdv.openSettings()
+        let (peep, page) = try launch()
+        peep.openSettings()
         for (mode, isDark) in [("Dark", true), ("Light", false), ("Dark", true)] {
-            mdv.chooseSetting(mode, in: "settings-appearance")
-            XCTAssertEqual(mdv.settingsWindow.popUpButtons["settings-appearance"].value as? String, mode)
-            mdv.waitForPage(page, isDark: isDark)
+            peep.chooseSetting(mode, in: "settings-appearance")
+            XCTAssertEqual(peep.settingsWindow.popUpButtons["settings-appearance"].value as? String, mode)
+            peep.waitForPage(page, isDark: isDark)
         }
     }
 
     func testViewMenuAppearanceOverridesTheSystemAndUpdatesSettings() throws {
-        let (mdv, page) = try launch()
+        let (peep, page) = try launch()
         for (mode, isDark) in [("Dark", true), ("Light", false)] {
-            mdv.chooseAppearanceInMenu(mode)
-            mdv.waitForPage(page, isDark: isDark)
+            peep.chooseAppearanceInMenu(mode)
+            peep.waitForPage(page, isDark: isDark)
         }
-        mdv.chooseAppearanceInMenu("Dark")
-        mdv.waitForPage(page, isDark: true)
+        peep.chooseAppearanceInMenu("Dark")
+        peep.waitForPage(page, isDark: true)
 
         // Settings shows the menu's choice (the menu's checkmark is covered by AppearanceTests).
-        mdv.openSettings()
-        XCTAssertEqual(mdv.settingsWindow.popUpButtons["settings-appearance"].value as? String, "Dark")
+        peep.openSettings()
+        XCTAssertEqual(peep.settingsWindow.popUpButtons["settings-appearance"].value as? String, "Dark")
     }
 }

@@ -1,12 +1,12 @@
 import ArgumentParser
 import Foundation
-import MdvCore
+import PeepCore
 
 /// The custom preprocessor on request (#66). Headless output never runs a program unless
 /// `--preprocessor` names one; the app's Settings > Markdown preprocessor doesn't apply here.
 ///
-/// The run is MdvCore's `CustomPreprocessor`, with the app's contract and limits: the input's
-/// bytes on stdin, Markdown on stdout, `MDV_DOCUMENT_PATH` and the document's folder as the
+/// The run is PeepCore's `CustomPreprocessor`, with the app's contract and limits: the input's
+/// bytes on stdin, Markdown on stdout, `PEEP_DOCUMENT_PATH` and the document's folder as the
 /// working directory for a file (`/` and no path for standard input).
 public struct PreprocessorOptions: ParsableArguments, Sendable {
     @Option(
@@ -29,7 +29,7 @@ public struct PreprocessorOptions: ParsableArguments, Sendable {
 
     /// Whether a preprocessor flag was given. Like the Rendering flags they change HTML output
     /// only, so without `--html`, `--fragment`, or `--output` they are a usage error
-    /// (`MdvCommand.validate()`).
+    /// (`PeepCommand.validate()`).
     var isSet: Bool { executable != nil || !arguments.isEmpty }
 
     public func validate() throws {
@@ -79,7 +79,7 @@ public struct PreprocessorOptions: ParsableArguments, Sendable {
         URL(fileURLWithPath: path).absoluteURL.path(percentEncoded: false)
     }
 
-    /// `mdv: <input>: <reason>`, then the program's stderr tail on the following lines, with
+    /// `peep: <input>: <reason>`, then the program's stderr tail on the following lines, with
     /// control characters other than tabs and newlines escaped (it may echo the document).
     static func failure(_ subject: String, _ error: PreprocessorError) -> CLIError {
         var message = "\(subject): \(error.message)"

@@ -1,7 +1,7 @@
 import Synchronization
 
 /// Lists folders for `FolderWikiLinkResolver`. The app reads the file system; tests use a fake,
-/// so the search rules are tested in MdvCore without touching disk.
+/// so the search rules are tested in PeepCore without touching disk.
 public protocol WikiLinkFolderReader: Sendable {
     /// The entries of the folder at `path` (absolute, `/`-separated), or `nil` when it can't be
     /// read. Report only regular files and folders: symbolic links and anything else are left

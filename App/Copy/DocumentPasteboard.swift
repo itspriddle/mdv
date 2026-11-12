@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// What Edit > Copy Markdown Source and Copy as HTML put on the pasteboard (#26).
 @MainActor
@@ -25,7 +25,7 @@ enum DocumentPasteboard {
     }
 
     /// Writes a link for Copy Link (#42): its URL as a URL and as plain text. `url` must come
-    /// from `CopyableLink` (never an internal `mdv-doc` URL). A `file:` URL is written as
+    /// from `CopyableLink` (never an internal `peep-doc` URL). A `file:` URL is written as
     /// `public.url` text only, not as a file reference, so pasting it in Finder doesn't copy
     /// the file.
     static func writeLink(_ url: URL, to pasteboard: NSPasteboard) {
@@ -37,7 +37,7 @@ enum DocumentPasteboard {
 
     /// Writes an image for Copy Image: the file's own bytes under its type, and a PNG of it
     /// (drawn by the page) for apps that take only bitmaps, or for an SVG. A PNG file is
-    /// written once, as is. No URL and no HTML, so no internal `mdv-doc` URL.
+    /// written once, as is. No URL and no HTML, so no internal `peep-doc` URL.
     static func writeImage(original: LocalImage?, png: Data?, to pasteboard: NSPasteboard) {
         var entries: [(type: NSPasteboard.PasteboardType, data: Data)] = []
         if let original, original.format == .png {
@@ -59,7 +59,7 @@ enum DocumentPasteboard {
 
     /// The rendered body fragment Copy as HTML copies: the default render options with the
     /// `preferences` the window's page was rendered with (Settings > Markdown, #55: flavor,
-    /// frontmatter display, built-in preprocessors), the same output as `mdv --html` without the
+    /// frontmatter display, built-in preprocessors), the same output as `peep --html` without the
     /// page around it. No `data-source-line` annotations, and remote images are kept as written
     /// (the viewer's placeholders are display only; nothing is loaded by copying). Wiki links
     /// resolve from `documentURL` like the window's (#53), to paths relative to the document.

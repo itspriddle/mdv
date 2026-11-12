@@ -1,7 +1,7 @@
-// mdv document bridge: scrolling, position, and in-place content swaps for the viewer.
+// Peep document bridge: scrolling, position, and in-place content swaps for the viewer.
 //
-// Runs only in the app's isolated content world ("mdv", see AppScripts.swift); page JavaScript
-// is disabled. The page cannot see or call `mdv`. Swift calls these functions with
+// Runs only in the app's isolated content world ("peep", see AppScripts.swift); page JavaScript
+// is disabled. The page cannot see or call `peep`. Swift calls these functions with
 // callAsyncJavaScript and passes every value as an argument, never as script source.
 //
 // Positions are source lines, from the renderer's `data-source-line` attributes (1-based lines
@@ -198,7 +198,7 @@
   }
 
   // Replaces the text of one of the page's layer <style> elements in <head> (`id` is a
-  // ThemeLayer name, e.g. "mdv-user"), keeping the reading position across the reflow. One
+  // ThemeLayer name, e.g. "peep-user"), keeping the reading position across the reflow. One
   // script run, so nothing is painted in between. Only <head> is searched, so an element in
   // the document body can't stand in for it. Returns whether the element was found.
   function replaceStyle(id, css) {
@@ -262,7 +262,7 @@
     return candidates.length;
   }
 
-  globalThis.mdv = Object.freeze({
+  globalThis.peep = Object.freeze({
     currentSourceLine,
     sectionSourceLine,
     scrollToSourceLine,

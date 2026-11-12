@@ -1,6 +1,6 @@
 import XCTest
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// The Settings window (identifier `settings-window`, set by `SettingsWindowController`).
     var settingsWindow: XCUIElement {
         app.windows["settings-window"]

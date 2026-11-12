@@ -1,7 +1,7 @@
 import AppKit
 import os
 
-/// One open Markdown file. mdv is a viewer: the document reads and re-reads its file but never
+/// One open Markdown file. Peep is a viewer: the document reads and re-reads its file but never
 /// writes it.
 ///
 /// `NSDocument` gives us opening, revert, recents, window tabs, and state restoration. Live
@@ -23,7 +23,7 @@ import os
 /// first render waits for it, each live reload runs it again, and a newer render, a newer
 /// `setContent(_:)`, or closing the document cancels the run in flight, which stops the
 /// script's process group. Changing it in Settings renders open documents again.
-/// Standard input (`cmd | mdv`, #68) is a document with no file (`init(standardInput:)`), the
+/// Standard input (`cmd | peep`, #68) is a document with no file (`init(standardInput:)`), the
 /// only untitled document a viewer has: titled from its first heading or "Standard Input", no
 /// live reload, and its window isn't restored. Settings changes render it again as any other.
 ///
@@ -100,7 +100,7 @@ final class MarkdownDocument: NSDocument {
     /// Signposts for opening (`Read` on main, `Render` off main), in Instruments' Points of
     /// Interest. Release builds keep them; they cost nothing unless recorded.
     nonisolated static let signposter = OSSignposter(
-        subsystem: Bundle.main.bundleIdentifier ?? "mdv", category: .pointsOfInterest)
+        subsystem: Bundle.main.bundleIdentifier ?? "peep", category: .pointsOfInterest)
 
     override func makeWindowControllers() {
         LaunchTiming.mark("makeWindowControllers")

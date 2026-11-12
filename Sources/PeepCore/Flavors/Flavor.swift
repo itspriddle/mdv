@@ -9,7 +9,7 @@
 ///
 /// Flavors are plain values: `RenderOptions.flavor` holds one, and `FlavorRegistry` resolves the
 /// ids saved in settings and frontmatter. Adding a flavor is a `static let` here plus one line in
-/// `FlavorRegistry.bundled`, and a fixture folder (`Tests/MdvCoreTests/Fixtures/flavors/<id>`).
+/// `FlavorRegistry.bundled`, and a fixture folder (`Tests/PeepCoreTests/Fixtures/flavors/<id>`).
 public struct Flavor: Sendable, Hashable, Identifiable {
     /// Stable identifier, saved in preferences and read from frontmatter (e.g. `gfm`).
     public var id: String

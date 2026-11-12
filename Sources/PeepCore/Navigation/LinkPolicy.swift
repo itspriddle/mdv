@@ -5,7 +5,7 @@ public enum LinkAction: Equatable, Sendable {
     /// An in-page link: scroll to the element the fragment names (`fragmentIDCandidates`). The
     /// fragment is raw, as in the URL (percent-encoded, no `#`); empty for a bare `#`.
     case scrollToFragment(String)
-    /// A local Markdown file: open it in mdv, then scroll to `fragment` (raw) if there is one.
+    /// A local Markdown file: open it in Peep, then scroll to `fragment` (raw) if there is one.
     case openDocument(URL, fragment: String?)
     /// Any other local file or folder: reveal it in Finder. Never opened with its default app,
     /// since that would let a document launch apps and scripts (`.app`, `.command`, ...).
@@ -65,7 +65,7 @@ public enum LinkPolicy {
     /// Schemes handed to the default app.
     public static let externalSchemes: Set<String> = ["http", "https", "mailto"]
 
-    /// File name extensions mdv opens as Markdown. Must match the Markdown type declarations in
+    /// File name extensions Peep opens as Markdown. Must match the Markdown type declarations in
     /// project.yml, imported and exported (an app test checks the built Info.plist).
     public static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn"]
 
@@ -102,7 +102,7 @@ public enum LinkPolicy {
             == document.standardizedFileURL.path(percentEncoded: false)
     }
 
-    /// Whether mdv opens `url` as a Markdown document, by extension (case-insensitive).
+    /// Whether Peep opens `url` as a Markdown document, by extension (case-insensitive).
     public static func isMarkdownFile(_ url: URL) -> Bool {
         !url.hasDirectoryPath && markdownExtensions.contains(url.pathExtension.lowercased())
     }

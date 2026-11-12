@@ -1,21 +1,21 @@
-// mdv find in page: finds text in the rendered document, counts and highlights every match, and
+// Peep find in page: finds text in the rendered document, counts and highlights every match, and
 // scrolls the current one into view.
 //
-// Runs only in the app's isolated content world ("mdv", see AppScripts.swift); page JavaScript
-// is disabled. The page cannot see or call `mdvFind`. Swift calls these functions with
+// Runs only in the app's isolated content world ("peep", see AppScripts.swift); page JavaScript
+// is disabled. The page cannot see or call `peepFind`. Swift calls these functions with
 // callAsyncJavaScript and passes the query as an argument, never as script source.
 //
 // Highlights use the CSS Custom Highlight API: ranges registered in `CSS.highlights` are painted
-// by the `::highlight(mdv-find)` and `::highlight(mdv-find-current)` rules in the page's base
-// layer (MdvCore `ThemeBase`). Nothing is inserted into the DOM and no inline style is set, so
+// by the `::highlight(peep-find)` and `::highlight(peep-find-current)` rules in the page's base
+// layer (PeepCore `ThemeBase`). Nothing is inserted into the DOM and no inline style is set, so
 // `data-source-line` positions, link hover, and live reload swaps are unaffected, and the page's
 // CSP (`style-src 'unsafe-inline'`, no scripts) is irrelevant to it. The highlight registry
 // belongs to the document, so ranges registered from this world are painted on the page.
 "use strict";
 
 (() => {
-  const ALL = "mdv-find";
-  const CURRENT = "mdv-find-current";
+  const ALL = "peep-find";
+  const CURRENT = "peep-find-current";
   // Counting stops here (shown as "1000+"); bounds the work a huge document can cause.
   const MAXIMUM_MATCHES = 1000;
   const MAXIMUM_QUERY_LENGTH = 1000;
@@ -245,5 +245,5 @@
     return true;
   }
 
-  globalThis.mdvFind = Object.freeze({ search, select, clear, selectionText, revealSelection });
+  globalThis.peepFind = Object.freeze({ search, select, clear, selectionText, revealSelection });
 })();

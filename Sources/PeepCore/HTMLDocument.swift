@@ -2,12 +2,12 @@
 public struct HTMLDocument: Sendable {
     public var title: String
     public var body: String
-    /// The page's theme, in the `mdv-theme` layer above the base layer (`ThemeBase`).
+    /// The page's theme, in the `peep-theme` layer above the base layer (`ThemeBase`).
     public var theme: Theme
-    /// The reader's style controls, in the `mdv-user` layer above the theme (#37).
+    /// The reader's style controls, in the `peep-user` layer above the theme (#37).
     public var userStyle: UserStyle
     /// Restrictive by default: no scripts, no remote loads, inline styles, local images only.
-    /// The app passes `.viewer`; `mdv --html` keeps `.standalone`.
+    /// The app passes `.viewer`; `peep --html` keeps `.standalone`.
     public var contentSecurityPolicy: ContentSecurityPolicy
 
     public init(

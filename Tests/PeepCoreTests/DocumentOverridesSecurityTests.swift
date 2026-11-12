@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// The security boundary of frontmatter overrides (#54, VISION's security model): a document can
 /// choose among presentation options only. Each test names a safety setting and proves a document
@@ -18,7 +18,7 @@ struct DocumentOverridesSecurityTests {
         return options
     }
 
-    /// Every spelling a hostile document might try, under `mdv:` and at the top level.
+    /// Every spelling a hostile document might try, under `peep:` and at the top level.
     static let hostileSettings = """
         sanitize: false
         sanitizer: off
@@ -57,7 +57,7 @@ struct DocumentOverridesSecurityTests {
 
     static var hostileSource: String {
         let indented = hostileSettings.split(separator: "\n").map { "  \($0)" }.joined(separator: "\n")
-        return "---\n\(hostileSettings)\nmdv:\n\(indented)\n  theme: serif\n---\n\(hostileBody)\n"
+        return "---\n\(hostileSettings)\npeep:\n\(indented)\n  theme: serif\n---\n\(hostileBody)\n"
     }
 
     static func render(_ source: String = hostileSource) -> RenderedDocument {
@@ -67,7 +67,7 @@ struct DocumentOverridesSecurityTests {
     @Test("every key besides flavor, theme, and wikilinks is reported as ignored")
     func reported() {
         let overrides = Self.render().overrides
-        let keys = Self.hostileSettings.split(separator: "\n").map { "mdv." + $0.prefix { $0 != ":" } }
+        let keys = Self.hostileSettings.split(separator: "\n").map { "peep." + $0.prefix { $0 != ":" } }
         #expect(overrides.ignored == keys.map { IgnoredOverride(key: $0, reason: .unknownKey) })
         #expect(overrides.theme == "serif", "the valid key beside them still applies")
     }
@@ -98,7 +98,7 @@ struct DocumentOverridesSecurityTests {
 
     @Test("the render matches the same document without the hostile keys")
     func sameAsWithout() {
-        let clean = Self.render("---\nmdv:\n  theme: serif\n---\n\(Self.hostileBody)\n")
+        let clean = Self.render("---\npeep:\n  theme: serif\n---\n\(Self.hostileBody)\n")
         let hostile = Self.render()
         // Line numbers differ (the hostile block is longer), so compare without them.
         let strip = { (html: String) in html.replacing(/\sdata-source-line="\d+"/, with: "") }
@@ -128,18 +128,18 @@ struct DocumentOverridesSecurityTests {
     @Test("an unregistered flavor (spec, every extension) can't be chosen")
     func unregisteredFlavor() {
         let rendered = HTMLRenderer(options: RenderOptions(flavor: .commonmark))
-            .render("---\nmdv: { flavor: spec }\n---\n~~x~~\n")
+            .render("---\npeep: { flavor: spec }\n---\n~~x~~\n")
         #expect(!rendered.html.contains("<del>"))
         #expect(rendered.overrides.flavor == nil)
     }
 
     @Test("frontmatter can't run a preprocessor: nothing it names is executed")
     func noPreprocessor() async throws {
-        let marker = FileManager.default.temporaryDirectory.appending(path: "mdv-override-\(UUID().uuidString)")
+        let marker = FileManager.default.temporaryDirectory.appending(path: "peep-override-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: marker) }
         let source = """
             ---
-            mdv:
+            peep:
               preprocessor: /usr/bin/touch
               customPreprocessor: { executable: /usr/bin/touch, arguments: ["\(marker.path)"] }
             ---

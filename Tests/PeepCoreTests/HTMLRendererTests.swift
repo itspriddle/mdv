@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Renders with heading anchors and highlighting off, so heading and code markup match cmark's.
 private func html(_ markdown: String) -> String {

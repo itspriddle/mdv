@@ -1,6 +1,6 @@
 ---
 title: Wiki Index
-mdv:
+peep:
   wikilinks: true
 ---
 

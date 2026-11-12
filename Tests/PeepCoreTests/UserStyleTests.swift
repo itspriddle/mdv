@@ -1,13 +1,13 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 @Suite("UserStyle")
 struct UserStyleTests {
     @Test("the theme default adds no rules, only the empty layer")
     func themeDefaults() {
         #expect(UserStyle.themeDefaults.css.isEmpty)
-        #expect(UserStyle.themeDefaults.layerCSS == "@layer mdv-user {\n\n}")
+        #expect(UserStyle.themeDefaults.layerCSS == "@layer peep-user {\n\n}")
         #expect(ContentWidth.default == .theme)
     }
 
@@ -16,8 +16,8 @@ struct UserStyleTests {
         arguments: [(ContentWidth.narrow, "32em"), (.wide, "72em"), (.full, "none")])
     func widths(width: ContentWidth, value: String) {
         let css = UserStyle(contentWidth: width).css
-        #expect(css.contains(":root { --mdv-content-width: \(value); }"))
-        #expect(css.contains(".markdown-body { max-width: var(--mdv-content-width); }"))
+        #expect(css.contains(":root { --peep-content-width: \(value); }"))
+        #expect(css.contains(".markdown-body { max-width: var(--peep-content-width); }"))
     }
 
     @Test("widths are screen only, so paper is always full width")
@@ -52,11 +52,11 @@ struct UserStyleTests {
         let html = HTMLDocument(
             title: "t", body: "", theme: .github, userStyle: UserStyle(contentWidth: .narrow)
         ).html
-        let theme = try #require(html.range(of: "<style id=\"mdv-theme\">"))
-        let user = try #require(html.range(of: "<style id=\"mdv-user\">\n@layer mdv-user {"))
+        let theme = try #require(html.range(of: "<style id=\"peep-theme\">"))
+        let user = try #require(html.range(of: "<style id=\"peep-user\">\n@layer peep-user {"))
         #expect(theme.upperBound < user.lowerBound)
-        #expect(html.contains("--mdv-content-width: 32em;"))
+        #expect(html.contains("--peep-content-width: 32em;"))
         let plain = HTMLDocument(title: "t", body: "", theme: .github).html
-        #expect(plain.contains("<style id=\"mdv-user\">\n@layer mdv-user {\n\n}\n</style>"))
+        #expect(plain.contains("<style id=\"peep-user\">\n@layer peep-user {\n\n}\n</style>"))
     }
 }

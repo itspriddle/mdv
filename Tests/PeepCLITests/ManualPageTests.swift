@@ -1,19 +1,19 @@
 import Foundation
 import Testing
 
-@testable import MdvCLIKit
-@testable import MdvCore
+@testable import PeepCLIKit
+@testable import PeepCore
 
 /// The man page (#71): `ManualPage.finish(_:)` over a saved generate-manual page, and the page
 /// `make cli-docs` generated from the current command (when `make test-core` passes it).
 @Suite("Man page")
 struct ManualPageTests {
-    /// generate-manual's output for mdv (ArgumentParser 1.8.2). Refresh it when ArgumentParser is
+    /// generate-manual's output for Peep (ArgumentParser 1.8.2). Refresh it when ArgumentParser is
     /// upgraded: `scripts/generate-cli-docs` leaves it at
-    /// `.build/plugins/GenerateManual/outputs/MdvCLI/mdv.1`.
+    /// `.build/plugins/GenerateManual/outputs/PeepCLI/peep.1`.
     private static func generatedSample() throws -> String {
         let url = try #require(
-            Bundle.module.url(forResource: "generate-manual-mdv", withExtension: "1", subdirectory: "Fixtures/manual"))
+            Bundle.module.url(forResource: "generate-manual-peep", withExtension: "1", subdirectory: "Fixtures/manual"))
         return try String(contentsOf: url, encoding: .utf8)
     }
 
@@ -69,10 +69,10 @@ struct ManualPageTests {
     func description() throws {
         let description = try Self.section("DESCRIPTION", of: ManualPage.finish(Self.generatedSample()))
         let text = description.joined(separator: " ")
-        #expect(text.contains("Opens FILE(s) in mdv."))
+        #expect(text.contains("Opens FILE(s) in Peep."))
         #expect(text.contains("Several FILEs print one after another only with --fragment;"))
         #expect(!text.contains("EXIT STATUS"))
-        #expect(!text.contains("mdv README.md"))
+        #expect(!text.contains("peep README.md"))
     }
 
     @Test("EXIT STATUS lists every ExitStatus entry instead of generate-manual's sentence")
@@ -118,19 +118,19 @@ struct ManualPageTests {
     @Test("a page without DESCRIPTION, or without its option list, is a format error")
     func formatErrors() {
         #expect(throws: ManualPage.FormatError.self) {
-            try ManualPage.finish(".Dd x\n.Sh NAME\n.Nm mdv\n.Sh SYNOPSIS\n.Nm\n")
+            try ManualPage.finish(".Dd x\n.Sh NAME\n.Nm peep\n.Sh SYNOPSIS\n.Nm\n")
         }
         #expect(throws: ManualPage.FormatError.self) {
-            try ManualPage.finish(".Sh NAME\n.Nm mdv\n.Sh SYNOPSIS\n.Nm\n.Sh DESCRIPTION\nText only.\n")
+            try ManualPage.finish(".Sh NAME\n.Nm peep\n.Sh SYNOPSIS\n.Nm\n.Sh DESCRIPTION\nText only.\n")
         }
         #expect(throws: ManualPage.FormatError.self) { try ManualPage.finish("no sections") }
     }
 
     // MARK: The generated page
 
-    @Test("the generated page documents every option of MdvCommand", .enabled(if: GeneratedCLIDocs.isAvailable))
+    @Test("the generated page documents every option of PeepCommand", .enabled(if: GeneratedCLIDocs.isAvailable))
     func everyOption() throws {
-        let page = try GeneratedCLIDocs.contents("man/man1/mdv.1")
+        let page = try GeneratedCLIDocs.contents("man/man1/peep.1")
         let options = try #require(try CommandOptions.load())
         #expect(!options.options.isEmpty)
         // `.It Fl o , -output Ar FILE`: `Fl` adds a dash to each name after it.
@@ -152,7 +152,7 @@ struct ManualPageTests {
     func lint() throws {
         let mandoc = URL(fileURLWithPath: "/usr/bin/mandoc")
         try #require(FileManager.default.isExecutableFile(atPath: mandoc.path))
-        let page = try #require(GeneratedCLIDocs.folder).appending(path: "man/man1/mdv.1")
+        let page = try #require(GeneratedCLIDocs.folder).appending(path: "man/man1/peep.1")
         let process = Process()
         process.executableURL = mandoc
         process.arguments = ["-T", "lint", "-W", "error", page.path]

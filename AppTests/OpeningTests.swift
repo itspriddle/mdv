@@ -4,7 +4,7 @@ import Testing
 import UniformTypeIdentifiers
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Opening documents (#22): the document controller's policies, the declared document types,
 /// dropped files, tabs, and window restoration of the reading position.
@@ -19,7 +19,7 @@ struct OpeningTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-opening-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-opening-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 
@@ -51,7 +51,7 @@ struct OpeningTests {
 
     // MARK: Document controller
 
-    @Test("the shared document controller is mdv's, and tests don't touch Open Recent")
+    @Test("the shared document controller is Peep's, and tests don't touch Open Recent")
     func sharedController() throws {
         #expect(NSDocumentController.shared is DocumentController)
         #expect(!DocumentController.recordsRecentDocuments)
@@ -122,8 +122,8 @@ struct OpeningTests {
     // MARK: Document types
 
     /// `.md` and `.markdown` are the system's `net.daringfireball.markdown`; `.mdown`, `.mkd`, and
-    /// `.mkdn` are mdv's exported type unless another app on this Mac declares them too (iA
-    /// Writer declares `net.ia.markdown`). Every such type conforms to plain text, which mdv
+    /// `.mkdn` are Peep's exported type unless another app on this Mac declares them too (iA
+    /// Writer declares `net.ia.markdown`). Every such type conforms to plain text, which Peep
     /// also opens.
     @Test("Markdown files open as MarkdownDocument", arguments: ["md", "markdown", "mdown", "mkd", "mkdn", "txt"])
     func markdownExtensions(fileExtension: String) throws {
@@ -142,7 +142,7 @@ struct OpeningTests {
         #expect(MarkdownDocument.canConcurrentlyReadDocuments(ofType: typeName) == false)
     }
 
-    @Test("mdv exports a Markdown type for the extensions the system type lacks")
+    @Test("Peep exports a Markdown type for the extensions the system type lacks")
     func exportedMarkdownType() throws {
         let identifier = MarkdownContentTypes.otherMarkdownExtensions.identifier
         // The Swift constant matches the identifier project.yml derives from the bundle ID.
@@ -171,7 +171,7 @@ struct OpeningTests {
         let subfolder = folder.appending(path: "sub", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: subfolder, withIntermediateDirectories: true)
 
-        let pasteboard = NSPasteboard(name: NSPasteboard.Name("mdv-tests-\(UUID().uuidString)"))
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("peep-tests-\(UUID().uuidString)"))
         defer { pasteboard.releaseGlobally() }
         pasteboard.clearContents()
         pasteboard.writeObjects([markdown, image, subfolder, text].map { $0 as NSURL })

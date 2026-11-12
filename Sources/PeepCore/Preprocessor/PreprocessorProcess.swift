@@ -38,7 +38,7 @@ struct PreprocessorProcess {
     /// - `POSIX_SPAWN_SETSIGDEF` and an empty mask give the child default signal handling
     ///   (the app may ignore `SIGPIPE`; a script expects it).
     /// - The stdin write end has `F_SETNOSIGPIPE`, so writing to a script that closed stdin
-    ///   fails with `EPIPE` instead of raising `SIGPIPE` in mdv. This is per descriptor, so
+    ///   fails with `EPIPE` instead of raising `SIGPIPE` in Peep. This is per descriptor, so
     ///   the process-wide disposition is left alone.
     static func launch(
         executable: String,

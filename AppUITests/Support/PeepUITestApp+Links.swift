@@ -1,6 +1,6 @@
 import XCTest
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// The link status overlay's accessibility identifier (`LinkStatusView` in the app).
     static let linkStatusIdentifier = "link-status"
 

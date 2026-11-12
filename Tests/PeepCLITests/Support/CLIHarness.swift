@@ -1,10 +1,10 @@
 import ArgumentParser
 import Foundation
-import MdvCLIKit
-import MdvCore
+import PeepCLIKit
+import PeepCore
 import Synchronization
 
-/// What one run of `mdv` did: its exit status, both output streams, and what it asked the app to
+/// What one run of `peep` did: its exit status, both output streams, and what it asked the app to
 /// open. `CLIHarness.run` (in-process) and `CLIBinary.run` (the built binary) both return one.
 struct CLIResult: Sendable {
     var status: Int32
@@ -18,7 +18,7 @@ struct CLIResult: Sendable {
     var stderr: String { String(bytes: standardError, encoding: .utf8) ?? "<not UTF-8>" }
 }
 
-/// Runs `MdvCommand` in-process against a fake `CLIEnvironment`: parse as `main()` would (usage
+/// Runs `PeepCommand` in-process against a fake `CLIEnvironment`: parse as `main()` would (usage
 /// errors exit 64 with ArgumentParser's message), then `execute(in:)`.
 enum CLIHarness {
     static func run(
@@ -33,14 +33,14 @@ enum CLIHarness {
     ) async -> CLIResult {
         let output = CapturedOutput(failingWith: failingOutput)
         let error = CapturedOutput()
-        let command: MdvCommand
+        let command: PeepCommand
         do {
-            command = try MdvCommand.parse(arguments)
+            command = try PeepCommand.parse(arguments)
         } catch {
             return CLIResult(
-                status: MdvCommand.exitCode(for: error).rawValue,
+                status: PeepCommand.exitCode(for: error).rawValue,
                 standardOutput: Data(),
-                standardError: Data((MdvCommand.fullMessage(for: error) + "\n").utf8))
+                standardError: Data((PeepCommand.fullMessage(for: error) + "\n").utf8))
         }
         let environment = CLIEnvironment(
             readStandardInput: { maximumBytes in

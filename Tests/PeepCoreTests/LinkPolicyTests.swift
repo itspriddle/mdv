@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 private let folder = URL(filePath: "/Users/me/docs/", directoryHint: .isDirectory)
 private let document = URL(filePath: "/Users/me/docs/README.md")
@@ -46,7 +46,7 @@ struct LinkPolicyTests {
     }
 
     @Test(
-        "local Markdown files open in mdv, keeping the fragment",
+        "local Markdown files open in Peep, keeping the fragment",
         arguments: [
             MarkdownLink(href: "guide.md", path: "/Users/me/docs/guide.md"),
             MarkdownLink(
@@ -116,12 +116,12 @@ struct LinkPolicyTests {
     }
 
     /// The shape #18's scheme handler gives: the page is served as
-    /// `mdv-doc://<window>/<path>`, and the loader maps such URLs back to files.
+    /// `peep-doc://<window>/<path>`, and the loader maps such URLs back to files.
     @Test("a custom page scheme works through LinkContext alone")
     func schemeLoader() throws {
-        let page = try #require(URL(string: "mdv-doc://w1/Users/me/docs/README.md"))
+        let page = try #require(URL(string: "peep-doc://w1/Users/me/docs/README.md"))
         let context = LinkContext(pageURL: page, documentFileURL: document) { url in
-            guard url.scheme == "mdv-doc", url.host() == "w1" else {
+            guard url.scheme == "peep-doc", url.host() == "w1" else {
                 return nil
             }
             return URL(filePath: url.path(percentEncoded: false))

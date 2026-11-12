@@ -1,17 +1,17 @@
 import XCTest
 
-extension MdvUITestApp {
-    /// A temporary folder for `-MdvUITestCommandLineToolFolder` (#70); the caller removes it.
+extension PeepUITestApp {
+    /// A temporary folder for `-PeepUITestCommandLineToolFolder` (#70); the caller removes it.
     static func makeCommandLineToolFolder() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-ui-bin-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-ui-bin-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }
 
     /// The launch arguments that make App menu > Install Command Line Tool… use `folder`.
     static func commandLineToolFolderArguments(_ folder: URL) -> [String] {
-        ["-MdvUITestCommandLineToolFolder", folder.path(percentEncoded: false)]
+        ["-PeepUITestCommandLineToolFolder", folder.path(percentEncoded: false)]
     }
 
     /// Opens the App menu and clicks the item titled `title`, failing if it isn't there.

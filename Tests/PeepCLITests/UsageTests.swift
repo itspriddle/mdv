@@ -1,4 +1,4 @@
-import MdvCLIKit
+import PeepCLIKit
 import Testing
 
 @Suite("Usage and help")
@@ -13,7 +13,7 @@ struct UsageTests {
 
     @Test("--help documents every output flag and every exit status")
     func help() {
-        let help = MdvCommand.helpMessage(columns: 100)
+        let help = PeepCommand.helpMessage(columns: 100)
         for flag in ["--html", "--fragment", "-o, --output <FILE>", "[<FILE> ...]"] {
             #expect(help.contains(flag), "\(flag)")
         }

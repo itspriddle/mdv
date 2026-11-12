@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Every page gets the base layer (`ThemeBase`) first; a theme only styles the document
 /// (typography, colors, code, tables, highlight tokens). `HTMLDocument` puts the theme in the
-/// `mdv-theme` cascade layer (`ThemeLayer`), so whatever its CSS says, it can't remove the base
+/// `peep-theme` cascade layer (`ThemeLayer`), so whatever its CSS says, it can't remove the base
 /// layer's protected rules. Theme CSS is inlined under the page's CSP: no remote `url()`, no
 /// `@import`, no web fonts.
 public struct Theme: Sendable, Equatable, Identifiable {

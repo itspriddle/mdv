@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 // GitHub gives raw HTML `<h1>`–`<h6>` the same anchors as Markdown headings, slugged from the
 // element's text content and de-duplicated together with them; the README corpus (`awesome`,

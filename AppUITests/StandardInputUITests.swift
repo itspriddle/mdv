@@ -1,11 +1,11 @@
 import XCTest
 
-/// `cmd | mdv` (#68): the embedded CLI hands standard input to the running app, which shows it
+/// `cmd | peep` (#68): the embedded CLI hands standard input to the running app, which shows it
 /// in an untitled window and deletes the handoff file. Each run gets its own `TMPDIR`, so the
 /// test can see that nothing is left behind.
 @MainActor
 final class StandardInputUITests: XCTestCase {
-    private var mdv: MdvUITestApp?
+    private var peep: PeepUITestApp?
     private var folder: URL?
 
     override func setUp() async throws {
@@ -13,8 +13,8 @@ final class StandardInputUITests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        mdv?.terminate()
-        mdv = nil
+        peep?.terminate()
+        peep = nil
         if let folder {
             try? FileManager.default.removeItem(at: folder)
         }
@@ -23,7 +23,7 @@ final class StandardInputUITests: XCTestCase {
     /// A new folder holding `handoffs` (the CLI's `TMPDIR`) and any input files.
     private func makeFolder() throws -> (inputs: URL, handoffs: URL) {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-ui-stdin-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-ui-stdin-\(UUID().uuidString)", directoryHint: .isDirectory)
         self.folder = folder
         let handoffs = folder.appending(path: "tmp", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: handoffs, withIntermediateDirectories: true)
@@ -35,57 +35,57 @@ final class StandardInputUITests: XCTestCase {
     }
 
     func testPipedInputOpensWindowsAndLeavesNoFiles() throws {
-        let mdv = MdvUITestApp.launch()
-        self.mdv = mdv
+        let peep = PeepUITestApp.launch()
+        self.peep = peep
         let (inputs, handoffs) = try makeFolder()
         let environment = ["TMPDIR": handoffs.path(percentEncoded: false)]
 
-        // `mdv < smoke.md`
-        let piped = try MdvUITestApp.runCommandLine(
+        // `peep < smoke.md`
+        let piped = try PeepUITestApp.runCommandLine(
             [], standardInput: try Fixtures.url(named: "smoke.md"), environment: environment)
         XCTAssertEqual(piped.status, 0, piped.stderr)
-        let window = mdv.waitForWindow(titled: "Smoke Test Fixture")
-        mdv.waitForRenderedText("The quick brown fox renders in mdv.", in: window)
+        let window = peep.waitForWindow(titled: "Smoke Test Fixture")
+        peep.waitForRenderedText("The quick brown fox renders in Peep.", in: window)
         XCTAssertEqual(try contents(of: handoffs), [], "the app deleted the handoff once it read it")
 
-        // README: `echo '# Markdown' | mdv`
+        // README: `echo '# Markdown' | peep`
         let echo = inputs.appending(path: "echo.txt")
         try Data("# Markdown\n".utf8).write(to: echo)
-        let readme = try MdvUITestApp.runCommandLine([], standardInput: echo, environment: environment)
+        let readme = try PeepUITestApp.runCommandLine([], standardInput: echo, environment: environment)
         XCTAssertEqual(readme.status, 0, readme.stderr)
-        mdv.waitForWindow(titled: "Markdown")
-        mdv.waitForWindowCount(2)
+        peep.waitForWindow(titled: "Markdown")
+        peep.waitForWindowCount(2)
         XCTAssertEqual(try contents(of: handoffs), [])
 
-        mdv.frontWindow.typeKey("w", modifierFlags: .command)
-        mdv.frontWindow.typeKey("w", modifierFlags: .command)
-        mdv.waitForWindowCount(0)
+        peep.frontWindow.typeKey("w", modifierFlags: .command)
+        peep.frontWindow.typeKey("w", modifierFlags: .command)
+        peep.waitForWindowCount(0)
         XCTAssertEqual(try contents(of: handoffs), [], "nothing appears after the windows close")
     }
 
-    /// `cmd | mdv --wait` (#68 with #69): returns once the standard input window closes.
+    /// `cmd | peep --wait` (#68 with #69): returns once the standard input window closes.
     func testWaitReturnsWhenTheStandardInputWindowCloses() throws {
-        let mdv = MdvUITestApp.launch()
-        self.mdv = mdv
+        let peep = PeepUITestApp.launch()
+        self.peep = peep
         let (inputs, handoffs) = try makeFolder()
         let input = inputs.appending(path: "waited.txt")
         try Data("# Waited For\n\nPiped and waited.\n".utf8).write(to: input)
 
-        let waiting = try MdvUITestApp.startCommandLine(
+        let waiting = try PeepUITestApp.startCommandLine(
             ["--wait"], standardInput: input, environment: ["TMPDIR": handoffs.path(percentEncoded: false)])
-        let window = mdv.waitForWindow(titled: "Waited For")
-        mdv.waitForRenderedText("Piped and waited.", in: window)
-        XCTAssertTrue(waiting.isStillRunning(after: 2), "mdv --wait returned with its window open")
+        let window = peep.waitForWindow(titled: "Waited For")
+        peep.waitForRenderedText("Piped and waited.", in: window)
+        XCTAssertTrue(waiting.isStillRunning(after: 2), "peep --wait returned with its window open")
         XCTAssertEqual(try contents(of: handoffs), [])
 
-        mdv.close(window)
-        XCTAssertTrue(waiting.exits(within: MdvUITestApp.defaultTimeout), "mdv --wait didn't return")
+        peep.close(window)
+        XCTAssertTrue(waiting.exits(within: PeepUITestApp.defaultTimeout), "peep --wait didn't return")
         XCTAssertEqual(waiting.status, 0, waiting.stderr)
     }
 
     func testEmptyOversizeAndInvalidInputOpenNothing() throws {
-        let mdv = MdvUITestApp.launch()
-        self.mdv = mdv
+        let peep = PeepUITestApp.launch()
+        self.peep = peep
         let (inputs, handoffs) = try makeFolder()
         let environment = ["TMPDIR": handoffs.path(percentEncoded: false)]
         let cases = [
@@ -98,11 +98,11 @@ final class StandardInputUITests: XCTestCase {
         for input in cases {
             let file = inputs.appending(path: input.name)
             try input.data.write(to: file)
-            let result = try MdvUITestApp.runCommandLine([], standardInput: file, environment: environment)
+            let result = try PeepUITestApp.runCommandLine([], standardInput: file, environment: environment)
             XCTAssertEqual(result.status, input.status, input.name)
             XCTAssertTrue(result.stderr.contains(input.message), result.stderr)
         }
-        XCTAssertFalse(mdv.app.windows.firstMatch.waitForExistence(timeout: 2), "no window opened")
+        XCTAssertFalse(peep.app.windows.firstMatch.waitForExistence(timeout: 2), "no window opened")
         XCTAssertEqual(try contents(of: handoffs), [])
     }
 }

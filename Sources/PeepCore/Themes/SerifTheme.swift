@@ -28,7 +28,7 @@ enum SerifTheme {
         }
         body { margin: 0; }
         .markdown-body {
-          box-sizing: border-box; max-width: var(--mdv-content-width, 40em); margin: 0 auto;
+          box-sizing: border-box; max-width: var(--peep-content-width, 40em); margin: 0 auto;
           padding: 56px 32px 72px; color: var(--serif-text);
           font-family: ui-serif, "New York", Charter, Georgia, "Times New Roman", serif;
           font-size: 19px; line-height: 1.65;

@@ -1,8 +1,8 @@
 import AppKit
-import MdvCore
+import PeepCore
 import WebKit
 
-/// Keeps the window's internal `mdv-doc` URLs out of what leaves the page by WebKit's own
+/// Keeps the window's internal `peep-doc` URLs out of what leaves the page by WebKit's own
 /// routes, as Copy Link does (#42): a dragged link or image carries the `file:` URL it names
 /// (`PasteboardLinkRewriter`), Share on a local link or image shares that `file:` URL, and Copy
 /// Image on a local image is the app's.
@@ -10,7 +10,7 @@ extension WebViewCoordinator {
     /// Copy Image draws at most this many pixels a side.
     static let maximumCopiedImageSide = 8192
 
-    /// The `mdv-doc` URL of the image under the last context menu, if it is a local image.
+    /// The `peep-doc` URL of the image under the last context menu, if it is a local image.
     var contextMenuLocalImage: URL? {
         guard let image = contextMenuTarget.image, image.scheme?.lowercased() == DocumentURLScheme.name else {
             return nil
@@ -40,7 +40,8 @@ extension WebViewCoordinator {
         let original = await Task.detached(priority: .userInitiated) { policy?.image(for: url) }.value
         let drawn =
             try? await callBridge(
-                "return mdvContextMenu.imagePNG(maximumSide);", arguments: ["maximumSide": Self.maximumCopiedImageSide])
+                "return peepContextMenu.imagePNG(maximumSide);", arguments: ["maximumSide": Self.maximumCopiedImageSide]
+            )
         let png = (drawn as? String).flatMap(Self.pngData(fromDataURL:))
         guard original != nil || png != nil else {
             return false
@@ -61,7 +62,7 @@ extension WebViewCoordinator {
         return data
     }
 
-    /// Rewrites the `mdv-doc` URLs on a drag's `pasteboard` (see `PasteboardLinkRewriter`).
+    /// Rewrites the `peep-doc` URLs on a drag's `pasteboard` (see `PasteboardLinkRewriter`).
     /// Leaves it alone when there are none.
     ///
     /// Changed types are written over in place, and dropped ones emptied: declaring the types
@@ -84,7 +85,7 @@ extension WebViewCoordinator {
     }
 
     /// What Share shares for the last context menu (`WebViewContextMenu.replaceShare`): `nil`
-    /// (WebKit's own Share) unless the link or image under it has an `mdv-doc` URL; then the
+    /// (WebKit's own Share) unless the link or image under it has a `peep-doc` URL; then the
     /// `file:` URLs they name, or nothing when they name no file.
     func contextMenuShareItems() -> [URL]? {
         let urls = [contextMenuTarget.link, contextMenuTarget.image].compactMap { $0 }

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Print themes (#38): the generated print CSS per theme and the base layer's paper
 /// guarantees. The printed result in real WebKit (fonts, sizes, fills, `<picture>` light

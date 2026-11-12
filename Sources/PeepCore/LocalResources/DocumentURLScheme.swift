@@ -3,7 +3,7 @@ import Foundation
 /// The URL shape the app loads documents at, so relative URLs in a page resolve against the
 /// document and every local read goes through the app's scheme handler (never `file:`).
 ///
-///     mdv-doc://<token>/<absolute file path, percent-encoded>
+///     peep-doc://<token>/<absolute file path, percent-encoded>
 ///
 /// - `token` names one window's web view (random, lowercase). A handler answers only its own
 ///   token, so the host says which window a URL belongs to.
@@ -15,14 +15,14 @@ import Foundation
 /// including the document URL.
 public enum DocumentURLScheme {
     /// The custom URL scheme (`WKURLSchemeHandler`). Also named in the viewer CSP's `img-src`.
-    public static let name = "mdv-doc"
+    public static let name = "peep-doc"
 
     /// A new random window token: a lowercase UUID.
     public static func makeToken() -> String {
         UUID().uuidString.lowercased()
     }
 
-    /// The `mdv-doc` URL for the file at absolute `filePath` in the window `token`. Returns nil
+    /// The `peep-doc` URL for the file at absolute `filePath` in the window `token`. Returns nil
     /// for a relative or unclean path (see `filePath(from:token:)`).
     public static func url(token: String, filePath: String) -> URL? {
         guard let segments = segments(ofAbsolutePath: filePath) else {
@@ -40,7 +40,7 @@ public enum DocumentURLScheme {
         return components.url
     }
 
-    /// The `mdv-doc` URL for the local `fileURL` in the window `token`.
+    /// The `peep-doc` URL for the local `fileURL` in the window `token`.
     public static func url(token: String, fileURL: URL) -> URL? {
         guard fileURL.isFileURL else {
             return nil
@@ -48,7 +48,7 @@ public enum DocumentURLScheme {
         return url(token: token, filePath: fileURL.path(percentEncoded: false))
     }
 
-    /// The absolute file path that `url` names, if it is an `mdv-doc` URL for the window
+    /// The absolute file path that `url` names, if it is a `peep-doc` URL for the window
     /// `token`. The query and fragment are ignored.
     ///
     /// This is a lexical check only (no file system access): it refuses other schemes and
@@ -80,7 +80,7 @@ public enum DocumentURLScheme {
         return "/" + decoded.joined(separator: "/")
     }
 
-    /// The local file or folder a link's `mdv-doc` URL names, for the navigation policy: the
+    /// The local file or folder a link's `peep-doc` URL names, for the navigation policy: the
     /// same lexical rules as `filePath(from:token:)`, except that one trailing `/` is accepted
     /// and names a folder (`hasDirectoryPath`), as a link to `sub/` resolves. Image reads use
     /// `filePath(from:token:)`, which refuses folders.

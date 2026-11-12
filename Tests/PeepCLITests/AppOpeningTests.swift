@@ -1,8 +1,8 @@
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvCLIKit
+@testable import PeepCLIKit
 
 @Suite("Opening in the app")
 struct AppOpeningTests {
@@ -54,7 +54,7 @@ struct AppOpeningTests {
     func emptyStandardInput(input: String) async {
         let result = await CLIHarness.run([], stdin: Data(input.utf8))
         #expect(result.status == 66)
-        #expect(result.stderr == "mdv: stdin: empty; nothing to open\n")
+        #expect(result.stderr == "peep: stdin: empty; nothing to open\n")
         #expect(result.openedInApp.isEmpty)
     }
 
@@ -63,7 +63,7 @@ struct AppOpeningTests {
         let limit = StandardInputHandoff.maximumBytes
         let over = await CLIHarness.run([], stdin: Data(repeating: 0x61, count: limit + 1))
         #expect(over.status == 65)
-        #expect(over.stderr.hasPrefix("mdv: stdin: larger than 10 MB"))
+        #expect(over.stderr.hasPrefix("peep: stdin: larger than 10 MB"))
         #expect(over.openedInApp.isEmpty)
 
         let atLimit = await CLIHarness.run([], stdin: Data(repeating: 0x61, count: limit))
@@ -81,7 +81,7 @@ struct AppOpeningTests {
     @Test("a bounded read stops after one byte more than the maximum, without waiting for the end")
     func boundedRead() throws {
         let pipe = Pipe()
-        // Never closed while reading: `yes | mdv` never ends either.
+        // Never closed while reading: `yes | peep` never ends either.
         try pipe.fileHandleForWriting.write(contentsOf: Data(repeating: 0x79, count: 1000))
         let data = try CLIEnvironment.readStandardInput(pipe.fileHandleForReading, maximumBytes: 100)
         #expect(data.count == 101)
@@ -118,7 +118,7 @@ struct AppOpeningTests {
             failingWith: CLIError("couldn't open the app", status: ExitStatus.unavailable))
         let result = await CLIHarness.run([folder.path("a.md")], appOpener: opener)
         #expect(result.status == 69)
-        #expect(result.stderr == "mdv: couldn't open the app\n")
+        #expect(result.stderr == "peep: couldn't open the app\n")
     }
 
     // MARK: Path checks
@@ -138,7 +138,7 @@ struct AppOpeningTests {
         for (path, reason) in cases {
             let result = await CLIHarness.run([good, path])
             #expect(result.status == 66, "\(path)")
-            #expect(result.stderr == "mdv: \(path): \(reason)\n")
+            #expect(result.stderr == "peep: \(path): \(reason)\n")
             #expect(result.openedInApp.isEmpty)
         }
     }
@@ -159,7 +159,7 @@ struct AppOpeningTests {
         let folder = try TempFolder()
         let file = try folder.file("a.md", "# A")
         let themes = try TempFolder()
-        try themes.file("plain.css", "/* mdv-theme\nname: Plain\n*/\nbody { color: black; }\n")
+        try themes.file("plain.css", "/* peep-theme\nname: Plain\n*/\nbody { color: black; }\n")
         let result = await CLIHarness.run(["--theme", "custom:plain.css", file], themesFolder: themes.url)
         #expect(result.status == 0, "\(result.stderr)")
         #expect(result.openedInApp.map(\.themeID) == ["custom:plain.css"])
@@ -190,44 +190,44 @@ struct AppOpeningTests {
     @Test("the CLI inside an app bundle opens that app; elsewhere, the app found by bundle id")
     func locator() throws {
         let folder = try TempFolder()
-        let app = folder.url.appending(path: "Dev Build/mdv.app", directoryHint: .isDirectory)
-        try Self.makeApp(at: app, bundleIdentifier: MdvCommand.appBundleIdentifier)
-        let helper = app.appending(path: "Contents/Helpers/mdv").path(percentEncoded: false)
+        let app = folder.url.appending(path: "Dev Build/Peep.app", directoryHint: .isDirectory)
+        try Self.makeApp(at: app, bundleIdentifier: PeepCommand.appBundleIdentifier)
+        let helper = app.appending(path: "Contents/Helpers/peep").path(percentEncoded: false)
         #expect(AppLocator.containingApp(ofExecutableAt: helper)?.standardizedFileURL == app.standardizedFileURL)
 
-        let installed = URL(filePath: "/Applications/mdv.app", directoryHint: .isDirectory)
+        let installed = URL(filePath: "/Applications/Peep.app", directoryHint: .isDirectory)
         let inside = AppLocator(executablePath: { helper }, applicationForBundleIdentifier: { _ in installed })
         #expect(try inside.locate().standardizedFileURL == app.standardizedFileURL)
 
         let swiftRun = AppLocator(
-            executablePath: { "/tmp/.build/debug/mdv" }, applicationForBundleIdentifier: { _ in installed })
+            executablePath: { "/tmp/.build/debug/peep" }, applicationForBundleIdentifier: { _ in installed })
         #expect(try swiftRun.locate() == installed)
 
         let nowhere = AppLocator(executablePath: { nil }, applicationForBundleIdentifier: { _ in nil })
         #expect(throws: CLIError.self) { try nowhere.locate() }
     }
 
-    @Test("an app bundle with another bundle id, or a helper elsewhere in it, isn't mdv's")
+    @Test("an app bundle with another bundle id, or a helper elsewhere in it, isn't Peep's")
     func locatorRejects() throws {
         let folder = try TempFolder()
         let other = folder.url.appending(path: "Other.app", directoryHint: .isDirectory)
         try Self.makeApp(at: other, bundleIdentifier: "com.example.other")
-        #expect(AppLocator.containingApp(ofExecutableAt: other.appending(path: "Contents/Helpers/mdv").path) == nil)
-        let app = folder.url.appending(path: "mdv.app", directoryHint: .isDirectory)
-        try Self.makeApp(at: app, bundleIdentifier: MdvCommand.appBundleIdentifier)
-        #expect(AppLocator.containingApp(ofExecutableAt: app.appending(path: "Contents/MacOS/mdv").path) == nil)
+        #expect(AppLocator.containingApp(ofExecutableAt: other.appending(path: "Contents/Helpers/peep").path) == nil)
+        let app = folder.url.appending(path: "Peep.app", directoryHint: .isDirectory)
+        try Self.makeApp(at: app, bundleIdentifier: PeepCommand.appBundleIdentifier)
+        #expect(AppLocator.containingApp(ofExecutableAt: app.appending(path: "Contents/MacOS/Peep").path) == nil)
     }
 
     @Test("Launch Services is bypassed only when another copy with the same bundle id runs")
     func target() {
-        let ours = URL(filePath: "/build/Debug/mdv.app", directoryHint: .isDirectory)
-        let installed = URL(filePath: "/Applications/mdv.app", directoryHint: .isDirectory)
+        let ours = URL(filePath: "/build/Debug/Peep.app", directoryHint: .isDirectory)
+        let installed = URL(filePath: "/Applications/Peep.app", directoryHint: .isDirectory)
         #expect(AppLocator.target(for: ours, running: []) == .launchServices(createsNewInstance: false))
         #expect(AppLocator.target(for: ours, running: [(10, ours)]) == .launchServices(createsNewInstance: false))
         #expect(AppLocator.target(for: ours, running: [(11, installed)]) == .launchServices(createsNewInstance: true))
         #expect(AppLocator.target(for: ours, running: [(11, installed), (10, ours)]) == .running(10))
         // A running app's bundle URL ends in a slash; the located app's may not.
-        let bare = URL(filePath: "/build/Debug/mdv.app", directoryHint: .notDirectory)
+        let bare = URL(filePath: "/build/Debug/Peep.app", directoryHint: .notDirectory)
         #expect(AppLocator.target(for: bare, running: [(11, installed), (10, ours)]) == .running(10))
         #expect(AppLocator.isSameBundle(bare, ours))
         #expect(!AppLocator.isSameBundle(bare, installed))
@@ -238,10 +238,10 @@ struct AppOpeningTests {
         try FileManager.default.createDirectory(
             at: contents.appending(path: "Helpers"), withIntermediateDirectories: true)
         let plist: [String: Any] = [
-            "CFBundleIdentifier": bundleIdentifier, "CFBundlePackageType": "APPL", "CFBundleExecutable": "mdv",
+            "CFBundleIdentifier": bundleIdentifier, "CFBundlePackageType": "APPL", "CFBundleExecutable": "Peep",
         ]
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: contents.appending(path: "Info.plist"))
-        try Data().write(to: contents.appending(path: "Helpers/mdv"))
+        try Data().write(to: contents.appending(path: "Helpers/peep"))
     }
 }

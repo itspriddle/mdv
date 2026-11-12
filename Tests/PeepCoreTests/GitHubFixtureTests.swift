@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Compares default-mode output with GitHub's rendering of the same Markdown
 /// (`Fixtures/github`, captured with `gh api markdown`). See that folder's README.
@@ -20,7 +20,7 @@ struct GitHubFixtureTests {
     /// GitHub alerts (#52): every rule `GitHubAlerts` documents, as GitHub's API renders it. The
     /// fixture needs line breaks (the marker is alone on its line), which `mode=gfm` writes as
     /// `<br>`, so GitHub's soft breaks become newlines here (the fixture has no hard breaks
-    /// outside markers), and both sides are normalized: mdv starts each body block on a new line
+    /// outside markers), and both sides are normalized: Peep starts each body block on a new line
     /// where GitHub doesn't.
     @Test("alerts match GitHub, and so do their Octicons, byte for byte")
     func alertsMatchGitHub() throws {

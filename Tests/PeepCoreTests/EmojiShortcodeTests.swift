@@ -1,13 +1,13 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 // Expected output was verified (2026-11-06) by rendering each input with
 //
 //     gh api markdown -f mode=gfm -f text="$(cat input.md)"
 //
-// github.com wraps some emoji in `<g-emoji>`; mdv writes the bare character. Heading slugs were
+// github.com wraps some emoji in `<g-emoji>`; Peep writes the bare character. Heading slugs were
 // checked with `mode=markdown`, which emits heading ids. `Fixtures/github/emoji.md` covers more.
 
 /// The inner HTML of a one-paragraph document, rendered with default options.
@@ -43,7 +43,7 @@ struct EmojiShortcodeTests {
             (":TADA:", ":TADA:"),
             (":ta da:", ":ta da:"),
             (":tada", ":tada"),
-            // GitHub's image-only emoji have no character; mdv never loads remote images.
+            // GitHub's image-only emoji have no character; Peep never loads remote images.
             (":octocat: :shipit:", ":octocat: :shipit:"),
             // Text is matched after cmark resolves escapes and entities.
             (#"\:tada:"#, "🎉"),
@@ -208,7 +208,7 @@ struct EmojiTableTests {
     func generatedFileIsSorted() throws {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-            .appending(path: "Sources/MdvCore/Generated/EmojiTable.swift")
+            .appending(path: "Sources/PeepCore/Generated/EmojiTable.swift")
         let source = try String(contentsOf: url, encoding: .utf8)
         let aliases = source.split(separator: "\n").compactMap { line in
             line.firstMatch(of: /^ {8}"([^"]+)": "/).map { String($0.1) }

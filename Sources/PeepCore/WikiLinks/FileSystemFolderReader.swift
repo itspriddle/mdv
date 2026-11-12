@@ -1,7 +1,7 @@
 import Foundation
 
 /// Lists a folder for wiki link resolution over the real file system (the app's
-/// `DocumentWikiLinks` and `mdv --html`): regular files and folders only. Symbolic links are
+/// `DocumentWikiLinks` and `peep --html`): regular files and folders only. Symbolic links are
 /// left out (so the search never leaves the allowed root or loops), and so are packages
 /// (`.app`, `.rtfd`), which Finder shows as files.
 public struct FileSystemFolderReader: WikiLinkFolderReader {

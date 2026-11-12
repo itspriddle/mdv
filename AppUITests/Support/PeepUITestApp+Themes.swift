@@ -1,6 +1,6 @@
 import XCTest
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// Chooses View > Theme > `title` (#34).
     func chooseTheme(_ title: String) {
         chooseThemeMenuItem(title)
@@ -48,17 +48,17 @@ extension MdvUITestApp {
         return false
     }
 
-    /// A temporary custom themes folder (#35) for `-MdvUITestThemesFolder`; the caller removes it.
+    /// A temporary custom themes folder (#35) for `-PeepUITestThemesFolder`; the caller removes it.
     static func makeThemesFolder() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-ui-themes-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-ui-themes-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }
 
     /// The launch arguments that make the app read custom themes from `folder`.
     static func themesFolderArguments(_ folder: URL) -> [String] {
-        ["-MdvUITestThemesFolder", folder.path(percentEncoded: false)]
+        ["-PeepUITestThemesFolder", folder.path(percentEncoded: false)]
     }
 
     /// The topmost text in `window`'s web view whose string starts with `prefix` and whose top

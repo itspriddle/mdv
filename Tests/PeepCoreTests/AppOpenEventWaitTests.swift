@@ -1,9 +1,9 @@
 import CoreServices
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-/// `mdv --wait`'s token on the open event (#69), read by the app as untrusted input.
+/// `peep --wait`'s token on the open event (#69), read by the app as untrusted input.
 @Suite("App open event: wait token")
 struct AppOpenEventWaitTests {
     @Test("the token round-trips, on both kinds of event, next to the theme")
@@ -66,6 +66,6 @@ struct AppOpenEventWaitTests {
         let token = try #require(UUID(uuidString: "e621e1f8-c36c-495a-93fc-0c247a3e6e5f"))
         #expect(
             AppOpenEvent.windowsClosedNotificationName(for: token)
-                == "com.itspriddle.mdv.windowsClosed.E621E1F8-C36C-495A-93FC-0C247A3E6E5F")
+                == "now.peep.Peep.windowsClosed.E621E1F8-C36C-495A-93FC-0C247A3E6E5F")
     }
 }

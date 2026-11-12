@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// Runs a binary with SIGINT, SIGTERM, and SIGHUP at their default actions. A test runner (CI's)
-/// may start with SIGINT ignored, and a spawned mdv rightly keeps an inherited `SIG_IGN`, so
+/// may start with SIGINT ignored, and a spawned Peep rightly keeps an inherited `SIG_IGN`, so
 /// signal tests can't use `Process`.
 enum DefaultSignalProcess {
     /// Spawns `path` with SIGINT, SIGTERM, and SIGHUP reset to their default actions, standard
@@ -74,7 +74,7 @@ enum DefaultSignalProcess {
             let thread = Thread {
                 continuation.resume(returning: interrupt(pid, signal, path: path, start: start, limit: limit))
             }
-            thread.name = "mdv-tests.signal"
+            thread.name = "peep-tests.signal"
             thread.qualityOfService = .userInitiated
             thread.start()
         }

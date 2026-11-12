@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Vendors a pinned sindresorhus/github-markdown-css release into MdvCore as generated Swift.
+# Vendors a pinned sindresorhus/github-markdown-css release into PeepCore as generated Swift.
 #
 #   scripts/vendor-github-markdown-css.sh 5.9.0   (or: make vendor-github-markdown-css GHCSS_VERSION=5.9.0)
 #
 # Fetches github-markdown.css (light and dark, by prefers-color-scheme) at the release tag,
 # records its URL and SHA-256 in Vendor/github-markdown-css/MANIFEST, copies the MIT license,
-# and writes Sources/MdvCore/Themes/GitHubMarkdownCSS.generated.swift.
+# and writes Sources/PeepCore/Themes/GitHubMarkdownCSS.generated.swift.
 #
-# The CSS is adjusted to mdv's theme rules (docs/VISION.md, "Themes"); each edit must match
+# The CSS is adjusted to Peep's theme rules (docs/VISION.md, "Themes"); each edit must match
 # exactly as often as expected, or the script fails so a new release gets a human look:
 # - dark colors apply on screen only (`@media screen and (prefers-color-scheme: dark)`), and the
 #   light colors on paper too (`@media not screen and (prefers-color-scheme: dark)`), so print is
 #   always light;
 # - the heading anchors' `mask-image: url("data:…")` octicon is dropped: theme CSS loads
-#   nothing through `url()` (mdv's anchors are a text glyph, see GitHubTheme.swift).
+#   nothing through `url()` (Peep's anchors are a text glyph, see GitHubTheme.swift).
 set -euo pipefail
 
 VERSION="${1:-}"
@@ -25,7 +25,7 @@ fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BASE_URL="https://raw.githubusercontent.com/sindresorhus/github-markdown-css/v$VERSION"
 VENDOR_DIR="$ROOT/Vendor/github-markdown-css"
-OUTPUT="$ROOT/Sources/MdvCore/Themes/GitHubMarkdownCSS.generated.swift"
+OUTPUT="$ROOT/Sources/PeepCore/Themes/GitHubMarkdownCSS.generated.swift"
 
 WORK="$(mktemp -d)"
 trap 'command rm -rf "$WORK"' EXIT

@@ -4,7 +4,7 @@ extension RenderOptions {
     ///
     /// The flavor is `Flavor.spec`: all GFM extensions on (cmark-gfm runs `extensions.txt` that
     /// way; the suite narrows `flavor.extensions` per example for `spec.txt` and
-    /// `regression.txt`) and no transforms. Every mdv-specific addition is off: a feature that
+    /// `regression.txt`) and no transforms. Every peep-specific addition is off: a feature that
     /// adds a toggle to `RenderOptions` and changes the HTML (heading ids, source lines,
     /// sanitizing, highlighting, frontmatter, ...) turns itself off here with one line, e.g.
     /// `options.headingAnchors = false`. A new syntax transform needs no line: `Flavor.spec`

@@ -6,7 +6,7 @@ extension HTMLRenderer {
     /// 1. Custom preprocessor (#56, opt-in, whole file): runs *before* this method; its output is
     ///    `markdown` (`render(_:preprocessor:)`). Everything below sees only that output.
     /// 2. Frontmatter extraction (`options.detectsFrontmatter`), for every flavor.
-    /// 3. Document overrides (#54, `DocumentOverrides`): the frontmatter's `mdv.flavor` beats
+    /// 3. Document overrides (#54, `DocumentOverrides`): the frontmatter's `peep.flavor` beats
     ///    `options.flavor`, so it changes how the body parses (`RenderOptions.applying(_:)`),
     ///    unless the caller pinned it (`options.pinnedOverrides`, #64).
     /// 4. Parse the body with the flavor's extensions (`MarkdownParser`).

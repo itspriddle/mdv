@@ -1,9 +1,9 @@
 import Foundation
 
-/// Checks a custom theme's CSS (#35) before it is inlined in the `mdv-theme` layer.
+/// Checks a custom theme's CSS (#35) before it is inlined in the `peep-theme` layer.
 ///
 /// The page's CSP already blocks every load a stylesheet could start (`default-src 'none'`,
-/// images from `mdv-doc:` and `data:` only), so this is the second, independent line: a theme
+/// images from `peep-doc:` and `data:` only), so this is the second, independent line: a theme
 /// that tries to load anything is rejected with a reason the picker shows, rather than
 /// silently styled differently than its author expects. The rules:
 /// - no `@import`;
@@ -11,7 +11,7 @@ import Foundation
 ///   `cross-fade()`, must be `data:image/…` URLs;
 /// - no `expression()`;
 /// - `{}`, `()`, and `[]` nest properly, comments and strings are closed. A stray `}` would
-///   end the `@layer mdv-theme { … }` block the theme is wrapped in, and an unclosed `{` or
+///   end the `@layer peep-theme { … }` block the theme is wrapped in, and an unclosed `{` or
 ///   comment would swallow its end.
 ///
 /// The scanner follows CSS Syntax Level 3 tokenizing where it matters: comments and strings

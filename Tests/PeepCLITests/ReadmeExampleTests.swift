@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-/// Every `mdv` command in the README's `sh` blocks works (#72). Examples that print or write HTML
+/// Every `peep` command in the README's `sh` blocks works (#72). Examples that print or write HTML
 /// run against the built binary; examples that open the app run in-process with a recording
 /// opener, so they parse, pass their checks, and send the request the README describes. The
 /// files an example names are made in a temp folder (README.md is the real README).
@@ -10,7 +10,7 @@ struct ReadmeExampleTests {
     static let readme: String = (try? String(contentsOf: ReadmeExamples.readmeURL, encoding: .utf8)) ?? ""
     static let parsed = ReadmeExamples.examples(in: readme)
 
-    @Test("the README's sh blocks have mdv examples, all in a form this test reads")
+    @Test("the README's sh blocks have Peep examples, all in a form this test reads")
     func examplesFound() {
         #expect(!Self.readme.isEmpty, "README.md not found at \(ReadmeExamples.readmeURL.path)")
         #expect(Self.parsed.unsupported.isEmpty, "Examples this test can't read: \(Self.parsed.unsupported)")
@@ -53,7 +53,7 @@ struct ReadmeExampleTests {
         #expect(result.stdout.isEmpty, "\(example)")
         let request = try #require(result.openedInApp.first, "\(example) opened nothing")
         #expect(request.files.map(\.path) == example.inputFiles.map(folder.path), "\(example)")
-        // A pipe into `mdv FILE` (without `-`) would be ignored: the README shouldn't show one.
+        // A pipe into `peep FILE` (without `-`) would be ignored: the README shouldn't show one.
         #expect(request.standardInput == example.standardInput, "\(example)")
         if let theme = Self.value(of: "--theme", in: example) {
             #expect(request.themeID == theme, "\(example)")
@@ -66,7 +66,7 @@ struct ReadmeExampleTests {
         .enabled(if: GeneratedCLIDocs.isAvailable))
     func completionScripts() throws {
         let names = ReadmeExamples.completionScriptNames(in: Self.readme)
-        #expect(Set(names) == ["_mdv", "mdv.bash", "mdv.fish"])
+        #expect(Set(names) == ["_peep", "peep.bash", "peep.fish"])
         let folder = try #require(GeneratedCLIDocs.folder).appending(path: "completions")
         for name in names {
             #expect(FileManager.default.fileExists(atPath: folder.appending(path: name).path), "\(name)")

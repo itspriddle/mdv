@@ -45,7 +45,7 @@ public enum GitHubAlert: String, CaseIterable, Sendable {
 ///
 /// Known divergence: github.com applies the rule to the HTML tree, so a block quote between
 /// raw HTML tags (`<details>` … `</details>` in separate HTML blocks) isn't top level there and
-/// stays a block quote; mdv's tree has it at the top level, so it becomes an alert.
+/// stays a block quote; Peep's tree has it at the top level, so it becomes an alert.
 enum GitHubAlerts {
     /// Returns `root` with each top-level alert block quote replaced by an `alert` node.
     static func replace(in root: MarkdownNode, options: RenderOptions) -> MarkdownNode {

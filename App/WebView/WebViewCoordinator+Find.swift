@@ -5,7 +5,7 @@ import WebKit
 extension WebViewCoordinator: FindInPageHost {
     func findMatches(of query: String, caseSensitive: Bool, fromCurrent: Bool) async throws -> FindMatches {
         let result = try await callBridge(
-            "return mdvFind.search(query, caseSensitive, fromCurrent);",
+            "return peepFind.search(query, caseSensitive, fromCurrent);",
             arguments: ["query": query, "caseSensitive": caseSensitive, "fromCurrent": fromCurrent])
         guard let object = result as? [String: Any], let count = (object["count"] as? NSNumber)?.intValue,
             let isLimited = (object["limited"] as? NSNumber)?.boolValue,
@@ -18,19 +18,20 @@ extension WebViewCoordinator: FindInPageHost {
 
     func selectMatch(at index: Int, reveal: Bool) async throws {
         _ = try await callBridge(
-            "return mdvFind.select(index, reveal);", arguments: ["index": index, "reveal": reveal])
+            "return peepFind.select(index, reveal);", arguments: ["index": index, "reveal": reveal])
     }
 
     func clearMatches(selectingCurrent: Bool) async throws {
-        _ = try await callBridge("return mdvFind.clear(selectCurrent);", arguments: ["selectCurrent": selectingCurrent])
+        _ = try await callBridge(
+            "return peepFind.clear(selectCurrent);", arguments: ["selectCurrent": selectingCurrent])
     }
 
     func selectedText() async throws -> String {
-        try await callBridge("return mdvFind.selectionText();") as? String ?? ""
+        try await callBridge("return peepFind.selectionText();") as? String ?? ""
     }
 
     func revealSelection() async throws -> Bool {
-        let result = try await callBridge("return mdvFind.revealSelection();")
+        let result = try await callBridge("return peepFind.revealSelection();")
         return (result as? NSNumber)?.boolValue ?? false
     }
 

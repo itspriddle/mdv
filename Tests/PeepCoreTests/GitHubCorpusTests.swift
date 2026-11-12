@@ -1,18 +1,18 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
-/// The README corpus (`Fixtures/corpus`, see its README): real documents rendered by mdv with
+/// The README corpus (`Fixtures/corpus`, see its README): real documents rendered by Peep with
 /// default options, compared with GitHub's rendering after normalization, and snapshotted.
 ///
 /// Re-record the snapshots after an intended output change:
 ///
-///     MDV_RECORD_SNAPSHOTS=1 swift test --filter GitHubCorpusTests
+///     PEEP_RECORD_SNAPSHOTS=1 swift test --filter GitHubCorpusTests
 ///
-/// To inspect a GitHub mismatch, `MDV_CORPUS_DIFF_DIR=/some/dir` writes both normalized outputs
-/// there as `NAME.github.html` and `NAME.mdv.html`; compare them one tag per line, e.g.
-/// `diff <(sed 's/></>\n</g' NAME.github.html) <(sed 's/></>\n</g' NAME.mdv.html)`.
+/// To inspect a GitHub mismatch, `PEEP_CORPUS_DIFF_DIR=/some/dir` writes both normalized outputs
+/// there as `NAME.github.html` and `NAME.peep.html`; compare them one tag per line, e.g.
+/// `diff <(sed 's/></>\n</g' NAME.github.html) <(sed 's/></>\n</g' NAME.peep.html)`.
 @Suite("GitHub README corpus")
 struct GitHubCorpusTests {
     static let manifest: CorpusManifest = {
@@ -53,12 +53,12 @@ struct GitHubCorpusTests {
             #expect(
                 expected.ranges(of: exception.github).count == 1,
                 "\(name): exception must match GitHub's normalized output exactly once: \(exception.github)")
-            expected = expected.replacingOccurrences(of: exception.github, with: exception.mdv)
+            expected = expected.replacingOccurrences(of: exception.github, with: exception.peep)
         }
-        let actual = CorpusNormalizer.mdv(HTMLRenderer().render(markdown).html)
+        let actual = CorpusNormalizer.peep(HTMLRenderer().render(markdown).html)
         #expect(actual == expected, "\(name): \(CorpusNormalizer.firstDifference(actual, expected))")
-        if let directory = ProcessInfo.processInfo.environment["MDV_CORPUS_DIFF_DIR"], actual != expected {
-            for (suffix, html) in [("mdv", actual), ("github", expected)] {
+        if let directory = ProcessInfo.processInfo.environment["PEEP_CORPUS_DIFF_DIR"], actual != expected {
+            for (suffix, html) in [("peep", actual), ("github", expected)] {
                 try html.write(toFile: "\(directory)/\(name).\(suffix).html", atomically: true, encoding: .utf8)
             }
         }
@@ -67,13 +67,13 @@ struct GitHubCorpusTests {
     @Test("default output matches the recorded snapshot", arguments: names)
     func snapshot(_ name: String) throws {
         let html = HTMLRenderer().render(try Self.fixture(name, "md")).html
-        if ProcessInfo.processInfo.environment["MDV_RECORD_SNAPSHOTS"] != nil {
+        if ProcessInfo.processInfo.environment["PEEP_RECORD_SNAPSHOTS"] != nil {
             let url = URL(filePath: #filePath).deletingLastPathComponent()
-                .appending(components: "Fixtures", "corpus", "\(name).mdv.html")
+                .appending(components: "Fixtures", "corpus", "\(name).peep.html")
             try html.write(to: url, atomically: true, encoding: .utf8)
             return
         }
-        let snapshot = try Self.fixture(name, "mdv.html")
+        let snapshot = try Self.fixture(name, "peep.html")
         #expect(html == snapshot, "\(name): \(CorpusNormalizer.firstDifference(html, snapshot))")
     }
 
@@ -104,17 +104,17 @@ struct CorpusManifest: Decodable {
     }
 
     /// A known difference: `github`, which must occur exactly once in GitHub's normalized
-    /// output, is replaced with `mdv` before comparing. Both are in normalized form.
+    /// output, is replaced with `peep` before comparing. Both are in normalized form.
     struct Exception: Decodable {
         var github: String
-        var mdv: String
+        var peep: String
         var reason: String
     }
 
     var documents: [String: Document]
 }
 
-/// Removes the differences between GitHub's and mdv's markup that are deliberate and apply to
+/// Removes the differences between GitHub's and Peep's markup that are deliberate and apply to
 /// every document (see the corpus README), then normalizes with `HTMLNormalizer`.
 enum CorpusNormalizer {
     /// `html` is github.com's file view of a document; `hasFrontmatter` says whether the
@@ -160,13 +160,13 @@ enum CorpusNormalizer {
             ##"(src|srcset)="[^"]*"((?: [a-z-]+="[^"]*")*) data-canonical-src="([^"]*)""##, with: ##"$1="$3"$2"##,
             in: html)
         html = replace(##"(<img [^>]*?) style="[^"]*""##, with: "$1", in: html)
-        // GitHub's custom (non-Unicode) emoji are remote images; mdv leaves the shortcode.
+        // GitHub's custom (non-Unicode) emoji are remote images; Peep leaves the shortcode.
         html = replace(
             ##"<img class="emoji" title="(:[^"]*:)" alt="[^"]*" src="[^"]*""##
                 + ##" height="20" width="20" align="absmiddle">"##,
             with: "$1", in: html)
         html = replace(##"<g-emoji class="g-emoji" alias="[^"]*">"##, with: "", in: html)
-        // github.com shortens a bare link to an issue into `#123` (mdv keeps the URL), adds
+        // github.com shortens a bare link to an issue into `#123` (Peep keeps the URL), adds
         // hovercards to links, and serves user-attachment images from expiring signed URLs.
         html = replace(
             ##"<a class="issue-link js-issue-link"[^>]* href="([^"]*)">#\d+</a>"##, with: ##"<a href="$1">$1</a>"##,
@@ -188,7 +188,7 @@ enum CorpusNormalizer {
         return html
     }
 
-    static func mdv(_ html: String) -> String {
+    static func peep(_ html: String) -> String {
         var html = replace(##" data-source-line="\d+""##, with: "", in: html)
         html = replace(##"<a class="anchor" aria-hidden="true" href="#[^"]*"></a>"##, with: "", in: html)
         html = replace(##"<code class="language-[^"]*">"##, with: "<code>", in: html)
@@ -197,7 +197,7 @@ enum CorpusNormalizer {
 
     /// Applies the differences both sides share, then `HTMLNormalizer`:
     ///
-    /// - Syntax-highlighting spans inside `<pre>` (GitHub's `pl-`, mdv's `hljs-`) are dropped,
+    /// - Syntax-highlighting spans inside `<pre>` (GitHub's `pl-`, Peep's `hljs-`) are dropped,
     ///   and so is the newline ending a code block, which GitHub trims from highlighted code.
     /// - `"` in text is written literally (GitHub) or as `&quot;` (cmark); `&nbsp;` is decoded.
     private static func normalized(_ html: String) -> String {
@@ -258,6 +258,6 @@ enum CorpusNormalizer {
             return String(view)
         }
         return
-            "first difference at \(index)\n--- mdv\n\(excerpt(actualScalars))\n--- GitHub\n\(excerpt(expectedScalars))"
+            "first difference at \(index)\n--- Peep\n\(excerpt(actualScalars))\n--- GitHub\n\(excerpt(expectedScalars))"
     }
 }

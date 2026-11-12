@@ -1,10 +1,10 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The outline sidebar (#24), hosted: a `MarkdownDocument` with a window, its outline, the
 /// scroll reports from `ScrollPosition.js`, and jumps through the bridge.
@@ -42,10 +42,10 @@ final class OutlineTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-outline-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-outline-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         file = folder.appending(path: "notes.md")
-        throwawayDefaults = try ThrowawayDefaults("mdv-outline-tests")
+        throwawayDefaults = try ThrowawayDefaults("peep-outline-tests")
     }
 
     deinit {

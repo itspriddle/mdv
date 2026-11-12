@@ -1,8 +1,8 @@
 import Foundation
-import MdvCore
+import PeepCore
 import WebKit
 
-/// Serves one window's `mdv-doc` URLs (`DocumentURLScheme`): local images the document
+/// Serves one window's `peep-doc` URLs (`DocumentURLScheme`): local images the document
 /// references, after `LocalImagePolicy` approves each read. Everything else, including the
 /// document URL itself, gets an empty 404 (the page shows its broken-image state; no reasons,
 /// listings, or paths are given).

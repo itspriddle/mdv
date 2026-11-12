@@ -1,9 +1,9 @@
 // Shared build settings for all targets and configurations.
 
 // Placeholder identity until the final app name is chosen (see docs/ROADMAP.md).
-PRODUCT_BUNDLE_IDENTIFIER_BASE = com.itspriddle.mdv
+PRODUCT_BUNDLE_IDENTIFIER_BASE = now.peep.Peep
 
-// Keep MARKETING_VERSION in sync with MdvInfo.version (automated in M6).
+// Keep MARKETING_VERSION in sync with PeepInfo.version (automated in M6).
 MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 

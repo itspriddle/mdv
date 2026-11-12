@@ -64,7 +64,7 @@ enum HTMLSanitizerPolicy {
     ]
 
     /// `id`/`name` values get this prefix, as on GitHub, so raw HTML can't collide with (or
-    /// clobber) the ids mdv generates for headings and footnotes.
+    /// clobber) the ids Peep generates for headings and footnotes.
     static let userContentPrefix = "user-content-"
     static let prefixedAttributes: Set<String> = ["id", "name"]
 

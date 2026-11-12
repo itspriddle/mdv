@@ -5,7 +5,7 @@ import Synchronization
 import Testing
 import cmark_gfm
 
-@testable import MdvCore
+@testable import PeepCore
 
 // swiftlint:enable sorted_imports
 

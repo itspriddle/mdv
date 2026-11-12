@@ -1,8 +1,8 @@
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-/// `cmd | mdv` (#68): the CLI's private handoff file, and the app's checks before it reads and
+/// `cmd | peep` (#68): the CLI's private handoff file, and the app's checks before it reads and
 /// deletes one. Anything that names a file the app didn't verify as a handoff is untouched.
 @Suite("Standard input handoff")
 struct StandardInputHandoffTests {
@@ -10,7 +10,7 @@ struct StandardInputHandoffTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-handoff-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-handoff-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 
@@ -31,7 +31,7 @@ struct StandardInputHandoffTests {
     }
 
     /// A folder and file shaped like a handoff, made by hand with the given permissions.
-    func fakeHandoff(folderName: String = "mdv-stdin.fake1234", folderMode: Int = 0o700, fileMode: Int = 0o600)
+    func fakeHandoff(folderName: String = "peep-stdin.fake1234", folderMode: Int = 0o700, fileMode: Int = 0o600)
         throws -> URL
     {
         let handoffFolder = folder.appending(path: folderName, directoryHint: .isDirectory)
@@ -141,7 +141,7 @@ struct StandardInputHandoffTests {
         try Data("# Secret\n".utf8).write(to: target)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: target.path)
 
-        let linkFolder = folder.appending(path: "mdv-stdin.link1234", directoryHint: .isDirectory)
+        let linkFolder = folder.appending(path: "peep-stdin.link1234", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: linkFolder, withIntermediateDirectories: false)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: linkFolder.path)
         let fileLink = linkFolder.appending(path: StandardInputHandoff.fileName)
@@ -149,7 +149,7 @@ struct StandardInputHandoffTests {
         #expect(throws: StandardInputHandoff.Failure.notAHandoff) { try StandardInputHandoff.take(fileLink) }
 
         let real = try fakeHandoff(folderName: "real-folder")
-        let folderLink = folder.appending(path: "mdv-stdin.dir12345")
+        let folderLink = folder.appending(path: "peep-stdin.dir12345")
         try FileManager.default.createSymbolicLink(at: folderLink, withDestinationURL: real.deletingLastPathComponent())
         #expect(throws: StandardInputHandoff.Failure.notAHandoff) {
             try StandardInputHandoff.take(folderLink.appending(path: StandardInputHandoff.fileName))
@@ -165,7 +165,7 @@ struct StandardInputHandoffTests {
         let target = folder.appending(path: "secret.md")
         try Data("# Secret\n".utf8).write(to: target)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: target.path)
-        let linkFolder = folder.appending(path: "mdv-stdin.hard1234", directoryHint: .isDirectory)
+        let linkFolder = folder.appending(path: "peep-stdin.hard1234", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: linkFolder, withIntermediateDirectories: false)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: linkFolder.path)
         let link = linkFolder.appending(path: StandardInputHandoff.fileName)
@@ -178,7 +178,7 @@ struct StandardInputHandoffTests {
     @Test("a FIFO named like a handoff is left alone, without blocking")
     func fifo() throws {
         defer { cleanUp() }
-        let fifoFolder = folder.appending(path: "mdv-stdin.fifo1234", directoryHint: .isDirectory)
+        let fifoFolder = folder.appending(path: "peep-stdin.fifo1234", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: fifoFolder, withIntermediateDirectories: false)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: fifoFolder.path)
         let fifo = fifoFolder.appending(path: StandardInputHandoff.fileName)

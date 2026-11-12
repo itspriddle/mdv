@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
-# Measures cold open to first paint (#40): builds mdv in Release, then launches it N times with
+# Measures cold open to first paint (#40): builds Peep in Release, then launches it N times with
 # each document as an argument and reports the median of each milestone, in milliseconds since
 # the kernel started the process. The app reports its own milestones (`LaunchTiming`, enabled by
-# MDV_LAUNCH_TIMING); "painted" is two animation frames after the first page load finished.
+# PEEP_LAUNCH_TIMING); "painted" is two animation frames after the first page load finished.
 #
 # Usage: scripts/measure-cold-open [-n RUNS] [-s] [-a APP] [-o] [-b MS] FILE...
 #   -n RUNS  launches per file (default 10)
 #   -s       skip the build and measure the existing Release build
-#   -a APP   measure this mdv.app instead (implies -s), e.g. a copy of an older build
+#   -a APP   measure this Peep.app instead (implies -s), e.g. a copy of an older build
 #   -o       show the outline sidebar (default: hidden; the reader's own setting is ignored)
 #   -b MS    exit 1 if a file's median first paint is over MS (a local regression check)
 #   -f       also measure the floor: scripts/cold-open-floor.swift, a bare AppKit app with one
-#            WKWebView configured like mdv's, loading the file's `mdv --html` page at launch
+#            WKWebView configured like Peep's, loading the file's `peep --html` page at launch
 #   -c       also time the Launch Services paths from the command that asks for them (#67):
-#            Finder's (`open -n -a APP FILE`) and the CLI's (`APP/Contents/Helpers/mdv FILE`),
+#            Finder's (`open -n -a APP FILE`) and the CLI's (`APP/Contents/Helpers/peep FILE`),
 #            milliseconds from running the command to the first paint ("sinceCommand"); the
-#            app reports to a log file (MDV_LAUNCH_TIMING_LOG), and uses the reader's outline
+#            app reports to a log file (PEEP_LAUNCH_TIMING_LOG), and uses the reader's outline
 #            setting (Launch Services passes no launch arguments)
 #
 # The machine's load moves every number: compare builds in one sitting, or interleaved.
 # Every launch ignores saved windows (-ApplePersistenceIgnoreState) and the default viewer offer.
-# It launches the binary directly (not through Launch Services), so another running mdv doesn't
-# matter, but it opens windows: run it while nothing else drives the GUI. With -c, quit any mdv
+# It launches the binary directly (not through Launch Services), so another running Peep doesn't
+# matter, but it opens windows: run it while nothing else drives the GUI. With -c, quit any Peep
 # at APP's path first (others are fine: both paths then start a new instance).
 set -euo pipefail
 
@@ -52,15 +52,15 @@ fi
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 derived="$root/build/DerivedDataRelease"
-app="${app:-$derived/Build/Products/Release/mdv.app}"
+app="${app:-$derived/Build/Products/Release/Peep.app}"
 
 if [ "$build" -eq 1 ]; then
   (cd "$root" && xcodegen generate --quiet)
-  xcodebuild -project "$root/mdv.xcodeproj" -scheme mdv -configuration Release \
+  xcodebuild -project "$root/Peep.xcodeproj" -scheme Peep -configuration Release \
     -destination 'platform=macOS' -derivedDataPath "$derived" CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES \
     build -quiet
 fi
-if [ ! -x "$app/Contents/MacOS/mdv" ]; then
+if [ ! -x "$app/Contents/MacOS/Peep" ]; then
   echo "No Release build at $app; run without -s." >&2
   exit 1
 fi
@@ -73,7 +73,7 @@ if [ "$floor" -eq 1 ]; then
     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
     '<plist version="1.0"><dict>' \
     '<key>CFBundleExecutable</key><string>ColdOpenFloor</string>' \
-    '<key>CFBundleIdentifier</key><string>com.itspriddle.mdv.cold-open-floor</string>' \
+    '<key>CFBundleIdentifier</key><string>now.peep.Peep.cold-open-floor</string>' \
     '<key>CFBundlePackageType</key><string>APPL</string>' \
     '<key>NSPrincipalClass</key><string>NSApplication</string>' \
     '</dict></plist>' >"$probe/Contents/Info.plist"
@@ -89,7 +89,7 @@ measure() {
   log="$(mktemp)"
   for ((run = 0; run < runs; run++)); do
     # Report and quit; give up on a launch that hasn't painted in 20 s.
-    MDV_LAUNCH_TIMING=exit "$@" >/dev/null 2>"$log" &
+    PEEP_LAUNCH_TIMING=exit "$@" >/dev/null 2>"$log" &
     local pid=$!
     for _ in $(seq 200); do
       kill -0 "$pid" 2>/dev/null || break
@@ -100,7 +100,7 @@ measure() {
       echo "launch timed out" >&2
     fi
     wait "$pid" || true
-    sed -n 's/^mdv-launch-timing //p' "$log" >>"$results"
+    sed -n 's/^peep-launch-timing //p' "$log" >>"$results"
     sleep 1
   done
   printf '%s: %s (%s bytes, %s launches)\n' "$label" "$file" "$(wc -c <"$file" | tr -d ' ')" \
@@ -135,13 +135,13 @@ measure_command() {
     local start
     start="$(python3 -I -c 'import time; print(time.time() * 1000)')"
     local command=("${@//\{LOG\}/$log}")
-    MDV_LAUNCH_TIMING=exit MDV_LAUNCH_TIMING_LOG="$log" "${command[@]}" >/dev/null 2>&1 ||
+    PEEP_LAUNCH_TIMING=exit PEEP_LAUNCH_TIMING_LOG="$log" "${command[@]}" >/dev/null 2>&1 ||
       echo "$label: command failed" >&2
     for _ in $(seq 200); do
       [ -s "$log" ] && break
       sleep 0.1
     done
-    sed -n "s/^mdv-launch-timing //p" "$log" | python3 -I -c '
+    sed -n "s/^peep-launch-timing //p" "$log" | python3 -I -c '
 import json, sys
 start = float(sys.argv[1])
 for line in sys.stdin:
@@ -166,19 +166,19 @@ PY
 status=0
 for file in "$@"; do
   path="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
-  measure mdv "$path" "$app/Contents/MacOS/mdv" -ApplePersistenceIgnoreState YES \
+  measure peep "$path" "$app/Contents/MacOS/Peep" -ApplePersistenceIgnoreState YES \
     -OutlineVisible "$outline" -DefaultViewerOfferDeclined YES "$path"
   if [ "$floor" -eq 1 ]; then
     html="$(mktemp).html"
-    "$app/Contents/Helpers/mdv" --html "$path" >"$html"
+    "$app/Contents/Helpers/peep" --html "$path" >"$html"
     budget="" measure floor "$path" "$probe/Contents/MacOS/ColdOpenFloor" "$html"
     rm -f "$html"
   fi
   if [ "$commands" -eq 1 ]; then
     # `open --env` passes the timing variables; the CLI forwards them to an app it launches.
     measure_command "open -n" "$path" /usr/bin/open -n -a "$app" \
-      --env MDV_LAUNCH_TIMING=exit --env "MDV_LAUNCH_TIMING_LOG={LOG}" "$path"
-    measure_command "mdv FILE" "$path" "$app/Contents/Helpers/mdv" "$path"
+      --env PEEP_LAUNCH_TIMING=exit --env "PEEP_LAUNCH_TIMING_LOG={LOG}" "$path"
+    measure_command "peep FILE" "$path" "$app/Contents/Helpers/peep" "$path"
   fi
 done
 exit "$status"

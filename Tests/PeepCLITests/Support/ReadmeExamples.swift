@@ -1,26 +1,26 @@
 import Foundation
 
-/// The `mdv` commands in the README's `sh` blocks (#72), so every example there is run or parsed
+/// The `peep` commands in the README's `sh` blocks (#72), so every example there is run or parsed
 /// by `ReadmeExampleTests`. Reads just enough shell for the README: words, single and double
-/// quotes, `#` comments, `|`, `>`, `&&`, and `;`. Anything fancier in an `mdv` example is
+/// quotes, `#` comments, `|`, `>`, `&&`, and `;`. Anything fancier in a `peep` example is
 /// reported as unsupported, so the test fails instead of skipping it.
 struct ReadmeExample: CustomStringConvertible {
     /// The README line it came from (1-based) and its text.
     let line: Int
     let text: String
-    /// The words after `mdv`, up to the first redirection.
+    /// The words after `peep`, up to the first redirection.
     let arguments: [String]
-    /// What a pipeline feeds `mdv`: `echo`'s words (plus a newline), or `nil` for no pipe. A pipe
+    /// What a pipeline feeds `peep`: `echo`'s words (plus a newline), or `nil` for no pipe. A pipe
     /// from another command (`git show …`) gets `placeholderInput`.
     let standardInput: String?
-    /// `> FILE` after `mdv`, if any.
+    /// `> FILE` after `peep`, if any.
     let redirectedOutput: String?
 
     static let placeholderInput = "# Piped example\n"
 
     var description: String { "README.md:\(line): \(text)" }
 
-    /// Flags that make `mdv` print or write instead of opening the app.
+    /// Flags that make `peep` print or write instead of opening the app.
     private static let headlessFlags: Set = [
         "--html", "--fragment", "-o", "--output", "--list-themes", "--list-flavors",
         "--generate-completion-script", "--help", "-h", "--version",
@@ -34,7 +34,7 @@ struct ReadmeExample: CustomStringConvertible {
 }
 
 enum ReadmeExamples {
-    /// The repository's README.md (this file is at Tests/MdvCLITests/Support/).
+    /// The repository's README.md (this file is at Tests/PeepCLITests/Support/).
     static var readmeURL: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -56,17 +56,17 @@ enum ReadmeExamples {
         return lines
     }
 
-    /// The `mdv` commands in `markdown`'s `sh` blocks, and the lines with an `mdv` command this
+    /// The `peep` commands in `markdown`'s `sh` blocks, and the lines with a `peep` command this
     /// reader doesn't understand.
     static func examples(in markdown: String) -> (examples: [ReadmeExample], unsupported: [String]) {
         var examples: [ReadmeExample] = []
         var unsupported: [String] = []
         for (line, text) in shellLines(in: markdown) {
             guard let segments = ShellWords.segments(text) else {
-                if text.contains("mdv ") { unsupported.append("README.md:\(line): \(text)") }
+                if text.contains("Peep ") { unsupported.append("README.md:\(line): \(text)") }
                 continue
             }
-            for (index, segment) in segments.enumerated() where segment.words.first == "mdv" {
+            for (index, segment) in segments.enumerated() where segment.words.first == "peep" {
                 guard let example = example(segments, at: index, line: line, text: text) else {
                     unsupported.append("README.md:\(line): \(text)")
                     continue
@@ -77,7 +77,7 @@ enum ReadmeExamples {
         return (examples, unsupported)
     }
 
-    /// Words like `"$completions/_mdv"`: the completion scripts a block links to.
+    /// Words like `"$completions/_peep"`: the completion scripts a block links to.
     static func completionScriptNames(in markdown: String) -> [String] {
         shellLines(in: markdown).flatMap { _, text in
             (ShellWords.segments(text) ?? []).flatMap(\.words).compactMap { word in

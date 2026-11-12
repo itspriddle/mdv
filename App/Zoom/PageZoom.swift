@@ -45,7 +45,7 @@ final class ZoomSettings {
     static let shared = ZoomSettings()
 
     /// Posted (object: the settings) after `defaultLevel` changes.
-    static let didChangeNotification = Notification.Name("MdvZoomSettingsDidChange")
+    static let didChangeNotification = Notification.Name("PeepZoomSettingsDidChange")
 
     /// The `UserDefaults` key: a `Double`, absent at actual size.
     static let key = "PageZoom"

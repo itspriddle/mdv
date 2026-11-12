@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Captures github.com's rendering of each README corpus file
-# (Tests/MdvCoreTests/Fixtures/corpus) as NAME.github.html, the reference `GitHubCorpusTests`
-# compares mdv's output with.
+# (Tests/PeepCoreTests/Fixtures/corpus) as NAME.github.html, the reference `GitHubCorpusTests`
+# compares Peep's output with.
 #
 #   scripts/update-github-fixtures            # every document in corpus.json
 #   scripts/update-github-fixtures fzf node   # just these
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CORPUS="$ROOT/Tests/MdvCoreTests/Fixtures/corpus"
+CORPUS="$ROOT/Tests/PeepCoreTests/Fixtures/corpus"
 MANIFEST="$CORPUS/corpus.json"
 
 if ! command -v gh > /dev/null; then

@@ -6,7 +6,7 @@
 /// can report what it blocked (`RenderedDocument.blockedRemoteImages`). The viewer's CSP
 /// (`ContentSecurityPolicy.viewer`) still blocks every remote load on its own.
 public enum RemoteImagePolicy: Sendable, Equatable {
-    /// Leave remote images as `<img>`, as GitHub does. The default, so `mdv --html` output stays
+    /// Leave remote images as `<img>`, as GitHub does. The default, so `peep --html` output stays
     /// GitHub-compatible.
     case keep
     /// Replace every remote image with a placeholder. The viewer's default.

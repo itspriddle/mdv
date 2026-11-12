@@ -2,7 +2,7 @@ import AppKit
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The live-reload position mapping in `DocumentBridge.js` (`readingPosition`,
 /// `restorePosition`, `updateContent`), in a hosted `WKWebView`.

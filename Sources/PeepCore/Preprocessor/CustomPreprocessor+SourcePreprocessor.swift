@@ -9,7 +9,7 @@ extension CustomPreprocessor {
 }
 
 /// A `CustomPreprocessor` bound to the document it runs on (its path goes in
-/// `MDV_DOCUMENT_PATH` and its folder is the working directory). The source is sent as UTF-8;
+/// `PEEP_DOCUMENT_PATH` and its folder is the working directory). The source is sent as UTF-8;
 /// `CustomPreprocessor.run(input:documentURL:)` takes raw bytes.
 public struct DocumentPreprocessor: SourcePreprocessor {
     public let preprocessor: CustomPreprocessor

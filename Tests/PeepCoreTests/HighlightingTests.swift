@@ -2,7 +2,7 @@ import Foundation
 import Synchronization
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Renders with heading anchors off and the shared highlight.js highlighter.
 private func highlighted(_ markdown: String, highlighter: (any SyntaxHighlighter)? = HighlightJSHighlighter.shared)

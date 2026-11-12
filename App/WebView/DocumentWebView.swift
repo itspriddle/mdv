@@ -1,30 +1,30 @@
 import AppKit
 import WebKit
 
-/// The document web view. A `WKWebView` that takes over drag and drop: files mdv can open
+/// The document web view. A `WKWebView` that takes over drag and drop: files Peep can open
 /// (Markdown, plain text) go to `fileDropHandler`, which opens them as new tabs; every other
 /// drag is refused, so WebKit never loads or inserts what is dropped on the page.
 @MainActor
 final class DocumentWebView: WKWebView {
-    /// Opens dropped files (already filtered to documents mdv can open). Set by the window.
+    /// Opens dropped files (already filtered to documents Peep can open). Set by the window.
     var fileDropHandler: (([URL]) -> Void)?
 
     /// Performs the context menu's Copy Link in place of WebKit, which would copy the internal
-    /// `mdv-doc` URL of a relative link (#42). Set by the coordinator; without it, Copy Link is
+    /// `peep-doc` URL of a relative link (#42). Set by the coordinator; without it, Copy Link is
     /// removed from the menu.
     var copyLinkHandler: (() -> Void)?
 
-    /// Takes `mdv-doc` URLs off a drag's pasteboard before the drag starts (a dragged link or
+    /// Takes `peep-doc` URLs off a drag's pasteboard before the drag starts (a dragged link or
     /// image). Set by the coordinator.
     var dragPasteboardHandler: ((NSPasteboard) -> Void)?
 
     /// What the context menu's Share shares in place of WebKit's item, which would share the
-    /// internal `mdv-doc` URL of a relative link or local image: `nil` keeps WebKit's item, an
+    /// internal `peep-doc` URL of a relative link or local image: `nil` keeps WebKit's item, an
     /// empty list removes it. Set by the coordinator; without it, Share is removed.
     var shareItemsHandler: (() -> [URL]?)?
 
     /// Performs Copy Image for a local image in place of WebKit, which copies nothing for an SVG
-    /// and writes HTML with the image's `mdv-doc` URL. Used only when
+    /// and writes HTML with the image's `peep-doc` URL. Used only when
     /// `isLocalImageUnderContextMenu` says so; other images keep WebKit's Copy Image. Set by the
     /// coordinator.
     var copyImageHandler: (() -> Void)?
@@ -171,7 +171,7 @@ final class DocumentWebView: WKWebView {
     }
 }
 
-/// Which dropped files mdv opens.
+/// Which dropped files Peep opens.
 @MainActor
 enum DocumentDrop {
     /// The file URLs on `pasteboard` that `controller` has a document class for (Markdown and

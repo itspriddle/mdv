@@ -1,14 +1,14 @@
 import AppKit
 import ImageIO
-import MdvCore
+import PeepCore
 import Testing
 import UniformTypeIdentifiers
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// Hosted `WKWebView` tests: relative images load through the `mdv-doc` scheme handler, and
-/// nothing outside the policy does. The policy itself is unit tested in `MdvCoreTests`.
+/// Hosted `WKWebView` tests: relative images load through the `peep-doc` scheme handler, and
+/// nothing outside the policy does. The policy itself is unit tested in `PeepCoreTests`.
 @MainActor
 @Suite("LocalResourceSchemeHandler", .serialized, .timeLimit(.minutes(1)))
 struct LocalResourceSchemeHandlerTests {
@@ -22,7 +22,7 @@ struct LocalResourceSchemeHandlerTests {
     init() throws {
         window.isReleasedWhenClosed = false
         window.contentView = coordinator.webView
-        let base = FileManager.default.temporaryDirectory.appending(path: "mdv-app-tests-\(UUID().uuidString)")
+        let base = FileManager.default.temporaryDirectory.appending(path: "peep-app-tests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         // The real path (`/private/var/...`), as the policy reports it.
         let real = try #require(realpath(base.path(percentEncoded: false), nil))

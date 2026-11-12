@@ -30,7 +30,7 @@ struct CommandLineToolLocation: Equatable, Sendable {
         folder: URL(filePath: "/usr/local/bin", directoryHint: .isDirectory), displayPath: "/usr/local/bin")
 
     /// The locations the menu offers: both standard folders, or only the folder a UI test
-    /// passed (`-MdvUITestCommandLineToolFolder`; its man page goes inside it, never beside
+    /// passed (`-PeepUITestCommandLineToolFolder`; its man page goes inside it, never beside
     /// it). None under hosted unit tests or a UI test without that hook, so tests never touch
     /// the real folders.
     @MainActor static var standard: [CommandLineToolLocation] {
@@ -82,7 +82,7 @@ struct CommandLineToolLocation: Equatable, Sendable {
 
 /// The reader's `PATH` as their login shell sets it: a GUI app's own environment has only the
 /// system default. Runs `<shell> -l -c 'printf %s "$PATH"'` (the reader's own shell and
-/// profile, nothing from mdv or a document) with no input and a time limit. Interactive-only
+/// profile, nothing from Peep or a document) with no input and a time limit. Interactive-only
 /// files such as `~/.zshrc` aren't read, so a folder added there can look missing; the install
 /// alert then shows the line to add, worded as a check.
 enum LoginShellPath {

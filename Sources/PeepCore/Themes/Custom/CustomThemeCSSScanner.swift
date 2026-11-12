@@ -116,7 +116,7 @@ struct CustomThemeCSSScanner {
                 }
                 value.append(scalar)
             case UInt8(ascii: "\""), UInt8(ascii: "'"), UInt8(ascii: "("):
-                // A bad URL token: CSS drops it, mdv rejects it.
+                // A bad URL token: CSS drops it, Peep rejects it.
                 throw .externalURL(line: line(at: start))
             default:
                 value.append(readScalar())

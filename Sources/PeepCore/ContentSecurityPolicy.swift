@@ -2,14 +2,14 @@
 /// fonts, media, and remote loads are never allowed; styles are inline only. The one thing that
 /// varies is where images may come from.
 public struct ContentSecurityPolicy: Sendable, Equatable {
-    /// CSP source expressions for `img-src`, e.g. `"data:"` or `"mdv-doc:"`.
+    /// CSP source expressions for `img-src`, e.g. `"data:"` or `"peep-doc:"`.
     public var imageSources: [String]
 
     public init(imageSources: [String]) {
         self.imageSources = imageSources
     }
 
-    /// Standalone HTML (`mdv --html`): images from local files and `data:` URLs, so a saved page
+    /// Standalone HTML (`peep --html`): images from local files and `data:` URLs, so a saved page
     /// still shows the images next to it when opened in a browser.
     public static let standalone = ContentSecurityPolicy(imageSources: ["file:", "data:"])
 

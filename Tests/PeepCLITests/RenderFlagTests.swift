@@ -1,5 +1,5 @@
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
 /// The Rendering flags, wiki links, root-relative links, and frontmatter diagnostics (#65).
@@ -144,20 +144,20 @@ struct RenderFlagTests {
         #expect(result.stdout.contains("<a class=\"wikilink\" href=\"#top\">"))
     }
 
-    @Test("wiki links are off by default, and the document's mdv.wikilinks turns them on")
+    @Test("wiki links are off by default, and the document's peep.wikilinks turns them on")
     func wikiLinksDefault() async {
         let plain = await CLIHarness.run(["--fragment"], stdin: "[[#Top]]\n\n# Top\n")
         let document = await CLIHarness.run(
-            ["--fragment"], stdin: "---\nmdv: { wikilinks: true }\n---\n[[#Top]]\n\n# Top\n")
+            ["--fragment"], stdin: "---\npeep: { wikilinks: true }\n---\n[[#Top]]\n\n# Top\n")
         #expect(!plain.stdout.contains("wikilink"))
         #expect(document.stdout.contains("class=\"wikilink\""))
     }
 
     @Test(
-        "--wiki-links/--no-wiki-links beat the document's mdv.wikilinks",
+        "--wiki-links/--no-wiki-links beat the document's peep.wikilinks",
         arguments: [("false", "--wiki-links", true), ("true", "--no-wiki-links", false)])
     func wikiLinksFlagBeatsDocument(document: String, flag: String, links: Bool) async {
-        let source = "---\nmdv: { wikilinks: \(document) }\n---\n[[#Top]]\n\n# Top\n"
+        let source = "---\npeep: { wikilinks: \(document) }\n---\n[[#Top]]\n\n# Top\n"
         let result = await CLIHarness.run(["--fragment", flag], stdin: source)
         #expect(result.status == 0)
         #expect(result.stdout.contains("class=\"wikilink\"") == links)
@@ -188,69 +188,69 @@ struct RenderFlagTests {
 
     @Test("ignored frontmatter keys are warnings on standard error, never standard output")
     func ignoredKeys() async {
-        let source = "---\nmdv:\n  sanitize: false\n  flavor: markdown\n---\n# Hi\n"
+        let source = "---\npeep:\n  sanitize: false\n  flavor: markdown\n---\n# Hi\n"
         let result = await CLIHarness.run(["--fragment"], stdin: source)
         #expect(result.status == 0)
         #expect(
             result.stderr.contains(
-                "mdv: stdin: warning: mdv.sanitize isn't a setting a document can change "
+                "peep: stdin: warning: peep.sanitize isn't a setting a document can change "
                     + "(only flavor, theme, wikilinks); ignored.\n"
             ))
-        #expect(result.stderr.contains("mdv: stdin: warning: mdv.flavor \"markdown\" isn't a flavor"))
+        #expect(result.stderr.contains("peep: stdin: warning: peep.flavor \"markdown\" isn't a flavor"))
         #expect(!result.stdout.contains("ignored"))
         #expect(result.stdout.contains("Hi</h1>"))
     }
 
     @Test("a document without ignored keys prints nothing on standard error")
     func quietByDefault() async {
-        let result = await CLIHarness.run(["--fragment"], stdin: "---\nmdv: { flavor: gfm }\n---\n# Hi\n")
+        let result = await CLIHarness.run(["--fragment"], stdin: "---\npeep: { flavor: gfm }\n---\n# Hi\n")
         #expect(result.stderr.isEmpty)
     }
 
     @Test("diagnostics name the input file")
     func diagnosticsNameFile() async throws {
         let folder = try TempFolder()
-        let path = try folder.file("notes.md", "---\nmdv: { colour: red }\n---\nx\n")
+        let path = try folder.file("notes.md", "---\npeep: { colour: red }\n---\nx\n")
         let result = await CLIHarness.run(["--fragment", path])
-        #expect(result.stderr.hasPrefix("mdv: \(path): warning: mdv.colour isn't a setting"))
+        #expect(result.stderr.hasPrefix("peep: \(path): warning: peep.colour isn't a setting"))
     }
 
     @Test("control characters in a document's keys are escaped before they reach the terminal")
     func controlCharacters() async {
-        let source = "---\nmdv:\n  \"\\e[31mred\": 1\n---\nx\n"
+        let source = "---\npeep:\n  \"\\e[31mred\": 1\n---\nx\n"
         let result = await CLIHarness.run(["--fragment"], stdin: source)
         #expect(!result.stderr.unicodeScalars.contains("\u{1B}"))
-        #expect(result.stderr.contains("mdv.\\u{1B}[31mred"))
+        #expect(result.stderr.contains("peep.\\u{1B}[31mred"))
     }
 
     @Test("--verbose reports the flavor and wiki links used and where they came from")
     func verbose() async {
         let plain = await CLIHarness.run(["--fragment", "--verbose"], stdin: "x\n")
-        #expect(plain.stderr == "mdv: stdin: flavor gfm (default)\nmdv: stdin: wiki links off (default)\n")
+        #expect(plain.stderr == "peep: stdin: flavor gfm (default)\npeep: stdin: wiki links off (default)\n")
 
-        let document = "---\nmdv: { flavor: commonmark, wikilinks: true }\n---\nx\n"
+        let document = "---\npeep: { flavor: commonmark, wikilinks: true }\n---\nx\n"
         let fromDocument = await CLIHarness.run(["--fragment", "--verbose"], stdin: document)
-        #expect(fromDocument.stderr.contains("flavor commonmark (the document's mdv.flavor)"))
-        #expect(fromDocument.stderr.contains("wiki links on (the document's mdv.wikilinks)"))
+        #expect(fromDocument.stderr.contains("flavor commonmark (the document's peep.flavor)"))
+        #expect(fromDocument.stderr.contains("wiki links on (the document's peep.wikilinks)"))
 
         let pinned = await CLIHarness.run(
             ["--fragment", "--verbose", "--flavor", "gfm", "--no-wiki-links"], stdin: document)
-        #expect(pinned.stderr.contains("flavor gfm (--flavor; the document's mdv.flavor commonmark wasn't used)"))
-        #expect(pinned.stderr.contains("wiki links off (--no-wiki-links; the document's mdv.wikilinks wasn't used)"))
+        #expect(pinned.stderr.contains("flavor gfm (--flavor; the document's peep.flavor commonmark wasn't used)"))
+        #expect(pinned.stderr.contains("wiki links off (--no-wiki-links; the document's peep.wikilinks wasn't used)"))
         #expect(!pinned.stdout.contains("flavor"))
     }
 
     @Test("the built binary keeps diagnostics on standard error")
     func endToEnd() throws {
         let folder = try TempFolder()
-        let path = try folder.file("a.md", "---\nmdv: { sanitize: false }\n---\n# A\n")
+        let path = try folder.file("a.md", "---\npeep: { sanitize: false }\n---\n# A\n")
         guard let result = try CLIBinary.run(["--fragment", "--verbose", path]) else {
             return
         }
         #expect(result.status == 0)
         #expect(result.stdout.hasPrefix("<h1"))
-        #expect(!result.stdout.contains("mdv:"))
+        #expect(!result.stdout.contains("peep:"))
         #expect(result.stderr.contains("flavor gfm (default)"))
-        #expect(result.stderr.contains("warning: mdv.sanitize"))
+        #expect(result.stderr.contains("warning: peep.sanitize"))
     }
 }

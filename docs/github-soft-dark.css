@@ -1,4 +1,4 @@
-/* mdv-theme
+/* peep-theme
    name: GitHub Soft Dark
    background-dark: #212830
    extends: github
@@ -12,7 +12,7 @@
    (dist/css/functional/themes/dark-dimmed.css) that differ from GitHub's dark ones. Rules
    inside the theme layer come after the bundled theme's, so these win.
 
-   Copy it to ~/Library/Application Support/mdv/Themes/ and pick View > Theme > GitHub Soft Dark. */
+   Copy it to ~/Library/Application Support/Peep/Themes/ and pick View > Theme > GitHub Soft Dark. */
 
 @media screen and (prefers-color-scheme: dark) {
   .markdown-body {

@@ -1,4 +1,4 @@
-/// mdv's HTML renderer: parses with `MarkdownParser` and walks the resulting `MarkdownNode` tree.
+/// Peep's HTML renderer: parses with `MarkdownParser` and walks the resulting `MarkdownNode` tree.
 ///
 /// Output for CommonMark nodes matches cmark's `cmark_render_html` byte for byte (safe mode for
 /// URLs; raw HTML passed through when `RenderOptions.sanitize` is off), so the CommonMark/GFM
@@ -11,7 +11,7 @@ public struct HTMLRenderer: MarkdownRenderer {
     /// Highlights fenced code blocks when `options.highlighting` is on; `nil` renders them plain.
     public var highlighter: (any SyntaxHighlighter)?
     /// Finds the files wiki links name when `.wikiLinks` is on (#53). `nil` (the default, and
-    /// `mdv --html`) renders every page link as missing; same-document `[[#Heading]]` links work.
+    /// `peep --html`) renders every page link as missing; same-document `[[#Heading]]` links work.
     public var wikiLinkResolver: (any WikiLinkResolver)?
     /// Per-render state: the footnote ids of the tree being rendered (set in `render(_:into:)`).
     private(set) var footnoteIDs = FootnoteIDs()

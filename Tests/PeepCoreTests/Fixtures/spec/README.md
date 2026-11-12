@@ -46,7 +46,7 @@ Examples run the way cmark-gfm's `test/spec_tests.py` runs them, through `HTMLRe
 
 - `pending #N: ...` (or `pending #N, #M: ...`): the feature lands in that issue. The issue removes
   its entries once they pass.
-- `permanent: ...`: mdv deliberately differs.
+- `permanent: ...`: Peep deliberately differs.
 
 Excepted examples are reported as known issues. If one starts passing, the test fails until its
 entry is removed, so the list can't go stale.

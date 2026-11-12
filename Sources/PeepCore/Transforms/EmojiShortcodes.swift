@@ -14,7 +14,7 @@
 /// `x :tada:`, `**:tada:**`, `:a::b:`, and `:nope:tada:` (`:nope` then the emoji) convert, as
 /// does `x:tada:` after `a :tada: b`; `x:tada:`, `(:tada:)`, `:::tada:`, and
 /// `x:tada: :tada:` on their own stay literal. Verified against GitHub's API (see
-/// `EmojiShortcodeTests`). Known divergence: github.com leaves `/ :tada:` literal; mdv converts it.
+/// `EmojiShortcodeTests`). Known divergence: github.com leaves `/ :tada:` literal; Peep converts it.
 enum EmojiShortcodes {
     /// Returns `root` with every shortcode in its text replaced by an `emoji` node.
     static func replace(in root: MarkdownNode) -> MarkdownNode {

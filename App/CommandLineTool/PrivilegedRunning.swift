@@ -30,7 +30,7 @@ struct AppleScriptPrivilegedRunner: PrivilegedRunning {
     /// The handler. `do shell script` runs `command` with `/bin/sh -c`.
     static let source = """
         on run_privileged(scriptText, argumentList)
-            set command to "/bin/sh -c " & quoted form of scriptText & " mdv"
+            set command to "/bin/sh -c " & quoted form of scriptText & " peep"
             repeat with argument in argumentList
                 set command to command & " " & quoted form of (contents of argument)
             end repeat

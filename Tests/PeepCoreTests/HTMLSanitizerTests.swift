@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 func sanitized(_ html: String) -> String {
     HTMLSanitizer().sanitize(fragment: html)

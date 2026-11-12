@@ -1,7 +1,7 @@
 import Foundation
-import MdvCore
+import PeepCore
 
-/// The `mdv(1)` man page (#71). ArgumentParser's `generate-manual` plugin writes NAME, SYNOPSIS,
+/// The `peep(1)` man page (#71). ArgumentParser's `generate-manual` plugin writes NAME, SYNOPSIS,
 /// and the option list from the command itself (`make man` runs it), so a new flag appears
 /// without touching this file. `finish(_:)` replaces what the generator can't do well and adds
 /// the hand-written sections, each built from the code it documents:
@@ -14,7 +14,7 @@ import MdvCore
 /// - SECURITY CONSIDERATIONS: what the CLI does and doesn't do with an untrusted document, and
 ///   what `--preprocessor` runs (`PreprocessorLimits.standard`).
 ///
-/// ArgumentParser lists its implicit `help` subcommand; mdv has no subcommands, so the SYNOPSIS
+/// ArgumentParser lists its implicit `help` subcommand; Peep has no subcommands, so the SYNOPSIS
 /// placeholder and the list entry are removed.
 public enum ManualPage {
     /// Why `finish(_:)` couldn't use the generator's output (its format changed).
@@ -22,14 +22,14 @@ public enum ManualPage {
         public let description: String
     }
 
-    /// `~/Library/Application Support/mdv/Themes`, as a reader would type it
-    /// (`ThemeResolver.themesFolder(environment:)` without `MDV_THEMES_FOLDER`).
-    static let themesFolderDisplayPath = "~/Library/Application Support/mdv/Themes"
+    /// `~/Library/Application Support/Peep/Themes`, as a reader would type it
+    /// (`ThemeResolver.themesFolder(environment:)` without `PEEP_THEMES_FOLDER`).
+    static let themesFolderDisplayPath = "~/Library/Application Support/Peep/Themes"
 
-    /// The preprocessor's document path variable (MdvCore's `PreprocessorEnvironment`).
-    static let documentPathVariable = "MDV_DOCUMENT_PATH"
+    /// The preprocessor's document path variable (PeepCore's `PreprocessorEnvironment`).
+    static let documentPathVariable = "PEEP_DOCUMENT_PATH"
 
-    /// `generated` (an `mdv.1` from `generate-manual`) with mdv's sections.
+    /// `generated` (a `peep.1` from `generate-manual`) with Peep's sections.
     public static func finish(_ generated: String) throws(FormatError) -> String {
         var page = try Page(parsing: generated)
         try page.edit("SYNOPSIS") { $0.removeAll { $0 == ".Ar subcommand" } }
@@ -92,7 +92,7 @@ public enum ManualPage {
             ".It Ev \(ThemeResolver.themesFolderVariable)",
             text(
                 "The Themes folder that custom: themes are read from (--theme, --list-themes, shell "
-                    + "completion of --theme, and a document's mdv.theme), instead of \(themesFolderDisplayPath)."),
+                    + "completion of --theme, and a document's peep.theme), instead of \(themesFolderDisplayPath)."),
             ".El",
         ]
     }
@@ -142,7 +142,7 @@ public enum ManualPage {
                 + "runs, so raw HTML in the document is always sanitized; there is no flag to turn that "
                 + "off. Pages carry a strict Content-Security-Policy that allows no scripts and no remote "
                 + "loads, and remote images become placeholders with --block-remote-images.",
-            "mdv never runs a program unless --preprocessor names one. The CLI doesn't use the "
+            "Peep never runs a program unless --preprocessor names one. The CLI doesn't use the "
                 + "preprocessor configured in the app, and a document's frontmatter can't turn one on. "
                 + "The program runs as you, with your file access, so name only programs you trust. "
                 + "It gets the document on standard input and no arguments but --preprocessor-arg's, "

@@ -1,26 +1,26 @@
 import ArgumentParser
 import Foundation
-import MdvCore
+import PeepCore
 
-/// The `mdv` command. Each concern is an option group in its own file; this type only parses,
+/// The `peep` command. Each concern is an option group in its own file; this type only parses,
 /// checks rules that span groups, and picks a mode. `run()` is the process entry;
 /// `execute(in:)` is the same run against an injected `CLIEnvironment`, which the tests call.
 ///
 /// Adding a flag: declare it in its concern's group (e.g. `RenderFlagOptions`), check it in that
 /// group's `validate()`, and read it where the group is used (`apply(to:)`, `theme(for:)`,
 /// `preprocess(_:)`, `AppOpening`). Only a rule spanning groups belongs in `validate()` here.
-public struct MdvCommand: AsyncParsableCommand {
+public struct PeepCommand: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(
-        commandName: "mdv",
+        commandName: "peep",
         abstract: "View Markdown files.",
         // The overview, examples, and exit statuses live in `HelpText` and `ExitStatus`, which
         // the man page's hand-written sections are built from too (#71).
         discussion: HelpText.discussion,
-        version: MdvInfo.version
+        version: PeepInfo.version
     )
 
-    /// Placeholder until the final name is chosen; must match `PRODUCT_BUNDLE_IDENTIFIER_BASE`.
-    public static let appBundleIdentifier = "com.itspriddle.mdv"
+    /// The app's bundle id; must match `PRODUCT_BUNDLE_IDENTIFIER_BASE`.
+    public static let appBundleIdentifier = "now.peep.Peep"
 
     @OptionGroup public var input: InputOptions
     @OptionGroup(title: "Output") public var output: OutputOptions
@@ -39,7 +39,7 @@ public struct MdvCommand: AsyncParsableCommand {
         if themeFlavor.flavor != nil, !output.rendersHTML, !themeFlavor.lists {
             throw ValidationError(
                 "--flavor is for --html, --fragment, and --output; windows use Settings > Markdown "
-                    + "or the document's mdv.flavor.")
+                    + "or the document's peep.flavor.")
         }
         if renderFlags.isSet, !output.rendersHTML, !themeFlavor.lists {
             throw ValidationError("The Rendering flags change HTML output; add --html, --fragment, or --output.")
@@ -53,12 +53,12 @@ public struct MdvCommand: AsyncParsableCommand {
         }
         let inputCount = input.sources.count
         if output.output != nil, inputCount > 1 {
-            throw ValidationError("--output takes one input; run mdv once per file.")
+            throw ValidationError("--output takes one input; run peep once per file.")
         }
         if output.rendersHTML, !output.fragment, inputCount > 1 {
             throw ValidationError(
                 "Several inputs make one page each, which can't share an output; "
-                    + "pass --fragment, or run mdv once per file.")
+                    + "pass --fragment, or run peep once per file.")
         }
     }
 
@@ -70,7 +70,7 @@ public struct MdvCommand: AsyncParsableCommand {
     }
 
     /// Runs the parsed command and returns its exit status. Failures are reported on
-    /// `environment.standardError` as one `mdv: …` line.
+    /// `environment.standardError` as one `peep: …` line.
     public func execute(in environment: CLIEnvironment) async -> Int32 {
         if themeFlavor.lists {
             do {
@@ -83,7 +83,7 @@ public struct MdvCommand: AsyncParsableCommand {
         }
         if input.readsStandardInputImplicitly, environment.standardInputIsTerminal {
             environment.reportError("no FILE given and standard input is a terminal")
-            let hint = "Usage: \(Self.usageString())\n  See 'mdv --help'.\n"
+            let hint = "Usage: \(Self.usageString())\n  See 'peep --help'.\n"
             try? environment.standardError.write(Data(hint.utf8))
             return ExitStatus.usage
         }

@@ -1,6 +1,6 @@
 import XCTest
 
-extension MdvUITestApp {
+extension PeepUITestApp {
     /// The outline's accessibility identifier (`OutlineViewController` in the app).
     static let outlineIdentifier = "document-outline"
 

@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// Performs the link actions `LinkPolicy` decides (#19). In-page scrolling stays in
 /// `WebViewCoordinator`; everything that opens something lands here.
@@ -50,7 +50,7 @@ extension DocumentWindowController {
         }
     }
 
-    /// Opens a linked Markdown file in mdv. A plain click opens it like any document (the system
+    /// Opens a linked Markdown file in Peep. A plain click opens it like any document (the system
     /// tab preference decides window or tab); `.newTab` adds it as a tab of this window. An
     /// already-open document is brought forward. Then scrolls to `fragment`, if any.
     ///

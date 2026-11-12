@@ -8,7 +8,7 @@ public struct LocalImage: Sendable, Equatable {
     public var mimeType: String { format.mimeType }
 }
 
-/// Decides, for one window, which `mdv-doc` requests are served from disk. Every rule must pass;
+/// Decides, for one window, which `peep-doc` requests are served from disk. Every rule must pass;
 /// any failure is the same `nil` (the handler answers a bare 404, with no reason given):
 ///
 /// 1. The URL is this window's (`DocumentURLScheme.filePath(from:token:)`: scheme, token, and a
@@ -21,7 +21,7 @@ public struct LocalImage: Sendable, Equatable {
 /// 5. The resolved name has an image extension, and the content sniffs as that same format.
 ///
 /// Pure Foundation and POSIX, no WebKit: the app's `WKURLSchemeHandler` only forwards requests
-/// here, so the whole policy is unit tested in `MdvCoreTests`.
+/// here, so the whole policy is unit tested in `PeepCoreTests`.
 public struct LocalImagePolicy: Sendable, Equatable {
     /// The window this policy answers (`DocumentURLScheme`'s host).
     public let token: String

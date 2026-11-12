@@ -2,12 +2,12 @@ import Darwin
 import Dispatch
 import Synchronization
 
-/// Runs work that must be stopped cleanly when the reader interrupts mdv (#66): Ctrl-C
+/// Runs work that must be stopped cleanly when the reader interrupts Peep (#66): Ctrl-C
 /// (`SIGINT`), `SIGTERM`, or `SIGHUP` cancels the work, waits for it to finish, and then lets
-/// the signal end the process as it would have, so the shell sees mdv killed by it.
+/// the signal end the process as it would have, so the shell sees Peep killed by it.
 ///
 /// The custom preprocessor runs in its own process group, so a terminal's Ctrl-C doesn't reach
-/// it; without this, mdv would die and leave the script running. Cancelling
+/// it; without this, Peep would die and leave the script running. Cancelling
 /// `CustomPreprocessor.run` stops the whole group and returns once it is reaped.
 ///
 /// Only installed around the work (`CLIEnvironment.cancelsOnInterrupt`), so reading standard
@@ -17,7 +17,7 @@ import Synchronization
 /// The signal is recorded by the handler itself, when it is delivered, not by the dispatch
 /// source that cancels the work: the source's handler runs later on a queue, and a signal that
 /// came while the run was ending (a timeout, say) would otherwise be lost when the sources are
-/// dropped, and mdv would exit with the run's status instead of dying of the signal. One run at
+/// dropped, and Peep would exit with the run's status instead of dying of the signal. One run at
 /// a time (the CLI renders its inputs in turn).
 enum InterruptCancellation {
     static let signals: [Int32] = [SIGINT, SIGTERM, SIGHUP]
@@ -46,7 +46,7 @@ enum InterruptCancellation {
             let source = DispatchSource.makeSignalSource(signal: number, queue: .global(qos: .userInitiated))
             // Record here too: the kernel reports the signal to the source when it is sent, and
             // may run the handler on a thread only later, after the cancelled run has ended
-            // (seen on CI's macOS 26: mdv printed "interrupted" before the signal killed it).
+            // (seen on CI's macOS 26: Peep printed "interrupted" before the signal killed it).
             source.setEventHandler {
                 _ = InterruptCancellation.caught.compareExchange(expected: 0, desired: number, ordering: .relaxed)
                 state.received()
@@ -78,10 +78,10 @@ enum InterruptCancellation {
         let number = caught.load(ordering: .relaxed)
         if number != 0 {
             // Even if the run finished first (it timed out, failed, or succeeded): the reader
-            // asked mdv to stop. Ends the process; returns only if something else handles it.
+            // asked Peep to stop. Ends the process; returns only if something else handles it.
             // Sent to the process, then wait for it: this code runs on a Swift concurrency
             // thread (a Darwin workqueue thread), which the kernel never delivers signals to,
-            // so `raise` here could return with the signal undelivered and mdv would go on to
+            // so `raise` here could return with the signal undelivered and Peep would go on to
             // print "interrupted" (seen in the end-to-end test, about one run in four). The
             // kernel delivers a process-directed signal to a thread that takes it (the main
             // thread); this thread waits so nothing runs before it lands.

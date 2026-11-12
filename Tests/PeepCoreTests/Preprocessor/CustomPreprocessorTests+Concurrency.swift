@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// Cancellation, the cooperative pool, and leaks under concurrent runs (#56).
 extension CustomPreprocessorTests {

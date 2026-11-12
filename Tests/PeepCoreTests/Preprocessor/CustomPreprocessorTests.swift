@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// The custom preprocessor runner (#56). Serialized: the leak checks count every descriptor
 /// the runner holds, so no other run may be in flight.
@@ -57,8 +57,8 @@ struct CustomPreprocessorTests {
         let document = folder.appending(path: "--read me.md")
         try PreprocessorFixtures.document.write(to: document)
 
-        setenv("MDV_TEST_SECRET", "leaked", 1)
-        defer { unsetenv("MDV_TEST_SECRET") }
+        setenv("PEEP_TEST_SECRET", "leaked", 1)
+        defer { unsetenv("PEEP_TEST_SECRET") }
         let output = try await fixtures.preprocessor("report", limits: .standard)
             .run(input: PreprocessorFixtures.document, documentURL: document)
         let lines = output.split(separator: "\n").map(String.init)
@@ -68,9 +68,9 @@ struct CustomPreprocessorTests {
         // `sh` adds PWD, SHLVL, and `_` itself.
         #expect(
             names.subtracting(["PWD", "SHLVL", "_", "OLDPWD"]) == [
-                "HOME", "LANG", "MDV_DOCUMENT_PATH", "PATH", "TMPDIR",
+                "HOME", "LANG", "PEEP_DOCUMENT_PATH", "PATH", "TMPDIR",
             ])
-        #expect(environment.contains("MDV_DOCUMENT_PATH=\(document.path(percentEncoded: false))"))
+        #expect(environment.contains("PEEP_DOCUMENT_PATH=\(document.path(percentEncoded: false))"))
         #expect(environment.contains("PATH=\(PreprocessorEnvironment.defaultPath)"))
         #expect(environment.contains("LANG=en_US.UTF-8"))
         let realFolder = try #require(realpath(folder.path(percentEncoded: false), nil))
@@ -79,13 +79,13 @@ struct CustomPreprocessorTests {
         #expect(lines.allSatisfy { !$0.hasPrefix("arg=") })
     }
 
-    @Test("without a document file, there is no MDV_DOCUMENT_PATH and the working directory is /")
+    @Test("without a document file, there is no PEEP_DOCUMENT_PATH and the working directory is /")
     func noDocument() async throws {
         let fixtures = try PreprocessorFixtures()
         let output = try await fixtures.preprocessor("report", limits: .standard)
             .run(input: PreprocessorFixtures.document, documentURL: nil)
         #expect(output.contains("pwd=/\n"))
-        #expect(!output.contains("MDV_DOCUMENT_PATH"))
+        #expect(!output.contains("PEEP_DOCUMENT_PATH"))
     }
 
     @Test("the script inherits only stdin, stdout, and stderr")

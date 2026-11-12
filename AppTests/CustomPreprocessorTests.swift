@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The custom preprocessor in the app (#57): the store is off by default and distrusts stored
 /// values, Settings turns it on only through the warning, documents run it on open and on every
@@ -50,7 +50,7 @@ final class CustomPreprocessorTests: DocumentWindowTestCase {
         #expect(pasteboard.string(forType: .string) == "# Hello\n\nSome text.\n", "the source is the file's")
     }
 
-    @Test("arguments are passed verbatim and the path goes in MDV_DOCUMENT_PATH")
+    @Test("arguments are passed verbatim and the path goes in PEEP_DOCUMENT_PATH")
     func argumentsAndPath() async throws {
         defer { closeAll() }
         let arguments = ["--flag", "two words", "$HOME", "; rm -rf /"]
@@ -109,13 +109,13 @@ final class CustomPreprocessorTests: DocumentWindowTestCase {
         let (document, controller) = try await open("Mixed Case.\n", customPreprocessorSettings: store)
         try await until("the processed page") { try await bodyText(controller).contains("MIXED CASE.") }
         _ = try await controller.coordinator.webView.callAsyncJavaScript(
-            "window.mdvPreprocessorMarker = 7; return true;", arguments: [:], in: nil, contentWorld: AppScripts.world)
+            "window.peepPreprocessorMarker = 7; return true;", arguments: [:], in: nil, contentWorld: AppScripts.world)
 
         store.isEnabled = false
         try await until("the unprocessed page") { try await bodyText(controller).contains("Mixed Case.") }
         #expect(document.content?.preferences.customPreprocessor == nil)
         let marker = try await controller.coordinator.webView.callAsyncJavaScript(
-            "return window.mdvPreprocessorMarker;", arguments: [:], in: nil, contentWorld: AppScripts.world)
+            "return window.peepPreprocessorMarker;", arguments: [:], in: nil, contentWorld: AppScripts.world)
         #expect(marker as? Int == 7, "swapped in place, no reload")
 
         store.executablePath = try scripts.report()
@@ -166,7 +166,7 @@ final class CustomPreprocessorTests: DocumentWindowTestCase {
         let script = try scripts.write("marker.sh", "touch '\(marker.path(percentEncoded: false))'\ncat")
         let source = """
             ---
-            mdv:
+            peep:
               preprocessor: \(script)
               customPreprocessor: \(script)
               customPreprocessorEnabled: true

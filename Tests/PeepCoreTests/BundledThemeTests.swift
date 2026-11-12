@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 @Suite("Bundled themes")
 struct BundledThemeTests {
@@ -63,8 +63,8 @@ struct BundledThemeTests {
         }
     }
 
-    @Test("styles mdv's own markup: anchors, task lists, footnotes, frontmatter, tables, code", arguments: themes)
-    func mdvMarkup(theme: Theme) {
+    @Test("styles Peep's own markup: anchors, task lists, footnotes, frontmatter, tables, code", arguments: themes)
+    func peepMarkup(theme: Theme) {
         for selector in [
             ".anchor::before", ".task-list-item", "table.frontmatter", ".markdown-body pre", ".markdown-body table",
             "footnote",
@@ -86,7 +86,7 @@ struct BundledThemeTests {
 
     @Test("content width reads the user-control variable (#37)", arguments: themes)
     func userControlVariables(theme: Theme) {
-        #expect(theme.stylesheet.contains("max-width: var(--mdv-content-width, "))
+        #expect(theme.stylesheet.contains("max-width: var(--peep-content-width, "))
     }
 
     @Test("system fonts only", arguments: themes)
@@ -116,7 +116,7 @@ struct BundledThemeTests {
         #expect(css.contains("@media not screen and (prefers-color-scheme: dark) {"))
         #expect(!css.contains("url("))
         #expect(!css.contains("</"))
-        // mdv's additions come after the vendored CSS so they win at equal specificity.
+        // Peep's additions come after the vendored CSS so they win at equal specificity.
         let vendored = Theme.github.stylesheet.range(of: css)
         let additions = Theme.github.stylesheet.range(of: GitHubTheme.stylesheet)
         #expect(vendored?.lowerBound == Theme.github.stylesheet.startIndex)

@@ -1,14 +1,14 @@
 import AppKit
-import MdvCore
+import PeepCore
 
-/// The app delegate. mdv uses the AppKit app lifecycle: `NSDocumentController` opens
+/// The app delegate. Peep uses the AppKit app lifecycle: `NSDocumentController` opens
 /// `MarkdownDocument`s, each shown in a `DocumentWindowController`, and `MainMenu` builds the
 /// menu bar. SwiftUI draws window content only.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     let defaultViewerOffer = DefaultViewerOfferController()
-    /// Opens the files of mdv's events: the direct one, and Open Documents events that carry
-    /// mdv's parameters (through `DocumentController.eventOpener`).
+    /// Opens the files of Peep's events: the direct one, and Open Documents events that carry
+    /// Peep's parameters (through `DocumentController.eventOpener`).
     let documentOpener = DocumentOpener()
     /// The app-wide appearance (Settings and View > Appearance); injectable for tests.
     let appearanceSettings: AppearanceSettings
@@ -35,15 +35,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             WebViewPrewarmer.shared.prewarm()
         }
         MainMenu.install()
-        // Open Documents events (Finder, `open`, `mdv FILE` through Launch Services): AppKit
+        // Open Documents events (Finder, `open`, `peep FILE` through Launch Services): AppKit
         // opens their files through the document controller, never `application(_:open:)`, so
-        // mdv's parameters (`AppOpenParameters`, untrusted) are applied there (#67). AppKit may
+        // Peep's parameters (`AppOpenParameters`, untrusted) are applied there (#67). AppKit may
         // open an event's files after the event, so its parameters are recorded as it arrives
         // (AppKit's own handler is installed by now, and still handles the event).
         if let controller = NSDocumentController.shared as? DocumentController {
             controller.eventOpener = documentOpener
             if !OpenDocumentsEventTap.install(log: controller.eventLog) {
-                NSLog("mdv: no Open Documents handler to record parameters in front of")
+                NSLog("peep: no Open Documents handler to record parameters in front of")
             }
         }
         NSAppleEventManager.shared().setEventHandler(
@@ -78,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
         NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { [weak self] _, _, error in
             if let error {
-                NSLog("mdv: UI test document failed to open: %@", error.localizedDescription)
+                NSLog("peep: UI test document failed to open: %@", error.localizedDescription)
             }
             MainActor.assumeIsolated {
                 self?.openUITestDocuments(urls.dropFirst())
@@ -86,7 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
     }
 
-    /// mdv's direct open event (`AppOpenEvent.Kind.direct`): the CLI sends it to this copy when
+    /// Peep's direct open event (`AppOpenEvent.Kind.direct`): the CLI sends it to this copy when
     /// Launch Services can't (another copy with the same bundle id runs, or a sandboxed caller).
     /// Same files and parameters as an Open Documents event, opened the same way.
     @objc func handleDirectOpen(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// A viewer has no untitled documents. When launched with no documents to open and no
     /// windows to restore, or reactivated from the Dock with no visible windows, show the Open
-    /// panel instead (#22). Opening files (Finder, Dock drop, `mdv FILE`) and restoring windows
+    /// panel instead (#22). Opening files (Finder, Dock drop, `peep FILE`) and restoring windows
     /// skip this, as AppKit only asks when nothing else opened.
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
         !Self.isHostingUnitTests && !UITestHooks.isUITesting
@@ -115,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         return true
     }
 
-    /// Quitting ends every `mdv --wait` (#69); windows don't close one by one on quit.
+    /// Quitting ends every `peep --wait` (#69); windows don't close one by one on quit.
     func applicationWillTerminate(_ notification: Notification) {
         documentOpener.waits.notifyAll()
     }

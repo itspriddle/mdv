@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The custom preprocessor's store and Settings model (#57).
 extension CustomPreprocessorTests {
@@ -154,8 +154,8 @@ extension CustomPreprocessorTests {
         let store = store()
         let section = CustomPreprocessorModel(settings: store) { nil }
         let viewer = DefaultViewer(
-            workspace: FakeWorkspace(), defaults: defaults, applicationURL: URL(filePath: "/Applications/mdv.app"),
-            bundleIdentifier: "com.itspriddle.mdv", isSuppressed: true)
+            workspace: FakeWorkspace(), defaults: defaults, applicationURL: URL(filePath: "/Applications/Peep.app"),
+            bundleIdentifier: "now.peep.Peep", isSuppressed: true)
         let model = SettingsModel(
             appearanceSettings: AppearanceSettings(defaults: defaults, isPersistent: true),
             themeSettings: themeSettings(), zoomSettings: settings(),

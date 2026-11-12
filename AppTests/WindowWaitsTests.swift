@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// `mdv --wait` in the app (#69): `WindowWaits` notifies a token once every window opened for it
+/// `peep --wait` in the app (#69): `WindowWaits` notifies a token once every window opened for it
 /// has closed, and `DocumentOpener` feeds it the windows of an open event with a token.
 @MainActor
 @Suite("Waiting for windows to close", .serialized, .timeLimit(.minutes(1)))
@@ -17,9 +17,9 @@ final class WindowWaitsTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-waits-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-waits-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        throwawayDefaults = try ThrowawayDefaults("mdv-wait-tests")
+        throwawayDefaults = try ThrowawayDefaults("peep-wait-tests")
     }
 
     deinit {

@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Live reload end to end: a `MarkdownDocument` with a window, its file changed on disk by
 /// another process, and the window following along.
@@ -19,7 +19,7 @@ struct LiveReloadTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-live-reload-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-live-reload-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         file = folder.appending(path: "notes.md")
     }

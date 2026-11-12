@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-/// Runs the built `mdv` binary: real argument parsing, standard streams, and exit statuses.
+/// Runs the built `peep` binary: real argument parsing, standard streams, and exit statuses.
 /// The in-process suites cover behavior; these check the process boundary.
 @Suite("End to end (built binary)")
 struct EndToEndTests {
@@ -30,14 +30,14 @@ struct EndToEndTests {
         guard let result = try CLIBinary.run(["--html", "missing.md"], in: folder.url) else { return }
         #expect(result.status == 66)
         #expect(result.stdout.isEmpty)
-        #expect(result.stderr == "mdv: missing.md: No such file or directory\n")
+        #expect(result.stderr == "peep: missing.md: No such file or directory\n")
     }
 
     @Test("invalid UTF-8 exits 65")
     func invalidUTF8() throws {
         guard let result = try CLIBinary.run(["--fragment"], stdin: Data([0xC3, 0x28])) else { return }
         #expect(result.status == 65)
-        #expect(result.stderr == "mdv: stdin: not valid UTF-8\n")
+        #expect(result.stderr == "peep: stdin: not valid UTF-8\n")
     }
 
     @Test("a usage error exits 64")
@@ -48,13 +48,13 @@ struct EndToEndTests {
         guard let result = try CLIBinary.run(["--html", "hello.md", "second.md"], in: folder.url) else { return }
         #expect(result.status == 64)
         #expect(result.stdout.isEmpty)
-        #expect(result.stderr.contains("Usage: mdv"))
+        #expect(result.stderr.contains("Usage: peep"))
     }
 
-    @Test("MDV_THEMES_FOLDER sets the Themes folder for --theme and --list-themes")
+    @Test("PEEP_THEMES_FOLDER sets the Themes folder for --theme and --list-themes")
     func themesFolderVariable() throws {
         let themes = try TempFolder()
-        try themes.file("Test.css", "/* mdv-theme\n   name: Test Theme\n*/\nbody { color: #123456; }\n")
+        try themes.file("Test.css", "/* peep-theme\n   name: Test Theme\n*/\nbody { color: #123456; }\n")
         guard
             let page = try CLIBinary.run(
                 ["--html", "--theme", "custom:Test.css"], stdin: Data("# Hi\n".utf8), themesFolder: themes.url),

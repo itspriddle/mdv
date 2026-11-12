@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 @Suite("Themes")
 struct ThemeTests {
@@ -10,7 +10,7 @@ struct ThemeTests {
         id: "hostile", displayName: "Hostile", background: ThemeBackground(light: ThemeColor(0), dark: ThemeColor(0)),
         stylesheet: """
             } .sr-only { position: static !important; }
-            ::highlight(mdv-find) { background-color: transparent !important; }
+            ::highlight(peep-find) { background-color: transparent !important; }
             .remote-image { display: none !important; }
             </style><script>alert(1)</script><style>
             """)
@@ -83,8 +83,8 @@ struct ThemeTests {
     func protectedRules() {
         let css = ThemeBase.css
         for rule in [
-            "::highlight(mdv-find) { background-color: rgb(255 214 0 / 0.4) !important; }",
-            "::highlight(mdv-find-current) { background-color: #ff9632 !important;",
+            "::highlight(peep-find) { background-color: rgb(255 214 0 / 0.4) !important; }",
+            "::highlight(peep-find-current) { background-color: #ff9632 !important;",
             ".remote-image { display: inline-flex !important; visibility: visible !important; }",
             "position: absolute !important;",
         ] {
@@ -95,12 +95,12 @@ struct ThemeTests {
     @Test("the page declares base, theme, user layers in order, each in its own style element")
     func layers() throws {
         let html = HTMLDocument(title: "t", body: "", theme: .github).html
-        #expect(ThemeLayer.orderStatement == "@layer mdv-base, mdv-theme, mdv-user;")
+        #expect(ThemeLayer.orderStatement == "@layer peep-base, peep-theme, peep-user;")
         let order = try #require(html.range(of: ThemeLayer.orderStatement))
         let base = try #require(
-            html.range(of: "<style id=\"mdv-base\">\n@layer mdv-base, mdv-theme, mdv-user;\n@layer mdv-base {"))
-        let theme = try #require(html.range(of: "<style id=\"mdv-theme\">\n@layer mdv-theme {"))
-        let user = try #require(html.range(of: "<style id=\"mdv-user\">\n@layer mdv-user {"))
+            html.range(of: "<style id=\"peep-base\">\n@layer peep-base, peep-theme, peep-user;\n@layer peep-base {"))
+        let theme = try #require(html.range(of: "<style id=\"peep-theme\">\n@layer peep-theme {"))
+        let user = try #require(html.range(of: "<style id=\"peep-user\">\n@layer peep-user {"))
         #expect(base.upperBound > order.lowerBound)
         #expect(base.lowerBound < theme.lowerBound)
         #expect(theme.lowerBound < user.lowerBound)
@@ -122,7 +122,7 @@ struct ThemeTests {
         let base = try #require(html.range(of: ThemeBase.layerCSS))
         let themeLayer = try #require(html.range(of: theme.layerCSS))
         #expect(base.upperBound <= themeLayer.lowerBound)
-        for rule in ["::highlight(mdv-find)", ".remote-image", "gh-dark-mode-only", ".sr-only", "@media print"] {
+        for rule in ["::highlight(peep-find)", ".remote-image", "gh-dark-mode-only", ".sr-only", "@media print"] {
             #expect(html.contains(rule), "missing \(rule)")
         }
         #expect(theme.css.contains(theme.background.light.hex))

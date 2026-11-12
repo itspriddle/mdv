@@ -1,20 +1,20 @@
 import Foundation
-import MdvCore
+import PeepCore
 
-/// Everything `MdvCommand.execute(in:)` touches outside its arguments and the files they name:
+/// Everything `PeepCommand.execute(in:)` touches outside its arguments and the files they name:
 /// standard streams, the app, and the Themes folder. `live` is the real process; tests pass fakes, so the command
-/// runs in-process without spawning (`Tests/MdvCLITests`).
+/// runs in-process without spawning (`Tests/PeepCLITests`).
 public struct CLIEnvironment: Sendable {
     /// Reads standard input to its end, or, given a maximum, until it has read more than that
-    /// many bytes (returning at most one more), so `yes | mdv` can't fill memory. Called at
+    /// many bytes (returning at most one more), so `yes | peep` can't fill memory. Called at
     /// most once per run.
     public var readStandardInput: @Sendable (_ maximumBytes: Int?) throws -> Data
-    /// Whether standard input is a terminal: with no FILE, mdv then prints usage instead of
+    /// Whether standard input is a terminal: with no FILE, Peep then prints usage instead of
     /// waiting silently for input (`-` reads it anyway).
     public var standardInputIsTerminal: Bool
     public var standardOutput: any OutputSink
     public var standardError: any OutputSink
-    /// Opens documents in the app (`mdv FILE`, #67).
+    /// Opens documents in the app (`peep FILE`, #67).
     public var appOpener: any AppOpening
     /// Where `custom:` themes are read from (#64); `nil` reads none. Live:
     /// `ThemeResolver.themesFolder(environment:)`. Tests pass a temp folder or nil, never the
@@ -62,13 +62,13 @@ public struct CLIEnvironment: Sendable {
         )
     }
 
-    /// `.standard`. Debug builds only: `MDV_TEST_PREPROCESSOR_TIMEOUT` (seconds) replaces the
+    /// `.standard`. Debug builds only: `PEEP_TEST_PREPROCESSOR_TIMEOUT` (seconds) replaces the
     /// timeout, so the end-to-end signal test can tell "stopped by the signal" from "timed out"
     /// on a starved CI runner. Compiled out of Release.
     static func livePreprocessorLimits(environment: [String: String]) -> PreprocessorLimits {
         var limits = PreprocessorLimits.standard
         #if DEBUG
-            if let text = environment["MDV_TEST_PREPROCESSOR_TIMEOUT"], let seconds = Int(text), seconds > 0 {
+            if let text = environment["PEEP_TEST_PREPROCESSOR_TIMEOUT"], let seconds = Int(text), seconds > 0 {
                 limits.timeout = .seconds(seconds)
             }
         #endif
@@ -89,10 +89,10 @@ public struct CLIEnvironment: Sendable {
         return data
     }
 
-    /// Writes `mdv: <message>` and a newline to standard error. Best effort: there's nowhere
+    /// Writes `peep: <message>` and a newline to standard error. Best effort: there's nowhere
     /// left to report a failure to write it.
     func reportError(_ message: String) {
-        try? standardError.write(Data("mdv: \(message)\n".utf8))
+        try? standardError.write(Data("peep: \(message)\n".utf8))
     }
 }
 

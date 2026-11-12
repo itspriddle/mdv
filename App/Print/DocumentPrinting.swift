@@ -2,7 +2,7 @@ import AppKit
 import WebKit
 
 /// File > Print (#26): `NSDocument.printDocument(_:)` asks `MarkdownDocument` for a print
-/// operation, which prints the window's web view. The print CSS is in MdvCore: structural
+/// operation, which prints the window's web view. The print CSS is in PeepCore: structural
 /// rules in `ThemeBase`, looks in the theme's `printStylesheet` (`@media print`). File > Page Setup is `NSDocument.runPageLayout(_:)`; its choices live in
 /// the document's `printInfo`.
 @MainActor

@@ -1,6 +1,6 @@
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// All node kinds in document order (pre-order), without recursion.
 private func kinds(_ root: MarkdownNode) -> [MarkdownNode.Kind] {

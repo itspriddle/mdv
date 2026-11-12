@@ -1,5 +1,5 @@
-import MdvCore
 import Observation
+import PeepCore
 
 /// Feedback for slow renders (#58): what a window's progress indicator shows, after a delay.
 ///

@@ -1,13 +1,13 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 // Stress tests: hostile and huge inputs must render quickly, without crashing or overflowing the
 // stack. Bounds are generous (debug builds on a loaded CI runner); the point is to catch
 // quadratic blow-ups and crashes, not to benchmark.
 
-/// Renders `markdown` with the default options (what the app and `mdv --html` use) and source
+/// Renders `markdown` with the default options (what the app and `peep --html` use) and source
 /// lines on, and returns the HTML and how long it took.
 private func timedRender(_ markdown: String) -> (html: String, duration: Duration) {
     var options = RenderOptions()
@@ -180,7 +180,7 @@ struct StressTests {
         #expect(!html.contains("onclick") && !html.contains("javascript:"))
     }
 
-    /// Varied Markdown exercising every node kind, extension, and mdv feature, repeated to `bytes`.
+    /// Varied Markdown exercising every node kind, extension, and Peep feature, repeated to `bytes`.
     static func largeDocument(bytes: Int) -> String {
         let chunk = """
             # Heading with *emphasis*, `code`, and :tada:

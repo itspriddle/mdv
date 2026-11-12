@@ -1,12 +1,12 @@
 import Foundation
 
-/// Takes the window's internal `mdv-doc` URLs out of pasteboard data that WebKit writes by
+/// Takes the window's internal `peep-doc` URLs out of pasteboard data that WebKit writes by
 /// itself, such as a dragged link or image: each one becomes what Copy Link copies
 /// (`CopyableLink`), the `file:` URL it names.
 ///
 /// Entries are rewritten when they are a single URL (`public.url`, plain text) or a property
-/// list of strings (WebKit's URL-and-title lists). Any other entry that mentions an `mdv-doc`
-/// URL is dropped rather than guessed at, as is one whose `mdv-doc` URL names no file.
+/// list of strings (WebKit's URL-and-title lists). Any other entry that mentions a `peep-doc`
+/// URL is dropped rather than guessed at, as is one whose `peep-doc` URL names no file.
 public enum PasteboardLinkRewriter {
     /// One pasteboard type and its data.
     public struct Entry: Equatable, Sendable {
@@ -20,7 +20,7 @@ public enum PasteboardLinkRewriter {
     }
 
     /// The entries to write in place of `entries` for the window `token`, in order; `nil` when
-    /// none mentions an `mdv-doc` URL, so the pasteboard can be left alone.
+    /// none mentions a `peep-doc` URL, so the pasteboard can be left alone.
     public static func rewrite(_ entries: [Entry], token: String) -> [Entry]? {
         guard entries.contains(where: { mentionsDocumentURL($0.data) }) else {
             return nil
@@ -33,7 +33,7 @@ public enum PasteboardLinkRewriter {
         }
     }
 
-    /// `mdv-doc:` in ASCII (UTF-8), the scheme as WebKit serializes it.
+    /// `peep-doc:` in ASCII (UTF-8), the scheme as WebKit serializes it.
     private static let marker = Data((DocumentURLScheme.name + ":").utf8)
     /// The same in UTF-16, either byte order, so text in that encoding isn't missed.
     private static let utf16Markers = [String.Encoding.utf16LittleEndian, .utf16BigEndian].compactMap {
@@ -45,7 +45,7 @@ public enum PasteboardLinkRewriter {
         return lowercased.range(of: marker) != nil || utf16Markers.contains { lowercased.range(of: $0) != nil }
     }
 
-    /// `data` with its `mdv-doc` URLs replaced, or `nil` to drop it.
+    /// `data` with its `peep-doc` URLs replaced, or `nil` to drop it.
     private static func rewritten(_ data: Data, token: String) -> Data? {
         if isPropertyList(data) {
             var format = PropertyListSerialization.PropertyListFormat.binary
@@ -85,7 +85,7 @@ public enum PasteboardLinkRewriter {
             }
             return mapped
         default:
-            // Numbers, dates, booleans; data is opaque, so it may not name an `mdv-doc` URL.
+            // Numbers, dates, booleans; data is opaque, so it may not name a `peep-doc` URL.
             if let data = plist as? Data {
                 return mentionsDocumentURL(data) ? nil : data
             }
@@ -93,7 +93,7 @@ public enum PasteboardLinkRewriter {
         }
     }
 
-    /// A string that is exactly an `mdv-doc` URL (surrounding whitespace aside) becomes the
+    /// A string that is exactly a `peep-doc` URL (surrounding whitespace aside) becomes the
     /// `file:` URL; other text that mentions one is dropped.
     private static func rewritten(string: String, token: String) -> String? {
         guard mentionsDocumentURL(Data(string.utf8)) else {

@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// Content width (#37, per window since #47). View > Content Width picks this window's preset
 /// (`contentWidth`); a new window starts with Settings' default (`ContentWidthSettings`). The
@@ -8,7 +8,7 @@ import MdvCore
 extension DocumentWindowController {
     /// The restorable-state key for the window's preset (a `ContentWidth` raw value, always
     /// written; absent only in state saved before #47, which then keeps Settings' default).
-    static let contentWidthStateKey = "mdvContentWidth"
+    static let contentWidthStateKey = "peepContentWidth"
 
     /// Starts pages with the window's width. Called once from `init`, before the first load.
     func installContentWidth() {

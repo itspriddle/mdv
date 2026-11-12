@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 @Suite("RootRelativeURL")
 struct RootRelativeURLTests {
@@ -146,7 +146,7 @@ struct RootRelativeRenderingTests {
         #expect(Self.render(#"<img src="caf&eacute;.png">"#).contains(#"<img src="caf&eacute;.png">"#))
     }
 
-    @Test("without linkRoot (mdv --html, spec mode) nothing changes")
+    @Test("without linkRoot (peep --html, spec mode) nothing changes")
     func off() {
         let html = Self.render("![a](/docs/a.png) <img src=\"/b.png\">", linkRoot: nil)
         #expect(html.contains(#"<img src="/docs/a.png" alt="a" />"#))
@@ -207,7 +207,7 @@ struct ColorModeImageTests {
     func localFragment() throws {
         let html = HTMLRenderer(highlighter: nil).render("![d](img/d.png#gh-dark-mode-only)").html
         #expect(html.contains(#"src="img/d.png#gh-dark-mode-only""#))
-        let url = try #require(URL(string: "mdv-doc://t/r/img/d.png#gh-dark-mode-only"))
+        let url = try #require(URL(string: "peep-doc://t/r/img/d.png#gh-dark-mode-only"))
         #expect(DocumentURLScheme.filePath(from: url, token: "t") == "/r/img/d.png")
     }
 }

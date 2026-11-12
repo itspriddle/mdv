@@ -1,16 +1,16 @@
-// A build tool, not shipped: `make man` runs ArgumentParser's generate-manual plugin on `mdv`,
-// then this, which adds mdv's hand-written sections (`ManualPage`, #71).
+// A build tool, not shipped: `make man` runs ArgumentParser's generate-manual plugin on `peep`,
+// then this, which adds Peep's hand-written sections (`ManualPage`, #71).
 import ArgumentParser
 import Foundation
-import MdvCLIKit
+import PeepCLIKit
 
 @main
-struct MdvManualTool: ParsableCommand {
+struct PeepManualTool: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "mdv-manual",
-        abstract: "Finish generate-manual's mdv.1 with mdv's hand-written sections.")
+        commandName: "peep-manual",
+        abstract: "Finish generate-manual's peep.1 with Peep's hand-written sections.")
 
-    @Argument(help: "The mdv.1 that generate-manual wrote.")
+    @Argument(help: "The peep.1 that generate-manual wrote.")
     var generated: String
 
     @Option(name: .shortAndLong, help: "Where to write the finished page.")

@@ -1,4 +1,4 @@
-/// The flavors mdv knows, by id. The one place the app, the CLI, and frontmatter overrides (#54)
+/// The flavors Peep knows, by id. The one place the app, the CLI, and frontmatter overrides (#54)
 /// turn a flavor id into a `Flavor`: an id that is missing or unknown resolves to the default
 /// (GFM), as `ThemeRegistry` does for themes.
 public struct FlavorRegistry: Sendable, Equatable {

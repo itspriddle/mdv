@@ -4,7 +4,7 @@ Jump to [the bottom section](#bottom-section).
 
 Open [the target document](links-target.md#target-section).
 
-Visit [the example site](https://example.com/mdv-ui-test).
+Visit [the example site](https://example.com/peep-ui-test).
 
 Filler paragraph 1.
 

@@ -1,6 +1,6 @@
 import ArgumentParser
 
-/// mdv's exit statuses, from `sysexits(3)`. `MdvCommand`'s help (`ExitStatus.help`), the README,
+/// Peep's exit statuses, from `sysexits(3)`. `PeepCommand`'s help (`ExitStatus.help`), the README,
 /// and VISION list them; keep all four in sync.
 public enum ExitStatus {
     public static let success: Int32 = 0
@@ -21,7 +21,7 @@ public enum ExitStatus {
     /// Writing to standard output failed.
     public static let ioError: Int32 = 74
     /// A `--preprocessor` run was cancelled by a signal that didn't then end the process
-    /// (128 + `SIGINT`, as shells report it). Normally the signal itself ends mdv.
+    /// (128 + `SIGINT`, as shells report it). Normally the signal itself ends Peep.
     public static let interrupted: Int32 = 130
 
     /// One documented exit status: the code and what it means.
@@ -30,7 +30,7 @@ public enum ExitStatus {
         public let meaning: String
     }
 
-    /// The statuses `mdv --help` and the man page list, in order (#71: the man page's EXIT
+    /// The statuses `peep --help` and the man page list, in order (#71: the man page's EXIT
     /// STATUS section is built from this, so a status is documented here once).
     public static let entries: [Entry] = [
         Entry(status: success, meaning: "success"),
@@ -53,9 +53,9 @@ public enum ExitStatus {
     ]
 
     /// What happens on Ctrl-C (`interrupted`), after the list.
-    public static let interruptNote = "Ctrl-C during a --preprocessor run stops the program, then mdv."
+    public static let interruptNote = "Ctrl-C during a --preprocessor run stops the program, then Peep."
 
-    /// The exit status section of `mdv --help`: `entries`, wrapped to 74 columns.
+    /// The exit status section of `peep --help`: `entries`, wrapped to 74 columns.
     static var help: String {
         var lines = ["EXIT STATUS:"]
         for entry in entries {

@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// Generates Sources/MdvCore/Generated/EmojiTable.swift from github/gemoji's db/emoji.json.
+// Generates Sources/PeepCore/Generated/EmojiTable.swift from github/gemoji's db/emoji.json.
 //
 // Usage: swift scripts/generate-emoji.swift EMOJI_JSON SOURCE_COMMIT OUTPUT
 //

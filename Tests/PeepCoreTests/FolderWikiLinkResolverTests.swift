@@ -1,7 +1,7 @@
 import Synchronization
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// An in-memory folder tree: absolute folder path to its entries (folders end in `/`).
 final class FakeFolderReader: WikiLinkFolderReader {

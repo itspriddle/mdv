@@ -17,12 +17,12 @@ public struct RenderOptions: Sendable, Equatable {
     public var detectsFrontmatter = true
     /// How detected frontmatter is shown (#8).
     public var frontmatterDisplay = FrontmatterDisplay.hidden
-    /// Read the frontmatter's `mdv:` mapping and apply it (#54, `DocumentOverrides`): a document
+    /// Read the frontmatter's `peep:` mapping and apply it (#54, `DocumentOverrides`): a document
     /// can pick its flavor (which beats `flavor`) and, in the app, its theme. Presentation only;
     /// no safety setting can be overridden.
     public var appliesDocumentOverrides = true
-    /// Overrides the caller chose explicitly, so a document's `mdv:` value for them is not
-    /// applied (#64): `mdv --flavor commonmark` pins `.flavor`, and the flag beats `mdv.flavor`.
+    /// Overrides the caller chose explicitly, so a document's `peep:` value for them is not
+    /// applied (#64): `peep --flavor commonmark` pins `.flavor`, and the flag beats `peep.flavor`.
     /// Empty by default (every override applies). Pinning only keeps this render's own setting;
     /// it never changes a safety setting, which documents can't override anyway.
     public var pinnedOverrides: Set<DocumentOverrides.Key> = []
@@ -34,13 +34,13 @@ public struct RenderOptions: Sendable, Equatable {
     public var headingAnchors = true
     /// Annotate block elements with the line they start on in the original file (#9), for
     /// scroll sync and position-preserving reload in the app (M2). Off by default, so headless
-    /// output (`mdv --html`) and the spec suites stay clean; the app turns it on. See
+    /// output (`peep --html`) and the spec suites stay clean; the app turns it on. See
     /// `HTMLRenderer.writeSourceLine(of:into:)` for the attribute contract.
     public var sourceLines = false
     /// Syntax-highlight fenced code blocks that name a language, at render time (#11). Needs
     /// `HTMLRenderer.highlighter`; blocks render as plain escaped code without one.
     public var highlighting = true
-    /// Remote images (`RemoteImage`): kept as `<img>` (GitHub-compatible, `mdv --html`), or
+    /// Remote images (`RemoteImage`): kept as `<img>` (GitHub-compatible, `peep --html`), or
     /// replaced with a labeled placeholder (#20). The viewer blocks them until the user opts in.
     /// Raw-HTML images are only replaced when `sanitize` is on.
     public var remoteImages = RemoteImagePolicy.keep
@@ -48,7 +48,7 @@ public struct RenderOptions: Sendable, Equatable {
     /// against the repository root (`RootRelativeURL`): Markdown links and images, and raw-HTML
     /// `a[href]`, `img[src]`, and `source[srcset]` (when `sanitize` is on). An absolute path; the
     /// app sets the document's allowed root (`LocalResourceRoot`). `nil` (the default, and
-    /// `mdv --html`) writes them unchanged.
+    /// `peep --html`) writes them unchanged.
     public var linkRoot: String?
 
     /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
@@ -92,11 +92,11 @@ public struct RenderedDocument: Sendable, Equatable {
     /// Remote images replaced with placeholders under `RenderOptions.remoteImages` (#20):
     /// Markdown images in document order, then raw-HTML images in document order.
     public var blockedRemoteImages: [RemoteImage]
-    /// The frontmatter's `mdv:` overrides (#54), with what was ignored and why. The flavor is
+    /// The frontmatter's `peep:` overrides (#54), with what was ignored and why. The flavor is
     /// already applied; the theme is the caller's to resolve.
     public var overrides: DocumentOverrides
     /// The flavor the body was parsed with (#64): `RenderOptions.flavor`, or the document's
-    /// `mdv.flavor` when that applied (not pinned).
+    /// `peep.flavor` when that applied (not pinned).
     public var flavor: Flavor
 
     public init(

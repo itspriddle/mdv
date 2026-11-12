@@ -2,7 +2,7 @@ import Foundation
 import Testing
 
 /// Wall-clock bounds on large renders (`StressTests`): strict by default, report-only when
-/// `MDV_TIMING_REPORT_ONLY=1` (CI's core test step sets it), as for the app's main-thread bounds
+/// `PEEP_TIMING_REPORT_ONLY=1` (CI's core test step sets it), as for the app's main-thread bounds
 /// (`AppTests/Support/MainThreadTiming.swift`).
 ///
 /// Why: on CI's shared macOS 26 runners the 8 MB render took 21.1-21.5 s against a 20 s bound
@@ -11,11 +11,11 @@ import Testing
 func expectRenderTiming(
     _ condition: Bool, _ comment: @autoclosure () -> Comment, sourceLocation: SourceLocation = #_sourceLocation
 ) {
-    guard ProcessInfo.processInfo.environment["MDV_TIMING_REPORT_ONLY"] == "1" else {
+    guard ProcessInfo.processInfo.environment["PEEP_TIMING_REPORT_ONLY"] == "1" else {
         #expect(condition, comment(), sourceLocation: sourceLocation)
         return
     }
-    withKnownIssue("timing is report-only on CI (MDV_TIMING_REPORT_ONLY)", isIntermittent: true) {
+    withKnownIssue("timing is report-only on CI (PEEP_TIMING_REPORT_ONLY)", isIntermittent: true) {
         #expect(condition, comment(), sourceLocation: sourceLocation)
     }
 }

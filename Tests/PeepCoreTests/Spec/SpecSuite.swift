@@ -1,6 +1,6 @@
 import Foundation
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// The vendored spec fixtures (`Fixtures/spec`) and their documented exceptions.
 enum SpecSuite {
@@ -35,8 +35,8 @@ enum SpecSuite {
         return options
     }
 
-    /// cmark's extension names (as used in example fences) mapped to mdv's. `tagfilter` has no
-    /// counterpart: mdv's sanitizer (#7) replaces it, so tagfilter examples are permanent
+    /// cmark's extension names (as used in example fences) mapped to Peep's. `tagfilter` has no
+    /// counterpart: Peep's sanitizer (#7) replaces it, so tagfilter examples are permanent
     /// exceptions.
     private static let extensionsByTag: [String: MarkdownExtension] = [
         "table": .table,

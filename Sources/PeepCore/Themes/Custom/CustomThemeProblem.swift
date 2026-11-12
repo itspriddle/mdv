@@ -16,7 +16,7 @@ public enum CustomThemeProblem: Error, Sendable, Equatable, CustomStringConverti
     /// The folder holds more theme files than `CustomThemeFolder.maximumThemeCount`.
     case tooManyThemes(limit: Int)
 
-    // Header (`/* mdv-theme … */`)
+    // Header (`/* peep-theme … */`)
 
     /// A header line that isn't `key: value`, or a value that isn't valid for its key.
     case invalidHeader(line: Int, message: String)

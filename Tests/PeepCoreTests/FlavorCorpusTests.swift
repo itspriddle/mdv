@@ -1,14 +1,14 @@
 import Foundation
 import Testing
 
-@testable import MdvCore
+@testable import PeepCore
 
 /// The per-flavor fixture corpus (`Fixtures/flavors/<flavor id>/`, see its README): each
 /// `NAME.md` rendered with its folder's flavor must equal the recorded `NAME.html`.
 ///
 /// Re-record after an intended output change:
 ///
-///     MDV_RECORD_SNAPSHOTS=1 swift test --filter FlavorCorpusTests
+///     PEEP_RECORD_SNAPSHOTS=1 swift test --filter FlavorCorpusTests
 @Suite("Flavor fixture corpus")
 struct FlavorCorpusTests {
     struct Fixture: CustomTestStringConvertible, Sendable {
@@ -56,7 +56,7 @@ struct FlavorCorpusTests {
             renderer = HTMLRenderer(options: options, wikiLinkResolver: FakeWikiLinkResolver(Self.wikiLinkPages))
         }
         let html = renderer.render(markdown).html
-        if ProcessInfo.processInfo.environment["MDV_RECORD_SNAPSHOTS"] != nil {
+        if ProcessInfo.processInfo.environment["PEEP_RECORD_SNAPSHOTS"] != nil {
             let source = URL(filePath: #filePath).deletingLastPathComponent()
                 .appending(components: "Fixtures", "flavors", fixture.flavorID, "\(fixture.name).html")
             try html.write(to: source, atomically: true, encoding: .utf8)

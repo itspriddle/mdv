@@ -1,6 +1,6 @@
 extension Theme {
     /// The default theme: github.com's Markdown file view (Primer), light and dark. The vendored
-    /// github-markdown-css (`GitHubMarkdownCSS`, `make vendor-github-markdown-css`) plus mdv's
+    /// github-markdown-css (`GitHubMarkdownCSS`, `make vendor-github-markdown-css`) plus Peep's
     /// page layout, heading anchors, and highlight.js token colors from Primer's syntax palette.
     public static let github = Theme(
         id: "github",
@@ -13,16 +13,16 @@ extension Theme {
 }
 
 enum GitHubTheme {
-    /// mdv's additions after the vendored CSS. github-markdown-css styles `.markdown-body` only
+    /// Peep's additions after the vendored CSS. github-markdown-css styles `.markdown-body` only
     /// and leaves the page layout to the host; this is github.com's README column. The page
     /// background comes from `Theme.background`, so `.markdown-body` is transparent over it.
     static let stylesheet = """
         body { margin: 0; }
         .markdown-body {
-          box-sizing: border-box; min-width: 200px; max-width: var(--mdv-content-width, 980px); margin: 0 auto;
+          box-sizing: border-box; min-width: 200px; max-width: var(--peep-content-width, 980px); margin: 0 auto;
           padding: 32px 45px; font-size: 16px; background-color: transparent;
         }
-        /* Heading anchors: mdv writes an empty `a.anchor` (no octicon SVG, and theme CSS can't use a
+        /* Heading anchors: Peep writes an empty `a.anchor` (no octicon SVG, and theme CSS can't use a
            data: URL for its mask), so a "#" glyph stands in, shown on hover or focus. */
         .markdown-body h1, .markdown-body h2, .markdown-body h3,
         .markdown-body h4, .markdown-body h5, .markdown-body h6 { position: relative; }

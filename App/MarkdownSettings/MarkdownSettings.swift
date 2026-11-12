@@ -1,12 +1,12 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 /// How documents are read (#55, Settings > Markdown), as one value: what a render needs from
 /// Settings. Built on the main actor from `MarkdownSettings` and passed to the off-main render,
 /// so a render never reads a store; `DocumentContent` keeps the value it was rendered with.
 struct MarkdownPreferences: Equatable, Sendable {
-    /// The default flavor. A document's frontmatter `mdv.flavor` (#54) still wins: this is only
-    /// `RenderOptions.flavor`, which MdvCore's flavor resolution overrides.
+    /// The default flavor. A document's frontmatter `peep.flavor` (#54) still wins: this is only
+    /// `RenderOptions.flavor`, which PeepCore's flavor resolution overrides.
     var flavor = Flavor.gfm
     /// Whether frontmatter is hidden or shown as a table before the body.
     var frontmatterDisplay = FrontmatterDisplay.hidden
@@ -18,7 +18,7 @@ struct MarkdownPreferences: Equatable, Sendable {
     /// fills it in. `apply(to:)` ignores it; `DocumentContent.rendering` runs it.
     var customPreprocessor: CustomPreprocessorPreference?
 
-    /// GFM, frontmatter hidden, no built-in preprocessors: the app before #55, and `mdv --html`.
+    /// GFM, frontmatter hidden, no built-in preprocessors: the app before #55, and `peep --html`.
     static let `default` = MarkdownPreferences()
 
     /// Applies these preferences to `options`.
@@ -44,7 +44,7 @@ final class MarkdownSettings {
     static let shared = MarkdownSettings(isPersistent: !UITestHooks.isUITesting && !AppDelegate.isHostingUnitTests)
 
     /// Posted (object: the settings) after any setting changes.
-    static let didChangeNotification = Notification.Name("MdvMarkdownSettingsDidChange")
+    static let didChangeNotification = Notification.Name("PeepMarkdownSettingsDidChange")
 
     /// `UserDefaults` keys. Each is absent at its default.
     static let flavorKey = "DefaultFlavor"
