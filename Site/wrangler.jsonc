@@ -1,0 +1,16 @@
+{
+    "$schema": "./node_modules/wrangler/config-schema.json",
+    "name": "peep-site",
+    "compatibility_date": "2026-11-10",
+    // Static assets only: no Worker script, so every request is served from dist/.
+    "assets": {
+        "directory": "./dist",
+        // A missing file is a real 404, never index.html: Sparkle must not get HTML for a
+        // missing appcast.
+        "not_found_handling": "none",
+    },
+    // Custom Domain: wrangler creates the proxied DNS record and certificate on deploy.
+    "routes": [{ "pattern": "peep.now", "custom_domain": true }],
+    "workers_dev": false,
+    "preview_urls": false,
+}
