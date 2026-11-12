@@ -56,7 +56,7 @@ mdv:
 
 mdv can run a program of your choice on every document before rendering it, for formats or
 conventions it doesn't know. It is off by default. Turn it on in Settings > Markdown > Custom
-preprocessor: choose the program with Choose… and add any arguments, one per field.
+preprocessor: choose the program with Choose... and add any arguments, one per field.
 
 - The program gets the document on standard input and writes Markdown to standard output; exit
   status 0 means success. The document's path is in `MDV_DOCUMENT_PATH`, and it runs in the
