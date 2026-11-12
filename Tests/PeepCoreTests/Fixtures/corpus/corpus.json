@@ -1,0 +1,153 @@
+{
+  "documents": {
+    "awesome": {
+      "source": "https://github.com/sindresorhus/awesome/blob/bc98e517ddca672f55f9857d714fc3ea3c3540b2/readme.md",
+      "commit": "bc98e517ddca672f55f9857d714fc3ea3c3540b2",
+      "license": "CC0-1.0",
+      "exceptions": [
+        {
+          "github": "<sup>Special thanks to:</sup> <br> <br> <br> <a href=\"https://depot.dev?utm_source=github&amp;utm_medium=sindresorhus\"> </a></p>",
+          "peep": "<sup>Special thanks to:</sup> <br> <br> <br> <a href=\"https://depot.dev?utm_source=github&amp;utm_medium=sindresorhus\">",
+          "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; Peep's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
+        },
+        {
+          "github": "<b>Fast remote container builds and GitHub Actions runners.</b> <br> <br> <br><p>",
+          "peep": "<b>Fast remote container builds and GitHub Actions runners.</b> </a> <br> <br> <br>",
+          "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; Peep's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
+        }
+      ]
+    },
+    "bat": {
+      "source": "https://github.com/sharkdp/bat/blob/d14e46c393b9f5c9197c23ea2393fadddf8ae899/README.md",
+      "commit": "d14e46c393b9f5c9197c23ea2393fadddf8ae899",
+      "license": "MIT OR Apache-2.0",
+      "exceptions": []
+    },
+    "deno": {
+      "source": "https://github.com/denoland/deno/blob/e7b39ebd55c85aaf6a29290c1f5a99e2e21e09dd/README.md",
+      "commit": "e7b39ebd55c85aaf6a29290c1f5a99e2e21e09dd",
+      "license": "MIT",
+      "exceptions": [
+        {
+          "github": "</a></p><p>",
+          "peep": "</a></p>",
+          "reason": "github.com wraps a top-level raw HTML <img> in a paragraph (with its image link); Peep leaves the HTML block as written."
+        },
+        {
+          "github": "<img align=\"right\" alt=\"the deno mascot dinosaur standing in the rain\" height=\"150px\" src=\"https://deno.land/logo.svg\"></p>",
+          "peep": "<img align=\"right\" alt=\"the deno mascot dinosaur standing in the rain\" height=\"150px\" src=\"https://deno.land/logo.svg\">",
+          "reason": "github.com wraps a top-level raw HTML <img> in a paragraph (with its image link); Peep leaves the HTML block as written."
+        }
+      ]
+    },
+    "emoji-cheat-sheet": {
+      "source": "https://github.com/ikatyang/emoji-cheat-sheet/blob/d4ccec71e64d090a936d83cea31af45c7e851d8f/README.md",
+      "commit": "d4ccec71e64d090a936d83cea31af45c7e851d8f",
+      "license": "MIT",
+      "exceptions": []
+    },
+    "fzf": {
+      "source": "https://github.com/junegunn/fzf/blob/96028e2a54023a8ff8240e985ae9c8e4f25c0089/README.md",
+      "commit": "96028e2a54023a8ff8240e985ae9c8e4f25c0089",
+      "license": "MIT",
+      "exceptions": [
+        {
+          "github": "<p>fzf is a general-purpose command-line fuzzy finder and an interactive terminal toolkit.</p><p>",
+          "peep": "<p>fzf is a general-purpose command-line fuzzy finder and an interactive terminal toolkit.</p>",
+          "reason": "github.com wraps a top-level raw HTML <img> in a paragraph (with its image link); Peep leaves the HTML block as written."
+        },
+        {
+          "github": "<img src=\"https://raw.githubusercontent.com/junegunn/i/master/fzf-preview.png\" width=\"640\"></p>",
+          "peep": "<img src=\"https://raw.githubusercontent.com/junegunn/i/master/fzf-preview.png\" width=\"640\">",
+          "reason": "github.com wraps a top-level raw HTML <img> in a paragraph (with its image link); Peep leaves the HTML block as written."
+        },
+        {
+          "github": "<p><img src=\"https://raw.githubusercontent.com/junegunn/i/master/fzf-4-borders.png\"></p><details><summary>Details</summary>",
+          "peep": "<img src=\"https://raw.githubusercontent.com/junegunn/i/master/fzf-4-borders.png\"> <details>",
+          "reason": "github.com wraps a top-level raw HTML <img> in a paragraph (with its image link); Peep leaves the HTML block as written. GitHub also adds a default <summary>Details</summary> to a <details> without one."
+        }
+      ]
+    },
+    "httpie": {
+      "source": "https://github.com/httpie/cli/blob/5b604c37c6c67e18e7c3e9aee6c88a8c22b98345/README.md",
+      "commit": "5b604c37c6c67e18e7c3e9aee6c88a8c22b98345",
+      "license": "BSD-3-Clause",
+      "exceptions": []
+    },
+    "jekyll-front-matter": {
+      "source": "https://github.com/jekyll/jekyll/blob/97c3bdc822df9d5bea4c269b29a28de5a5e29d70/docs/_docs/front-matter.md",
+      "commit": "97c3bdc822df9d5bea4c269b29a28de5a5e29d70",
+      "license": "MIT",
+      "exceptions": [
+        {
+          "github": "<code>layout</code></p></td><td><p></p>",
+          "peep": "<code>layout</code></p></td><td><p>",
+          "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; Peep's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
+        },
+        {
+          "github": ".\n    &lt;/p&gt;\n  &lt;/td&gt;\n&lt;/tr&gt;</code></pre>",
+          "peep": ".\n    &lt;/p&gt;\n  &lt;/td&gt;\n&lt;/tr&gt;</code></pre></p>",
+          "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; Peep's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
+        },
+        {
+          "github": "<code>categories</code></p></td><td><p></p>",
+          "peep": "<code>categories</code></p></td><td><p>",
+          "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; Peep's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
+        },
+        {
+          "github": "\n\n    &lt;/p&gt;\n  &lt;/td&gt;\n&lt;/tr&gt;</code></pre>",
+          "peep": "\n\n    &lt;/p&gt;\n  &lt;/td&gt;\n&lt;/tr&gt;</code></pre></p>",
+          "reason": "HTML tree construction: GitHub re-parses its output with an HTML5 parser, which closes a <p> before a block element and moves misnested tags; Peep's sanitizer keeps the raw HTML's structure, from which a browser builds the same DOM."
+        }
+      ]
+    },
+    "kep-template": {
+      "source": "https://github.com/kubernetes/enhancements/blob/f91277e22cd7a749fe3c238fadd417cd7790b4d1/keps/NNNN-kep-template/README.md",
+      "commit": "f91277e22cd7a749fe3c238fadd417cd7790b4d1",
+      "license": "Apache-2.0",
+      "exceptions": []
+    },
+    "next-js": {
+      "source": "https://github.com/vercel/next.js/blob/5e94558853f41fb45949af61646c01872d7c6bef/readme.md",
+      "commit": "5e94558853f41fb45949af61646c01872d7c6bef",
+      "license": "MIT",
+      "exceptions": []
+    },
+    "node": {
+      "source": "https://github.com/nodejs/node/blob/9d8a9adfe837255ef9e69e19e672f7cce4391fdb/README.md",
+      "commit": "9d8a9adfe837255ef9e69e19e672f7cce4391fdb",
+      "license": "MIT",
+      "exceptions": []
+    },
+    "rust-blog-1-82": {
+      "source": "https://github.com/rust-lang/blog.rust-lang.org/blob/7d7cc436d88f042970acfb03b8d3cd2bc48c8739/content/Rust-1.82.0.md",
+      "commit": "7d7cc436d88f042970acfb03b8d3cd2bc48c8739",
+      "license": "MIT OR Apache-2.0",
+      "exceptions": [
+        {
+          "github": "<p>+++ path = \"2024/10/17/Rust-1.82.0\" title = \"Announcing Rust 1.82.0\" authors = [\"The Rust Release Team\"] aliases = [ \"2024/10/17/Rust-1.82.0.html\", \"releases/1.82.0\", ]</p><p>[taxonomies] tags = [\"release\"] +++</p>",
+          "peep": "",
+          "reason": "TOML (+++) frontmatter: github.com renders it as Markdown text; Peep detects and hides it (by design, #8)."
+        }
+      ]
+    },
+    "rust-rfc-3559": {
+      "source": "https://github.com/rust-lang/rfcs/blob/3bdcd22feea6848a7920fa06d17ad4c6ada9db89/text/3559-rust-has-provenance.md",
+      "commit": "3bdcd22feea6848a7920fa06d17ad4c6ada9db89",
+      "license": "MIT OR Apache-2.0",
+      "exceptions": []
+    },
+    "swift-argument-parser": {
+      "source": "https://github.com/apple/swift-argument-parser/blob/38ca4eceb349155836701b88da3e0986eb9d1e1c/README.md",
+      "commit": "38ca4eceb349155836701b88da3e0986eb9d1e1c",
+      "license": "Apache-2.0",
+      "exceptions": []
+    },
+    "vscode": {
+      "source": "https://github.com/microsoft/vscode/blob/3bd71c378f0e4d1c6a64dc3afcc5f86fdd0cbe5c/README.md",
+      "commit": "3bd71c378f0e4d1c6a64dc3afcc5f86fdd0cbe5c",
+      "license": "MIT",
+      "exceptions": []
+    }
+  }
+}

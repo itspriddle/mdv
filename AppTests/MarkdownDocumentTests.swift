@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 @MainActor
 @Suite("MarkdownDocument", .serialized)
@@ -88,7 +88,7 @@ struct MarkdownDocumentTests {
         #expect(controller.window?.title == "First")
         #expect(controller.window?.contentViewController != nil)
         #expect(try await pageTitle(in: controller, becoming: "First") == "First")
-        // The page is at the document's mdv-doc URL, so relative images resolve against it.
+        // The page is at the document's peep-doc URL, so relative images resolve against it.
         let pageURL = try #require(controller.coordinator.webView.url)
         #expect(pageURL.scheme == DocumentURLScheme.name)
         #expect(pageURL.lastPathComponent == url.lastPathComponent)

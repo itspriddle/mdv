@@ -1,10 +1,10 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Synchronization
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// `ThemeFolderWatcher` against a real temporary folder: every way a theme file or the folder
 /// itself changes is reported, and nothing else is.
@@ -42,8 +42,8 @@ struct ThemeFolderWatcherTests {
 
     init() throws {
         root = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-theme-watcher-\(UUID().uuidString)", directoryHint: .isDirectory)
-        folder = root.appending(path: "mdv/Themes", directoryHint: .isDirectory)
+            path: "peep-theme-watcher-\(UUID().uuidString)", directoryHint: .isDirectory)
+        folder = root.appending(path: "peep/Themes", directoryHint: .isDirectory)
     }
 
     static let timing = ThemeFolderWatcher.Timing(latency: .milliseconds(30), maximumLatency: .milliseconds(100))
@@ -148,7 +148,7 @@ struct ThemeFolderWatcherTests {
         }
         var expected = try await reports.wait(for: 1)
 
-        // mdv/Themes and a file in one go: the root's source fires, then the deeper levels.
+        // peep/Themes and a file in one go: the root's source fires, then the deeper levels.
         try makeFolder()
         try write("p {}", to: "new.css")
         expected += 1
@@ -230,7 +230,7 @@ final class CustomThemeLibraryTests: DocumentWindowTestCase {
 
     func pageThemeCSS(in controller: DocumentWindowController) async throws -> String? {
         (try await controller.coordinator.webView.callAsyncJavaScript(
-            "return document.getElementById('mdv-theme').textContent;", arguments: [:], in: nil,
+            "return document.getElementById('peep-theme').textContent;", arguments: [:], in: nil,
             contentWorld: AppScripts.world) as? String)?
             .trimmingCharacters(in: .newlines)
     }
@@ -239,7 +239,8 @@ final class CustomThemeLibraryTests: DocumentWindowTestCase {
     func hotReload() async throws {
         defer { closeAll() }
         try write(
-            "/* mdv-theme\nname: Mine\nbackground: #102030\n*/\n.markdown-body { letter-spacing: 1px; }", to: "mine.css"
+            "/* peep-theme\nname: Mine\nbackground: #102030\n*/\n.markdown-body { letter-spacing: 1px; }",
+            to: "mine.css"
         )
         let settings = themeSettings()
         let library = CustomThemeLibrary(folder: themesFolder, settings: settings, timing: Self.timing)
@@ -254,7 +255,7 @@ final class CustomThemeLibraryTests: DocumentWindowTestCase {
         #expect(try await pageThemeCSS(in: controller)?.contains("letter-spacing: 1px") == true)
 
         // Edited: swapped in place in the open window.
-        try write("/* mdv-theme\nname: Mine\n*/\n.markdown-body { letter-spacing: 3px; }", to: "mine.css")
+        try write("/* peep-theme\nname: Mine\n*/\n.markdown-body { letter-spacing: 3px; }", to: "mine.css")
         #expect(
             try await waitUntil { controller.theme.stylesheet.contains("letter-spacing: 3px") },
             "edit reached the window")
@@ -303,7 +304,7 @@ final class CustomThemeLibraryTests: DocumentWindowTestCase {
     @Test("Open Themes Folder creates a missing folder, and themes put in it load")
     func openFolderCreates() async throws {
         let settings = themeSettings()
-        let nested = folder.appending(path: "Support/mdv/Themes", directoryHint: .isDirectory)
+        let nested = folder.appending(path: "Support/peep/Themes", directoryHint: .isDirectory)
         let library = CustomThemeLibrary(folder: nested, settings: settings, timing: Self.timing)
         library.start()
         defer { library.stop() }

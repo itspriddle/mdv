@@ -1,6 +1,6 @@
 ---
 title: Document Theme Fixture
-mdv:
+peep:
   theme: serif
 ---
 

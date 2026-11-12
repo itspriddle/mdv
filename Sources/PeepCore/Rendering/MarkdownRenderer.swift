@@ -1,0 +1,133 @@
+/// Converts Markdown source into a rendered document.
+public protocol MarkdownRenderer: Sendable {
+    func render(_ markdown: String) -> RenderedDocument
+}
+
+/// How a document is parsed and rendered: the flavor (syntax) plus viewer and safety features,
+/// which are independent of the flavor (see `Flavor` for the split).
+public struct RenderOptions: Sendable, Equatable {
+    /// The Markdown dialect: parser extensions and the syntax transforms it runs (#51). Defaults
+    /// to GitHub Flavored Markdown. Callers choose syntax here, never per extension.
+    public var flavor: Flavor
+    /// Built-in preprocessors turned on in addition to the flavor's own transforms, independent of
+    /// the flavor (#53's wiki links). Empty by default. They run in `MarkdownTransform` order.
+    public var builtInPreprocessors: Set<MarkdownTransform> = []
+    /// Strip a leading YAML/TOML frontmatter block before parsing (#8). Turn off for spec
+    /// conformance, where a leading `---` block is ordinary Markdown.
+    public var detectsFrontmatter = true
+    /// How detected frontmatter is shown (#8).
+    public var frontmatterDisplay = FrontmatterDisplay.hidden
+    /// Read the frontmatter's `peep:` mapping and apply it (#54, `DocumentOverrides`): a document
+    /// can pick its flavor (which beats `flavor`) and, in the app, its theme. Presentation only;
+    /// no safety setting can be overridden.
+    public var appliesDocumentOverrides = true
+    /// Overrides the caller chose explicitly, so a document's `peep:` value for them is not
+    /// applied (#64): `peep --flavor commonmark` pins `.flavor`, and the flag beats `peep.flavor`.
+    /// Empty by default (every override applies). Pinning only keeps this render's own setting;
+    /// it never changes a safety setting, which documents can't override anyway.
+    public var pinnedOverrides: Set<DocumentOverrides.Key> = []
+    /// Markup for GFM extensions whose HTML differs between GitHub and cmark (task lists and
+    /// footnotes). `RenderOptions.spec` switches to `.cmark`.
+    public var gfmMarkup: GFMMarkup = .github
+    /// Give headings GitHub-compatible `id`s and a hover anchor link (#6). `headings` and the
+    /// first-`h1` title are filled in either way.
+    public var headingAnchors = true
+    /// Annotate block elements with the line they start on in the original file (#9), for
+    /// scroll sync and position-preserving reload in the app (M2). Off by default, so headless
+    /// output (`peep --html`) and the spec suites stay clean; the app turns it on. See
+    /// `HTMLRenderer.writeSourceLine(of:into:)` for the attribute contract.
+    public var sourceLines = false
+    /// Syntax-highlight fenced code blocks that name a language, at render time (#11). Needs
+    /// `HTMLRenderer.highlighter`; blocks render as plain escaped code without one.
+    public var highlighting = true
+    /// Remote images (`RemoteImage`): kept as `<img>` (GitHub-compatible, `peep --html`), or
+    /// replaced with a labeled placeholder (#20). The viewer blocks them until the user opts in.
+    /// Raw-HTML images are only replaced when `sanitize` is on.
+    public var remoteImages = RemoteImagePolicy.keep
+    /// The folder root-relative URLs (`/docs/x.png`) resolve against, as GitHub resolves them
+    /// against the repository root (`RootRelativeURL`): Markdown links and images, and raw-HTML
+    /// `a[href]`, `img[src]`, and `source[srcset]` (when `sanitize` is on). An absolute path; the
+    /// app sets the document's allowed root (`LocalResourceRoot`). `nil` (the default, and
+    /// `peep --html`) writes them unchanged.
+    public var linkRoot: String?
+
+    /// Filter raw HTML through `HTMLSanitizer`'s allowlist. On by default; turn it off only
+    /// for trusted input (the spec suites expect raw HTML to pass through).
+    public var sanitize: Bool
+
+    public init(flavor: Flavor = .gfm, sanitize: Bool = true) {
+        self.flavor = flavor
+        self.sanitize = sanitize
+    }
+
+    /// The AST transforms a render with these options runs: the flavor's plus the built-in
+    /// preprocessors, in pipeline order (`MarkdownTransform`).
+    public var transforms: [MarkdownTransform] {
+        MarkdownTransform.ordered(flavor.transforms.union(builtInPreprocessors))
+    }
+}
+
+/// Which HTML flavor `HTMLRenderer` writes for GFM extensions where GitHub's markup differs from
+/// cmark-gfm's reference renderer. Parsing, numbering, and nesting are the same in both.
+public enum GFMMarkup: Sendable, Equatable {
+    /// GitHub's markup (`task-list-item` classes and labeled checkboxes; plain `<sup>` footnote
+    /// references, an `sr-only` "Footnotes" heading, `data-footnote-backref` classes), minus what
+    /// github.com adds on top: `user-content-` id prefixes, `rel="nofollow"`, `notranslate`
+    /// classes, and the table accessibility wrapper element.
+    case github
+    /// cmark-gfm's `cmark_render_html` markup, which the spec fixtures expect.
+    case cmark
+}
+
+/// The output of a `MarkdownRenderer`.
+public struct RenderedDocument: Sendable, Equatable {
+    /// HTML body fragment (the contents of `<article class="markdown-body">`).
+    public var html: String
+    /// Document title: the frontmatter `title` (#8), else the first non-empty `h1` (#6).
+    public var title: String?
+    /// Headings in document order, with their slugs (#6).
+    public var headings: [Heading]
+    /// The document's frontmatter, when `RenderOptions.detectsFrontmatter` found one (#8).
+    public var frontmatter: Frontmatter?
+    /// Remote images replaced with placeholders under `RenderOptions.remoteImages` (#20):
+    /// Markdown images in document order, then raw-HTML images in document order.
+    public var blockedRemoteImages: [RemoteImage]
+    /// The frontmatter's `peep:` overrides (#54), with what was ignored and why. The flavor is
+    /// already applied; the theme is the caller's to resolve.
+    public var overrides: DocumentOverrides
+    /// The flavor the body was parsed with (#64): `RenderOptions.flavor`, or the document's
+    /// `peep.flavor` when that applied (not pinned).
+    public var flavor: Flavor
+
+    public init(
+        html: String, title: String? = nil, headings: [Heading] = [], frontmatter: Frontmatter? = nil,
+        blockedRemoteImages: [RemoteImage] = [], overrides: DocumentOverrides = .none, flavor: Flavor = .gfm
+    ) {
+        self.html = html
+        self.title = title
+        self.headings = headings
+        self.frontmatter = frontmatter
+        self.blockedRemoteImages = blockedRemoteImages
+        self.overrides = overrides
+        self.flavor = flavor
+    }
+}
+
+/// A heading in a rendered document, for outlines and anchor links.
+public struct Heading: Sendable, Equatable {
+    public var level: Int
+    /// Plain text of the heading (text and code spans; markup, raw HTML, and image alt dropped).
+    public var text: String
+    /// The heading's GitHub-compatible `id`, unique within the document. Link to it with `#slug`.
+    public var slug: String
+    /// 1-based line of the heading in the original file (frontmatter included), or `nil` for a
+    /// tree that has no source positions.
+    public var sourceLine: Int?
+
+    public init(level: Int, text: String, slug: String, sourceLine: Int? = nil) {
+        self.level = level
+        self.text = text
+        self.slug = slug
+        self.sourceLine = sourceLine
+    }
+}

@@ -1,8 +1,8 @@
 import AppKit
-import MdvCore
+import PeepCore
 import notify
 
-/// `mdv --wait` (#69), the app's side: which windows each wait token is waiting on, and the
+/// `peep --wait` (#69), the app's side: which windows each wait token is waiting on, and the
 /// "windows closed" Darwin notification (`AppOpenEvent.windowsClosedNotificationName(for:)`)
 /// once they have all closed. The CLI also watches the app's process, so a crash ends its wait.
 ///
@@ -14,7 +14,7 @@ import notify
 /// token the same way, with `add`.
 ///
 /// Tokens are untrusted (any process can send the open event), but all one can do is make the
-/// app post a notification under mdv's prefix when windows close. Nothing is saved: a restored
+/// app post a notification under Peep's prefix when windows close. Nothing is saved: a restored
 /// window waits for no one, and quitting notifies every token (`notifyAll()`).
 @MainActor
 final class WindowWaits {

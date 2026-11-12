@@ -1,4 +1,4 @@
-import MdvCore
+import PeepCore
 import SwiftUI
 
 /// The bar above the page when the custom preprocessor failed (#57): the window shows the

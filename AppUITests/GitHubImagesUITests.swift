@@ -4,7 +4,7 @@ import XCTest
 /// work tree, and only one of a `#gh-light-mode-only` / `#gh-dark-mode-only` pair is shown.
 @MainActor
 final class GitHubImagesUITests: XCTestCase {
-    private var mdv: MdvUITestApp?
+    private var peep: PeepUITestApp?
     private var folder: URL?
 
     override func setUp() async throws {
@@ -12,8 +12,8 @@ final class GitHubImagesUITests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        mdv?.terminate()
-        mdv = nil
+        peep?.terminate()
+        peep = nil
         if let folder {
             try? FileManager.default.removeItem(at: folder)
         }
@@ -23,7 +23,7 @@ final class GitHubImagesUITests: XCTestCase {
     /// committed inside the project's own repository).
     private func copyRepository() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-ui-github-images-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-ui-github-images-\(UUID().uuidString)", directoryHint: .isDirectory)
         self.folder = folder
         try FileManager.default.copyItem(at: try Fixtures.url(named: "github-images"), to: folder)
         try FileManager.default.createDirectory(at: folder.appending(path: ".git"), withIntermediateDirectories: true)
@@ -31,15 +31,15 @@ final class GitHubImagesUITests: XCTestCase {
     }
 
     func testRootRelativeAndColorModeImages() throws {
-        let mdv = MdvUITestApp.launch(opening: try copyRepository())
-        self.mdv = mdv
+        let peep = PeepUITestApp.launch(opening: try copyRepository())
+        self.peep = peep
 
-        let window = mdv.waitForWindow(titled: "GitHub Images Fixture")
-        mdv.waitForRenderedText("Images rendered.", in: window)
+        let window = peep.waitForWindow(titled: "GitHub Images Fixture")
+        peep.waitForRenderedText("Images rendered.", in: window)
         assertImage("Root PNG", in: window, size: CGSize(width: 64, height: 48))
         assertImage("Root SVG", in: window, size: CGSize(width: 80, height: 30))
 
-        let images = mdv.webView(in: window).images
+        let images = peep.webView(in: window).images
         let shown = ["Light only", "Dark only"].filter { images[$0].exists }
         XCTAssertEqual(shown.count, 1, "exactly one appearance variant is shown: \(shown)")
         if let variant = shown.first {
@@ -50,12 +50,12 @@ final class GitHubImagesUITests: XCTestCase {
     private func assertImage(
         _ alt: String, in window: XCUIElement, size: CGSize, file: StaticString = #filePath, line: UInt = #line
     ) {
-        guard let mdv else {
+        guard let peep else {
             return XCTFail("no app", file: file, line: line)
         }
-        let image = mdv.webView(in: window).images[alt].firstMatch
+        let image = peep.webView(in: window).images[alt].firstMatch
         XCTAssertTrue(
-            image.waitForExistence(timeout: MdvUITestApp.defaultTimeout), "image \"\(alt)\"", file: file, line: line)
+            image.waitForExistence(timeout: PeepUITestApp.defaultTimeout), "image \"\(alt)\"", file: file, line: line)
         let predicate = NSPredicate { object, _ in
             guard let frame = (object as? XCUIElement)?.frame else {
                 return false
@@ -64,7 +64,7 @@ final class GitHubImagesUITests: XCTestCase {
         }
         let loaded = XCTNSPredicateExpectation(predicate: predicate, object: image)
         XCTAssertEqual(
-            XCTWaiter().wait(for: [loaded], timeout: MdvUITestApp.defaultTimeout), .completed,
+            XCTWaiter().wait(for: [loaded], timeout: PeepUITestApp.defaultTimeout), .completed,
             "image \"\(alt)\" frame \(image.frame.size), expected \(size)", file: file, line: line)
     }
 }

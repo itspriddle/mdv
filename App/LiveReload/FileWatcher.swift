@@ -63,7 +63,7 @@ final class FileWatcher: @unchecked Sendable {
     private var isStopped = false
 
     init(
-        url: URL, timing: Timing = Timing(), queue: DispatchQueue = DispatchQueue(label: "mdv.file-watcher"),
+        url: URL, timing: Timing = Timing(), queue: DispatchQueue = DispatchQueue(label: "peep.file-watcher"),
         handler: @escaping @Sendable (Event) -> Void
     ) {
         self.url = url.standardizedFileURL

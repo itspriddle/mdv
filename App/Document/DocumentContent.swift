@@ -1,5 +1,5 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 /// A document's source text and its rendered page: what `MarkdownDocument` holds after a read.
 /// A plain value, so it can be built off the main thread and tested without AppKit.
@@ -102,7 +102,7 @@ struct DocumentContent: Equatable, Sendable {
             preferences: preferences)
     }
 
-    /// Decodes file contents as UTF-8, the only encoding mdv reads. Throws
+    /// Decodes file contents as UTF-8, the only encoding Peep reads. Throws
     /// `CocoaError(.fileReadInapplicableStringEncoding)` for anything else. Cheap next to
     /// rendering (a few milliseconds for 5 MB), so `MarkdownDocument` decodes on the main thread
     /// and its open still fails with NSDocument's own error.
@@ -118,7 +118,7 @@ struct DocumentContent: Equatable, Sendable {
     /// frontmatter display; built-in preprocessors), plus `data-source-line` annotations, which the
     /// scroll bridge (`WebViewCoordinator`) reads, and remote images blocked (placeholders)
     /// unless the window opted in, then `https:` only, and root-relative URLs resolved against
-    /// `linkRoot`. `mdv --html` leaves the last three off.
+    /// `linkRoot`. `peep --html` leaves the last three off.
     static func renderOptions(
         preferences: MarkdownPreferences = .default, allowingRemoteImages: Bool = false, linkRoot: String? = nil
     ) -> RenderOptions {
@@ -146,7 +146,7 @@ struct RenderedPage: Equatable, Sendable {
     /// Remote images shown as placeholders (#20); the remote images bar offers to load the
     /// `https:` ones.
     let blockedRemoteImages: [RemoteImage]
-    /// The theme the document's frontmatter names (`mdv.theme`, #54), unresolved. Each window
+    /// The theme the document's frontmatter names (`peep.theme`, #54), unresolved. Each window
     /// resolves it like a pick, below the reader's own pick (`DocumentWindowController.themeID`).
     let documentThemeID: String?
 

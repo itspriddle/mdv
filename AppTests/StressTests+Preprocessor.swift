@@ -1,10 +1,10 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The custom preprocessor under load (#57, the M4 exit criterion): windows open on scripts
 /// that hang, crash, flood stdout, or leave children behind; live reload storms while scripts
@@ -33,7 +33,7 @@ extension StressTests {
 
     @Test("scripts that hang, crash, flood, or fork can't stall the app or leave processes behind")
     func misbehavingPreprocessors() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let scripts = PreprocessorScripts(folder: folder)
         let cases = [
             MisbehavingScript(name: "hang", path: try scripts.hang(), failure: "timedOut"),
@@ -98,7 +98,7 @@ extension StressTests {
 
     @Test("live reload storms while a slow script runs end on the newest content, with no stale runs left")
     func preprocessorReloadStorm() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let scripts = PreprocessorScripts(folder: folder)
         let settings = PreprocessorScripts.settings(
             running: try scripts.slow(seconds: 0.3), defaults: defaults.defaults)
@@ -137,7 +137,7 @@ extension StressTests {
 
     @Test("closing windows while their scripts run stops every script and frees the documents")
     func closeMidPreprocessor() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let scripts = PreprocessorScripts(folder: folder)
         let hang = PreprocessorScripts.settings(running: try scripts.hang(), defaults: defaults.defaults)
         let fork = PreprocessorScripts.settings(running: try scripts.fork(), defaults: defaults.defaults)

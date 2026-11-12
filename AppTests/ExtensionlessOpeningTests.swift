@@ -3,10 +3,10 @@ import Foundation
 import Testing
 import UniformTypeIdentifiers
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Extensionless text files (`README`) open from the Open panel, drops, and the document
-/// controller, while mdv registers as a handler only for Markdown (#41).
+/// controller, while Peep registers as a handler only for Markdown (#41).
 @MainActor
 @Suite("Opening extensionless files", .serialized, .timeLimit(.minutes(1)))
 struct ExtensionlessOpeningTests {
@@ -14,7 +14,7 @@ struct ExtensionlessOpeningTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-extensionless-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-extensionless-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 
@@ -107,7 +107,7 @@ struct ExtensionlessOpeningTests {
         let changelog = try file("CHANGELOG", "# Changes")
         let binary = folder.appending(path: "BINARY")
         try Data([0x00, 0x01]).write(to: binary)
-        let pasteboard = NSPasteboard(name: NSPasteboard.Name("mdv-tests-\(UUID().uuidString)"))
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("peep-tests-\(UUID().uuidString)"))
         defer { pasteboard.releaseGlobally() }
         pasteboard.clearContents()
         pasteboard.writeObjects([binary, readme, changelog].map { $0 as NSURL })
@@ -125,7 +125,7 @@ struct ExtensionlessOpeningTests {
         #expect(document.content?.page.title == "Read me")
     }
 
-    @Test("mdv registers as a handler only for Markdown, never plain text or arbitrary data")
+    @Test("Peep registers as a handler only for Markdown, never plain text or arbitrary data")
     func handlerRegistration() throws {
         let types = try #require(Bundle.main.object(forInfoDictionaryKey: "CFBundleDocumentTypes") as? [[String: Any]])
         let ranks = Dictionary(

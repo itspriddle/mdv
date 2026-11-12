@@ -1,4 +1,4 @@
-import MdvCore
+import PeepCore
 import SwiftUI
 
 /// Settings > General (#36). Each control reads `SettingsModel` and changes the setting through
@@ -79,10 +79,10 @@ struct GeneralSettingsView: View {
             Section {
                 LabeledContent("Default viewer:") {
                     if model.isDefaultViewer {
-                        Text("mdv opens Markdown files")
+                        Text("Peep opens Markdown files")
                             .accessibilityIdentifier("settings-default-viewer-status")
                     } else {
-                        Button("Make mdv the Default Markdown Viewer") {
+                        Button("Make Peep the Default Markdown Viewer") {
                             Task { await model.makeDefaultViewer() }
                         }
                         .disabled(model.isMakingDefaultViewer)

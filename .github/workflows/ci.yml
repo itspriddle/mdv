@@ -37,14 +37,14 @@ jobs:
       - name: Core tests
         run: make test-core
         env:
-          # Render wall-clock bounds are report-only here (Tests/MdvCoreTests/RenderTiming.swift).
-          MDV_TIMING_REPORT_ONLY: "1"
+          # Render wall-clock bounds are report-only here (Tests/PeepCoreTests/RenderTiming.swift).
+          PEEP_TIMING_REPORT_ONLY: "1"
       - name: Build and test app
         run: make build test-app SIGN=0
         env:
           # Main-thread timing bounds are report-only here: shared runners are too starved for
           # them (AppTests/Support/MainThreadTiming.swift). They stay strict locally.
-          TEST_RUNNER_MDV_TIMING_REPORT_ONLY: "1"
+          TEST_RUNNER_PEEP_TIMING_REPORT_ONLY: "1"
       - name: Upload theme snapshots
         if: always()
         uses: actions/upload-artifact@v7
@@ -70,7 +70,7 @@ jobs:
         run: make test-ui
         env:
           # Runs the window restoration UI test, which writes real saved state (fine on CI).
-          TEST_RUNNER_MDV_UI_TEST_RESTORATION: "1"
+          TEST_RUNNER_PEEP_UI_TEST_RESTORATION: "1"
       - name: Upload UI test results
         if: failure()
         uses: actions/upload-artifact@v7

@@ -4,15 +4,15 @@ import XCTest
 /// opened after the change, not to the ones already open.
 @MainActor
 final class SettingsUITests: XCTestCase {
-    private var mdv: MdvUITestApp?
+    private var peep: PeepUITestApp?
 
     override func setUp() async throws {
         continueAfterFailure = false
     }
 
     override func tearDown() async throws {
-        mdv?.terminate()
-        mdv = nil
+        peep?.terminate()
+        peep = nil
     }
 
     /// The same one-line text in both fixtures: in Serif (19px) its line is taller than in
@@ -21,64 +21,64 @@ final class SettingsUITests: XCTestCase {
     private static let line = "A short line in the theme."
 
     func testDefaultThemeAppliesToNewWindows() throws {
-        let mdv = try MdvUITestApp.launch(openingFixture: "settings/first.md")
-        self.mdv = mdv
-        let first = mdv.waitForWindow(titled: "Settings First")
-        let github = mdv.waitForRenderedText(Self.line, in: first).frame
+        let peep = try PeepUITestApp.launch(openingFixture: "settings/first.md")
+        self.peep = peep
+        let first = peep.waitForWindow(titled: "Settings First")
+        let github = peep.waitForRenderedText(Self.line, in: first).frame
         XCTAssertGreaterThan(github.height, 0)
 
-        let settings = mdv.openSettings()
+        let settings = peep.openSettings()
         XCTAssertEqual(settings.title, "General")
         XCTAssertTrue(settings.popUpButtons["settings-appearance"].exists)
         XCTAssertTrue(settings.popUpButtons["settings-zoom"].exists)
         XCTAssertTrue(settings.popUpButtons["settings-content-width"].exists)
         XCTAssertTrue(settings.checkBoxes["settings-outline"].exists)
-        mdv.chooseSetting("Serif", in: "settings-default-theme")
+        peep.chooseSetting("Serif", in: "settings-default-theme")
         XCTAssertEqual(settings.popUpButtons["settings-default-theme"].value as? String, "Serif")
 
         // The setting is the default for new windows; the open window keeps its theme.
-        XCTAssertEqual(mdv.renderedText(Self.line, in: first).frame.height, github.height, accuracy: 0.5)
+        XCTAssertEqual(peep.renderedText(Self.line, in: first).frame.height, github.height, accuracy: 0.5)
 
         // Command-comma again brings back the same window, not a second one.
         settings.typeKey("w", modifierFlags: .command)
-        XCTAssertTrue(settings.waitForNonExistence(timeout: MdvUITestApp.defaultTimeout), "Settings closed")
-        mdv.openSettings()
-        XCTAssertEqual(mdv.app.windows.matching(identifier: "settings-window").count, 1)
-        XCTAssertEqual(mdv.settingsWindow.popUpButtons["settings-default-theme"].value as? String, "Serif")
-        mdv.settingsWindow.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(settings.waitForNonExistence(timeout: PeepUITestApp.defaultTimeout), "Settings closed")
+        peep.openSettings()
+        XCTAssertEqual(peep.app.windows.matching(identifier: "settings-window").count, 1)
+        XCTAssertEqual(peep.settingsWindow.popUpButtons["settings-default-theme"].value as? String, "Serif")
+        peep.settingsWindow.typeKey("w", modifierFlags: .command)
 
         // File > Open. (`XCUIApplication.open(_:)` can hand the file to a new instance, which
         // isn't in UI-test mode.)
-        mdv.app.typeKey("o", modifierFlags: .command)
-        XCTAssertTrue(mdv.openPanel.waitForExistence(timeout: MdvUITestApp.defaultTimeout), "Open panel")
-        mdv.chooseInOpenPanel(try Fixtures.url(named: "settings/second.md"))
-        let second = mdv.waitForWindow(titled: "Settings Second")
-        let serif = mdv.waitForRenderedText(Self.line, in: second).frame
+        peep.app.typeKey("o", modifierFlags: .command)
+        XCTAssertTrue(peep.openPanel.waitForExistence(timeout: PeepUITestApp.defaultTimeout), "Open panel")
+        peep.chooseInOpenPanel(try Fixtures.url(named: "settings/second.md"))
+        let second = peep.waitForWindow(titled: "Settings Second")
+        let serif = peep.waitForRenderedText(Self.line, in: second).frame
         XCTAssertGreaterThan(serif.height, github.height + 1, "the new window uses Serif")
     }
 
     /// Settings > Markdown (#55): the default flavor applies to open documents at once. In
     /// CommonMark the table is plain text.
     func testDefaultFlavorReRendersOpenDocuments() throws {
-        let mdv = try MdvUITestApp.launch(openingFixture: "settings/flavor.md")
-        self.mdv = mdv
-        let window = mdv.waitForWindow(titled: "Settings Flavor")
-        mdv.waitForRenderedText("After the table.", in: window)
-        let webView = mdv.webView(in: window)
-        XCTAssertTrue(webView.tables.firstMatch.waitForExistence(timeout: MdvUITestApp.defaultTimeout), "GFM table")
+        let peep = try PeepUITestApp.launch(openingFixture: "settings/flavor.md")
+        self.peep = peep
+        let window = peep.waitForWindow(titled: "Settings Flavor")
+        peep.waitForRenderedText("After the table.", in: window)
+        let webView = peep.webView(in: window)
+        XCTAssertTrue(webView.tables.firstMatch.waitForExistence(timeout: PeepUITestApp.defaultTimeout), "GFM table")
 
-        mdv.openSettings()
-        mdv.showSettingsPane("Markdown")
-        XCTAssertTrue(mdv.settingsWindow.popUpButtons["settings-frontmatter"].exists)
+        peep.openSettings()
+        peep.showSettingsPane("Markdown")
+        XCTAssertTrue(peep.settingsWindow.popUpButtons["settings-frontmatter"].exists)
         XCTAssertEqual(
-            mdv.settingsWindow.popUpButtons["settings-default-flavor"].value as? String, "GitHub Flavored Markdown")
-        mdv.chooseSetting("CommonMark", in: "settings-default-flavor")
+            peep.settingsWindow.popUpButtons["settings-default-flavor"].value as? String, "GitHub Flavored Markdown")
+        peep.chooseSetting("CommonMark", in: "settings-default-flavor")
 
         // The open window re-renders: the table's rows are now a paragraph of pipes.
-        mdv.waitForRenderedText("| Alpha | Beta |", in: window)
-        XCTAssertTrue(webView.tables.firstMatch.waitForNonExistence(timeout: MdvUITestApp.defaultTimeout), "no table")
+        peep.waitForRenderedText("| Alpha | Beta |", in: window)
+        XCTAssertTrue(webView.tables.firstMatch.waitForNonExistence(timeout: PeepUITestApp.defaultTimeout), "no table")
 
-        mdv.chooseSetting("GitHub Flavored Markdown", in: "settings-default-flavor")
-        XCTAssertTrue(webView.tables.firstMatch.waitForExistence(timeout: MdvUITestApp.defaultTimeout), "table back")
+        peep.chooseSetting("GitHub Flavored Markdown", in: "settings-default-flavor")
+        XCTAssertTrue(webView.tables.firstMatch.waitForExistence(timeout: PeepUITestApp.defaultTimeout), "table back")
     }
 }

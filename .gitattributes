@@ -1,3 +1,3 @@
 # Spec fixtures are byte-exact test inputs (regression.txt depends on CR bytes).
-Tests/MdvCoreTests/Fixtures/spec/*.txt -text
-Sources/MdvCore/Highlighting/HighlightJSSource.generated.swift linguist-generated=true
+Tests/PeepCoreTests/Fixtures/spec/*.txt -text
+Sources/PeepCore/Highlighting/HighlightJSSource.generated.swift linguist-generated=true

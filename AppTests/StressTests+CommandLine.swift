@@ -1,12 +1,12 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// The M5 crash and hang pass (#72): what `mdv` sends the app, driven through `DocumentOpener`
-/// as `AppDelegate` drives it, without launching anything. Many `mdv FILE` events at once
+/// The M5 crash and hang pass (#72): what `peep` sends the app, driven through `DocumentOpener`
+/// as `AppDelegate` drives it, without launching anything. Many `peep FILE` events at once
 /// (files shared between them, standard input among them), `--wait` tokens when the app quits
 /// mid-open, the largest standard input the CLI sends, and `--theme` changing while a window's
 /// first render is in flight. Run under the Address and Thread Sanitizers as well
@@ -30,7 +30,7 @@ extension StressTests {
         var posted: [UUID] { record.posted }
         var isIdle: Bool { record.inFlight == 0 }
 
-        /// Sends one open event without waiting for it, as a second `mdv` would.
+        /// Sends one open event without waiting for it, as a second `peep` would.
         func send(_ urls: [URL], themeID: String? = nil, waitToken: UUID? = nil) {
             let record = record
             record.inFlight += 1
@@ -58,10 +58,10 @@ extension StressTests {
         }
     }
 
-    @Test("many mdv FILE events at once, sharing files and piping input, open each file once")
+    @Test("many peep FILE events at once, sharing files and piping input, open each file once")
     func manyOpenEvents() async throws {
         defer { closeEveryDocument() }
-        let defaults = try ThrowawayDefaults("mdv-stress-cli")
+        let defaults = try ThrowawayDefaults("peep-stress-cli")
         let events = CommandLineEvents(defaults: defaults)
         let urls = try (0..<12).map { try write("# File \($0)\n\nBody \($0).\n", to: "cli-\($0).md") }
         let themes = ["github", "document", "serif"]
@@ -107,7 +107,7 @@ extension StressTests {
     @Test("--wait tokens when the app quits mid-open are each notified exactly once")
     func waitsWhenQuitting() async throws {
         defer { closeEveryDocument() }
-        let defaults = try ThrowawayDefaults("mdv-stress-cli")
+        let defaults = try ThrowawayDefaults("peep-stress-cli")
         let events = CommandLineEvents(defaults: defaults)
         let urls = try (0..<6).map { try write("# Wait \($0)\n", to: "wait-\($0).md") }
         var tokens: [UUID] = []
@@ -142,10 +142,10 @@ extension StressTests {
         #expect(events.opener.waits.pendingTokens.isEmpty)
     }
 
-    @Test("the largest standard input mdv sends opens in a window; one byte more is refused")
+    @Test("the largest standard input Peep sends opens in a window; one byte more is refused")
     func largestStandardInput() async throws {
         defer { closeEveryDocument() }
-        let defaults = try ThrowawayDefaults("mdv-stress-cli")
+        let defaults = try ThrowawayDefaults("peep-stress-cli")
         let events = CommandLineEvents(defaults: defaults)
         // Ordinary Markdown up to just under the cap, then one long paragraph to land on it.
         var source = FirstRenderTests.largeSource(bytes: StandardInputHandoff.maximumBytes - 100_000) + "\n"
@@ -181,14 +181,14 @@ extension StressTests {
     @Test("--theme changing while a window's first render is in flight ends on the last theme")
     func themeChangesDuringRender() async throws {
         defer { closeEveryDocument() }
-        let defaults = try ThrowawayDefaults("mdv-stress-cli")
+        let defaults = try ThrowawayDefaults("peep-stress-cli")
         let events = CommandLineEvents(defaults: defaults)
         let registry = ThemeRegistry.bundled
         let themes = registry.themes.map(\.id)
         let urls = try (0..<3).map {
             try write(FirstRenderTests.largeSource(bytes: 300_000 * ($0 + 1)), to: "render-\($0).md")
         }
-        // Each step re-sends every file with the next theme, as repeated `mdv --theme X FILE`
+        // Each step re-sends every file with the next theme, as repeated `peep --theme X FILE`
         // would, while the first renders (and the theme swaps before them) are still going.
         let steps = 12
         for step in 0..<steps {

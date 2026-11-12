@@ -15,7 +15,7 @@ final class ThrowawayDefaults {
     let suiteName: String
     private let folder: URL
 
-    init(_ label: String = "mdv-tests") throws {
+    init(_ label: String = "peep-tests") throws {
         folder = FileManager.default.temporaryDirectory.appending(
             path: "\(label)-defaults-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 import WebKit
 
 /// How a link was followed, which decides where it opens.
@@ -18,9 +18,9 @@ enum LinkOpening: Equatable {
 
 extension WebViewCoordinator {
     /// Where the shown document lives, for `LinkPolicy`. The page is served at
-    /// `mdv-doc://<token>/<absolute path>` (#18), so links resolve to `mdv-doc` URLs; this
+    /// `peep-doc://<token>/<absolute path>` (#18), so links resolve to `peep-doc` URLs; this
     /// window's token maps them back to files and folders (`DocumentURLScheme.fileURL(from:token:)`;
-    /// a folder link such as `sub/` is revealed in Finder). Any other `mdv-doc` URL (another token, an unclean path) names no file and is blocked, and so
+    /// a folder link such as `sub/` is revealed in Finder). Any other `peep-doc` URL (another token, an unclean path) names no file and is blocked, and so
     /// are `file:` URLs, which a document can't produce (cmark's safe mode and the sanitizer drop
     /// them).
     var linkContext: LinkContext {

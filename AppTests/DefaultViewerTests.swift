@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import UniformTypeIdentifiers
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Records calls instead of changing Launch Services.
 @MainActor
@@ -24,11 +24,11 @@ final class FakeWorkspace: DefaultApplicationWorkspace {
             throw setError
         }
         if appliesChanges {
-            handlers[contentType] = "com.itspriddle.mdv"
+            handlers[contentType] = "now.peep.Peep"
         }
     }
 
-    /// Makes `bundleIdentifier` the default for every Markdown type mdv declares.
+    /// Makes `bundleIdentifier` the default for every Markdown type Peep declares.
     func setHandler(_ bundleIdentifier: String, for contentTypes: [UTType] = DefaultViewer.contentTypes) {
         for contentType in contentTypes {
             handlers[contentType] = bundleIdentifier
@@ -48,15 +48,15 @@ struct DefaultViewerTests {
     var date = Date(timeIntervalSince1970: 1_000_000)
 
     init() throws {
-        throwawayDefaults = try ThrowawayDefaults("mdv-default-viewer-tests")
+        throwawayDefaults = try ThrowawayDefaults("peep-default-viewer-tests")
         workspace.setHandler("com.example.other")
     }
 
     func viewer(suppressed: Bool = false, at date: Date? = nil) -> DefaultViewer {
         let now = date ?? self.date
         return DefaultViewer(
-            workspace: workspace, defaults: defaults, applicationURL: URL(filePath: "/Applications/mdv.app"),
-            bundleIdentifier: "com.itspriddle.mdv", isSuppressed: suppressed, now: { now })
+            workspace: workspace, defaults: defaults, applicationURL: URL(filePath: "/Applications/Peep.app"),
+            bundleIdentifier: "now.peep.Peep", isSuppressed: suppressed, now: { now })
     }
 
     @Test("offers when another app is the default")
@@ -64,18 +64,18 @@ struct DefaultViewerTests {
         #expect(viewer().shouldOffer)
     }
 
-    @Test("doesn't offer when mdv is already the default")
+    @Test("doesn't offer when Peep is already the default")
     func noOfferWhenDefault() {
-        workspace.setHandler("com.itspriddle.mdv")
+        workspace.setHandler("now.peep.Peep")
         let viewer = viewer()
         #expect(viewer.isDefault)
         #expect(!viewer.shouldOffer)
     }
 
-    @Test("offers until mdv is the default for every declared Markdown type")
+    @Test("offers until Peep is the default for every declared Markdown type")
     func offersUntilDefaultForEveryType() {
         #expect(DefaultViewer.contentTypes.count > 1)
-        workspace.setHandler("com.itspriddle.mdv", for: [Self.markdown])
+        workspace.setHandler("now.peep.Peep", for: [Self.markdown])
         let viewer = viewer()
         #expect(!viewer.isDefault)
         #expect(viewer.shouldOffer)
@@ -118,13 +118,13 @@ struct DefaultViewerTests {
         #expect(workspace.setCalls.isEmpty)
     }
 
-    @Test("Make Default sets mdv for every Markdown type")
+    @Test("Make Default sets Peep for every Markdown type")
     func makeDefault() async throws {
         let viewer = viewer()
         try await viewer.respond(.makeDefault)
         #expect(workspace.setCalls.map(\.1) == DefaultViewer.contentTypes)
-        #expect(workspace.setCalls.allSatisfy { $0.0 == URL(filePath: "/Applications/mdv.app") })
-        workspace.setHandler("com.itspriddle.mdv")
+        #expect(workspace.setCalls.allSatisfy { $0.0 == URL(filePath: "/Applications/Peep.app") })
+        workspace.setHandler("now.peep.Peep")
         #expect(viewer.isDefault)
     }
 

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Live reload when the document's folder goes away and comes back (#41).
 extension LiveReloadTests {

@@ -1,66 +1,66 @@
 import XCTest
 
-/// `mdv FILE` (#67): the embedded CLI opens files in the running app through Launch Services,
+/// `peep FILE` (#67): the embedded CLI opens files in the running app through Launch Services,
 /// focuses a file that is already open, and passes `--theme` as the window's pick.
 @MainActor
 final class CommandLineUITests: XCTestCase {
-    private var mdv: MdvUITestApp?
+    private var peep: PeepUITestApp?
 
     override func setUp() async throws {
         continueAfterFailure = false
     }
 
     override func tearDown() async throws {
-        mdv?.terminate()
-        mdv = nil
+        peep?.terminate()
+        peep = nil
     }
 
     func testOpensFileInRunningAppAndFocusesItAgain() throws {
-        let mdv = MdvUITestApp.launch()
-        self.mdv = mdv
-        let smoke = try MdvUITestApp.temporaryCopy(ofFixture: "smoke.md").path(percentEncoded: false)
+        let peep = PeepUITestApp.launch()
+        self.peep = peep
+        let smoke = try PeepUITestApp.temporaryCopy(ofFixture: "smoke.md").path(percentEncoded: false)
 
-        let first = try MdvUITestApp.runCommandLine([smoke])
+        let first = try PeepUITestApp.runCommandLine([smoke])
         XCTAssertEqual(first.status, 0, first.stderr)
-        let window = mdv.waitForWindow(titled: "Smoke Test Fixture")
-        mdv.waitForRenderedText("The quick brown fox renders in mdv.", in: window)
+        let window = peep.waitForWindow(titled: "Smoke Test Fixture")
+        peep.waitForRenderedText("The quick brown fox renders in Peep.", in: window)
 
-        // Another window in front, then mdv on the first file again: it comes forward, still one.
-        let other = try MdvUITestApp.temporaryCopy(ofFixture: "links-target.md").path(percentEncoded: false)
-        XCTAssertEqual(try MdvUITestApp.runCommandLine([other]).status, 0)
-        mdv.waitForWindowCount(2)
-        XCTAssertNotEqual(mdv.frontWindow.title, "Smoke Test Fixture")
+        // Another window in front, then Peep on the first file again: it comes forward, still one.
+        let other = try PeepUITestApp.temporaryCopy(ofFixture: "links-target.md").path(percentEncoded: false)
+        XCTAssertEqual(try PeepUITestApp.runCommandLine([other]).status, 0)
+        peep.waitForWindowCount(2)
+        XCTAssertNotEqual(peep.frontWindow.title, "Smoke Test Fixture")
 
-        let again = try MdvUITestApp.runCommandLine([smoke])
+        let again = try PeepUITestApp.runCommandLine([smoke])
         XCTAssertEqual(again.status, 0, again.stderr)
-        waitUntil("the open window came forward") { mdv.frontWindow.title == "Smoke Test Fixture" }
-        mdv.waitForWindowCount(2)
+        waitUntil("the open window came forward") { peep.frontWindow.title == "Smoke Test Fixture" }
+        peep.waitForWindowCount(2)
     }
 
     /// `--theme` on a document whose frontmatter names Serif: the window opens in GitHub as its
     /// View > Theme pick (so Document's Theme is offered), and going back to the document's
     /// theme restyles the page; then `--theme serif` on the open file switches it again.
     func testThemeFlagBecomesTheWindowsPick() throws {
-        let mdv = MdvUITestApp.launch()
-        self.mdv = mdv
-        let themed = try MdvUITestApp.temporaryCopy(ofFixture: "document-theme.md").path(percentEncoded: false)
+        let peep = PeepUITestApp.launch()
+        self.peep = peep
+        let themed = try PeepUITestApp.temporaryCopy(ofFixture: "document-theme.md").path(percentEncoded: false)
 
-        let result = try MdvUITestApp.runCommandLine(["--theme", "github", themed])
+        let result = try PeepUITestApp.runCommandLine(["--theme", "github", themed])
         XCTAssertEqual(result.status, 0, result.stderr)
-        let window = mdv.waitForWindow(titled: "Document Theme Fixture")
-        let paragraph = mdv.waitForRenderedText("This paragraph is set in the theme", in: window)
+        let window = peep.waitForWindow(titled: "Document Theme Fixture")
+        let paragraph = peep.waitForRenderedText("This paragraph is set in the theme", in: window)
         let githubWidth = paragraph.frame.width
-        XCTAssertTrue(mdv.documentThemeItemIsEnabled(expected: true), "the pick hides the document's theme")
+        XCTAssertTrue(peep.documentThemeItemIsEnabled(expected: true), "the pick hides the document's theme")
 
-        mdv.chooseDocumentTheme()
+        peep.chooseDocumentTheme()
         waitUntil("the document's Serif restyles the page") { abs(paragraph.frame.width - githubWidth) > 1 }
-        XCTAssertFalse(mdv.documentThemeItemIsEnabled(expected: false), "no pick any more")
+        XCTAssertFalse(peep.documentThemeItemIsEnabled(expected: false), "no pick any more")
 
         // Already open: the window switches to the flag's theme.
-        XCTAssertEqual(try MdvUITestApp.runCommandLine(["--theme", "github", themed]).status, 0)
+        XCTAssertEqual(try PeepUITestApp.runCommandLine(["--theme", "github", themed]).status, 0)
         waitUntil("GitHub again") { abs(paragraph.frame.width - githubWidth) < 1 }
-        XCTAssertTrue(mdv.documentThemeItemIsEnabled(expected: true))
-        mdv.waitForWindowCount(1)
+        XCTAssertTrue(peep.documentThemeItemIsEnabled(expected: true))
+        peep.waitForWindowCount(1)
     }
 
     private func waitUntil(_ description: String, _ condition: @escaping () -> Bool) {
@@ -68,19 +68,19 @@ final class CommandLineUITests: XCTestCase {
         XCTAssertEqual(
             XCTWaiter().wait(
                 for: [XCTNSPredicateExpectation(predicate: predicate, object: nil)],
-                timeout: MdvUITestApp.defaultTimeout),
+                timeout: PeepUITestApp.defaultTimeout),
             .completed, description)
     }
 
     func testBadPathOpensNothing() throws {
-        let mdv = MdvUITestApp.launch()
-        self.mdv = mdv
-        let smoke = try MdvUITestApp.temporaryCopy(ofFixture: "smoke.md").path(percentEncoded: false)
-        let missing = FileManager.default.temporaryDirectory.appending(path: "mdv-missing-\(UUID().uuidString).md")
+        let peep = PeepUITestApp.launch()
+        self.peep = peep
+        let smoke = try PeepUITestApp.temporaryCopy(ofFixture: "smoke.md").path(percentEncoded: false)
+        let missing = FileManager.default.temporaryDirectory.appending(path: "peep-missing-\(UUID().uuidString).md")
 
-        let result = try MdvUITestApp.runCommandLine([smoke, missing.path(percentEncoded: false)])
+        let result = try PeepUITestApp.runCommandLine([smoke, missing.path(percentEncoded: false)])
         XCTAssertEqual(result.status, 66)
         XCTAssertTrue(result.stderr.contains("No such file or directory"), result.stderr)
-        XCTAssertFalse(mdv.window(titled: "Smoke Test Fixture").waitForExistence(timeout: 2))
+        XCTAssertFalse(peep.window(titled: "Smoke Test Fixture").waitForExistence(timeout: 2))
     }
 }

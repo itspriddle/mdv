@@ -12,7 +12,7 @@ import SwiftUI
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     /// The window's accessibility identifier, for UI tests.
     static let windowIdentifier = NSUserInterfaceItemIdentifier("settings-window")
-    static let frameAutosaveName = "MdvSettings"
+    static let frameAutosaveName = "PeepSettings"
 
     let model: SettingsModel
 

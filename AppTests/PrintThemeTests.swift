@@ -1,15 +1,15 @@
 import AppKit
-import MdvCore
 import PDFKit
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Print themes (#38) in real WebKit: each bundled theme printed to PDF (the Save as PDF path)
 /// from a light and a dark window, then read back. Paper is the same from both appearances,
 /// light, with the theme's fonts at a paper text size, code unclipped and its fills kept, and a
-/// `<picture>`'s light image. The CSS itself is covered by MdvCore's `PrintThemeTests`.
+/// `<picture>`'s light image. The CSS itself is covered by PeepCore's `PrintThemeTests`.
 @MainActor
 @Suite("Print themes", .serialized, .timeLimit(.minutes(2)))
 final class PrintThemeTests: DocumentWindowTestCase {

@@ -1,9 +1,0 @@
-{
-  "spec.txt": {
-    "652": "permanent: tagfilter is not implemented; mdv's raw HTML sanitizer (#7) covers disallowed tags and is off in spec mode"
-  },
-  "extensions.txt": {
-    "22": "permanent: tagfilter is not implemented; mdv's raw HTML sanitizer (#7) covers disallowed tags and is off in spec mode"
-  },
-  "regression.txt": {}
-}

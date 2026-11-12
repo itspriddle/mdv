@@ -1,5 +1,5 @@
-import MdvCore
 import Observation
+import PeepCore
 
 /// One window's remote image opt-in (#20). Remote images are blocked until the user chooses
 /// Load in the remote images bar; the choice covers this window only, lasts until it closes

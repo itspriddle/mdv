@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The M2 crash and hang pass (#27), in process so a failure is a test failure rather than a
 /// crash dialog: windows opened, reloaded, and closed faster than their pages load; files
@@ -18,7 +18,7 @@ struct StressTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-stress-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-stress-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 

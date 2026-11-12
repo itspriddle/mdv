@@ -1,7 +1,7 @@
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 @MainActor
 @Suite("RemoteImageOptIn")

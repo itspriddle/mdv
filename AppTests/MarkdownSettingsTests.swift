@@ -1,8 +1,8 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Settings > Markdown (#55): the store persists and distrusts stored values, the model follows
 /// it, and open documents render again in place (no reload, reading position kept) when a
@@ -21,8 +21,8 @@ final class MarkdownSettingsTests: DocumentWindowTestCase {
 
     func model(markdownSettings: MarkdownSettings) -> SettingsModel {
         let viewer = DefaultViewer(
-            workspace: FakeWorkspace(), defaults: defaults, applicationURL: URL(filePath: "/Applications/mdv.app"),
-            bundleIdentifier: "com.itspriddle.mdv", isSuppressed: true)
+            workspace: FakeWorkspace(), defaults: defaults, applicationURL: URL(filePath: "/Applications/Peep.app"),
+            bundleIdentifier: "now.peep.Peep", isSuppressed: true)
         return SettingsModel(
             appearanceSettings: AppearanceSettings(defaults: defaults, isPersistent: true),
             themeSettings: themeSettings(), zoomSettings: settings(),
@@ -124,7 +124,7 @@ final class MarkdownSettingsTests: DocumentWindowTestCase {
         #expect(defaults.object(forKey: MarkdownSettings.frontmatterKey) == nil)
     }
 
-    @Test("preferences apply to render options; the default flavor stays overridable in MdvCore")
+    @Test("preferences apply to render options; the default flavor stays overridable in PeepCore")
     func applies() {
         let preferences = MarkdownPreferences(flavor: .commonmark, frontmatterDisplay: .table)
         let options = DocumentContent.renderOptions(preferences: preferences)
@@ -176,13 +176,13 @@ final class MarkdownSettingsTests: DocumentWindowTestCase {
         try await coordinator.scroll(toSourceLine: 201)
         let line = try await coordinator.currentSourceLine()
         // A marker in the app world's globals: a reload would start a fresh page without it.
-        _ = try await evaluate("window.mdvMarkdownSettingsMarker = 42; return true;", in: controller)
+        _ = try await evaluate("window.peepMarkdownSettingsMarker = 42; return true;", in: controller)
 
         store.defaultFlavorID = "commonmark"
         try await until("the CommonMark render") { try await !pageHas("table", in: controller) }
         #expect(document.content?.preferences.flavor == .commonmark)
         #expect(
-            try await evaluate("return window.mdvMarkdownSettingsMarker;", in: controller) as? Int == 42, "no reload")
+            try await evaluate("return window.peepMarkdownSettingsMarker;", in: controller) as? Int == 42, "no reload")
         #expect(abs(try await coordinator.currentSourceLine() - line) < 1, "reading position kept")
 
         store.defaultFlavorID = "gfm"

@@ -1,6 +1,6 @@
 import Darwin
 import Foundation
-import MdvCore
+import PeepCore
 
 /// Watches the custom themes folder (#35) for any change to its theme files and reports each
 /// burst of changes once, after a short debounce.
@@ -48,7 +48,7 @@ final class ThemeFolderWatcher: @unchecked Sendable {
 
     init(
         folder: URL, timing: Timing = Timing(),
-        queue: DispatchQueue = DispatchQueue(label: "mdv.theme-folder-watcher", qos: .utility),
+        queue: DispatchQueue = DispatchQueue(label: "peep.theme-folder-watcher", qos: .utility),
         handler: @escaping @Sendable () -> Void
     ) {
         self.folder = folder.standardizedFileURL

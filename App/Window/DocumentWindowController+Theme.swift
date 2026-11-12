@@ -1,12 +1,12 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// The window's theme (#34, #54): View > Theme picks it, the switch is in place
 /// (`WebViewCoordinator.show(_:)`, no reload), and window restoration keeps the pick.
 ///
 /// Precedence, highest first (`themeID`):
 /// 1. the reader's pick for this window (`pickedThemeID`, View > Theme);
-/// 2. the document's frontmatter theme (`documentThemeID`, `mdv.theme`, #54);
+/// 2. the document's frontmatter theme (`documentThemeID`, `peep.theme`, #54);
 /// 3. Settings' default when the window opened (`newWindowThemeID`).
 ///
 /// The window shows `themeSettings.theme(forWindowThemeID: themeID)`: an unknown or removed id
@@ -14,10 +14,10 @@ import MdvCore
 /// to Settings' default theme (#45), and a custom theme whose CSS changed is swapped in when the
 /// registry is replaced. The ids are kept, so the theme comes back when its file does.
 /// Restoration saves only the pick, so a frontmatter theme edited while the app was closed takes
-/// effect on relaunch. A live reload that changes `mdv.theme` swaps the theme in place.
+/// effect on relaunch. A live reload that changes `peep.theme` swaps the theme in place.
 extension DocumentWindowController {
     /// The restorable-state key for the picked theme's id (a `String`), absent without a pick.
-    static let themeStateKey = "mdvTheme"
+    static let themeStateKey = "peepTheme"
 
     /// The theme the window shows.
     var theme: Theme { coordinator.theme }

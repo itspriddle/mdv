@@ -2,7 +2,7 @@ import AppKit
 import PDFKit
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 extension DocumentWindowTestCase {
     /// Prints `document` to a PDF file with no panels (the job disposition `save` path that

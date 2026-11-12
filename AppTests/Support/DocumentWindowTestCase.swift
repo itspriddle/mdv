@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Shared setup for the #26 suites (`ZoomTests`, `PrintCopyTests`): document windows over files
 /// in a temporary folder, a throwaway defaults suite for `ZoomSettings`, and a private
@@ -26,15 +26,15 @@ class DocumentWindowTestCase {
     let throwawayDefaults: ThrowawayDefaults
     var defaults: UserDefaults { throwawayDefaults.defaults }
     /// A private pasteboard, so tests never touch the general one.
-    let pasteboardName = NSPasteboard.Name("mdv-tests-\(UUID().uuidString)")
+    let pasteboardName = NSPasteboard.Name("peep-tests-\(UUID().uuidString)")
     var pasteboard: NSPasteboard { NSPasteboard(name: pasteboardName) }
     var documents: [MarkdownDocument] = []
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-zoom-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-zoom-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        throwawayDefaults = try ThrowawayDefaults("mdv-zoom-tests")
+        throwawayDefaults = try ThrowawayDefaults("peep-zoom-tests")
     }
 
     deinit {

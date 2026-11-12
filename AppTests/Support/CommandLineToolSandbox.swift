@@ -1,15 +1,15 @@
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Runs the installer's privileged scripts the way `AppleScriptPrivilegedRunner` does
-/// (`/bin/sh -c <script> mdv <arguments>…`), without privileges, over temp folders.
+/// (`/bin/sh -c <script> peep <arguments>…`), without privileges, over temp folders.
 struct ShellRunner: PrivilegedRunning {
     func run(script: String, arguments: [String]) async throws(PrivilegedRunError) {
         let process = Process()
         process.executableURL = URL(filePath: "/bin/sh")
-        process.arguments = ["-c", script, "mdv"] + arguments
+        process.arguments = ["-c", script, "peep"] + arguments
         let errors = Pipe()
         process.standardError = errors
         do {
@@ -38,21 +38,21 @@ final class RecordingRunner: PrivilegedRunning, @unchecked Sendable {
     }
 }
 
-/// A temp folder with fake mdv.app bundles and a `bin` folder to install into.
+/// A temp folder with fake Peep.app bundles and a `bin` folder to install into.
 struct CommandLineToolSandbox {
-    static let bundleIdentifier = "com.itspriddle.mdv"
+    static let bundleIdentifier = "now.peep.Peep"
     let root: URL
 
     init() throws {
         root = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-cli-install-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-cli-install-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
     }
 
     var bin: URL { root.appending(path: "bin", directoryHint: .isDirectory) }
-    var link: URL { bin.appending(path: "mdv") }
+    var link: URL { bin.appending(path: "peep") }
 
-    /// A fake app bundle with an Info.plist and a `Contents/Helpers/mdv` file.
+    /// A fake app bundle with an Info.plist and a `Contents/Helpers/peep` file.
     @discardableResult
     func makeApp(_ name: String, bundleIdentifier: String = bundleIdentifier) throws -> URL {
         let app = root.appending(path: "Apps/\(name)", directoryHint: .isDirectory)
@@ -61,16 +61,16 @@ struct CommandLineToolSandbox {
         let info = try PropertyListSerialization.data(
             fromPropertyList: ["CFBundleIdentifier": bundleIdentifier], format: .xml, options: 0)
         try info.write(to: app.appending(path: "Contents/Info.plist"))
-        try Data("#!/bin/sh\n".utf8).write(to: helpers.appending(path: "mdv"))
+        try Data("#!/bin/sh\n".utf8).write(to: helpers.appending(path: "peep"))
         let man = app.appending(path: "Contents/Resources/man/man1", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: man, withIntermediateDirectories: true)
-        try Data(".Dd x\n".utf8).write(to: man.appending(path: "mdv.1"))
+        try Data(".Dd x\n".utf8).write(to: man.appending(path: "peep.1"))
         return app
     }
 
     /// Where the man page's link goes for `bin` (`share/man/man1` beside it).
     var manFolder: URL { root.appending(path: "share/man/man1", directoryHint: .isDirectory) }
-    var manLink: URL { manFolder.appending(path: "mdv.1") }
+    var manLink: URL { manFolder.appending(path: "peep.1") }
 
     func manPageInstaller(app: URL, folder: URL? = nil) -> CommandLineToolInstaller {
         CommandLineToolInstaller(

@@ -1,24 +1,24 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// `mdv FILE` through Launch Services (#67, #69): the app gets a standard Open Documents event
-/// carrying mdv's parameters. AppKit handles it itself (it never calls the delegate's
-/// `application(_:open:)` for mdv's document types) and may open its files after the event,
+/// `peep FILE` through Launch Services (#67, #69): the app gets a standard Open Documents event
+/// carrying Peep's parameters. AppKit handles it itself (it never calls the delegate's
+/// `application(_:open:)` for Peep's document types) and may open its files after the event,
 /// so `OpenDocumentsEventTap` records the parameters as the event arrives and
 /// `DocumentController` applies them to each file (`OpenDocumentsEventLog`).
 @MainActor
-@Suite("Open Documents events keep mdv's parameters", .serialized, .timeLimit(.minutes(1)))
+@Suite("Open Documents events keep Peep's parameters", .serialized, .timeLimit(.minutes(1)))
 final class OpenDocumentsEventTests {
     let folder: URL
     var opened: [NSDocument] = []
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-odoc-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-odoc-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 
@@ -29,7 +29,7 @@ final class OpenDocumentsEventTests {
     /// A document whose frontmatter names Serif, so a window showing GitHub got the pick.
     func file(_ name: String) throws -> URL {
         let url = folder.appending(path: name)
-        try Data("---\nmdv:\n  theme: serif\n---\n# \(name)\n".utf8).write(to: url)
+        try Data("---\npeep:\n  theme: serif\n---\n# \(name)\n".utf8).write(to: url)
         return url
     }
 
@@ -162,7 +162,7 @@ final class OpenDocumentsEventTests {
         #expect(log.take(for: url) == nil)
     }
 
-    @Test("events without mdv's parameters, and other events, aren't recorded")
+    @Test("events without Peep's parameters, and other events, aren't recorded")
     func notRecorded() throws {
         let url = try file("plain.md")
         let log = OpenDocumentsEventLog()

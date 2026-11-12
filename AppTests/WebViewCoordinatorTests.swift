@@ -1,9 +1,9 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Hosted `WKWebView` tests for the coordinator, the app-script bridge, and the script policy.
 @MainActor
@@ -257,8 +257,8 @@ struct WebViewCoordinatorTests {
     @Test("the bridge lives in the app world, invisible to the page world")
     func worldIsolation() async throws {
         try await load("text")
-        #expect(try await evaluate("return typeof mdv;") as? String == "object")
-        #expect(try await evaluate("return typeof mdv;", in: .page) as? String == "undefined")
+        #expect(try await evaluate("return typeof peep;") as? String == "object")
+        #expect(try await evaluate("return typeof peep;", in: .page) as? String == "undefined")
     }
 
     @Test("the page keeps its CSP")
@@ -275,19 +275,19 @@ struct WebViewCoordinatorTests {
 extension WebViewCoordinatorTests {
     @Test("WebKit's percent-encoded spelling of the preparation URL (macOS 26) still matches")
     func preparationURLSpellings() throws {
-        #expect(WebViewCoordinator.isPreparationURL(URL(string: "about:blank#mdv-prepare")))
-        #expect(WebViewCoordinator.isPreparationURL(URL(string: "about:blank%23mdv-prepare")))
+        #expect(WebViewCoordinator.isPreparationURL(URL(string: "about:blank#peep-prepare")))
+        #expect(WebViewCoordinator.isPreparationURL(URL(string: "about:blank%23peep-prepare")))
         #expect(!WebViewCoordinator.isPreparationURL(URL(string: "about:blank")))
         #expect(!WebViewCoordinator.isPreparationURL(URL(string: "about:blank#other")))
         #expect(!WebViewCoordinator.isPreparationURL(nil))
 
         let coordinator = WebViewCoordinator()
         coordinator.expectedLoadURL = WebViewCoordinator.preparationURL
-        #expect(coordinator.isExpectedLoad(try #require(URL(string: "about:blank%23mdv-prepare"))))
+        #expect(coordinator.isExpectedLoad(try #require(URL(string: "about:blank%23peep-prepare"))))
         #expect(!coordinator.isExpectedLoad(try #require(URL(string: "about:blank"))))
         // Only the preparation URL is compared loosely: a real load must match exactly.
-        coordinator.expectedLoadURL = URL(string: "mdv-doc://token/a%20b.md")
-        #expect(coordinator.isExpectedLoad(try #require(URL(string: "mdv-doc://token/a%20b.md"))))
-        #expect(!coordinator.isExpectedLoad(try #require(URL(string: "mdv-doc://token/a%2520b.md"))))
+        coordinator.expectedLoadURL = URL(string: "peep-doc://token/a%20b.md")
+        #expect(coordinator.isExpectedLoad(try #require(URL(string: "peep-doc://token/a%20b.md"))))
+        #expect(!coordinator.isExpectedLoad(try #require(URL(string: "peep-doc://token/a%2520b.md"))))
     }
 }

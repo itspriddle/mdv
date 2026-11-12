@@ -1,6 +1,6 @@
-import MdvCore
+import PeepCore
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Pages for `RemoteImageNetworkTests`: every way a document or a page can load something.
 extension RemoteImageNetworkTests {

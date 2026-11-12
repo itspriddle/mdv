@@ -1,8 +1,8 @@
 # Vision
 
-## What mdv is
+## What Peep is
 
-mdv is a fast, native, open-source Markdown **viewer** for macOS. Open a file from Finder, the
+Peep is a fast, native, open-source Markdown **viewer** for macOS. Open a file from Finder, the
 terminal, or a pipe and get a well-typeset, faithfully rendered document that updates as the file
 changes, styled with plain CSS you can swap or write yourself.
 
@@ -20,7 +20,7 @@ editor or a browser.
 3. **Themeable with plain CSS.** Bundled themes (GitHub Primer, a word-processor style, minimal serif) are
    regular stylesheets. Custom themes are a CSS file dropped in a folder. No proprietary theme
    format.
-4. **Great from the terminal.** `mdv FILE`, `cmd | mdv`, and headless `mdv --html` are
+4. **Great from the terminal.** `peep FILE`, `cmd | peep`, and headless `peep --html` are
    first-class, not afterthoughts.
 5. **Safe by default.** Markdown files are untrusted input. No remote content, no arbitrary
    JavaScript, no code execution without explicit opt-in.
@@ -31,7 +31,7 @@ editor or a browser.
 
 ## Non-goals
 
-- **Not an editor.** mdv watches files; your editor edits them.
+- **Not an editor.** Peep watches files; your editor edits them.
 - **Not on the Mac App Store.** Distributed via GitHub releases and the project site, updated
   with Sparkle. No sandbox constraints.
 - **No accounts, sync, or cloud features.**
@@ -40,15 +40,15 @@ editor or a browser.
 ## Architecture overview
 
 ```
- file / stdin ──► custom          ──► MdvCore renderer ──► HTMLDocument ──► WKWebView
+ file / stdin ──► custom          ──► PeepCore renderer ──► HTMLDocument ──► WKWebView
                   preprocessor        (frontmatter, flavor, (theme CSS,      (app window,
                   (opt-in user        swift-cmark →         CSP, base URL)   print/PDF)
                    script)            MarkdownNode AST →
                                       transforms → HTML)
-                                                └──────► stdout (mdv --html)
+                                                └──────► stdout (peep --html)
 ```
 
-- **MdvCore** (Swift package): parsing, AST transforms, HTML rendering, frontmatter, themes,
+- **PeepCore** (Swift package): parsing, AST transforms, HTML rendering, frontmatter, themes,
   preprocessors. No UI dependencies; tested with `swift test`.
 - **Render pipeline (#51):** every render runs the same stages in this order, enforced in
   `HTMLRenderer.render(_:)` (`HTMLRenderer+Pipeline.swift`):
@@ -57,9 +57,9 @@ editor or a browser.
      `render(_:preprocessor:)` runs it, then the rest). Its output replaces the source for
      every later stage.
   2. **Frontmatter extraction** (`detectsFrontmatter`), in every flavor.
-  3. **Document overrides and flavor resolution (#54):** the frontmatter's `mdv:` mapping
+  3. **Document overrides and flavor resolution (#54):** the frontmatter's `peep:` mapping
      (`DocumentOverrides`) is applied with `RenderOptions.applying(_:)`: a registered
-     `mdv.flavor` beats `RenderOptions.flavor` (the app's default, Settings > Markdown, #55), so
+     `peep.flavor` beats `RenderOptions.flavor` (the app's default, Settings > Markdown, #55), so
      frontmatter can change how the body parses; an unknown one leaves `RenderOptions.flavor`.
   4. **Parse** the body with the flavor's cmark-gfm extensions.
   5. **AST transforms** (`MarkdownTransform`), the flavor's plus the built-in preprocessors
@@ -84,7 +84,7 @@ editor or a browser.
   keeps line structure keeps them aligned with the file; one that adds or removes lines shifts
   them (the alternative, a line map from the script, would be a second contract every script
   must honor).
-- **Flavors (#51):** a `Flavor` (MdvCore, `Flavors/`) is an id, a display name, the cmark-gfm
+- **Flavors (#51):** a `Flavor` (PeepCore, `Flavors/`) is an id, a display name, the cmark-gfm
   extensions it enables, and the AST transforms it always runs. Bundled: `gfm` (GitHub Flavored
   Markdown, the default: tables, strikethrough, extended autolinks, task lists, footnotes,
   emoji shortcodes, and GitHub alerts) and `commonmark` (strict: no extensions, no
@@ -97,20 +97,20 @@ editor or a browser.
   keeps frontmatter detection: frontmatter is metadata, not syntax, and showing a YAML block as
   a paragraph and a `<hr>` would help no one. Opt-in built-in preprocessors (wiki links, #53)
   are toggles independent of the flavor, so they work in CommonMark too. Each bundled flavor has
-  its own fixture corpus (`Tests/MdvCoreTests/Fixtures/flavors/<id>/`); GFM is also checked
+  its own fixture corpus (`Tests/PeepCoreTests/Fixtures/flavors/<id>/`); GFM is also checked
   against github.com by the README corpus. The spec suite uses `Flavor.spec` (every extension,
   no transforms), which isn't registered.
 - **Per-document overrides (#54):** a document can set `flavor`, `theme`, and `wikilinks`
-  (#53) in an `mdv:` mapping in its YAML frontmatter (`DocumentOverrides`, MdvCore,
+  (#53) in a `peep:` mapping in its YAML frontmatter (`DocumentOverrides`, PeepCore,
   `Overrides/`). Presentation only; see the security model. Each key is read into a typed
   field (ids trimmed; flavor and bundled theme ids lowercased, `custom:` ids kept as written;
   `wikilinks` takes YAML 1.2 `true`/`false`), and `RenderOptions.applying(_:)` is the one place
   a field changes a render. Unknown keys and wrong types are ignored, never an error page, and
   reported in `RenderedDocument.overrides.ignored` with a reason. The flavor is applied in
-  MdvCore before parsing, so `mdv --html` gets it too; the theme is reported for the caller to
-  resolve (the app below; `mdv --html` through `ThemeResolver`, #64, where `--theme` beats
-  it). **TOML `[mdv]` is unsupported** (documented): TOML frontmatter isn't
-  parsed (no TOML parser, and none added for this); a TOML block that mentions `mdv` is reported
+  PeepCore before parsing, so `peep --html` gets it too; the theme is reported for the caller to
+  resolve (the app below; `peep --html` through `ThemeResolver`, #64, where `--theme` beats
+  it). **TOML `[peep]` is unsupported** (documented): TOML frontmatter isn't
+  parsed (no TOML parser, and none added for this); a TOML block that mentions `peep` is reported
   as ignored. `RenderOptions.appliesDocumentOverrides` turns overrides off (spec mode does).
 - **Parsing:** [`swiftlang/swift-cmark`](https://github.com/swiftlang/swift-cmark) (cmark-gfm, the
   engine GitHub uses), called directly through its C API. `MarkdownParser` enables GFM extensions
@@ -120,7 +120,7 @@ editor or a browser.
   CommonMark). Owning the AST and the output is what lets us control heading anchors, task lists,
   emoji, raw HTML sanitizing, syntax highlighting, and source-line mapping, and gives the
   pipeline's transforms (above) one tree to operate on.
-- **Syntax highlighting:** at render time, in `MdvCore`, so the app and `mdv --html` get the same
+- **Syntax highlighting:** at render time, in `PeepCore`, so the app and `peep --html` get the same
   static `<span class="hljs-…">` markup and the viewer needs no JavaScript. A pinned
   [highlight.js](https://highlightjs.org) build (BSD-3, vendored as generated Swift source by
   `make vendor-highlightjs`) runs in an in-process JavaScriptCore context behind the
@@ -170,14 +170,14 @@ editor or a browser.
   `.automatic`, like Preview and TextEdit); Cmd-click on a link always makes a tab. Window
   restoration (documents, frames, tab groups, and each window's reading position as a source
   line) follows the system "Close windows when quitting an application" setting, so
-  `mdv FILE` doesn't bring back every old window. Documents whose file is gone or in the Trash
+  `peep FILE` doesn't bring back every old window. Documents whose file is gone or in the Trash
   are skipped quietly. `.md`/`.markdown` are the system's `net.daringfireball.markdown`
   (imported, for a system without it). macOS lists only those two extensions, and an import
-  can't add to a system type, so `.mdown`/`.mkd`/`.mkdn` are mdv's own exported
+  can't add to a system type, so `.mdown`/`.mkd`/`.mkdn` are Peep's own exported
   `<bundle id>.markdown`, conforming to it (on a Mac where another app also declares them,
   Launch Services may pick that app's type, which still conforms to plain text). Plain text
-  (`.txt`) opens because it conforms to `public.plain-text`, which mdv reads but never claims
-  (`LSHandlerRank None`). Extensionless files (`CHANGELOG`) are `public.data`, which mdv also
+  (`.txt`) opens because it conforms to `public.plain-text`, which Peep reads but never claims
+  (`LSHandlerRank None`). Extensionless files (`CHANGELOG`) are `public.data`, which Peep also
   never declares: `DocumentController` types one as plain text (for the Open panel, drops, and
   any other open) only when its first 4 KB is UTF-8 without NUL bytes (`ExtensionlessText`,
   #41). Recent macOS already types a few names (`README`, `INSTALL`) as plain text.
@@ -235,12 +235,12 @@ editor or a browser.
   history, and pinch already covers a one-off. Print uses `WKWebView.printOperation` through
   `NSDocument` (Page Setup, Save as PDF from the panel) with `@media print` rules in the theme layers:
   light colors always, full width, wrapped code and tables, no anchor icons, external link
-  targets written out. Copy as HTML copies the `mdv --html` body fragment (no
+  targets written out. Copy as HTML copies the `peep --html` body fragment (no
   `data-source-line`, remote images as written) as HTML plus its markup as plain text; Copy
   Markdown Source copies the file as plain text and `net.daringfireball.markdown`. The web
   view's context menu drops browser items the viewer can't perform (Reload, Back/Forward,
   downloads, "Open Image/Media/Frame in New Window"). Copy Link (#42) is taken over from
-  WebKit, which copies a relative link's internal `mdv-doc:` URL: it copies the `file:` URL
+  WebKit, which copies a relative link's internal `peep-doc:` URL: it copies the `file:` URL
   the link names, keeping the fragment (`CopyableLink`), and external links as written. The
   `file:` URL, not the link as written, so the copy works outside the document's folder.
 - **Find in page (#25):** an app script in the isolated content world (`FindInPage.js`), with
@@ -252,7 +252,7 @@ editor or a browser.
   matches across inline markup but not across blocks, ignores case unless Match Case is on,
   treats the query as literal text with any whitespace matching any whitespace, skips text that
   isn't rendered, and stops counting at 1000. Matches are painted with the CSS Custom Highlight
-  API (`::highlight(mdv-find)` rules in the base layer), so the DOM, source-line positions, and
+  API (`::highlight(peep-find)` rules in the base layer), so the DOM, source-line positions, and
   in-place swaps are untouched and no style is injected. The query and options survive closing
   the bar and every reload: the search runs again after each display (in-place swap or full
   load), keeping the current match number without scrolling. The query follows the system
@@ -260,21 +260,21 @@ editor or a browser.
   app or window since this one last looked, and each new query (typed, or Use Selection for
   Find) is written back. Jump to Selection (Cmd-J, `centerSelectionInVisibleArea(_:)`) scrolls
   the current match while the bar is open, else the page's selection, into view.
-- **Default handler:** mdv declares both Markdown types with `LSHandlerRank: Alternate` and
-  asks, never grabs (#23); "Make Default" covers both. `Owner` claims a type mdv doesn't define and `Default` lets Launch Services pick
-  mdv without asking; both take the choice away from the user. Instead mdv offers once, in a
+- **Default handler:** Peep declares both Markdown types with `LSHandlerRank: Alternate` and
+  asks, never grabs (#23); "Make Default" covers both. `Owner` claims a type Peep doesn't define and `Default` lets Launch Services pick
+  Peep without asking; both take the choice away from the user. Instead Peep offers once, in a
   non-modal panel, when a document opens while another app is the default ("Not Now" snoozes
-  30 days, "Don't Ask Again" is permanent), and Settings > General has "Make mdv the Default
+  30 days, "Don't Ask Again" is permanent), and Settings > General has "Make Peep the Default
   Markdown Viewer" (#36; it was in the app menu in M2).
-- **Themes (#31):** a `Theme` (MdvCore) is plain CSS plus metadata: id, display name, a
+- **Themes (#31):** a `Theme` (PeepCore) is plain CSS plus metadata: id, display name, a
   `ThemeBackground` per appearance (the app paints windows and the under-page area with it
   before first paint, and the page's `body` background is generated from it so they can't
   disagree), highlight.js token CSS, and optional print CSS. `ThemeRegistry` is the one place
-  the app and `mdv --html` get a theme; a missing, unknown, or deleted id resolves to the
+  the app and `peep --html` get a theme; a missing, unknown, or deleted id resolves to the
   default (GitHub). Every page is built in three **CSS cascade layers**, declared first with
-  `@layer mdv-base, mdv-theme, mdv-user;`, each in its own `<style id="mdv-…">` element so a
+  `@layer peep-base, peep-theme, peep-user;`, each in its own `<style id="peep-…">` element so a
   theme switch (#34) or user controls (#37) replace one element's text in place:
-  - `mdv-base` (`ThemeBase`): rules viewer features depend on. Its `!important` declarations
+  - `peep-base` (`ThemeBase`): rules viewer features depend on. Its `!important` declarations
     are protected: the cascade reverses layer order for important declarations, so an earlier
     layer's important rule beats any later layer's and any unlayered one. That covers
     `.sr-only`, find highlights (never printed), the remote-image placeholder's visibility,
@@ -282,9 +282,9 @@ editor or a browser.
     unclipped code and tables, no anchor icons, page breaks). Its other rules (placeholder
     look, link targets written out on paper) are defaults a theme may restyle. Raw HTML
     `style` attributes are stripped, so element-attached styles can't override it either.
-  - `mdv-theme`: the theme's CSS. Ordinary declarations beat the base layer whatever their
+  - `peep-theme`: the theme's CSS. Ordinary declarations beat the base layer whatever their
     specificity, so themes need not know the base selectors.
-  - `mdv-user`: user controls (#37), which beat any theme the same way.
+  - `peep-user`: user controls (#37), which beat any theme the same way.
 
   Chosen over concatenation order (base, theme, controls in one sheet), where precedence
   depends on specificity: a theme's `.markdown-body pre { overflow: auto }` would beat the
@@ -303,13 +303,13 @@ editor or a browser.
   octicon's `data:` `url()` mask, and fails if a release adds anything else to adjust.
   highlight.js tokens map to its Primer syntax variables (`--color-prettylights-syntax-*`),
   so code colors follow github.com in both appearances. All themes use system fonts only and
-  leave `.markdown-body` width to the `mdv-user` layer (#37).
+  leave `.markdown-body` width to the `peep-user` layer (#37).
 - **Reading controls (#37):** content width is a user control; text size is zoom. View >
   Content Width picks one of four presets (Narrow 32em, Theme Default, Wide 72em, Full Width),
   per window like zoom (#47: restored with the window; Settings sets the default for new
-  windows), applied live by swapping the `mdv-user` `<style>` text in place (reading position
+  windows), applied live by swapping the `peep-user` `<style>` text in place (reading position
   kept, no reload). The layer sets
-  `--mdv-content-width` and `.markdown-body { max-width: var(--mdv-content-width) }`, screen
+  `--peep-content-width` and `.markdown-body { max-width: var(--peep-content-width) }`, screen
   only, so paper is always full width; Theme Default emits nothing. Widths are in `em` of the
   column's font, so the measure holds across themes and zoom levels. There is no separate font
   size control: `pageZoom` (Cmd +/-) already reflows the page at a larger text size, and a CSS
@@ -320,7 +320,7 @@ editor or a browser.
 - **Theme picker (#34):** each window has its own theme, picked from View > Theme (bundled themes, then custom ones in their own section), checked in
   the menu, and kept by window restoration (an unknown id shows the default). A pick changes
   that window only; the theme for new windows is Settings' (#36). A switch is an in-place swap, not a reload: an app script replaces the
-  `mdv-theme` `<style>` text (`mdv.replaceStyle`, shared with #37) and restores the reading
+  `peep-theme` `<style>` text (`peep.replaceStyle`, shared with #37) and restores the reading
   position in the same script run, so nothing paints in between; the DOM, find highlights,
   zoom, CSP, and remote-image opt-in are untouched, and the window and under-page background
   change with it. Rejected: reloading the page with the new theme, which loses scroll state
@@ -334,7 +334,7 @@ editor or a browser.
   is missing too (`ThemeSettings.theme(forWindowThemeID:)`, #45); the window keeps its pick and
   shows it again when it returns. Print prints the window's web view, so it uses the window's
   theme; Copy as HTML stays a theme-free fragment.
-- **Frontmatter theme (#54):** a document's `mdv.theme` resolves like a window's pick (bundled
+- **Frontmatter theme (#54):** a document's `peep.theme` resolves like a window's pick (bundled
   or `custom:<file>` ids through `ThemeSettings.registry`, same fallback). Precedence: the
   reader's View > Theme pick for that window, then the document's theme, then Settings' default
   as it was when the window opened (`DocumentWindowController.themeID`). The reader chose
@@ -344,21 +344,21 @@ editor or a browser.
   followed the document keeps following it. **Live reload:** the theme id travels with the
   rendered page (`RenderedPage.documentThemeID`, shared by the document's windows), and a
   reload that changes it swaps the stylesheet in place (#34's path), unless the window has a
-  pick; a changed `mdv.flavor` re-renders like any edit. **View > Theme** checks the theme the
+  pick; a changed `peep.flavor` re-renders like any edit. **View > Theme** checks the theme the
   window shows, whatever chose it, and starts with "Document's Theme (<name>)", enabled while a
   pick hides the document's theme, which drops the pick. Rejected: a frontmatter theme beating
   the reader's pick (the reader couldn't override a document they dislike), and restoring the
   shown theme (a stale frontmatter theme would stick after the file changed). The first paint
   of a window uses Settings' default background until the first render lands with the
   document's theme (a frame or two, while the web view is still hidden).
-- **Custom themes (#35):** each `*.css` file in `~/Library/Application Support/mdv/Themes` is a
+- **Custom themes (#35):** each `*.css` file in `~/Library/Application Support/Peep/Themes` is a
   theme, id `custom:<file name>` (a namespace no bundled id uses, so it can't shadow one),
   listed in the picker's own section. Metadata is an optional header comment, the first thing
-  in the file: `/* mdv-theme` on its first line, then `key: value` lines (`name`, `background`,
+  in the file: `/* peep-theme` on its first line, then `key: value` lines (`name`, `background`,
   `background-dark` as `#rgb`/`#rrggbb`, `extends`); unknown or repeated keys are errors, so
   typos surface. Name defaults to the file name; `background-dark` defaults to `background`,
   and with neither the extended (else default) theme's backgrounds are used. A comment beat
-  `--mdv-background-*` custom properties: it needs no CSS parsing or cascade semantics to read,
+  `--peep-background-*` custom properties: it needs no CSS parsing or cascade semantics to read,
   and the window is painted from it before the page exists. Custom themes start from the base
   layer only; `extends: <bundled id>` puts that theme's CSS first in the same layer, so the
   file only overrides (bundled themes only, no chains). Without `extends` there are no
@@ -414,11 +414,11 @@ editor or a browser.
   content is a privacy record and a standing exception to "no remote content" that the reader
   can forget granting; deferred until there's demand.
 - **Wiki links (#53):** an opt-in built-in preprocessor (`WikiLinks`, an AST transform), off
-  by default and turned on by Settings > Markdown or a document's `mdv.wikilinks`, which beats
+  by default and turned on by Settings > Markdown or a document's `peep.wikilinks`, which beats
   Settings both ways. Independent of the flavor. Settled rules:
   - **Syntax:** `[[Page]]`, `[[Page|label]]`, `[[Page#Heading]]`, `[[Page#Heading|label]]`,
     and `[[#Heading]]` (same document). Label after the first `|` (the Obsidian and MediaWiki
-    order; GitHub's Gollum puts the label first, which mdv doesn't follow), heading after the
+    order; GitHub's Gollum puts the label first, which Peep doesn't follow), heading after the
     first `#`; `\|` in table cells. Only in plain text, all within one run: never in code, raw
     HTML, link text, autolinks, or alt text, and not across emphasis. The brackets must be
     written as is: `\[[`, `[\[`, `\]]`, and `&#91;[` stay literal. cmark merges escaped and
@@ -435,16 +435,16 @@ editor or a browser.
     match nearest the root wins; never outside the root. Hidden entries and symbolic links are
     skipped, entries are taken in name order, and the root search stops after 10,000 entries
     (`FolderWikiLinkResolver.defaultEntryLimit`), so a huge repository can't stall a render.
-    MdvCore stays filesystem-free: the renderer takes an injected `WikiLinkResolver`, the search
+    PeepCore stays filesystem-free: the renderer takes an injected `WikiLinkResolver`, the search
     rules are `FolderWikiLinkResolver` over an injected `WikiLinkFolderReader`, and the app
     supplies the file system reader (`DocumentWikiLinks`). `FileSystemFolderReader` (regular
-    files and folders only) lives in MdvCore so `mdv --html` uses the same one (#65,
+    files and folders only) lives in PeepCore so `peep --html` uses the same one (#65,
     `FolderWikiLinkResolver.fileSystem(forDocumentAt:root:)`); standard input has no resolver,
     so its page links are missing.
   - **Output:** a found page is `<a class="wikilink" href="Page-Name.md#slug">`, its path
     relative to the document with every part percent-encoded (nothing in a name can add a
     scheme, query, or attribute), so it goes through `LinkPolicy` like any relative link (opens
-    in mdv, Cmd-click in a new tab) and Copy as HTML stays portable. The heading maps to
+    in Peep, Cmd-click in a new tab) and Copy as HTML stays portable. The heading maps to
     `HeadingSlug` of its text (the target's first heading with that text). A missing page is
     `<a class="wikilink wikilink-missing">` with no `href`, so it can't navigate; the base layer
     gives it a dashed underline. The label is text, escaped by `HTMLRenderer`.
@@ -462,7 +462,7 @@ editor or a browser.
   result in place like a live reload (no page load, reading position kept). `DocumentContent`
   records the preferences it was rendered with, so a first render or live reload that started
   before a change is rendered again when it lands. The default flavor is only
-  `RenderOptions.flavor`; a document's frontmatter `mdv.flavor` (#54) overrides it in MdvCore.
+  `RenderOptions.flavor`; a document's frontmatter `peep.flavor` (#54) overrides it in PeepCore.
   Copy as HTML uses the preferences the window's page was rendered with.
   **No per-window flavor menu** (no View > Flavor): the flavor describes how a file was written,
   not how the reader likes to read it, so it belongs to the file (frontmatter, #54) or to the
@@ -483,19 +483,19 @@ editor or a browser.
   system fonts and text rendering differ between releases, so one tolerance loose enough for
   both would miss real changes, and running only on CI would leave nothing to check locally.
   macOS 26 references are recorded on CI, never on another OS: with
-  `MDV_RECORD_MISSING_SNAPSHOTS=1` a missing reference is written to
+  `PEEP_RECORD_MISSING_SNAPSHOTS=1` a missing reference is written to
   `build/theme-snapshots/recorded/` (uploaded as an artifact) and the case passes. Rejected:
   UI test screenshots (window chrome, display scale, and a GUI session that UI tests must
   share) and `takeSnapshot` (visible area only, at the display's scale).
-- **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/mdv`),
+- **CLI:** Swift ArgumentParser tool embedded in the app bundle (`Contents/Helpers/peep`),
   symlinked onto `PATH` from the app.
-  - Structure (#63): the command is the `MdvCLIKit` library (`CLI/MdvCLIKit`); the executable
-    (`CLI/Main`, SwiftPM's `MdvCLI` and Xcode's `mdv-cli`) only calls `MdvCommand.main()`.
+  - Structure (#63): the command is the `PeepCLIKit` library (`CLI/PeepCLIKit`); the executable
+    (`CLI/Main`, SwiftPM's `PeepCLI` and Xcode's `peep-cli`) only calls `PeepCommand.main()`.
     Each concern is an `@OptionGroup` in its own file: `InputOptions` (FILE, `-`, stdin),
     `OutputOptions`, `ThemeFlavorOptions`, `RenderFlagOptions`, `PreprocessorOptions`,
-    `AppOpenOptions`. `MdvCommand.validate()` holds rules that span groups.
+    `AppOpenOptions`. `PeepCommand.validate()` holds rules that span groups.
     `execute(in: CLIEnvironment)` runs against injected standard streams and an `AppOpening`
-    opener; `MdvCLITests` (under `swift test`) calls it in-process and runs the built binary
+    opener; `PeepCLITests` (under `swift test`) calls it in-process and runs the built binary
     end to end.
   - Output (#63): `--html` prints a complete page, which is already standalone (inline CSS,
     strict CSP, no external resources), so the roadmap's `--standalone` was dropped.
@@ -514,32 +514,32 @@ editor or a browser.
     missing or unreadable (POSIX message: `No such file or directory`, `Is a directory`,
     `Permission denied`; or empty standard input for a window, #68), 69 the app couldn't be opened, 70 the
     `--preprocessor` program couldn't run or failed (#66), 73
-    `--output` not writable, 74 writing standard output failed. Errors are one `mdv: <file>:
+    `--output` not writable, 74 writing standard output failed. Errors are one `peep: <file>:
     <reason>` line on standard error. `ExitStatus` is the list; `--help` and the README repeat it.
-  - Standard input (#63): with no FILE, mdv reads standard input, unless it is a terminal; then
+  - Standard input (#63): with no FILE, Peep reads standard input, unless it is a terminal; then
     it prints usage and exits 64 rather than waiting silently. `-` reads standard input
     explicitly (once), even from a terminal.
   - Theme and flavor (#64): **precedence is flag > frontmatter > default**, as a window's
-    View > Theme pick beats `mdv.theme`: a flag is the reader's explicit choice for this run.
+    View > Theme pick beats `peep.theme`: a flag is the reader's explicit choice for this run.
     `--flavor` sets `RenderOptions.flavor` and pins it (`RenderOptions.pinnedOverrides`, checked
-    in `RenderOptions.applying(_:)`), so `mdv.flavor` doesn't replace it while the document's
+    in `RenderOptions.applying(_:)`), so `peep.flavor` doesn't replace it while the document's
     other overrides (`wikilinks`) still apply; `RenderedDocument.flavor` reports the flavor used.
     Pinning only keeps the caller's own presentation setting; no safety setting goes through it.
     `--theme` takes a bundled id (lowercased) or `custom:<file name>`, resolved by
-    `ThemeResolver` (MdvCLIKit, reused by `mdv FILE --theme`): custom themes load through
+    `ThemeResolver` (PeepCLIKit, reused by `peep FILE --theme`): custom themes load through
     `CustomThemeFolder` with the app's checks, and an id is only matched against the folder's
     files, never used as a path. Flags are the reader's, so an unknown `--flavor`/`--theme` is a
     usage error (64), a missing custom theme 66, and one failing its checks 65, each with the
     reason; frontmatter is untrusted, so its theme falls back to GitHub silently. Without
-    `--theme`, a `custom:` `mdv.theme` now loads too (same folder, same checks as the app). The
-    folder is `~/Library/Application Support/mdv/Themes` (the app's), overridable with
-    `MDV_THEMES_FOLDER` (tests always set it or inject `CLIEnvironment.themesFolder`). The CLI
+    `--theme`, a `custom:` `peep.theme` now loads too (same folder, same checks as the app). The
+    folder is `~/Library/Application Support/Peep/Themes` (the app's), overridable with
+    `PEEP_THEMES_FOLDER` (tests always set it or inject `CLIEnvironment.themesFolder`). The CLI
     doesn't read the app's default-theme setting; its default is GitHub. `--list-themes` and
     `--list-flavors` print `id<TAB>name` lines (for completions, #71); theme files that don't
     load are reported on standard error.
   - Render flags (#65, `RenderFlagOptions`, help section "Rendering"): `--frontmatter
     hidden|table`, `--wiki-links`/`--no-wiki-links` (pins `.wikiLinks`, so it beats
-    `mdv.wikilinks`; off by default), `--source-lines`, `--no-highlight`,
+    `peep.wikilinks`; off by default), `--source-lines`, `--no-highlight`,
     `--no-heading-anchors`, `--block-remote-images` (#20's placeholder; kept by default, as
     GitHub does). They change HTML output only, so without `--html`, `--fragment`, or `--output`
     they are a usage error (64). **The CLI never reads the app's Settings > Markdown**: flags
@@ -549,9 +549,9 @@ editor or a browser.
     absolute path that works when the page is opened from disk but names the reader's folders
     (don't publish such a page as is). Wiki links search the document's folder, then the root,
     never through a symbolic link. Links to pages stay `.md` in `--output` (no rewrite to
-    `.html`: mdv renders one file per run and doesn't know where the others will go).
-  - Diagnostics (#65) go to standard error only: frontmatter `mdv:` keys a render ignored are
-    always reported as `mdv: <input>: warning: <reason>` (exit status unchanged), and
+    `.html`: Peep renders one file per run and doesn't know where the others will go).
+  - Diagnostics (#65) go to standard error only: frontmatter `peep:` keys a render ignored are
+    always reported as `peep: <input>: warning: <reason>` (exit status unchanged), and
     `--verbose` adds the flavor and wiki link setting used and where each came from (flag,
     document, default). Control characters from the document are printed as `\u{XX}`, so
     frontmatter can't send escape sequences to the terminal.
@@ -563,28 +563,28 @@ editor or a browser.
     PATH is a file path, made absolute against the working directory and checked by
     `PreprocessorConfiguration`; it is never looked up on `PATH`. Same runner, contract, and
     limits as the app (`PreprocessorLimits.standard`; `CLIEnvironment.preprocessorLimits` for
-    tests). A file passes `documentURL` (`MDV_DOCUMENT_PATH`, its folder as working directory);
+    tests). A file passes `documentURL` (`PEEP_DOCUMENT_PATH`, its folder as working directory);
     standard input passes `nil` and runs in `/`, as in the app, not in the shell's folder. HTML
     output only, like the Rendering flags (usage error otherwise). **A failure fails the run**:
-    exit 70 (`EX_SOFTWARE`) with `mdv: <input>: <PreprocessorError.message>` (including the
+    exit 70 (`EX_SOFTWARE`) with `peep: <input>: <PreprocessorError.message>` (including the
     quarantine hint) and the stderr tail on the following lines (control characters escaped,
     tabs and line breaks kept), and no HTML; there is no `--preprocessor-fallback`. The
     script runs in its own process group, so a terminal's Ctrl-C doesn't reach it: while it
     runs, `InterruptCancellation` turns `SIGINT`, `SIGTERM`, and `SIGHUP` into cancellation
     (the runner stops the group and reaps it), then restores the default action and re-raises
-    the signal, so mdv dies of it as shells expect. A signal mdv started out ignoring (`nohup`,
+    the signal, so Peep dies of it as shells expect. A signal Peep started out ignoring (`nohup`,
     background jobs) stays ignored. Only installed around the run, so reading standard input
     is still interrupted the default way.
-  - CLI to app (#67, `WorkspaceAppOpener`, `AppOpenEvent` in MdvCore, `DocumentOpener` in the
-    app): `mdv FILE` checks every path first (missing, folder, unreadable: exit 66, nothing
+  - CLI to app (#67, `WorkspaceAppOpener`, `AppOpenEvent` in PeepCore, `DocumentOpener` in the
+    app): `peep FILE` checks every path first (missing, folder, unreadable: exit 66, nothing
     opens; relative paths resolve against the shell's folder) and `--theme` (`ThemeResolver`,
     as for `--html`), then builds a standard **Open Documents Apple Event** (`aevt/odoc`, the
-    files as its direct object) with mdv's own optional parameters (`mdvT`: theme id) and hands
+    files as its direct object) with Peep's own optional parameters (`PepT`: theme id) and hands
     it to Launch Services as `NSWorkspace.OpenConfiguration.appleEvent`
     (`openApplication(at:)`). Launch Services launches the app with it as the first event, or
     sends it to the running app, and activates the app: Finder's path, so no Automation
     (TCC) prompt, and the app opens files exactly as from Finder. AppKit handles Open
-    Documents events itself and never calls the delegate's `application(_:open:)` for mdv's
+    Documents events itself and never calls the delegate's `application(_:open:)` for Peep's
     document types (Launch Services launch or running app, `open -a`, Finder), so
     `DocumentController.openDocument(withContentsOf:display:completionHandler:)` applies them
     (`DocumentOpener.openForOpenDocumentsEvent`). While an earlier open is in flight AppKit
@@ -596,17 +596,17 @@ editor or a browser.
     Launch Services path, which CI's single copy caught.) Rejected: `open -b`
     (no way to pass options, errors were its exit status), launch arguments (launch only), a
     URL scheme (a web page could trigger it), XPC (needs a launchd service).
-    - Finding the app: the app that contains the executable (`mdv.app/Contents/Helpers/mdv`,
+    - Finding the app: the app that contains the executable (`Peep.app/Contents/Helpers/peep`,
       symlinks resolved, bundle id checked), so a development build's CLI opens that build; run
-      outside a bundle (`swift run mdv`), the app Launch Services knows by bundle id; neither:
+      outside a bundle (`swift run peep`), the app Launch Services knows by bundle id; neither:
       exit 69. Launch Services finds a *running* app by bundle id, not path, so with another
-      copy running (an installed mdv next to a dev build) the CLI launches its own copy as a
+      copy running (an installed Peep next to a dev build) the CLI launches its own copy as a
       new instance, or, if its copy is running too, sends that process the event directly.
       Directly sent `odoc` events reach AppKit's scripting handler, not the delegate, and lose
-      the parameters, so the direct path uses mdv's own class `mdv /odoc` (same direct object
+      the parameters, so the direct path uses Peep's own class `Peep/odoc` (same direct object
       and parameters; `AppDelegate.handleDirectOpen`). The direct path is also the fallback
       when Launch Services refuses a sandboxed caller (the UI test runner, whose children
-      inherit its sandbox; `AppUITests.entitlements` allows its Apple Events to mdv).
+      inherit its sandbox; `AppUITests.entitlements` allows its Apple Events to Peep).
     - **Trust model:** any local process can already send the app these events, with any
       parameters, so they are presentation-only and validated as untrusted input:
       `AppOpenParameters(event:)` keeps a theme id only if it is UTF-8/UTF-16 text of at most
@@ -615,64 +615,64 @@ editor or a browser.
       until its file loads). The direct event's files are `typeFileURL` items only (text is
       never coerced into a path), at most 1000. Nothing widens what a document can do; files
       open with the same checks as from Finder.
-    - `--theme` becomes each window's View > Theme pick (beats `mdv.theme`; restoration
+    - `--theme` becomes each window's View > Theme pick (beats `peep.theme`; restoration
       keeps it), set before a new window first shows; an already-open window switches. An
       already-open file focuses its window (`DocumentController` finds it by identity).
       `--flavor` without `--html`/`--fragment`/`--output` is a usage error (64): windows have
-      no per-window flavor (M4); Settings > Markdown and `mdv.flavor` decide. `mdv FILE`
+      no per-window flavor (M4); Settings > Markdown and `peep.flavor` decide. `peep FILE`
       activates the app, like `open`; no `--background` until someone needs it.
-    - Further parameters go on the same event (`mdvW`, the `--wait` token, #69), read by
-      `AppOpenParameters` with the same size and type checks. (`mdvI` was reserved for
-      standard input; #68 needed no parameter.) Timing: `MDV_LAUNCH_TIMING` and
-      `MDV_LAUNCH_TIMING_LOG` are the only environment the CLI passes to an app it launches
+    - Further parameters go on the same event (`PepW`, the `--wait` token, #69), read by
+      `AppOpenParameters` with the same size and type checks. (`peepI` was reserved for
+      standard input; #68 needed no parameter.) Timing: `PEEP_LAUNCH_TIMING` and
+      `PEEP_LAUNCH_TIMING_LOG` are the only environment the CLI passes to an app it launches
       (`scripts/measure-cold-open -c`).
-  - Standard input into a window (#68, `cmd | mdv`, `StandardInputHandoff` in MdvCore):
+  - Standard input into a window (#68, `cmd | peep`, `StandardInputHandoff` in PeepCore):
     - **Transport: a private handoff file the app deletes once it has read it.** The CLI
-      writes the Markdown to `$TMPDIR/mdv-stdin.XXXXXXXX/stdin.md` (`mkdtemp(3)`: an
+      writes the Markdown to `$TMPDIR/peep-stdin.XXXXXXXX/stdin.md` (`mkdtemp(3)`: an
       unpredictable name, created exclusively, mode 0700; the file `O_EXCL|O_NOFOLLOW`, mode
       0600; `TMPDIR` when absolute, else Foundation's temp folder; a shared `/tmp` is still
       safe) and puts it last in the Open Documents event's direct object. The app's
       `DocumentController.openDocument(withContentsOf:display:completionHandler:)` recognizes
       it, reads it, deletes it and its folder right away, and returns an untitled document;
       if the event never reached the app, the CLI deletes it. Recognizing the file there, by
-      its shape, rather than by an event parameter (`mdvI`, reserved by #67) works on every
+      its shape, rather than by an event parameter (`peepI`, reserved by #67) works on every
       path an Open Documents event takes: a cold launch while another copy with the bundle id
       runs (Launch Services' new instance) gets the event through AppKit's own handler, which
-      never calls the delegate and drops mdv's parameters (seen while building #68; the same
+      never calls the delegate and drops Peep's parameters (seen while building #68; the same
       launch loses `--theme`). A parameter would add no trust either: any sender can set it.
       Rejected: the bytes in an event parameter. An Open Documents event with no files never
       reaches `application(_:open:)`, and Launch Services rewrites custom event classes, so
-      bytes could only go by the direct `mdv /odoc` path, which needs the app already
+      bytes could only go by the direct `Peep/odoc` path, which needs the app already
       running; two transports weren't worth it. A file is left behind only when the app dies
       between the CLI's send and its read (the system cleans its temp folder).
     - **Trust model:** any local process can send that event naming any file, so the app
       deletes only a file it verifies is a handoff, through descriptors, without following
-      links: a folder named `mdv-stdin.*` owned by this user with no group/other permissions,
+      links: a folder named `peep-stdin.*` owned by this user with no group/other permissions,
       holding a regular file named `stdin.md`, owned by this user, no group/other
       permissions, one link (not a hard link to another file); it is read through the checked
       descriptor. Anything else, `stdin.md` files included, is left alone and opens as an
       ordinary file. The checks are on shape, not location (a sandboxed caller's temp folder
       is its container), so a sender (or a Finder open, a drop) can at worst make the app
-      read and delete a file with that exact shape, which only mdv makes, and which a
+      read and delete a file with that exact shape, which only Peep makes, and which a
       same-user process could delete anyway.
     - **Limits:** at most 10 MB (`StandardInputHandoff.maximumBytes`, the preprocessor's input
       bound, twice the largest measured document). The CLI reads no more than that plus a
-      byte (`yes | mdv` ends), and refuses more (65), empty or whitespace-only input (66), and
+      byte (`yes | peep` ends), and refuses more (65), empty or whitespace-only input (66), and
       non-UTF-8 (65), with nothing opened. The app checks size and UTF-8 again (a hand-made
       handoff), deletes it, and presents the error. `--html` keeps reading standard input
-      without a limit. No streaming: input is read to EOF (`tail -f log.md | mdv` never opens;
+      without a limit. No streaming: input is read to EOF (`tail -f log.md | peep` never opens;
       deferred).
     - **The window:** `MarkdownDocument(standardInput:)`, an untitled document with no file:
       titled from its frontmatter `title` or first heading, else "Standard Input"; no live
       reload, nothing in Open Recent, and its window isn't restorable (nothing to reopen).
-      Settings > Markdown, `mdv:` frontmatter, and `--theme` apply as to any document; wiki
+      Settings > Markdown, `peep:` frontmatter, and `--theme` apply as to any document; wiki
       links have no resolver (page links show as missing), and the custom preprocessor, if on,
       runs with no document path, in `/`, as in the CLI. **No allowed root:** the page has no
       base URL, so relative images don't load (a broken image, as for any image outside a
       root) and relative links go nowhere; the shell's folder isn't used, because piped text
-      (`curl … | mdv`) shouldn't read local files by where the shell happens to be.
-    - `-` mixes standard input with files (`mdv a.md - b.md`): the files open, then standard
-      input's window (`AppOpenRequest` keeps them apart). `cmd | mdv --wait` waits for the
+      (`curl … | peep`) shouldn't read local files by where the shell happens to be.
+    - `-` mixes standard input with files (`peep a.md - b.md`): the files open, then standard
+      input's window (`AppOpenRequest` keeps them apart). `cmd | peep --wait` waits for the
       standard input window like any other (it joins the token in `DocumentOpener`).
   - Completions and man page (#71): **generated from the ArgumentParser command, never
     committed**, so a new flag appears in both with no extra step. zsh, bash, and fish scripts
@@ -682,34 +682,34 @@ editor or a browser.
     (`ThemeFlavorOptions.completionThemeIDs`, `.custom`), so a new custom theme completes
     without regenerating the script; `custom:` ids are escaped for zsh's `_describe`. The man
     page is ArgumentParser's `generate-manual` plugin output (NAME, SYNOPSIS, the option
-    list) finished by `ManualPage` (run by the `MdvManualTool` build tool): DESCRIPTION's
+    list) finished by `ManualPage` (run by the `PeepManualTool` build tool): DESCRIPTION's
     overview, ENVIRONMENT, FILES, EXIT STATUS, EXAMPLES, and SECURITY CONSIDERATIONS are built
     from `HelpText`, `ExitStatus.entries`, `ThemeResolver`, and `PreprocessorLimits`, the same
     values `--help` uses. `make cli-docs` (`scripts/generate-cli-docs`) writes both to
     `build/cli-docs`; `make test-core` runs it first and checks that every option in
     `--experimental-dump-help` is in the page and each script, and that `mandoc -T lint`
-    passes. The app build copies them into `Contents/Resources/man/man1/mdv.1` and
-    `Contents/Resources/completions/` (`_mdv`, `mdv.bash`, `mdv.fish`; project.yml script
+    passes. The app build copies them into `Contents/Resources/man/man1/peep.1` and
+    `Contents/Resources/completions/` (`_peep`, `peep.bash`, `peep.fish`; project.yml script
     phase; Release fails without the man page), for the Homebrew cask and Install Command Line
     Tool, which links the man page into `share/man/man1` beside the command's folder (where
     `man` looks for a `bin` on `PATH`). Completions aren't installed by the app: a shell's
     setup is the reader's, so the success alert and README point at the scripts instead.
   - `--wait` (#69, `WindowsClosedWaiter` in the CLI, `WindowWaits` in the app): the CLI
     makes a random token per invocation (a version 4 UUID), registers for the Darwin
-    notification `com.itspriddle.mdv.windowsClosed.<token>` (`notify(3)`: delivered on a
+    notification `now.peep.Peep.windowsClosed.<token>` (`notify(3)`: delivered on a
     dispatch queue, no run loop, works from the sandboxed UI test runner), then sends the
-    open event with the token as `mdvW`. The app tracks the windows each token opened or
+    open event with the token as `PepW`. The app tracks the windows each token opened or
     brought forward (**an already-open file's window counts**; a tab is a window; a window
     whose file was deleted stays open, so it still counts), and posts the notification once
     the event has finished opening and none of them is left open (every file failing posts
     at once). Two `--wait`s on one file both end when its window closes. Quitting posts every
     token. The CLI also watches the app's process (`DispatchSource` process exit, from the
     pid Launch Services or the direct path reports), so a crash or force quit ends the wait;
-    either way mdv exits 0. Ctrl-C keeps its default action: mdv dies of `SIGINT` (130) and
+    either way Peep exits 0. Ctrl-C keeps its default action: Peep dies of `SIGINT` (130) and
     the windows stay open. Tokens aren't saved: restored windows wait for no one.
     **Trust model:** any process can post any Darwin notification, so a forged one can only
     end a wait early; the app accepts only a well-formed UUID (exactly 36 characters of
-    text), so a forged token can only make it post a name under mdv's prefix when windows
+    text), so a forged token can only make it post a name under Peep's prefix when windows
     close. Nothing in the app acts on a notification. Rejected: holding the open event's
     reply until close (Launch Services gives no reply), XPC/Mach services (need a launchd
     job), `NSDistributedNotificationCenter` (needs a run loop the async CLI doesn't run).
@@ -721,10 +721,10 @@ editor or a browser.
 
 - The rendered page has a strict Content-Security-Policy: no remote loads, inline styles only,
   local/`data:` images only (until a window opts in to `https:` images, below). In the app it is
-  `default-src 'none'; style-src 'unsafe-inline'; img-src mdv-doc: data:;`; `mdv --html` output
+  `default-src 'none'; style-src 'unsafe-inline'; img-src peep-doc: data:;`; `peep --html` output
   keeps `img-src file: data:` so a saved page still shows the images beside it.
 - Remote images are blocked by default and are an explicit opt-in **per window** (#20):
-  - Blocking happens in `MdvCore` as well as the CSP. `RenderOptions.remoteImages` (`.block`
+  - Blocking happens in `PeepCore` as well as the CSP. `RenderOptions.remoteImages` (`.block`
     in the viewer) replaces every remote Markdown or raw-HTML image with a placeholder that
     shows its alt text and host (sized like the image when raw HTML gives `width`/`height`).
     It drops a `<source srcset>` that names one, and lists them in `blockedRemoteImages`. The
@@ -735,14 +735,14 @@ editor or a browser.
     swapped on the wire, so they stay placeholders. Frames, styles, fonts, and media stay blocked.
   - The opt-in lasts for that window until it closes, survives live reloads, and is never
     saved, so reopening a file blocks again. Remembering it per file can come later.
-  - `mdv --html` keeps GitHub-compatible output (`.keep`) by default, and its CSP blocks remote
+  - `peep --html` keeps GitHub-compatible output (`.keep`) by default, and its CSP blocks remote
     images when the page is opened. `--block-remote-images` (#65) writes placeholders instead.
   - Tests use servers on 127.0.0.1 and never the network. A document full of remote images
     makes no request, and a page with no CSP does make them (the control).
 - The web view never gets `file:` access. The app loads each document at
-  `mdv-doc://<window token>/<absolute path>` (a `WKURLSchemeHandler`, chosen over
+  `peep-doc://<window token>/<absolute path>` (a `WKURLSchemeHandler`, chosen over
   `loadFileURL` plus a temp file in #18), so relative URLs resolve against the document, and
-  every local read is a decision by `LocalImagePolicy` (MdvCore, unit tested). It serves a file
+  every local read is a decision by `LocalImagePolicy` (PeepCore, unit tested). It serves a file
   only if, after resolving `..`, percent-encoding, and every symlink (`realpath`, then
   `F_GETPATH` on the opened descriptor), it is a regular file inside the allowed root, no larger
   than 32 MB, with a PNG, JPEG, GIF, WebP, or SVG extension whose content sniffs as that same
@@ -758,9 +758,9 @@ editor or a browser.
   against the repository; without a repository that is the document's folder (one rule for
   images and links, and a leading `/` never means the file system root). The renderer rewrites
   them to `<root>/...` (`RenderOptions.linkRoot`, `RootRelativeURL`) with `.`/`..` clamped at
-  the root, so `LocalImagePolicy` and `LinkPolicy` see ordinary `mdv-doc` URLs and stay the
-  only checks; `//host` stays remote. Copy as HTML and `mdv --html` of standard input keep them
-  as written; `mdv --html FILE` rewrites them against the file's root, as the app does (#65).
+  the root, so `LocalImagePolicy` and `LinkPolicy` see ordinary `peep-doc` URLs and stay the
+  only checks; `//host` stays remote. Copy as HTML and `peep --html` of standard input keep them
+  as written; `peep --html FILE` rewrites them against the file's root, as the app does (#65).
 - GitHub's `#gh-dark-mode-only` / `#gh-light-mode-only` images (and their remote-image
   placeholders) show only in the matching appearance through the base layer's CSS (`ThemeBase`)
   (`img[src$=...]` under `prefers-color-scheme`), so they follow live appearance changes; print
@@ -778,7 +778,7 @@ editor or a browser.
   - **No `--no-sanitize` (#65).** The CLI has no way to turn sanitizing off. Headless output is
     a page meant to be opened in a browser, where page JavaScript isn't disabled as it is in
     the viewer, so passing raw HTML from an untrusted file through would run its scripts
-    (and the page's CSP is the only other guard). The spec suites turn it off in MdvCore
+    (and the page's CSP is the only other guard). The spec suites turn it off in PeepCore
     (`RenderOptions.spec`), which is where unsanitized output belongs.
   - **The CLI doesn't read Settings > Markdown (#65)**: its output depends only on its flags
     and the file, never on app state. Frontmatter overrides apply as in the app, under the
@@ -790,14 +790,14 @@ editor or a browser.
   and is re-serialized before insertion; anything else falls back to plain escaped code.
   JavaScriptCore has no execution time limit, so blocks over 128 KB and code beyond a 256 KB
   per-document budget are left unhighlighted.
-- Links go through one tested navigation policy (`LinkPolicy` in `MdvCore`, #19), and nothing
+- Links go through one tested navigation policy (`LinkPolicy` in `PeepCore`, #19), and nothing
   navigates the viewer away from the document: the only main-frame navigations allowed are the
   page loads the app starts. In-page fragments scroll via the app-script bridge (raw id, then
   percent-decoded, then `user-content-`). `http`, `https`, and `mailto` open in the default app.
-  Local Markdown files (`mdv-doc` URLs mapped back to files with the window's token) open in
-  mdv; Cmd-click or middle-click opens them in a new tab. Other local files and folders are
+  Local Markdown files (`peep-doc` URLs mapped back to files with the window's token) open in
+  Peep; Cmd-click or middle-click opens them in a new tab. Other local files and folders are
   **revealed in Finder, never opened**, so a document can't launch an app or script by link.
-  Every other scheme, unmappable `mdv-doc` URL, and blank safe-mode link is blocked silently,
+  Every other scheme, unmappable `peep-doc` URL, and blank safe-mode link is blocked silently,
   with the reason shown in the window's link status overlay. Link hover is reported by an app
   script whose message handler exists only in the app's content world; its message is display
   text and never acted on. Find in page passes the query to its app script as a value and
@@ -808,8 +808,8 @@ editor or a browser.
   changes the flavor (and #53's wiki links toggle) and nothing else, so sanitizing, the remote
   image policy, `linkRoot`, source lines, and every other setting stay as the reader's app set
   them. The custom preprocessor isn't a render option at all: it is configured only in Settings
-  (or named by `mdv --html --preprocessor`) and runs before frontmatter is read. Any other key
-  under `mdv:` (`sanitize`, `remoteImages`, `preprocessor`, ...) is ignored and reported;
+  (or named by `peep --html --preprocessor`) and runs before frontmatter is read. Any other key
+  under `peep:` (`sanitize`, `remoteImages`, `preprocessor`, ...) is ignored and reported;
   unregistered flavors (such as the spec suite's) can't be chosen; a theme id is only looked up
   in the registry, never read as a path. Tests (`DocumentOverridesSecurityTests`) render a
   document that tries each of these.
@@ -820,17 +820,17 @@ editor or a browser.
     way to turn it on (`CustomPreprocessorSettings`): the program is chosen with an Open panel
     (never a typed path; links are kept as chosen, not resolved) and stored as an absolute path,
     a choice that isn't an executable file is refused with the reason, and the toggle turns it
-    on only after a warning that mdv will run that program on every document it opens, as the
+    on only after a warning that Peep will run that program on every document it opens, as the
     reader, with the reader's access. Arguments are a list of fields, passed verbatim (empty
     ones dropped). Frontmatter can't turn it on, choose a program, or pass arguments (tested,
     `CustomPreprocessorTests.frontmatterCantEnable`), and the only launch argument for it,
-    `-MdvUITestPreprocessor`, is compiled into Debug UI-test builds only (as is
-    `-MdvUITestRenderDelay`, which holds up renders so UI tests can see the progress indicator). UI tests and hosted
+    `-PeepUITestPreprocessor`, is compiled into Debug UI-test builds only (as is
+    `-PeepUITestRenderDelay`, which holds up renders so UI tests can see the progress indicator). UI tests and hosted
     tests keep the setting in memory.
   - **Which documents:** every document the app opens while it is on; no extension filter
-    (mdv only opens Markdown and plain text, and a script can check `MDV_DOCUMENT_PATH` and pass
+    (Peep only opens Markdown and plain text, and a script can check `PEEP_DOCUMENT_PATH` and pass
     a file through unchanged). The file must still be UTF-8 (the open fails otherwise, as
-    without a preprocessor), and the script gets its exact bytes. `mdv --html` runs one only
+    without a preprocessor), and the script gets its exact bytes. `peep --html` runs one only
     when `--preprocessor PATH` names it (#66; the CLI bullets under Architecture).
   - **Failures render the document without it, plus a bar** (`PreprocessorFailureBar`), never an
     alert and never an error page: "Preprocessor failed", the reason (`PreprocessorError.message`),
@@ -858,7 +858,7 @@ editor or a browser.
     (script, child, or zombie) is left. The suite passes under the Address and Thread
     Sanitizers (M4 close-out).
 
-  The runner is `CustomPreprocessor` in `MdvCore` (#56):
+  The runner is `CustomPreprocessor` in `PeepCore` (#56):
   - **Contract:** the document's bytes on stdin, Markdown as UTF-8 on stdout, exit status 0
     for success. Output that isn't UTF-8 or contains a NUL byte is an error. A non-zero exit
     discards stdout.
@@ -868,17 +868,17 @@ editor or a browser.
     by the user, checked when configured and again before every run.
   - **Arguments:** a fixed list from configuration, passed as an argv array to `posix_spawn`:
     no shell, no expansion. Nothing from the document is ever added to the command line. The
-    document's path goes in `MDV_DOCUMENT_PATH`, never as an argument that could be read as an
+    document's path goes in `PEEP_DOCUMENT_PATH`, never as an argument that could be read as an
     option.
   - **Environment:** only `PATH` (fixed:
     `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`, the same from Finder or a
-    terminal), `HOME`, `TMPDIR`, `LANG=en_US.UTF-8`, and `MDV_DOCUMENT_PATH` (when there is a
+    terminal), `HOME`, `TMPDIR`, `LANG=en_US.UTF-8`, and `PEEP_DOCUMENT_PATH` (when there is a
     file). None of the app's own environment is passed on.
   - **Working directory:** the document's folder, so relative paths mean what they mean to the
     reader. With no file (piped input), it is `/`.
   - **Descriptors and signals:** the child gets only the three pipes
-    (`POSIX_SPAWN_CLOEXEC_DEFAULT`) and default signal handling. mdv's stdin pipe has
-    `F_SETNOSIGPIPE`, so a script that closes stdin can't raise `SIGPIPE` in mdv.
+    (`POSIX_SPAWN_CLOEXEC_DEFAULT`) and default signal handling. Peep's stdin pipe has
+    `F_SETNOSIGPIPE`, so a script that closes stdin can't raise `SIGPIPE` in Peep.
   - **Limits** (`PreprocessorLimits.standard`): 5 s wall clock, 10 MB of input (a larger
     document doesn't run), 10 MB of stdout, and the last 64 KB of stderr kept for the error
     message. More stderr is drained and dropped.
@@ -891,22 +891,22 @@ editor or a browser.
   - **No deadlocks, no blocked threads:** one kqueue loop on a dedicated thread (never the
     Swift cooperative pool) writes stdin and reads stdout and stderr together. It also watches
     for the exit, the deadline, and cancellation. A script that never reads stdin, or fills a
-    pipe, can't stall mdv. The worst case is the timeout plus the grace period.
+    pipe, can't stall Peep. The worst case is the timeout plus the grace period.
   - **Failures** are a typed `PreprocessorError`: input too large, executable unusable, launch
     failed, timed out, output too large, exit status, signal, not UTF-8, or NUL, each with a
     user-presentable message and the stderr tail. Each failure is logged with `os.Logger`.
   - **Not a sandbox:** the script runs as the user, with the user's file access. A process that
-    leaves the group (`setsid`) is out of reach, though mdv stops reading its pipes after the
+    leaves the group (`setsid`) is out of reach, though Peep stops reading its pipes after the
     grace period. Opting in means trusting the executable.
 - **Install Command Line Tool (#70)** writes outside the app, sometimes as root, so it follows
   narrow rules (`CommandLineToolInstaller`, unit tested over temp folders):
-  - It only ever creates, replaces, or removes a symbolic link named `mdv` whose absolute
-    destination is `<X>.app/Contents/Helpers/mdv`, where `X.app` is gone (a moved app) or has
-    mdv's bundle identifier. A file, a folder, a relative link, or a link anywhere else
+  - It only ever creates, replaces, or removes a symbolic link named `peep` whose absolute
+    destination is `<X>.app/Contents/Helpers/peep`, where `X.app` is gone (a moved app) or has
+    Peep's bundle identifier. A file, a folder, a relative link, or a link anywhere else
     (including into another app with the same layout) is shown to the reader and left alone,
     by install and by uninstall. The man page (#71) follows the same rule as a second item:
-    a link named `mdv.1` in `share/man/man1` beside the command's folder, to
-    `<X>.app/Contents/Resources/man/man1/mdv.1`. It goes along only when this copy has one and
+    a link named `peep.1` in `share/man/man1` beside the command's folder, to
+    `<X>.app/Contents/Resources/man/man1/peep.1`. It goes along only when this copy has one and
     nothing foreign is at its path (a page that isn't ours is skipped silently, not shown),
     and is removed with the command when it is ours. Both go in one batch: every path is
     checked before anything changes, and the links needing an administrator share one
@@ -915,32 +915,32 @@ editor or a browser.
     `RENAME_EXCL` when nothing was there. A replace or removal re-reads the link first and
     stops if its destination changed.
   - `~/.local/bin` needs no privileges. For a folder the reader can't write (`/usr/local/bin`),
-    mdv uses AppleScript's `do shell script … with administrator privileges` (not the deprecated
+    Peep uses AppleScript's `do shell script … with administrator privileges` (not the deprecated
     `AuthorizationExecuteWithPrivileges`; a privileged helper tool is out of proportion for one
     link). Nothing is interpolated into code: the AppleScript source is a constant whose
     handler receives the shell script and its arguments as Apple event parameters and quotes
     each with `quoted form of`. The shell scripts are constants too
     (`privilegedInstallScript`, `privilegedUninstallScript`) and get the paths only as `$1`…,
     which must be absolute and NUL-free. Run as root, they repeat the ownership check (the
-    link must still have the destination mdv read, and not resolve to a folder) and exit 3
+    link must still have the destination Peep read, and not resolve to a folder) and exit 3
     otherwise. Tests run the same scripts, and the same AppleScript handler minus the
     privilege clause, over paths full of quotes, `$(…)`, backticks, and newlines.
-  - The only launch argument, `-MdvUITestCommandLineToolFolder`, is Debug-only; UI-test and
+  - The only launch argument, `-PeepUITestCommandLineToolFolder`, is Debug-only; UI-test and
     hosted unit-test launches without it offer no folders, so tests never touch
     `/usr/local/bin` or `~/.local/bin`.
-  - To choose the default folder, mdv reads the reader's `PATH` from their login shell
+  - To choose the default folder, Peep reads the reader's `PATH` from their login shell
     (`$SHELL -l -c`, 2 s limit, no input): the reader's own configuration, nothing from a document.
 - **Other processes reaching the app (M5).** The CLI talks to the app only through channels
   any local process can already use, so the app treats everything arriving on them as
   untrusted and gives it no more power than a Finder open (details under "CLI" above):
-  - Open Documents events (#67): files open with the same checks as from Finder; mdv's
-    parameters are presentation-only and validated (`mdvT` a plausible, registered or
-    `custom:` theme id; `mdvW` exactly a UUID); the direct `mdv /odoc` event takes only file
+  - Open Documents events (#67): files open with the same checks as from Finder; Peep's
+    parameters are presentation-only and validated (`PepT` a plausible, registered or
+    `custom:` theme id; `PepW` exactly a UUID); the direct `Peep/odoc` event takes only file
     URL descriptors, at most 1000.
   - Standard input (#68): the app reads and deletes only a handoff it verifies by shape,
     owner, permissions, and link count, through descriptors that never follow links; anything
     else opens as an ordinary file.
-  - `--wait` (#69): the app only posts `com.itspriddle.mdv.windowsClosed.<token>` and acts on
+  - `--wait` (#69): the app only posts `now.peep.Peep.windowsClosed.<token>` and acts on
     no notification; a forged one can only end a CLI's wait early.
   - Nothing else crosses: the CLI forwards no environment but the launch-timing variables, no
     preprocessor or render setting travels to the app, and the CLI reads none of the app's
@@ -949,12 +949,12 @@ editor or a browser.
 
 ## Success looks like
 
-- `mdv README.md` shows a document indistinguishable from GitHub's rendering as fast as a
+- `peep README.md` shows a document indistinguishable from GitHub's rendering as fast as a
   `WKWebView` can show it. The original goal, under 200 ms, isn't reachable with `WKWebView`
   (#40): a bare AppKit app that loads the page into one web view first thing at launch paints
   it in about 290-350 ms on a MacBook Air (ROADMAP M3), most of it WebKit starting its web
   content process and drawing the first frames. The agreed target (#40, accepted at the M3
-  close-out) is that floor: mdv's cold open stays within about 0-50 ms of the bare app's,
+  close-out) is that floor: Peep's cold open stays within about 0-50 ms of the bare app's,
   measured in the same run with `scripts/measure-cold-open -f`.
 - Switching themes or editing the file in another app updates the window instantly.
 - A new contributor can clone, `make bootstrap && make test`, and be productive in minutes.

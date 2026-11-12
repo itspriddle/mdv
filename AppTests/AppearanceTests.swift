@@ -1,8 +1,8 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 @MainActor
 @Suite("Appearance")
@@ -127,7 +127,7 @@ struct AppearanceTests {
 
     @Test("View > Appearance sets the mode and checks the current one")
     func appearanceMenuAction() throws {
-        let throwaway = try ThrowawayDefaults("mdv-appearance-tests")
+        let throwaway = try ThrowawayDefaults("peep-appearance-tests")
         let settings = AppearanceSettings(defaults: throwaway.defaults, isPersistent: true)
         let delegate = AppDelegate(appearanceSettings: settings)
         let items = try Self.appearanceItems().filter { !$0.isSeparatorItem }

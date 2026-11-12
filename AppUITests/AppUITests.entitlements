@@ -5,10 +5,10 @@
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
 	<!-- CommandLineUITests (#67): the CLI the runner starts inherits its sandbox, and sends
-	     mdv its Open Documents event. -->
+	     peep its Open Documents event. -->
 	<key>com.apple.security.temporary-exception.apple-events</key>
 	<array>
-		<string>com.itspriddle.mdv</string>
+		<string>now.peep.Peep</string>
 	</array>
 </dict>
 </plist>

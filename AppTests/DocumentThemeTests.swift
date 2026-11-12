@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// Frontmatter overrides in the app (#54): a document's `mdv.theme` against the reader's pick and
+/// Frontmatter overrides in the app (#54): a document's `peep.theme` against the reader's pick and
 /// Settings' default, View > Theme > Document's Theme, live reload, and restoration.
 @MainActor
 @Suite("Document theme", .serialized, .timeLimit(.minutes(1)))
@@ -15,7 +15,7 @@ final class DocumentThemeTests: DocumentWindowTestCase {
         guard !settings.isEmpty else {
             return body
         }
-        return "---\ntitle: Themed\nmdv:\n" + settings.map { "  \($0)\n" }.joined() + "---\n" + body
+        return "---\ntitle: Themed\npeep:\n" + settings.map { "  \($0)\n" }.joined() + "---\n" + body
     }
 
     func openThemed(
@@ -30,7 +30,7 @@ final class DocumentThemeTests: DocumentWindowTestCase {
     }
 
     func pageShows(_ theme: Theme, in controller: DocumentWindowController) async throws -> Bool {
-        let css = try await evaluate("return document.getElementById('mdv-theme').textContent;", in: controller)
+        let css = try await evaluate("return document.getElementById('peep-theme').textContent;", in: controller)
         return (css as? String)?.trimmingCharacters(in: .newlines) == theme.layerCSS.trimmingCharacters(in: .newlines)
     }
 
@@ -133,7 +133,7 @@ final class DocumentThemeTests: DocumentWindowTestCase {
 
     // MARK: Live reload
 
-    @Test("editing mdv.theme swaps the theme in place; removing it goes back to the default")
+    @Test("editing peep.theme swaps the theme in place; removing it goes back to the default")
     func liveReloadTheme() async throws {
         defer { closeAll() }
         let settings = themeSettings()
@@ -141,12 +141,12 @@ final class DocumentThemeTests: DocumentWindowTestCase {
         let file = try #require(document.fileURL)
         document.startLiveReload()
         // A marker in the app world's globals: a reload would start a fresh page without it.
-        _ = try await evaluate("window.mdvDocumentThemeMarker = 7; return true;", in: controller)
+        _ = try await evaluate("window.peepDocumentThemeMarker = 7; return true;", in: controller)
 
         try Data(Self.source(theme: "document").utf8).write(to: file, options: .atomic)
         try await until("the theme from the edited file") { controller.theme == .document }
         try await until("the page swap") { try await pageShows(.document, in: controller) }
-        #expect(try await evaluate("return window.mdvDocumentThemeMarker;", in: controller) as? Int == 7, "no reload")
+        #expect(try await evaluate("return window.peepDocumentThemeMarker;", in: controller) as? Int == 7, "no reload")
 
         try Data(Self.source(theme: nil).utf8).write(to: file, options: .atomic)
         try await until("the default theme") { controller.theme == ThemeRegistry.bundled.defaultTheme }
@@ -165,7 +165,7 @@ final class DocumentThemeTests: DocumentWindowTestCase {
         #expect(controller.theme == .github)
     }
 
-    @Test("editing mdv.flavor re-renders with the new flavor")
+    @Test("editing peep.flavor re-renders with the new flavor")
     func liveReloadFlavor() async throws {
         defer { closeAll() }
         let table = "| a | b |\n| - | - |\n| 1 | 2 |\n"

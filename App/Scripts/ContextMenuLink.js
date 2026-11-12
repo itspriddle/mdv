@@ -1,10 +1,10 @@
-// mdv context menu link: remembers the link the context menu was opened on, for the app's
-// "Copy Link" (#42), which copies a file: URL instead of WebKit's internal mdv-doc: URL. Also
+// Peep context menu link: remembers the link the context menu was opened on, for the app's
+// "Copy Link" (#42), which copies a file: URL instead of WebKit's internal peep-doc: URL. Also
 // reports the link and image under the menu to the app, which replaces Share and Copy Image
 // for local ones, and draws that image as a PNG for Copy Image (decoding stays in WebKit).
 //
-// Runs only in the app's isolated content world ("mdv", see AppScripts.swift); page JavaScript
-// is disabled. The page cannot see or call `mdvContextMenu`, and the `contextMenuTarget` message
+// Runs only in the app's isolated content world ("peep", see AppScripts.swift); page JavaScript
+// is disabled. The page cannot see or call `peepContextMenu`, and the `contextMenuTarget` message
 // handler is registered in that world only. The `contextmenu` event fires before the menu opens,
 // and the message is sent before WebKit asks the app to show the menu, so both are recorded
 // before any menu item can be chosen.
@@ -20,7 +20,7 @@
     return typeof value === "string" ? value : "";
   }
 
-  // Listeners on the document survive in-place content swaps (`mdv.replaceContent`).
+  // Listeners on the document survive in-place content swaps (`peep.replaceContent`).
   document.addEventListener(
     "contextmenu",
     (event) => {
@@ -78,5 +78,5 @@
     }
   }
 
-  globalThis.mdvContextMenu = Object.freeze({ link, imagePNG });
+  globalThis.peepContextMenu = Object.freeze({ link, imagePNG });
 })();

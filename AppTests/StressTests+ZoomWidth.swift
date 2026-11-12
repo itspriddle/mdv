@@ -1,19 +1,19 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Per-window zoom and content width (#47) under load: interleaved changes across windows
 /// racing live reloads and reverts. Each window must end on its own last values, in the window
 /// and in the page, with nothing leaking into another window or into Settings.
 extension StressTests {
-    /// The text of the page's `mdv-user` layer.
+    /// The text of the page's `peep-user` layer.
     func pageUserCSS(_ controller: DocumentWindowController) async throws -> String? {
         (try await controller.coordinator.webView.callAsyncJavaScript(
-            "return document.getElementById('mdv-user').textContent;", arguments: [:], in: nil,
+            "return document.getElementById('peep-user').textContent;", arguments: [:], in: nil,
             contentWorld: AppScripts.world) as? String)?
             .trimmingCharacters(in: .newlines)
     }
@@ -34,7 +34,7 @@ extension StressTests {
 
     @Test("per-window zoom and width changes during rapid live reloads end on each window's own values")
     func zoomAndWidthDuringReloads() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let zoom = ZoomSettings(defaults: defaults.defaults, isPersistent: true)
         let width = ContentWidthSettings(defaults: defaults.defaults, isPersistent: true)
         let urls = try (0..<4).map { try write("# Start \($0)", to: "zoomed-\($0).md") }

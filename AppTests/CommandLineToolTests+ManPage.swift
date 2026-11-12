@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The man page and completions that go with the command (#71): the man page is a second
 /// `CommandLineToolInstaller.Item`, installed and removed in the same batch as the command.
@@ -14,7 +14,7 @@ struct CommandLineToolManPageTests {
 
     init() throws {
         sandbox = try CommandLineToolSandbox()
-        app = try sandbox.makeApp("mdv.app")
+        app = try sandbox.makeApp("Peep.app")
         command = sandbox.installer(app: app)
         manPage = sandbox.manPageInstaller(app: app)
     }
@@ -30,7 +30,7 @@ struct CommandLineToolManPageTests {
             CommandLineToolLocation.usrLocalBin.manFolder.pathComponents == [
                 "/", "usr", "local", "share", "man", "man1",
             ])
-        #expect(manPage.target == app.appending(path: "Contents/Resources/man/man1/mdv.1"))
+        #expect(manPage.target == app.appending(path: "Contents/Resources/man/man1/peep.1"))
     }
 
     @Test("a batch installs the command and the man page, and uninstalls both")
@@ -143,9 +143,9 @@ struct CommandLineToolManPageTests {
     func bundledCompletions() {
         defer { sandbox.remove() }
         let folder = Bundle.main.bundleURL.appending(path: CommandLineToolController.completionsPathInBundle)
-        for name in ["_mdv", "mdv.bash", "mdv.fish"] {
+        for name in ["_peep", "peep.bash", "peep.fish"] {
             let script = try? String(contentsOf: folder.appending(path: name), encoding: .utf8)
-            #expect(script?.contains("mdv") == true, "\(name) is missing from the bundle")
+            #expect(script?.contains("peep") == true, "\(name) is missing from the bundle")
         }
     }
 }

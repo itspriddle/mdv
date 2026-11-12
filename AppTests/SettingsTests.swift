@@ -1,8 +1,8 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The Settings window (#36): the model reads and writes the existing stores, follows changes
 /// made elsewhere, and settings apply to windows (zoom and width live, theme and outline to new
@@ -20,8 +20,8 @@ final class SettingsTests: DocumentWindowTestCase {
     ) -> SettingsModel {
         workspace.setHandler("com.example.other")
         let viewer = DefaultViewer(
-            workspace: workspace, defaults: defaults, applicationURL: URL(filePath: "/Applications/mdv.app"),
-            bundleIdentifier: "com.itspriddle.mdv", isSuppressed: true)
+            workspace: workspace, defaults: defaults, applicationURL: URL(filePath: "/Applications/Peep.app"),
+            bundleIdentifier: "now.peep.Peep", isSuppressed: true)
         return SettingsModel(
             appearanceSettings: appearanceSettings ?? AppearanceSettings(defaults: defaults, isPersistent: true),
             themeSettings: themeSettings ?? self.themeSettings(),
@@ -191,7 +191,7 @@ final class SettingsTests: DocumentWindowTestCase {
         #expect(SettingsModel.zoomTitle(0.67) == "67%")
     }
 
-    @Test("Make Default makes mdv the default viewer")
+    @Test("Make Default makes Peep the default viewer")
     func defaultViewer() async {
         let model = model()
         #expect(!model.isDefaultViewer)

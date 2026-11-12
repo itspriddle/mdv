@@ -2,7 +2,7 @@ import AppKit
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The find pasteboard and Jump to Selection (#42), in a hosted `WKWebView`.
 @MainActor
@@ -120,7 +120,7 @@ struct FindPasteboardTests {
         let result = try await coordinator.webView.callAsyncJavaScript(
             """
             const range = match
-                ? CSS.highlights.get("mdv-find-current").values().next().value
+                ? CSS.highlights.get("peep-find-current").values().next().value
                 : getSelection().getRangeAt(0);
             const rect = range.getBoundingClientRect();
             return rect.top >= 0 && rect.bottom <= window.innerHeight;

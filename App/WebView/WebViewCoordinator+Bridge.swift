@@ -1,4 +1,4 @@
-import MdvCore
+import PeepCore
 import WebKit
 
 /// The Swift side of `App/Scripts/DocumentBridge.js`. Each call runs a fixed function body in
@@ -7,7 +7,7 @@ extension WebViewCoordinator {
     /// The source line at the top of the viewport; fractional between annotated blocks. `1` at
     /// the top of the page.
     func currentSourceLine() async throws -> Double {
-        let result = try await callBridge("return mdv.currentSourceLine();")
+        let result = try await callBridge("return peep.currentSourceLine();")
         guard let line = (result as? NSNumber)?.doubleValue else {
             throw BridgeError.unexpectedResult
         }
@@ -18,7 +18,7 @@ extension WebViewCoordinator {
     /// pixels below the top of the viewport, so a heading scrolled to the top is in its own
     /// section. Read after each `ScrollPosition.js` report.
     func sectionSourceLine() async throws -> Double {
-        let result = try await callBridge("return mdv.sectionSourceLine();")
+        let result = try await callBridge("return peep.sectionSourceLine();")
         guard let line = (result as? NSNumber)?.doubleValue else {
             throw BridgeError.unexpectedResult
         }
@@ -28,7 +28,7 @@ extension WebViewCoordinator {
     /// Scrolls so `line` (1-based, in the original file, fractional allowed) is at the top of
     /// the viewport.
     func scroll(toSourceLine line: Double) async throws {
-        _ = try await callBridge("return mdv.scrollToSourceLine(line);", arguments: ["line": line])
+        _ = try await callBridge("return peep.scrollToSourceLine(line);", arguments: ["line": line])
     }
 
     /// Scrolls to the element a URL fragment names (without `#`; raw percent-encoded or already
@@ -38,7 +38,7 @@ extension WebViewCoordinator {
     @discardableResult
     func scroll(toFragment fragment: String) async throws -> Bool {
         let ids = LinkPolicy.fragmentIDCandidates(fragment)
-        let result = try await callBridge("return mdv.scrollToFirstID(ids);", arguments: ["ids": ids])
+        let result = try await callBridge("return peep.scrollToFirstID(ids);", arguments: ["ids": ids])
         if (result as? NSNumber)?.boolValue == true {
             return true
         }
@@ -54,7 +54,7 @@ extension WebViewCoordinator {
     func replaceContent(with page: RenderedPage, baseURL: URL?) async throws {
         if hasLoadedPage {
             let result = try await callBridge(
-                "return mdv.replaceContent(html, title);", arguments: ["html": page.body, "title": page.title])
+                "return peep.replaceContent(html, title);", arguments: ["html": page.body, "title": page.title])
             if (result as? NSNumber)?.boolValue == true {
                 return
             }
@@ -69,7 +69,7 @@ extension WebViewCoordinator {
     func updateContent(with page: RenderedPage, baseURL: URL?) async throws {
         if hasLoadedPage {
             let result = try await callBridge(
-                "return mdv.updateContent(html, title);", arguments: ["html": page.body, "title": page.title])
+                "return peep.updateContent(html, title);", arguments: ["html": page.body, "title": page.title])
             if (result as? NSNumber)?.boolValue == true {
                 return
             }
@@ -77,12 +77,12 @@ extension WebViewCoordinator {
         try await load(page, baseURL: baseURL)
     }
 
-    /// Replaces the loaded page's theme (the `mdv-theme` style element's text, `Theme.layerCSS`)
+    /// Replaces the loaded page's theme (the `peep-theme` style element's text, `Theme.layerCSS`)
     /// and keeps the reading position, in one script run. Returns `false` when the page has no
     /// theme element. Use `show(_:)`, which tracks what the page holds.
     func replaceTheme(css: String) async throws -> Bool {
         let result = try await callBridge(
-            "return mdv.replaceStyle(id, css);", arguments: ["id": ThemeLayer.theme.name, "css": css])
+            "return peep.replaceStyle(id, css);", arguments: ["id": ThemeLayer.theme.name, "css": css])
         return (result as? NSNumber)?.boolValue == true
     }
 
@@ -90,12 +90,12 @@ extension WebViewCoordinator {
     /// pictures can switch to their light image while the page prints (`preloadPictureSources`
     /// in `DocumentBridge.js`). Returns once they have loaded or failed, or after its timeout.
     func preloadPictureSources() async throws {
-        _ = try await callBridge("return await mdv.preloadPictureSources();")
+        _ = try await callBridge("return await peep.preloadPictureSources();")
     }
 
     /// The reading position to keep across a reload.
     func readingPosition() async throws -> ReadingPosition {
-        let result = try await callBridge("return mdv.readingPosition();")
+        let result = try await callBridge("return peep.readingPosition();")
         guard let object = result as? [String: Any], let line = (object["line"] as? NSNumber)?.doubleValue,
             let atBottom = (object["atBottom"] as? NSNumber)?.boolValue
         else {
@@ -107,7 +107,7 @@ extension WebViewCoordinator {
     /// Scrolls back to a position from `readingPosition()`.
     func restore(_ position: ReadingPosition) async throws {
         _ = try await callBridge(
-            "return mdv.restorePosition({ line, atBottom });",
+            "return peep.restorePosition({ line, atBottom });",
             arguments: ["line": position.line, "atBottom": position.atBottom])
     }
 

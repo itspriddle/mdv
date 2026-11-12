@@ -22,14 +22,14 @@ enum WebViewContextMenu {
         "WKMenuItemIdentifierOpenImageInNewWindow",
         "WKMenuItemIdentifierOpenMediaInNewWindow",
         "WKMenuItemIdentifierOpenFrameInNewWindow",
-        // Copies the internal `mdv-doc` page URL with a text fragment, and Quick Note highlights
+        // Copies the internal `peep-doc` page URL with a text fragment, and Quick Note highlights
         // link back to it; neither means anything outside this window.
         "WKMenuItemIdentifierCopyLinkWithHighlight",
         "WKMenuItemIdentifierAddHighlightToCurrentQuickNote",
         "WKMenuItemIdentifierAddHighlightToNewQuickNote",
     ]
 
-    /// WebKit's Copy Link item, which copies the link's resolved URL: the internal `mdv-doc` URL
+    /// WebKit's Copy Link item, which copies the link's resolved URL: the internal `peep-doc` URL
     /// for a relative link.
     static let copyLinkIdentifier = "WKMenuItemIdentifierCopyLink"
 
@@ -56,7 +56,7 @@ enum WebViewContextMenu {
     }
 
     /// Makes Copy Link perform `target` (`MenuItemTarget.performAction(_:)`) instead of WebKit's
-    /// action, or removes it when `target` is nil, so it never copies an `mdv-doc` URL (#42).
+    /// action, or removes it when `target` is nil, so it never copies a `peep-doc` URL (#42).
     @MainActor
     static func redirectCopyLink(in menu: NSMenu, to target: MenuItemTarget?) {
         redirect(copyLinkIdentifier, in: menu, to: target)

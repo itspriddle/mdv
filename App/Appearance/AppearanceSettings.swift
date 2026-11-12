@@ -34,7 +34,7 @@ final class AppearanceSettings {
     static let shared = AppearanceSettings()
 
     /// Posted (object: the settings) after `mode` changes.
-    static let didChangeNotification = Notification.Name("MdvAppearanceSettingsDidChange")
+    static let didChangeNotification = Notification.Name("PeepAppearanceSettingsDidChange")
 
     /// The `UserDefaults` key: an `AppearanceMode` raw value, absent at `.system`.
     static let key = "Appearance"

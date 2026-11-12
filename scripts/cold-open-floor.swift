@@ -1,9 +1,9 @@
 // The floor for cold open to first paint with WKWebView (#40), built and run by
 // `scripts/measure-cold-open -f`: a bare AppKit app that, first thing at launch, loads a
-// prerendered page (`mdv --html FILE`, the argument) into one WKWebView configured like mdv's
+// prerendered page (`peep --html FILE`, the argument) into one WKWebView configured like Peep's
 // (page JavaScript off, non-persistent data store) in one plain window. No document
 // architecture, menus, toolbar, sidebar, or SwiftUI. It reports milliseconds from process start
-// to two animation frames after the load finished, in mdv's `LaunchTiming` format, and quits.
+// to two animation frames after the load finished, in Peep's `LaunchTiming` format, and quits.
 import AppKit
 import Darwin
 import WebKit
@@ -64,7 +64,7 @@ final class Delegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                 "for (let i = 0; i < 2; i++) { await new Promise(r => requestAnimationFrame(r)); }",
                 arguments: [:], in: nil, contentWorld: .defaultClient)
             marks.append(String(format: "\"painted\":%.1f", sinceStart()))
-            FileHandle.standardError.write(Data("mdv-launch-timing {\(marks.joined(separator: ","))}\n".utf8))
+            FileHandle.standardError.write(Data("peep-launch-timing {\(marks.joined(separator: ","))}\n".utf8))
             NSApplication.shared.terminate(nil)
         }
     }

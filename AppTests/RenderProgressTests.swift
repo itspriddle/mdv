@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Feedback for slow renders (#58): the progress indicator shows only once a wait outlasts its
 /// delay (injected here), over the blank page before the first page loads and in the corner

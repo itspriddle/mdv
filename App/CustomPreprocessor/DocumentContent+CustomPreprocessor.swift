@@ -1,5 +1,5 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 extension DocumentContent {
     /// Renders `source`, the text of the file at `url` (nil for standard input, #68: titled

@@ -11,7 +11,7 @@ import WebKit
 /// loads.
 extension DocumentWindowController {
     /// The restorable-state key for the reading position (a `Double` source line).
-    static let sourceLineStateKey = "mdvSourceLine"
+    static let sourceLineStateKey = "peepSourceLine"
 
     /// Listens for `ScrollPosition.js` reports. Called once from `init`.
     func installScrollTracking() {

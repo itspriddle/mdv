@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// Feedback for slow renders (#58, `RenderProgress`): the window reports its state whenever the
 /// document starts or stops rendering and when its first page loads, and fills the outline only

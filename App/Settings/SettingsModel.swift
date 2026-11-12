@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// What the Settings window (#36) shows and changes: the app's existing preferences, read from
 /// and written to the stores that own them, so nothing is stored twice.
@@ -199,7 +199,7 @@ final class SettingsModel: NSObject {
         refresh()
     }
 
-    /// Makes mdv the default Markdown viewer (the system may ask to confirm); a failure shows
+    /// Makes Peep the default Markdown viewer (the system may ask to confirm); a failure shows
     /// an alert (`DefaultViewerOfferController`).
     func makeDefaultViewer() async {
         guard !isMakingDefaultViewer else {

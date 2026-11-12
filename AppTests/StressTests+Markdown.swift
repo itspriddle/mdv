@@ -1,13 +1,13 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The M4 crash and hang pass (#59): Settings > Markdown changing while renders and live
-/// reloads are in flight, frontmatter overrides (`mdv.theme`, `mdv.flavor`) changing under live
+/// reloads are in flight, frontmatter overrides (`peep.theme`, `peep.flavor`) changing under live
 /// reload, and a custom preprocessor that switches between hanging, crashing, flooding, and
 /// failing as the file changes. Run under the Address and Thread Sanitizers as well
 /// (docs/ROADMAP.md, M4).
@@ -57,7 +57,7 @@ extension StressTests {
 
     @Test("Settings > Markdown changes during first renders and rapid live reloads end on the newest settings")
     func settingsChangesDuringRenders() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let settings = MarkdownSettings(defaults: defaults.defaults, isPersistent: true)
         let urls = try (0..<4).map { try write(Self.settingsSource(step: 0, index: $0), to: "settings-\($0).md") }
         // A large document whose first render is still in flight while the settings change.
@@ -119,7 +119,7 @@ extension StressTests {
     nonisolated static func overrideSource(step: Int, index: Int, theme: String, flavor: String) -> String {
         """
         ---
-        mdv:
+        peep:
           theme: \(theme)
           flavor: \(flavor)
         ---
@@ -135,7 +135,7 @@ extension StressTests {
 
     @Test("frontmatter theme and flavor overrides changing under rapid live reloads end on the newest ones")
     func frontmatterOverridesDuringReloads() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let markdownSettings = MarkdownSettings(defaults: defaults.defaults, isPersistent: true)
         let themeStore = themeSettings(defaults)
         let themes = themeStore.registry.themes.map(\.id)
@@ -206,7 +206,7 @@ extension StressTests {
 
     @Test("a script that hangs, crashes, floods, or fails as the file changes under live reload")
     func preprocessorMisbehavesDuringReloads() async throws {
-        let defaults = try ThrowawayDefaults("mdv-stress")
+        let defaults = try ThrowawayDefaults("peep-stress")
         let markdownSettings = MarkdownSettings(defaults: defaults.defaults, isPersistent: false)
         let scripts = PreprocessorScripts(folder: folder)
         let preprocessor = PreprocessorScripts.settings(running: try scripts.modal(), defaults: defaults.defaults)

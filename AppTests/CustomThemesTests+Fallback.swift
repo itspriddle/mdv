@@ -1,9 +1,9 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// A window whose custom theme is missing or broken (#45): it shows Settings' default theme,
 /// GitHub only when that default is missing too, and keeps its pick for when the file returns.

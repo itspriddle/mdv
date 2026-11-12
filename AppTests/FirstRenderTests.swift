@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The first open renders off the main actor (#32): the window appears before the page is
 /// rendered, the main thread keeps running while a large document renders, and a render that
@@ -16,7 +16,7 @@ struct FirstRenderTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-first-render-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-first-render-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     }
 
@@ -115,7 +115,7 @@ struct FirstRenderTests {
         arguments: [false, true])
     func mainThreadStaysResponsive(outlineVisible: Bool) async throws {
         let url = try write(Self.largeSource(bytes: 5_000_000), to: "five.md")
-        let throwawayDefaults = try ThrowawayDefaults("mdv-first-render")
+        let throwawayDefaults = try ThrowawayDefaults("peep-first-render")
         let defaults = throwawayDefaults.defaults
         let outlinePreference = OutlinePreference(defaults: defaults, isPersistent: true)
         outlinePreference.showsOutlineInNewWindows = outlineVisible
@@ -210,7 +210,7 @@ struct FirstRenderTests {
         let controller = try #require(document.windowControllers.first as? DocumentWindowController)
         #expect(WebViewCoordinator.isPreparationURL(controller.coordinator.webView.url))
         try await until("the page") { controller.coordinator.hasLoadedPage }
-        #expect(controller.coordinator.webView.url?.scheme == "mdv-doc")
+        #expect(controller.coordinator.webView.url?.scheme == "peep-doc")
 
         let second = DocumentWindowController()
         document.addWindowController(second)

@@ -1,8 +1,8 @@
 import AppKit
-import MdvCore
+import PeepCore
 import os
 
-/// Custom themes (#35): the `.css` files in `~/Library/Application Support/mdv/Themes`,
+/// Custom themes (#35): the `.css` files in `~/Library/Application Support/Peep/Themes`,
 /// loaded at launch and again whenever the folder changes, without a restart.
 ///
 /// `ThemeFolderWatcher` reports changes (debounced, off the main thread); each report reads
@@ -16,11 +16,10 @@ import os
 /// `openFolder()`); a missing folder is watched for, so creating it by hand works too.
 @MainActor
 final class CustomThemeLibrary {
-    /// The folder under Application Support that holds mdv's files. The app's working name;
-    /// rename with the app (before M6).
-    static let applicationSupportFolderName = "mdv"
+    /// The folder under Application Support that holds Peep's files.
+    static let applicationSupportFolderName = "Peep"
 
-    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "mdv", category: "themes")
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "peep", category: "themes")
     /// The themes folder's name inside it.
     static let themesFolderName = "Themes"
 

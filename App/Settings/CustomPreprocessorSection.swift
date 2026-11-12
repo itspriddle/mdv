@@ -1,4 +1,4 @@
-import MdvCore
+import PeepCore
 import SwiftUI
 
 /// Settings > Markdown > Custom preprocessor (#57), the pane's last section: the on/off toggle
@@ -74,7 +74,7 @@ struct CustomPreprocessorSection: View {
     /// The warning before turning the preprocessor on.
     private var warning: String {
         let name = model.executableName.map { "“\($0)”" } ?? "the program"
-        return "mdv will run \(name) on every document you open, as you, with access to everything you can "
+        return "Peep will run \(name) on every document you open, as you, with access to everything you can "
             + "access. Each document's text is sent to it. Documents can't turn it on or choose another program. "
             + "Only turn this on for a program you trust."
     }

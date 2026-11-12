@@ -1,10 +1,10 @@
 #!/bin/bash
-# Generates mdv's man page and shell completions from the ArgumentParser command (#71):
+# Generates Peep's man page and shell completions from the ArgumentParser command (#71):
 #
-#   OUT/man/man1/mdv.1          generate-manual's page, finished by MdvManualTool (ManualPage)
-#   OUT/completions/_mdv        zsh
-#   OUT/completions/mdv.bash    bash
-#   OUT/completions/mdv.fish    fish
+#   OUT/man/man1/peep.1          generate-manual's page, finished by PeepManualTool (ManualPage)
+#   OUT/completions/_peep        zsh
+#   OUT/completions/peep.bash    bash
+#   OUT/completions/peep.fish    fish
 #
 # Usage: scripts/generate-cli-docs [OUT]   (default: build/cli-docs; `make cli-docs`)
 #
@@ -21,7 +21,7 @@ if [[ -z "$date" ]]; then
 fi
 
 # The plugin builds the package and writes <output>/<target>/<command>.1.
-generated=.build/plugins/GenerateManual/outputs/MdvCLI/mdv.1
+generated=.build/plugins/GenerateManual/outputs/PeepCLI/peep.1
 rm -f "$generated"
 swift package plugin generate-manual --configuration debug --date "$date" >&2
 if [[ ! -f "$generated" ]]; then
@@ -29,19 +29,19 @@ if [[ ! -f "$generated" ]]; then
   exit 1
 fi
 
-swift build --product MdvManualTool >&2
-swift build --product mdv >&2
+swift build --product PeepManualTool >&2
+swift build --product peep >&2
 bin=$(swift build --show-bin-path)
 
 mkdir -p "$out/man/man1" "$out/completions"
-"$bin/MdvManualTool" "$generated" --output "$out/man/man1/mdv.1"
+"$bin/PeepManualTool" "$generated" --output "$out/man/man1/peep.1"
 # mandoc ships with macOS; its linter fails on mdoc errors from either half of the page (style warnings pass).
 if command -v mandoc > /dev/null; then
-  mandoc -T lint -W error "$out/man/man1/mdv.1"
+  mandoc -T lint -W error "$out/man/man1/peep.1"
 fi
 
-"$bin/mdv" --generate-completion-script zsh > "$out/completions/_mdv"
-"$bin/mdv" --generate-completion-script bash > "$out/completions/mdv.bash"
-"$bin/mdv" --generate-completion-script fish > "$out/completions/mdv.fish"
+"$bin/peep" --generate-completion-script zsh > "$out/completions/_peep"
+"$bin/peep" --generate-completion-script bash > "$out/completions/peep.bash"
+"$bin/peep" --generate-completion-script fish > "$out/completions/peep.fish"
 
-echo "generate-cli-docs: wrote $out/man/man1/mdv.1 and $out/completions" >&2
+echo "generate-cli-docs: wrote $out/man/man1/peep.1 and $out/completions" >&2

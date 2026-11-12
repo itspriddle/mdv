@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// The outline sidebar (#24): a sidebar split item beside the document, toggled from the View
 /// menu and the toolbar, jumping to headings through the scroll bridge and following the
@@ -166,10 +166,10 @@ extension DocumentWindowController {
 extension DocumentWindowController {
     /// The restorable-state key for the outline's visibility (a `Bool`), saved by
     /// `DocumentWindow` with the window's own state.
-    static let outlineVisibleStateKey = "mdvOutlineVisible"
+    static let outlineVisibleStateKey = "peepOutlineVisible"
 
     /// The restorable-state key for the sidebar's width (a `Double`, in points), #43.
-    static let outlineWidthStateKey = "mdvOutlineWidth"
+    static let outlineWidthStateKey = "peepOutlineWidth"
 
     func encodeOutlineState(with coder: NSCoder) {
         coder.encode(isOutlineVisible, forKey: Self.outlineVisibleStateKey)

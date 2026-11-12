@@ -3,15 +3,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "mdv",
+    name: "peep",
     platforms: [
         .macOS(.v15)
     ],
     products: [
-        .library(name: "MdvCore", targets: ["MdvCore"]),
-        // The CLI's logic, so the Xcode `mdv-cli` target and the tests share it.
-        .library(name: "MdvCLIKit", targets: ["MdvCLIKit"]),
-        .executable(name: "mdv", targets: ["MdvCLI"]),
+        .library(name: "PeepCore", targets: ["PeepCore"]),
+        // The CLI's logic, so the Xcode `peep-cli` target and the tests share it.
+        .library(name: "PeepCLIKit", targets: ["PeepCLIKit"]),
+        .executable(name: "peep", targets: ["PeepCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-cmark.git", from: "0.9.0"),
@@ -20,7 +20,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MdvCore",
+            name: "PeepCore",
             dependencies: [
                 .product(name: "cmark-gfm", package: "swift-cmark"),
                 .product(name: "cmark-gfm-extensions", package: "swift-cmark"),
@@ -30,39 +30,39 @@ let package = Package(
             linkerSettings: [.linkedFramework("JavaScriptCore")]
         ),
         .target(
-            name: "MdvCLIKit",
+            name: "PeepCLIKit",
             dependencies: [
-                "MdvCore",
+                "PeepCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
-            path: "CLI/MdvCLIKit"
+            path: "CLI/PeepCLIKit"
         ),
         .executableTarget(
-            name: "MdvCLI",
-            dependencies: ["MdvCLIKit"],
+            name: "PeepCLI",
+            dependencies: ["PeepCLIKit"],
             path: "CLI/Main"
         ),
         // Build tool, not shipped: `make cli-docs` finishes generate-manual's page with it (#71).
         .executableTarget(
-            name: "MdvManualTool",
+            name: "PeepManualTool",
             dependencies: [
-                "MdvCLIKit",
+                "PeepCLIKit",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
             path: "CLI/ManualTool"
         ),
         .testTarget(
-            name: "MdvCoreTests",
+            name: "PeepCoreTests",
             dependencies: [
-                "MdvCore",
+                "PeepCore",
                 .product(name: "cmark-gfm", package: "swift-cmark"),
             ],
             resources: [.copy("Fixtures")]
         ),
         .testTarget(
-            name: "MdvCLITests",
-            // MdvCLI so `swift test` builds the binary the end-to-end tests run.
-            dependencies: ["MdvCLIKit", "MdvCLI", "MdvCore"],
+            name: "PeepCLITests",
+            // PeepCLI so `swift test` builds the binary the end-to-end tests run.
+            dependencies: ["PeepCLIKit", "PeepCLI", "PeepCore"],
             resources: [.copy("Fixtures")]
         ),
     ]

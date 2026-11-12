@@ -1,7 +1,7 @@
 import AppKit
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The outline's Expand All and Collapse All (#43): the View menu items and the sidebar's
 /// context menu, hosted like the rest of `OutlineTests`.

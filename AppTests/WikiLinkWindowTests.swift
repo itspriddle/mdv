@@ -1,10 +1,10 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Wiki links in a document window (#53): resolved against the real folder at render time,
 /// clicked through the window's link policy, missing targets inert, Settings and frontmatter
@@ -55,7 +55,7 @@ final class WikiLinkWindowTests: DocumentWindowTestCase {
 
     static let indexSource = """
         ---
-        mdv: { wikilinks: true }
+        peep: { wikilinks: true }
         ---
         # Index
 
@@ -123,7 +123,7 @@ final class WikiLinkWindowTests: DocumentWindowTestCase {
         let store = MarkdownSettings(defaults: defaults, isPersistent: true)
         let (_, plain) = try await open("[[Page Name]]", name: "plain.md", markdownSettings: store)
         #expect(try await hrefs(in: plain).isEmpty)
-        let off = "---\nmdv: { wikilinks: false }\n---\n[[Page Name]]"
+        let off = "---\npeep: { wikilinks: false }\n---\n[[Page Name]]"
         let (_, optedOut) = try await open(off, name: "opted-out.md", markdownSettings: store)
 
         store.builtInPreprocessors = [.wikiLinks]
@@ -140,20 +140,20 @@ final class WikiLinkWindowTests: DocumentWindowTestCase {
         let html = try #require(pasteboard.string(forType: .html))
         #expect(html.contains(#"<a class="wikilink" href="Page-Name.md#second-part">"#))
         #expect(html.contains(#"<a class="wikilink wikilink-missing">Missing Page</a>"#))
-        #expect(!html.contains("mdv-doc:"))
+        #expect(!html.contains("peep-doc:"))
     }
 
     @Test("the search stays in the allowed root and skips symbolic links")
     func scope() async throws {
         defer { closeAll() }
-        let outside = FileManager.default.temporaryDirectory.appending(path: "mdv-wiki-outside-\(UUID().uuidString)")
+        let outside = FileManager.default.temporaryDirectory.appending(path: "peep-wiki-outside-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: outside) }
         try Data("# Outside\n".utf8).write(to: outside.appending(path: "Outside.md"))
         try FileManager.default.createSymbolicLink(at: folder.appending(path: "linked"), withDestinationURL: outside)
         try FileManager.default.createSymbolicLink(
             at: folder.appending(path: "Alias.md"), withDestinationURL: outside.appending(path: "Outside.md"))
-        let (_, controller) = try await open("---\nmdv: { wikilinks: true }\n---\n[[Outside]] [[Alias]]")
+        let (_, controller) = try await open("---\npeep: { wikilinks: true }\n---\n[[Outside]] [[Alias]]")
         #expect(try await hrefs(in: controller) == ["", ""])
     }
 }

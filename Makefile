@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
-SCHEME      := mdv
-PROJECT     := mdv.xcodeproj
+SCHEME      := Peep
+PROJECT     := Peep.xcodeproj
 DESTINATION := platform=macOS
 DERIVED     := build/DerivedData
 # UI test results (screenshots, logs): open in Xcode to debug a failure.
@@ -14,9 +14,9 @@ XCODEBUILD  := $(XCODEBUILD_BASE)
 # github/gemoji commit the emoji table is generated from (`make emoji`).
 GEMOJI_COMMIT := fadaeaf1f1a9be82b321316a6c5502e43138b2f6
 GEMOJI_JSON   := build/gemoji/emoji-$(GEMOJI_COMMIT).json
-EMOJI_TABLE   := Sources/MdvCore/Generated/EmojiTable.swift
+EMOJI_TABLE   := Sources/PeepCore/Generated/EmojiTable.swift
 ENTITIES_JSON := build/html-entities/entities.json
-ENTITY_TABLE  := Sources/MdvCore/Generated/HTMLEntityTable.swift
+ENTITY_TABLE  := Sources/PeepCore/Generated/HTMLEntityTable.swift
 # Man page and shell completions, generated from the CLI (#71; not committed).
 CLI_DOCS      := build/cli-docs
 # CI and unsigned local builds: make build SIGN=0
@@ -41,7 +41,7 @@ help: ## Show available targets
 bootstrap: ## Install required tools via Homebrew
 	brew install xcodegen swiftlint
 
-generate: ## Generate mdv.xcodeproj from project.yml
+generate: ## Generate Peep.xcodeproj from project.yml
 	xcodegen generate
 
 build: generate cli-docs ## Build the app and CLI (bundles the man page and completions)
@@ -49,8 +49,8 @@ build: generate cli-docs ## Build the app and CLI (bundles the man page and comp
 
 test: test-core test-app ## Run all tests
 
-test-core: cli-docs ## Run package tests (MdvCore, CLI, and the generated man page)
-	MDV_CLI_DOCS="$(abspath $(CLI_DOCS))" swift test
+test-core: cli-docs ## Run package tests (PeepCore, CLI, and the generated man page)
+	PEEP_CLI_DOCS="$(abspath $(CLI_DOCS))" swift test
 
 cli-docs: ## Generate the man page and shell completions into build/cli-docs
 	scripts/generate-cli-docs $(CLI_DOCS)
@@ -59,7 +59,7 @@ test-app: generate ## Run app unit tests (hosted, no UI automation)
 	$(XCODEBUILD) test -only-testing:AppTests
 
 record-theme-snapshots: generate ## Re-record the bundled theme references for this macOS version
-	TEST_RUNNER_MDV_RECORD_SNAPSHOTS=1 $(XCODEBUILD) test -only-testing:AppTests/ThemeSnapshotTests
+	TEST_RUNNER_PEEP_RECORD_SNAPSHOTS=1 $(XCODEBUILD) test -only-testing:AppTests/ThemeSnapshotTests
 
 test-ui: generate ## Run UI tests (always signed; see CLAUDE.md)
 	rm -rf $(UI_RESULT)

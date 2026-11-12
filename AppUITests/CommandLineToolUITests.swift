@@ -1,10 +1,10 @@
 import XCTest
 
 /// App menu > Install / Uninstall Command Line Tool… (#70), over a temp folder passed with
-/// `-MdvUITestCommandLineToolFolder` (never the real `/usr/local/bin` or `~/.local/bin`).
+/// `-PeepUITestCommandLineToolFolder` (never the real `/usr/local/bin` or `~/.local/bin`).
 @MainActor
 final class CommandLineToolUITests: XCTestCase {
-    private var mdv: MdvUITestApp?
+    private var peep: PeepUITestApp?
     private var folder: URL?
 
     override func setUp() async throws {
@@ -12,60 +12,60 @@ final class CommandLineToolUITests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        mdv?.terminate()
-        mdv = nil
+        peep?.terminate()
+        peep = nil
         if let folder {
             try? FileManager.default.removeItem(at: folder)
         }
     }
 
-    private func launch() throws -> (MdvUITestApp, URL) {
-        let folder = try MdvUITestApp.makeCommandLineToolFolder()
+    private func launch() throws -> (PeepUITestApp, URL) {
+        let folder = try PeepUITestApp.makeCommandLineToolFolder()
         self.folder = folder
-        let mdv = try MdvUITestApp.launch(
-            openingFixture: "live-reload.md", arguments: MdvUITestApp.commandLineToolFolderArguments(folder))
-        self.mdv = mdv
-        mdv.waitForWindow(titled: "Live Reload Fixture")
-        return (mdv, folder.appending(path: "mdv"))
+        let peep = try PeepUITestApp.launch(
+            openingFixture: "live-reload.md", arguments: PeepUITestApp.commandLineToolFolderArguments(folder))
+        self.peep = peep
+        peep.waitForWindow(titled: "Live Reload Fixture")
+        return (peep, folder.appending(path: "peep"))
     }
 
     func testInstallThenUninstallFromAppMenu() throws {
-        let (mdv, link) = try launch()
+        let (peep, link) = try launch()
 
-        mdv.clickAppMenuItem("Install Command Line Tool…")
-        mdv.waitForAlertText("this copy of mdv")
-        mdv.clickAlertButton("Install")
-        mdv.waitForAlertText("The mdv command line tool is installed.")
-        mdv.clickAlertButton("OK")
+        peep.clickAppMenuItem("Install Command Line Tool…")
+        peep.waitForAlertText("this copy of Peep")
+        peep.clickAlertButton("Install")
+        peep.waitForAlertText("The Peep command line tool is installed.")
+        peep.clickAlertButton("OK")
 
         let destination = try FileManager.default.destinationOfSymbolicLink(atPath: link.path(percentEncoded: false))
-        XCTAssertTrue(destination.hasSuffix(".app/Contents/Helpers/mdv"), destination)
+        XCTAssertTrue(destination.hasSuffix(".app/Contents/Helpers/peep"), destination)
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: link.path(percentEncoded: false)))
 
-        mdv.clickAppMenuItem("Uninstall Command Line Tool…")
-        mdv.waitForAlertText("This removes the link")
-        mdv.clickAlertButton("Uninstall")
+        peep.clickAppMenuItem("Uninstall Command Line Tool…")
+        peep.waitForAlertText("This removes the link")
+        peep.clickAlertButton("Uninstall")
         let removed = NSPredicate { _, _ in
             (try? FileManager.default.attributesOfItem(atPath: link.path(percentEncoded: false))) == nil
         }
         let expectation = XCTNSPredicateExpectation(predicate: removed, object: nil)
         XCTAssertEqual(
-            XCTWaiter().wait(for: [expectation], timeout: MdvUITestApp.defaultTimeout), .completed,
+            XCTWaiter().wait(for: [expectation], timeout: PeepUITestApp.defaultTimeout), .completed,
             "the link was removed")
 
         // The item offers to install again.
-        mdv.clickAppMenuItem("Install Command Line Tool…")
-        mdv.clickAlertButton("Cancel")
+        peep.clickAppMenuItem("Install Command Line Tool…")
+        peep.clickAlertButton("Cancel")
     }
 
     func testFileInTheWayIsShownAndKept() throws {
-        let (mdv, link) = try launch()
-        try Data("not mdv".utf8).write(to: link)
+        let (peep, link) = try launch()
+        try Data("not Peep".utf8).write(to: link)
 
-        mdv.clickAppMenuItem("Install Command Line Tool…")
-        mdv.clickAlertButton("Install")
-        mdv.waitForAlertText("is already there: a file")
-        mdv.clickAlertButton("OK")
-        XCTAssertEqual(try String(contentsOf: link, encoding: .utf8), "not mdv")
+        peep.clickAppMenuItem("Install Command Line Tool…")
+        peep.clickAlertButton("Install")
+        peep.waitForAlertText("is already there: a file")
+        peep.clickAlertButton("OK")
+        XCTAssertEqual(try String(contentsOf: link, encoding: .utf8), "not Peep")
     }
 }

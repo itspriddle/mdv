@@ -1,10 +1,10 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Hosted tests for link clicks and hover (#19): clicks are driven from the app world with
 /// `element.click()`, which WebKit reports as a `.linkActivated` navigation.
@@ -25,7 +25,7 @@ final class LinkNavigationTests {
     init() throws {
         window.isReleasedWhenClosed = false
         window.contentView = coordinator.webView
-        let base = FileManager.default.temporaryDirectory.appending(path: "mdv-app-tests-\(UUID().uuidString)")
+        let base = FileManager.default.temporaryDirectory.appending(path: "peep-app-tests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         let real = try #require(realpath(base.path(percentEncoded: false), nil))
         defer { free(real) }

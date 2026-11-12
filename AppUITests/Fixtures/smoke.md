@@ -1,6 +1,6 @@
 # Smoke Test Fixture
 
-The quick brown fox renders in mdv.
+The quick brown fox renders in Peep.
 
 ## Second Section
 

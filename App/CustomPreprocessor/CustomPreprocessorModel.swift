@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// What Settings > Markdown > Custom preprocessor (#57) shows and changes, over
 /// `CustomPreprocessorSettings`. Part of `SettingsModel` (`customPreprocessor`).
@@ -148,7 +148,7 @@ final class CustomPreprocessorModel: NSObject {
         panel.allowsMultipleSelection = false
         panel.resolvesAliases = false
         panel.treatsFilePackagesAsDirectories = true
-        panel.message = "Choose the program mdv runs on each document before rendering it."
+        panel.message = "Choose the program Peep runs on each document before rendering it."
         panel.prompt = "Choose"
         let response: NSApplication.ModalResponse
         if let window = NSApp.keyWindow {

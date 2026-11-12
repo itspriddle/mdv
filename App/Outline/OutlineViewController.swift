@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 
 /// The outline sidebar: the document's headings as an `NSOutlineView`, nested by level.
 ///

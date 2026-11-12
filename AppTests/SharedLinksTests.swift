@@ -1,11 +1,11 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// Share and drags out of the page carry `file:` URLs, never the window's `mdv-doc` URLs, as
+/// Share and drags out of the page carry `file:` URLs, never the window's `peep-doc` URLs, as
 /// Copy Link does (#42).
 @MainActor
 @Suite("Share and drags", .serialized, .timeLimit(.minutes(1)))
@@ -47,7 +47,7 @@ final class SharedLinksTests: DocumentWindowTestCase {
         #expect(coordinator.contextMenuShareItems() == nil)
 
         coordinator.contextMenuTarget = ContextMenuTarget(
-            link: URL(string: "mdv-doc://00000000-0000-0000-0000-000000000000/etc/hosts"))
+            link: URL(string: "peep-doc://00000000-0000-0000-0000-000000000000/etc/hosts"))
         #expect(coordinator.contextMenuShareItems() == [], "another window's URL shares nothing")
     }
 
@@ -79,7 +79,7 @@ final class SharedLinksTests: DocumentWindowTestCase {
         #expect(share.submenu != nil || share.action != nil)
     }
 
-    @Test("a drag's pasteboard carries file: URLs, never mdv-doc")
+    @Test("a drag's pasteboard carries file: URLs, never peep-doc")
     func dragPasteboard() async throws {
         defer { closeAll() }
         let (_, controller) = try await open("plain")
@@ -90,16 +90,16 @@ final class SharedLinksTests: DocumentWindowTestCase {
         let url = NSPasteboard.PasteboardType.URL
         let name = NSPasteboard.PasteboardType("public.url-name")
         drag.declareTypes([url, name, .string], owner: nil)
-        drag.setString("mdv-doc://\(token)/tmp/guide.md#a", forType: url)
+        drag.setString("peep-doc://\(token)/tmp/guide.md#a", forType: url)
         drag.setString("Guide", forType: name)
-        drag.setString("mdv-doc://\(token)/tmp/guide.md#a", forType: .string)
+        drag.setString("peep-doc://\(token)/tmp/guide.md#a", forType: .string)
 
         coordinator.webView.dragPasteboardHandler?(drag)
         #expect(drag.string(forType: url) == "file:///tmp/guide.md#a")
         #expect(drag.string(forType: name) == "Guide")
         #expect(drag.string(forType: .string) == "file:///tmp/guide.md#a")
         for type in drag.types ?? [] {
-            #expect(drag.string(forType: type)?.lowercased().contains("mdv-doc") != true, "\(type.rawValue)")
+            #expect(drag.string(forType: type)?.lowercased().contains("peep-doc") != true, "\(type.rawValue)")
         }
     }
 
@@ -131,7 +131,7 @@ final class SharedLinksTests: DocumentWindowTestCase {
         Issue.record("images didn't load")
     }
 
-    @Test("Copy Image on a local image copies the file and a PNG, never an mdv-doc URL")
+    @Test("Copy Image on a local image copies the file and a PNG, never a peep-doc URL")
     func copyImage() async throws {
         defer { closeAll() }
         try writeImages()
@@ -156,7 +156,7 @@ final class SharedLinksTests: DocumentWindowTestCase {
 
         for type in pasteboard.types ?? [] {
             let data = pasteboard.data(forType: type) ?? Data()
-            #expect(data.range(of: Data("mdv-doc".utf8)) == nil, "\(type.rawValue)")
+            #expect(data.range(of: Data("peep-doc".utf8)) == nil, "\(type.rawValue)")
         }
 
         try await openContextMenu(onElementMatching: "a", in: controller)

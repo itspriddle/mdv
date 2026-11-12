@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// Generates Sources/MdvCore/Generated/HTMLEntityTable.swift from the WHATWG named character
+// Generates Sources/PeepCore/Generated/HTMLEntityTable.swift from the WHATWG named character
 // reference table (https://html.spec.whatwg.org/entities.json).
 //
 // Usage: swift scripts/generate-html-entities.swift ENTITIES_JSON OUTPUT

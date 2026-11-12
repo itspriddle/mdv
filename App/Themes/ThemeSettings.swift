@@ -1,5 +1,5 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 /// The app's themes (#34): the registry every window resolves its theme in, and the theme new
 /// windows start with.
@@ -18,7 +18,7 @@ final class ThemeSettings {
     static let shared = ThemeSettings()
 
     /// Posted (object: the settings) after `registry` or `defaultThemeID` changes.
-    static let didChangeNotification = Notification.Name("MdvThemeSettingsDidChange")
+    static let didChangeNotification = Notification.Name("PeepThemeSettingsDidChange")
 
     /// The `UserDefaults` key: the default theme's id (a `String`), absent for the registry's
     /// own default.

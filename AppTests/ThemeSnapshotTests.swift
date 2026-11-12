@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
-import MdvCore
 import PDFKit
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Visual regression check for the bundled themes (#39): the showcase fixture rendered by real
 /// WebKit in each theme, light, dark, and printed, compared with committed reference images.
@@ -21,7 +21,7 @@ import WebKit
 ///     make record-theme-snapshots
 ///
 /// On a mismatch, the actual, reference, and diff images go to `build/theme-snapshots/`.
-/// `MDV_RECORD_MISSING_SNAPSHOTS=1` writes a missing reference there (under `recorded/`) and
+/// `PEEP_RECORD_MISSING_SNAPSHOTS=1` writes a missing reference there (under `recorded/`) and
 /// passes, so CI can record a new macOS version's set as an artifact.
 @MainActor
 @Suite("Theme snapshots", .serialized, .timeLimit(.minutes(2)))
@@ -45,8 +45,8 @@ final class ThemeSnapshotTests: DocumentWindowTestCase {
     static let allowedMismatches = 40
 
     static var environment: [String: String] { ProcessInfo.processInfo.environment }
-    static var isRecording: Bool { environment["MDV_RECORD_SNAPSHOTS"] == "1" }
-    static var recordsMissing: Bool { environment["MDV_RECORD_MISSING_SNAPSHOTS"] == "1" }
+    static var isRecording: Bool { environment["PEEP_RECORD_SNAPSHOTS"] == "1" }
+    static var recordsMissing: Bool { environment["PEEP_RECORD_MISSING_SNAPSHOTS"] == "1" }
 
     nonisolated static let arguments: [(String, Mode)] = ThemeRegistry.bundled.themes.flatMap { theme in
         Mode.allCases.map { (theme.id, $0) }

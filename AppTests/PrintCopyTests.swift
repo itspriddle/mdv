@@ -1,10 +1,10 @@
 import AppKit
-import MdvCore
 import PDFKit
+import PeepCore
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Print, Copy Markdown Source / Copy as HTML, and the trimmed context menu (#26).
 @MainActor
@@ -134,7 +134,7 @@ final class PrintCopyTests: DocumentWindowTestCase {
         return await controller.coordinator.copyContextMenuLink(to: pasteboard)
     }
 
-    @Test("Copy Link copies a relative link as the file: URL it names, never mdv-doc")
+    @Test("Copy Link copies a relative link as the file: URL it names, never peep-doc")
     func copyRelativeLink() async throws {
         defer { closeAll() }
         let source = "[guide](sub/my%20guide.md#set-up) [here](#title) [site](https://example.com/page?a=b)\n\nplain"
@@ -158,7 +158,7 @@ final class PrintCopyTests: DocumentWindowTestCase {
         #expect(pasteboard.string(forType: .string) == "https://example.com/page?a=b")
 
         for type in pasteboard.types ?? [] {
-            #expect(pasteboard.string(forType: type)?.lowercased().contains("mdv-doc") != true, "\(type.rawValue)")
+            #expect(pasteboard.string(forType: type)?.lowercased().contains("peep-doc") != true, "\(type.rawValue)")
         }
     }
 

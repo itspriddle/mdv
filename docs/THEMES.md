@@ -1,22 +1,22 @@
-# Writing mdv themes
+# Writing Peep themes
 
-An mdv theme is one plain CSS file. Drop it in the Themes folder and it shows up in the theme
+A Peep theme is one plain CSS file. Drop it in the Themes folder and it shows up in the theme
 picker; save it again and every window showing it updates. There is no build step, no
 manifest, and no scripting.
 
 This guide covers everything a theme can rely on: where the file goes, the optional header,
-the HTML you style, light and dark mode, print, the content width control, and what mdv
+the HTML you style, light and dark mode, print, the content width control, and what Peep
 rejects (and why). A [complete example theme](#a-complete-example) is at the end.
 
 ## Quick start
 
 1. Choose **View > Theme > Open Themes Folder** (or **Settings > General > Open Themes
-   Folder**). mdv creates `~/Library/Application Support/mdv/Themes` if needed and opens it in
+   Folder**). Peep creates `~/Library/Application Support/Peep/Themes` if needed and opens it in
    Finder.
 2. Save a file named `My Theme.css` there:
 
    ```css
-   /* mdv-theme
+   /* peep-theme
       name: My Theme
       extends: github
    */
@@ -36,7 +36,7 @@ write everything yourself, leave `extends` out and start from the
 
 ## Where theme files go
 
-- **Folder:** `~/Library/Application Support/mdv/Themes`. It may be a symbolic link to a folder
+- **Folder:** `~/Library/Application Support/Peep/Themes`. It may be a symbolic link to a folder
   elsewhere (a dotfiles repository, say).
 - **Files:** every visible file ending in `.css` (any case: `.CSS` works) is one theme. Files
   whose names start with `.` and files with other extensions are ignored.
@@ -56,7 +56,7 @@ A theme may start with a header comment declaring its metadata. Every key is opt
 is the header:
 
 ```css
-/* mdv-theme
+/* peep-theme
    name: Solarized Light
    background: #fdf6e3
    background-dark: #002b36
@@ -67,7 +67,7 @@ is the header:
 The rules:
 
 - It must be the **first thing in the file** (whitespace before it is fine) and a `/* … */`
-  comment whose first line is `mdv-theme`. A first comment without that marker is an ordinary
+  comment whose first line is `peep-theme`. A first comment without that marker is an ordinary
   comment, and the theme gets the defaults below.
 - Every other non-blank line is `key: value`. Keys are case-insensitive. A leading `*` on a
   line (comment decoration) is ignored.
@@ -83,13 +83,13 @@ The rules:
 
 ### Backgrounds
 
-The backgrounds are in the header, not only in CSS, because mdv paints the window with them
+The backgrounds are in the header, not only in CSS, because Peep paints the window with them
 before the page exists. That's what keeps a dark theme from flashing white when a window
-opens or the theme changes. mdv also generates the page's `body` background from them, so
+opens or the theme changes. Peep also generates the page's `body` background from them, so
 you don't need to write one.
 
 Only hex colors work (no names, `rgb()`, or alpha): the window background has to be a solid
-color mdv can read without a CSS engine. If the page should look different from a flat color
+color Peep can read without a CSS engine. If the page should look different from a flat color
 (a gradient, a "sheet of paper" on a desk), give `body` or `.markdown-body` a background in
 your CSS and set the header colors to the closest flat color, which is what shows while the
 window opens and past the ends of the page when you scroll beyond them.
@@ -106,12 +106,12 @@ layer, so at equal specificity yours win: write the bundled theme's selector (us
 bundled theme's.
 
 Only bundled themes can be extended (a custom theme can't extend another custom theme). The
-bundled themes' CSS lives in mdv's source under
-[`Sources/MdvCore/Themes`](../Sources/MdvCore/Themes) if you need to see what you're
+bundled themes' CSS lives in Peep's source under
+[`Sources/PeepCore/Themes`](../Sources/PeepCore/Themes) if you need to see what you're
 overriding; GitHub's is [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)
 plus a few additions.
 
-Without `extends`, a theme starts from the browser's defaults plus mdv's base rules, and has
+Without `extends`, a theme starts from the browser's defaults plus Peep's base rules, and has
 to style everything itself, including the syntax highlighting colors.
 
 ## How the page is built
@@ -120,9 +120,9 @@ Every window shows an HTML page with three stylesheets, in three
 [CSS cascade layers](https://developer.mozilla.org/en-US/docs/Web/CSS/@layer):
 
 ```html
-<style id="mdv-base">  @layer mdv-base, mdv-theme, mdv-user;  @layer mdv-base { … } </style>
-<style id="mdv-theme"> @layer mdv-theme { …your theme… } </style>
-<style id="mdv-user">  @layer mdv-user { …the reader's controls… } </style>
+<style id="peep-base">  @layer peep-base, peep-theme, peep-user;  @layer peep-base { … } </style>
+<style id="peep-theme"> @layer peep-theme { …your theme… } </style>
+<style id="peep-user">  @layer peep-user { …the reader's controls… } </style>
 …
 <body>
 <article class="markdown-body">
@@ -131,11 +131,11 @@ Every window shows an HTML page with three stylesheets, in three
 </body>
 ```
 
-- **`mdv-base`**: rules mdv's features depend on. Most are defaults that your theme overrides
+- **`peep-base`**: rules Peep's features depend on. Most are defaults that your theme overrides
   without trying: a rule in a later layer beats an earlier layer's whatever the selectors'
-  specificity, so you never need `!important` or long selectors to beat mdv.
-- **`mdv-theme`**: your file (after the extended theme, if any).
-- **`mdv-user`**: the reader's View > Content Width choice. It beats your theme the same way.
+  specificity, so you never need `!important` or long selectors to beat Peep.
+- **`peep-theme`**: your file (after the extended theme, if any).
+- **`peep-user`**: the reader's View > Content Width choice. It beats your theme the same way.
 
 ### What a theme can't change
 
@@ -144,7 +144,7 @@ way (an earlier layer's important rule beats a later one's, important or not), s
 can undo them**, even with `!important`. They're what keeps viewer features working and paper
 readable whatever the theme says:
 
-- **Find in page:** the highlight colors of matches (`::highlight(mdv-find)`) and the current
+- **Find in page:** the highlight colors of matches (`::highlight(peep-find)`) and the current
   match.
 - **Blocked remote images:** the placeholder (`.remote-image`) is always displayed and visible.
   Its look (border, colors, size) is yours to change.
@@ -187,7 +187,7 @@ place; don't rely on it for styling.
 
 ### Heading anchors
 
-The anchor link is empty: mdv writes no icon. If you want one, give it content and show it on
+The anchor link is empty: Peep writes no icon. If you want one, give it content and show it on
 hover, as the bundled themes do:
 
 ```css
@@ -209,7 +209,7 @@ elements (for example `hljs-keyword`, `hljs-string`, `hljs-number`, `hljs-commen
 `hljs-title function_`, `hljs-built_in`, `hljs-attr`, `hljs-addition`, `hljs-deletion`).
 highlight.js's [CSS class reference](https://highlightjs.readthedocs.io/en/latest/css-classes-reference.html)
 lists them all. Any highlight.js theme's CSS works as a starting point if you drop its
-`.hljs` (block background) rule, since mdv doesn't put an `hljs` class on the block: style
+`.hljs` (block background) rule, since Peep doesn't put an `hljs` class on the block: style
 `.markdown-body pre` instead.
 
 A theme without `extends` gets no token colors until it writes some; code then shows in the
@@ -247,8 +247,8 @@ example:
 
 ### Wiki links
 
-With wiki links on (Settings > Markdown, or `wikilinks: true` in a document's `mdv:`
-frontmatter), `[[Page Name]]` becomes a link to the page's file, and a page mdv can't find
+With wiki links on (Settings > Markdown, or `wikilinks: true` in a document's `peep:`
+frontmatter), `[[Page Name]]` becomes a link to the page's file, and a page Peep can't find
 becomes a link with no `href`:
 
 ```html
@@ -277,14 +277,14 @@ Until then each remote image is a placeholder:
 </span>
 ```
 
-mdv gives it a dashed box, muted colors, and dark-mode colors; restyle any of that with
+Peep gives it a dashed box, muted colors, and dark-mode colors; restyle any of that with
 `.markdown-body .remote-image`, `.remote-image-alt`, and `.remote-image-host`. You can't hide it
 (`display: none` and `visibility: hidden` are overridden), so readers always see that an image
 was blocked.
 
 ## Light and dark
 
-mdv follows the system appearance live (or the one picked in Settings > Appearance). Write the light colors first and the dark ones under
+Peep follows the system appearance live (or the one picked in Settings > Appearance). Write the light colors first and the dark ones under
 `@media screen and (prefers-color-scheme: dark)`:
 
 ```css
@@ -313,14 +313,14 @@ and give only `background` in the header (it's used in both appearances).
 **View > Content Width** lets the reader pick Narrow, Theme Default, Wide, or Full Width for
 a window (**Settings** picks it for new windows). "Theme Default" is whatever your theme sets.
 
-- Limit width on `.markdown-body` and you need to do nothing: for the other choices mdv sets
+- Limit width on `.markdown-body` and you need to do nothing: for the other choices Peep sets
   `.markdown-body`'s `max-width` itself, above your theme.
-- If you limit width on some other element (a wrapper, `body`), read the variable mdv sets,
-  `--mdv-content-width`: `max-width: var(--mdv-content-width, 44em);` (the second value is your
+- If you limit width on some other element (a wrapper, `body`), read the variable Peep sets,
+  `--peep-content-width`: `max-width: var(--peep-content-width, 44em);` (the second value is your
   default). It's the
-  only variable mdv sets, and only while the reader has picked something other than Theme
+  only variable Peep sets, and only while the reader has picked something other than Theme
   Default; its values are `32em`, `72em`, or `none`.
-- Writing `.markdown-body { max-width: var(--mdv-content-width, 44em) }` anyway makes the
+- Writing `.markdown-body { max-width: var(--peep-content-width, 44em) }` anyway makes the
   intent clear; the bundled themes do.
 - Don't mark `max-width` `!important`; that would beat the reader's choice.
 - Widths are in `em`, so they follow your column's font size: Narrow is about 60–70
@@ -386,7 +386,7 @@ Sizes: WebKit lays a page out at 1.25 CSS pixels per point, so 16px text prints 
 
 A theme runs inside a viewer that loads nothing from the network and runs no document
 scripts. The page's Content Security Policy already blocks any request a stylesheet could
-make; mdv also checks each theme file before using it, so a theme that would try never
+make; Peep also checks each theme file before using it, so a theme that would try never
 renders differently than you wrote it without saying why. A file that breaks a rule isn't
 loaded at all (nothing is quietly stripped):
 
@@ -409,7 +409,7 @@ A file that can't be used isn't an alert: it's listed, disabled, at the end of
 that were showing it fall back to the default theme set in **Settings > General** (GitHub, the
 built-in default, if that one is missing or broken too), and switch back when it loads again.
 
-| Problem | What mdv says |
+| Problem | What Peep says |
 | --- | --- |
 | `@import "base.css";` | @import isn’t allowed (line 1) |
 | `background: url(paper.png);` | Only data:image URLs are allowed in url() (line 1) |
@@ -433,7 +433,7 @@ Line numbers count from the top of the file.
 
 ## Hot reload
 
-mdv watches the Themes folder while it runs, including when it doesn't exist yet. Within a
+Peep watches the Themes folder while it runs, including when it doesn't exist yet. Within a
 fraction of a second of a change:
 
 - a **new file** appears in the picker;
@@ -448,12 +448,12 @@ theme until the next valid save.
 
 ## Choosing a theme per document
 
-A Markdown file can name the theme it should open in, in its YAML frontmatter under `mdv:`:
+A Markdown file can name the theme it should open in, in its YAML frontmatter under `peep:`:
 
 ```yaml
 ---
 title: Release notes
-mdv:
+peep:
   theme: custom:Release Notes.css
 ---
 ```
@@ -466,13 +466,13 @@ mdv:
 - **Missing themes** fall back like a deleted custom theme: an id that isn't loaded (yet) shows
   the Settings default, and the document's theme appears as soon as its file loads.
 - **Editing the frontmatter** while the file is open swaps the theme in place, like a theme
-  edit. Window restoration only remembers your own pick, so a changed `mdv.theme` applies the
+  edit. Window restoration only remembers your own pick, so a changed `peep.theme` applies the
   next time the document opens too.
-- **On the command line**, `mdv --html` uses the document's theme too, bundled or custom (from
+- **On the command line**, `peep --html` uses the document's theme too, bundled or custom (from
   the same Themes folder, with the same checks); one that doesn't load gets GitHub. `--theme`
-  beats it: `mdv --html --theme "custom:Release Notes.css" notes.md > notes.html`. Unlike the
+  beats it: `peep --html --theme "custom:Release Notes.css" notes.md > notes.html`. Unlike the
   document's theme, a `--theme` that can't be used is an error with the reason (the same one
-  the picker shows). `mdv --list-themes` lists the ids.
+  the picker shows). `peep --list-themes` lists the ids.
 
 The same block can set the document's Markdown flavor; see the
 [README](../README.md#per-document-settings) for every key and what a document can't change.
@@ -482,18 +482,18 @@ The same block can set the document's Markdown flavor; see the
 [`example-theme.css`](example-theme.css) is a whole theme written without `extends`: light and
 dark colors, a reading column that follows Content Width, heading anchors, task lists, code
 with syntax colors, tables, footnotes, the remote-image placeholder, and print rules. Copy it
-into the Themes folder, pick **View > Theme > Notebook**, and change it from there. (mdv's
+into the Themes folder, pick **View > Theme > Notebook**, and change it from there. (Peep's
 tests load this file, and check that the copy below matches it.)
 
 ```css
-/* mdv-theme
+/* peep-theme
    name: Notebook
    background: #fbfaf7
    background-dark: #1c1b19
 */
 
 /* Notebook: a complete theme written from scratch (no `extends`). Copy it to
-   ~/Library/Application Support/mdv/Themes/ and pick View > Theme > Notebook. */
+   ~/Library/Application Support/Peep/Themes/ and pick View > Theme > Notebook. */
 
 /* Colors, light first. Dark colors are screen only, so paper always prints light. */
 .markdown-body {
@@ -514,7 +514,7 @@ tests load this file, and check that the copy below matches it.)
 /* The page and the reading column. */
 body { margin: 0; }
 .markdown-body {
-  box-sizing: border-box; max-width: var(--mdv-content-width, 44em); margin: 0 auto;
+  box-sizing: border-box; max-width: var(--peep-content-width, 44em); margin: 0 auto;
   padding: 48px 32px 64px; color: var(--nb-text);
   font-family: -apple-system, "Helvetica Neue", sans-serif; font-size: 17px; line-height: 1.6;
   overflow-wrap: break-word;
@@ -601,10 +601,10 @@ palettes, such as high contrast or the colorblind ones.
 
 ## Checklist
 
-- [ ] The header (if any) is the very first thing in the file and starts with `mdv-theme`.
+- [ ] The header (if any) is the very first thing in the file and starts with `peep-theme`.
 - [ ] `background` and `background-dark` match what the page looks like in each appearance.
 - [ ] Dark colors are under `@media screen and (prefers-color-scheme: dark)`, or the theme
       sets `:root { color-scheme: light; }`.
-- [ ] Widths are on `.markdown-body`, or use `var(--mdv-content-width, …)`.
+- [ ] Widths are on `.markdown-body`, or use `var(--peep-content-width, …)`.
 - [ ] Code blocks have token colors (or the theme extends a bundled one).
 - [ ] Check a document with every construct in light, dark, and File > Print's preview.

@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 import WebKit
 
 /// Owns one window's `WKWebView`: loads pages, swaps content in place, and talks to the page
@@ -12,7 +12,7 @@ import WebKit
 final class WebViewCoordinator: NSObject {
     let webView: DocumentWebView
 
-    /// Serves this window's `mdv-doc` URLs (scoped local images).
+    /// Serves this window's `peep-doc` URLs (scoped local images).
     let localResources: LocalResourceSchemeHandler
 
     /// Whether a page has finished loading. Bridge calls need a loaded page.
@@ -32,7 +32,7 @@ final class WebViewCoordinator: NSObject {
     /// The theme this web view shows: every full load embeds it, and `show(_:)` swaps a new one
     /// into the loaded page in place. Paints the under-page area.
     private(set) var theme: Theme
-    /// The theme in the loaded page's `mdv-theme` style element; nil for a page that isn't a
+    /// The theme in the loaded page's `peep-theme` style element; nil for a page that isn't a
     /// rendered document (the first-load preparation page, test pages).
     private(set) var loadedTheme: Theme?
     /// The in-place swap `show(_:)` started, if any (for tests). It returns once the page holds
@@ -67,7 +67,7 @@ final class WebViewCoordinator: NSObject {
     private(set) lazy var find = FindInPage(host: self, pasteboard: NSPasteboard(name: .find))
 
     /// - Parameter configuration: a fresh configuration (`WebViewConfiguration.make()`); this
-    ///   coordinator installs its own `mdv-doc` scheme handler on it, so it can't be reused.
+    ///   coordinator installs its own `peep-doc` scheme handler on it, so it can't be reused.
     init(
         configuration: WKWebViewConfiguration = WebViewConfiguration.make(),
         theme: Theme = ThemeRegistry.bundled.defaultTheme
@@ -106,7 +106,7 @@ final class WebViewCoordinator: NSObject {
     }
 
     /// Scopes local image access to the document at `fileURL` (its `LocalResourceRoot`) and
-    /// returns the `mdv-doc` URL to load its page at (the `baseURL` for `load`), so relative
+    /// returns the `peep-doc` URL to load its page at (the `baseURL` for `load`), so relative
     /// images resolve against the document. Nil, and no local images, when there is no file.
     func documentURL(forFileAt fileURL: URL?) -> URL? {
         localResources.scope(toDocumentAt: fileURL)
@@ -115,10 +115,10 @@ final class WebViewCoordinator: NSObject {
     /// The URL of the blank page `prepareForFirstLoad()` loads: distinct from every real load's
     /// URL (`about:blank` without a base URL), so the navigation policy's one allowed load per
     /// `expectedLoadURL` stays unambiguous.
-    static let preparationURL = URL(string: "about:blank#mdv-prepare")
+    static let preparationURL = URL(string: "about:blank#peep-prepare")
 
     /// Whether `url` is `preparationURL` as WebKit reports it. WebKit on macOS 26 percent-encodes
-    /// the `#` of a base URL (`about:blank%23mdv-prepare`, in the navigation action and in
+    /// the `#` of a base URL (`about:blank%23peep-prepare`, in the navigation action and in
     /// `webView.url`); macOS 27 keeps it. Both forms match.
     static func isPreparationURL(_ url: URL?) -> Bool {
         guard let url, let preparationURL else {

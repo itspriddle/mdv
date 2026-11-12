@@ -1,5 +1,5 @@
 import AppKit
-import MdvCore
+import PeepCore
 import UniformTypeIdentifiers
 
 /// The app's `NSDocumentController` (created in `main.swift`, before anything touches
@@ -12,14 +12,14 @@ import UniformTypeIdentifiers
 /// - window restoration skips documents whose file is gone or in the Trash, quietly;
 /// - tests (hosted unit tests and UI tests) don't add to the user's Open Recent list;
 /// - extensionless text files (`README`) open as plain text from the Open panel, drops, and
-///   every other open path, without mdv registering for them (`ExtensionlessText`, #41).
+///   every other open path, without Peep registering for them (`ExtensionlessText`, #41).
 @MainActor
 final class DocumentController: NSDocumentController {
     /// The Open panel's delegate while the panel is up (a panel holds its delegate weakly).
     private var openPanelFilter: OpenPanelFilter?
 
     /// Whether opened documents go in Open Recent. Off when the app runs under tests, which
-    /// share the bundle ID (and so the recents list) with the user's real mdv.
+    /// share the bundle ID (and so the recents list) with the user's real Peep.
     static var recordsRecentDocuments: Bool {
         !AppDelegate.isHostingUnitTests && !UITestHooks.isUITesting
     }
@@ -31,19 +31,19 @@ final class DocumentController: NSDocumentController {
         super.noteNewRecentDocumentURL(url)
     }
 
-    /// Opens `url`, unless it is `cmd | mdv`'s standard input handoff (#68): a file that
+    /// Opens `url`, unless it is `cmd | peep`'s standard input handoff (#68): a file that
     /// `StandardInputHandoff.take(_:)` verifies is one (by its shape: name, owner, permissions,
     /// one link, no symbolic links) is read, deleted, and opened as an untitled document
     /// (`MarkdownDocument(standardInput:)`) that never enters Open Recent. Recognizing it here,
-    /// not by an event parameter, covers every path an Open Documents event takes (mdv's
+    /// not by an event parameter, covers every path an Open Documents event takes (Peep's
     /// direct event through `DocumentOpener`, and AppKit's own handling).
     /// A file that isn't a handoff opens as usual; a handoff too large or not UTF-8 is deleted
     /// and fails the open with its reason.
     ///
-    /// A file AppKit opens for an Open Documents event that carries mdv's parameters
-    /// (`mdv --theme`, `--wait` through Launch Services, #67/#69) goes to `eventOpener`, which
+    /// A file AppKit opens for an Open Documents event that carries Peep's parameters
+    /// (`peep --theme`, `--wait` through Launch Services, #67/#69) goes to `eventOpener`, which
     /// applies them. AppKit handles those events itself and never calls the app delegate's
-    /// `application(_:open:)` for mdv's document types, and while an earlier open is in flight
+    /// `application(_:open:)` for Peep's document types, and while an earlier open is in flight
     /// it opens the files later, when the event is no longer current: so the parameters come
     /// from `eventLog`, recorded as the event arrived, else from the current event.
     override func openDocument(
@@ -69,15 +69,15 @@ final class DocumentController: NSDocumentController {
             completion: completionHandler)
     }
 
-    /// Opens the files of Open Documents events that carry mdv's parameters (the app
+    /// Opens the files of Open Documents events that carry Peep's parameters (the app
     /// delegate's `DocumentOpener`; nil in tests that make their own controller).
     weak var eventOpener: DocumentOpener?
 
     /// The parameters of Open Documents events as they arrived (`OpenDocumentsEventTap`).
     let eventLog = OpenDocumentsEventLog()
 
-    /// mdv's parameters in `event` when it is a standard Open Documents event (`aevt/odoc`) that
-    /// carries any; nil otherwise. (mdv's direct event goes to `DocumentOpener` itself.)
+    /// Peep's parameters in `event` when it is a standard Open Documents event (`aevt/odoc`) that
+    /// carries any; nil otherwise. (Peep's direct event goes to `DocumentOpener` itself.)
     nonisolated static func openDocumentsParameters(_ event: NSAppleEventDescriptor?) -> AppOpenParameters? {
         guard let event, event.eventClass == AEEventClass(kCoreEventClass),
             event.eventID == AEEventID(kAEOpenDocuments)
@@ -88,7 +88,7 @@ final class DocumentController: NSDocumentController {
         return parameters == AppOpenParameters() ? nil : parameters
     }
 
-    /// `openDocument(withContentsOf:display:completionHandler:)` without mdv's event
+    /// `openDocument(withContentsOf:display:completionHandler:)` without Peep's event
     /// parameters: the standard input handoff, else AppKit's open.
     private func openFile(
         _ url: URL, display displayDocument: Bool,
@@ -157,7 +157,7 @@ final class DocumentController: NSDocumentController {
         return UTType.plainText.identifier
     }
 
-    /// Whether `url` is a file mdv opens: one whose type (`typeForContents(of:)`) has a
+    /// Whether `url` is a file Peep opens: one whose type (`typeForContents(of:)`) has a
     /// document class. Folders are not.
     func canOpen(_ url: URL) -> Bool {
         guard let type = try? typeForContents(of: url) else {

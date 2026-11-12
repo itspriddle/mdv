@@ -1,8 +1,8 @@
 import AppKit
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// The theme picker (#34): per-window themes, the in-place switch, menus, restoration, and
 /// registry changes (custom themes, #35).
@@ -26,7 +26,7 @@ final class ThemePickerTests: DocumentWindowTestCase {
 
     func pageThemeCSS(in controller: DocumentWindowController) async throws -> String? {
         // The page's own element has a newline either side of the CSS; a swap sets the CSS alone.
-        (try await evaluate("return document.getElementById('mdv-theme').textContent;", in: controller) as? String)?
+        (try await evaluate("return document.getElementById('peep-theme').textContent;", in: controller) as? String)?
             .trimmingCharacters(in: .newlines)
     }
 
@@ -90,7 +90,7 @@ final class ThemePickerTests: DocumentWindowTestCase {
         #expect(matches > 1)
         coordinator.webView.pageZoom = 1.25
         // A marker in the app world's globals: a reload would start a fresh page without it.
-        _ = try await evaluate("window.mdvThemeTestMarker = 42; return true;", in: controller)
+        _ = try await evaluate("window.peepThemeTestMarker = 42; return true;", in: controller)
         let line = try await coordinator.currentSourceLine()
 
         let familyBefore = try await fontFamily(in: controller)
@@ -102,7 +102,7 @@ final class ThemePickerTests: DocumentWindowTestCase {
         let family = try await fontFamily(in: controller)
         #expect(family != familyBefore, "the computed style changed: \(family ?? "nil")")
 
-        #expect(try await evaluate("return window.mdvThemeTestMarker;", in: controller) as? Int == 42, "no reload")
+        #expect(try await evaluate("return window.peepThemeTestMarker;", in: controller) as? Int == 42, "no reload")
         #expect(abs(try await coordinator.currentSourceLine() - line) < 1, "reading position kept")
         #expect(coordinator.find.matchCount == matches)
         #expect(try await evaluate("return CSS.highlights.size;", in: controller) as? Int ?? 0 > 0, "highlights kept")

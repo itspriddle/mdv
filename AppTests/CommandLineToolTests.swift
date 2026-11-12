@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 @Suite("Install Command Line Tool")
 struct CommandLineToolInstallerTests {
@@ -11,20 +11,20 @@ struct CommandLineToolInstallerTests {
 
     init() throws {
         sandbox = try CommandLineToolSandbox()
-        app = try sandbox.makeApp("mdv.app")
+        app = try sandbox.makeApp("Peep.app")
         installer = sandbox.installer(app: app)
     }
 
     var target: String { installer.target.path(percentEncoded: false) }
 
-    @Test("a fresh install links mdv to this copy's helper, atomically, leaving nothing else")
+    @Test("a fresh install links peep to this copy's helper, atomically, leaving nothing else")
     func freshInstall() async throws {
         defer { sandbox.remove() }
         #expect(installer.state() == .notInstalled)
         try await installer.install()
         #expect(installer.state() == .installed)
         #expect(try sandbox.destination() == target)
-        #expect(try sandbox.binContents() == ["mdv"])
+        #expect(try sandbox.binContents() == ["peep"])
     }
 
     @Test("a fresh install creates a missing folder")
@@ -50,12 +50,12 @@ struct CommandLineToolInstallerTests {
     @Test("a file in the way is shown and left alone, by install and uninstall")
     func foreignFile() async throws {
         defer { sandbox.remove() }
-        try Data("someone else's mdv".utf8).write(to: sandbox.link)
+        try Data("someone else's Peep".utf8).write(to: sandbox.link)
         #expect(installer.state() == .occupied(.file))
         await #expect(throws: CommandLineToolError.occupied(.file)) { try await installer.install() }
         await #expect(throws: CommandLineToolError.occupied(.file)) { try await installer.uninstall() }
-        #expect(try String(contentsOf: sandbox.link, encoding: .utf8) == "someone else's mdv")
-        #expect(try sandbox.binContents() == ["mdv"])
+        #expect(try String(contentsOf: sandbox.link, encoding: .utf8) == "someone else's Peep")
+        #expect(try sandbox.binContents() == ["peep"])
     }
 
     @Test("a folder in the way is left alone")
@@ -82,7 +82,7 @@ struct CommandLineToolInstallerTests {
     func linkIntoOtherApp() async throws {
         defer { sandbox.remove() }
         let other = try sandbox.makeApp("Other.app", bundleIdentifier: "com.example.other")
-        let destination = other.appending(path: "Contents/Helpers/mdv").path(percentEncoded: false)
+        let destination = other.appending(path: "Contents/Helpers/peep").path(percentEncoded: false)
         try sandbox.makeLink(to: destination)
         #expect(installer.state() == .occupied(.link(destination: destination)))
         await #expect(throws: CommandLineToolError.occupied(.link(destination: destination))) {
@@ -97,25 +97,25 @@ struct CommandLineToolInstallerTests {
     @Test("a relative link isn't ours")
     func relativeLink() async throws {
         defer { sandbox.remove() }
-        try sandbox.makeLink(to: "../Apps/mdv.app/Contents/Helpers/mdv")
-        #expect(installer.state() == .occupied(.link(destination: "../Apps/mdv.app/Contents/Helpers/mdv")))
+        try sandbox.makeLink(to: "../Apps/Peep.app/Contents/Helpers/peep")
+        #expect(installer.state() == .occupied(.link(destination: "../Apps/Peep.app/Contents/Helpers/peep")))
     }
 
     @Test("a link to a moved app is dangling, and install repairs it")
     func danglingRepaired() async throws {
         defer { sandbox.remove() }
-        let gone = sandbox.root.appending(path: "Old/mdv.app/Contents/Helpers/mdv").path(percentEncoded: false)
+        let gone = sandbox.root.appending(path: "Old/Peep.app/Contents/Helpers/peep").path(percentEncoded: false)
         try sandbox.makeLink(to: gone)
         #expect(installer.state() == .dangling(destination: gone))
         try await installer.install()
         #expect(installer.state() == .installed)
-        #expect(try sandbox.binContents() == ["mdv"])
+        #expect(try sandbox.binContents() == ["peep"])
     }
 
     @Test("a dangling link of ours can be uninstalled")
     func danglingUninstalled() async throws {
         defer { sandbox.remove() }
-        try sandbox.makeLink(to: sandbox.root.appending(path: "Old/mdv 2.app/Contents/Helpers/mdv").path())
+        try sandbox.makeLink(to: sandbox.root.appending(path: "Old/peep 2.app/Contents/Helpers/peep").path())
         try await installer.uninstall()
         #expect(installer.state() == .notInstalled)
     }
@@ -123,8 +123,8 @@ struct CommandLineToolInstallerTests {
     @Test("a link to another copy says which, and install points it at this one")
     func otherCopy() async throws {
         defer { sandbox.remove() }
-        let copy = try sandbox.makeApp("mdv copy.app")
-        let destination = copy.appending(path: "Contents/Helpers/mdv").path(percentEncoded: false)
+        let copy = try sandbox.makeApp("Peep copy.app")
+        let destination = copy.appending(path: "Contents/Helpers/peep").path(percentEncoded: false)
         try sandbox.makeLink(to: destination)
         guard case .otherCopy(let linked, destination) = installer.state() else {
             Issue.record("not otherCopy: \(installer.state())")

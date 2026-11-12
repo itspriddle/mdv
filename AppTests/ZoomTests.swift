@@ -1,7 +1,7 @@
 import AppKit
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Zoom (#26, per window since #47): the default for new windows, each window's own level,
 /// pinch magnification, restoration, and the menus.

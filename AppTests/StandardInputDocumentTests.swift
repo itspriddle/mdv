@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
-import MdvCore
+import PeepCore
 import Testing
 
-@testable import MdvApp
+@testable import PeepApp
 
-/// `cmd | mdv` (#68): the document controller reads a verified standard input handoff, deletes
+/// `cmd | peep` (#68): the document controller reads a verified standard input handoff, deletes
 /// it, and opens an untitled document, on `DocumentOpener`'s path and AppKit's; anything else
 /// opens as a file.
 @MainActor
@@ -20,9 +20,9 @@ final class StandardInputDocumentTests {
 
     init() throws {
         folder = FileManager.default.temporaryDirectory.appending(
-            path: "mdv-stdin-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+            path: "peep-stdin-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        throwawayDefaults = try ThrowawayDefaults("mdv-stdin-tests")
+        throwawayDefaults = try ThrowawayDefaults("peep-stdin-tests")
     }
 
     deinit {
@@ -131,7 +131,7 @@ final class StandardInputDocumentTests {
         #expect(FileManager.default.fileExists(atPath: file.path(percentEncoded: false)))
     }
 
-    @Test("AppKit's own open (display: true, no mdv parameters) takes a handoff too")
+    @Test("AppKit's own open (display: true, no Peep parameters) takes a handoff too")
     func appKitPath() async throws {
         defer { closeAll() }
         let file = try handoff("# Scripted\n")

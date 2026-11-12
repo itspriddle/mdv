@@ -1,5 +1,5 @@
-# XcodeGen spec. Run `make generate` to (re)create mdv.xcodeproj (gitignored).
-name: mdv
+# XcodeGen spec. Run `make generate` to (re)create Peep.xcodeproj (gitignored).
+name: Peep
 
 options:
   deploymentTarget:
@@ -12,11 +12,11 @@ configFiles:
   Release: Config/Shared.xcconfig
 
 packages:
-  mdv:
+  peep:
     path: .
 
 targets:
-  MdvApp:
+  PeepApp:
     type: application
     platform: macOS
     sources:
@@ -24,7 +24,7 @@ targets:
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: mdv
+        CFBundleDisplayName: Peep
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.developer-tools
@@ -34,13 +34,13 @@ targets:
         CFBundleDocumentTypes:
           - CFBundleTypeName: Markdown Document
             CFBundleTypeRole: Viewer
-            # Alternate: mdv offers to become the default instead of claiming it (#23, VISION).
+            # Alternate: Peep offers to become the default instead of claiming it (#23, VISION).
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - net.daringfireball.markdown
               - $(PRODUCT_BUNDLE_IDENTIFIER_BASE).markdown
             NSDocumentClass: $(PRODUCT_MODULE_NAME).MarkdownDocument
-          # Plain text opens from the Open panel and drag and drop, but mdv doesn't register as
+          # Plain text opens from the Open panel and drag and drop, but Peep doesn't register as
           # a handler for it.
           - CFBundleTypeName: Plain Text Document
             CFBundleTypeRole: Viewer
@@ -63,7 +63,7 @@ targets:
                 - markdown
               public.mime-type:
                 - text/markdown
-        # The other common Markdown extensions, which no system type declares. Exported: mdv
+        # The other common Markdown extensions, which no system type declares. Exported: Peep
         # defines this type (under its own identifier) rather than borrowing another app's.
         # Keep the identifier in sync with MarkdownContentTypes.otherMarkdownExtensions.
         UTExportedTypeDeclarations:
@@ -79,44 +79,44 @@ targets:
                 - mkd
                 - mkdn
     entitlements:
-      path: App/mdv.entitlements
+      path: App/Peep.entitlements
       properties:
         com.apple.security.app-sandbox: false
     settings:
       base:
-        PRODUCT_NAME: mdv
-        PRODUCT_MODULE_NAME: MdvApp
+        PRODUCT_NAME: Peep
+        PRODUCT_MODULE_NAME: PeepApp
         PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_BASE)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
     dependencies:
-      - package: mdv
-        product: MdvCore
-      - target: mdv-cli
+      - package: peep
+        product: PeepCore
+      - target: peep-cli
         embed: true
         codeSign: true
         copy:
           destination: wrapper
           subpath: Contents/Helpers
     # Shell completions and the man page (#71), for the Homebrew cask and Install Command Line
-    # Tool: Contents/Resources/completions/{_mdv,mdv.bash,mdv.fish} and
-    # Contents/Resources/man/man1/mdv.1. Completions come from the embedded helper; the man page
+    # Tool: Contents/Resources/completions/{_peep,peep.bash,peep.fish} and
+    # Contents/Resources/man/man1/peep.1. Completions come from the embedded helper; the man page
     # from `make cli-docs` (which `make build` runs), required for Release.
     postBuildScripts:
       - name: Bundle shell completions and man page
         basedOnDependencyAnalysis: false
         script: |
           set -eu
-          helper="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers/mdv"
+          helper="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers/peep"
           resources="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
           mkdir -p "$resources/completions"
-          "$helper" --generate-completion-script zsh > "$resources/completions/_mdv"
-          "$helper" --generate-completion-script bash > "$resources/completions/mdv.bash"
-          "$helper" --generate-completion-script fish > "$resources/completions/mdv.fish"
-          page="$SRCROOT/build/cli-docs/man/man1/mdv.1"
+          "$helper" --generate-completion-script zsh > "$resources/completions/_peep"
+          "$helper" --generate-completion-script bash > "$resources/completions/peep.bash"
+          "$helper" --generate-completion-script fish > "$resources/completions/peep.fish"
+          page="$SRCROOT/build/cli-docs/man/man1/peep.1"
           if [ -f "$page" ]; then
             mkdir -p "$resources/man/man1"
-            cp "$page" "$resources/man/man1/mdv.1"
+            cp "$page" "$resources/man/man1/peep.1"
           elif [ "$CONFIGURATION" = Release ]; then
             echo "error: $page is missing; run make cli-docs (make build runs it)"
             exit 1
@@ -124,21 +124,21 @@ targets:
             echo "warning: no man page in this build; run make cli-docs"
           fi
 
-  mdv-cli:
+  peep-cli:
     type: tool
     platform: macOS
-    # Only the entry point; the command is the package's MdvCLIKit (shared with `swift test`).
+    # Only the entry point; the command is the package's PeepCLIKit (shared with `swift test`).
     sources:
       - path: CLI/Main
     settings:
       base:
-        PRODUCT_NAME: mdv
-        PRODUCT_MODULE_NAME: MdvCLI
+        PRODUCT_NAME: peep
+        PRODUCT_MODULE_NAME: PeepCLI
         PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).cli
         SKIP_INSTALL: YES
     dependencies:
-      - package: mdv
-        product: MdvCLIKit
+      - package: peep
+        product: PeepCLIKit
 
   AppTests:
     type: bundle.unit-test
@@ -152,10 +152,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(PRODUCT_BUNDLE_IDENTIFIER_BASE).tests
         GENERATE_INFOPLIST_FILE: YES
-        TEST_HOST: $(BUILT_PRODUCTS_DIR)/mdv.app/Contents/MacOS/mdv
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Peep.app/Contents/MacOS/Peep
         BUNDLE_LOADER: $(TEST_HOST)
     dependencies:
-      - target: MdvApp
+      - target: PeepApp
 
   # XCTest UI tests (Swift Testing has no UI testing API). Run with `make test-ui`.
   AppUITests:
@@ -175,14 +175,14 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_ENTITLEMENTS: AppUITests/AppUITests.entitlements
     dependencies:
-      - target: MdvApp
+      - target: PeepApp
 
 schemes:
-  mdv:
+  Peep:
     build:
       targets:
-        MdvApp: all
-        mdv-cli: all
+        PeepApp: all
+        peep-cli: all
     test:
       targets:
         - AppTests

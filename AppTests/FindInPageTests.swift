@@ -2,7 +2,7 @@ import AppKit
 import Testing
 import WebKit
 
-@testable import MdvApp
+@testable import PeepApp
 
 /// Find in page (`FindInPage`, `App/Scripts/FindInPage.js`) in a hosted `WKWebView`.
 @MainActor
@@ -144,8 +144,8 @@ struct FindInPageTests {
         find.previous()
         await find.waitUntilIdle()
         #expect(find.status == "3 of 3")
-        #expect(try await highlightSize("mdv-find") == 3)
-        #expect(try await highlightSize("mdv-find-current") == 1)
+        #expect(try await highlightSize("peep-find") == 3)
+        #expect(try await highlightSize("peep-find-current") == 1)
     }
 
     @Test("starts at the first match in view and scrolls the current match into view")
@@ -157,7 +157,7 @@ struct FindInPageTests {
         #expect(find.status == "1 of 1")
         let visible = try await evaluate(
             """
-            const rect = CSS.highlights.get("mdv-find-current").values().next().value.getBoundingClientRect();
+            const rect = CSS.highlights.get("peep-find-current").values().next().value.getBoundingClientRect();
             return rect.top >= 0 && rect.bottom <= window.innerHeight;
             """)
         #expect(visible as? Bool == true)
@@ -191,7 +191,7 @@ struct FindInPageTests {
         find.hide()
         await find.waitUntilIdle()
         #expect(!find.isVisible)
-        #expect(try await highlightSize("mdv-find") == 0)
+        #expect(try await highlightSize("peep-find") == 0)
         #expect(try await evaluate("return getSelection().toString();") as? String == "Beta")
         #expect(find.query == "beta", "the query is kept")
     }
@@ -238,7 +238,7 @@ struct FindInPageTests {
         try await coordinator.updateContent(with: Self.page("cat\n\ncat\n\ncat cat"), baseURL: nil)
         await find.refresh()
         #expect(find.status == "2 of 4")
-        #expect(try await highlightSize("mdv-find") == 4)
+        #expect(try await highlightSize("peep-find") == 4)
         try await coordinator.load(Self.page("dog"), baseURL: nil)
         await find.refresh()
         #expect(find.status == "Not found")
@@ -252,7 +252,7 @@ struct FindInPageTests {
         await find.waitUntilIdle()
         await find.refresh()
         #expect(find.status == nil)
-        #expect(try await highlightSize("mdv-find") == 0)
+        #expect(try await highlightSize("peep-find") == 0)
     }
 
     // MARK: Isolation
@@ -261,9 +261,9 @@ struct FindInPageTests {
     func notInPageWorld() async throws {
         try await load("text")
         let pageWorld = try await coordinator.webView.callAsyncJavaScript(
-            "return typeof globalThis.mdvFind;", arguments: [:], in: nil, contentWorld: .page)
+            "return typeof globalThis.peepFind;", arguments: [:], in: nil, contentWorld: .page)
         #expect(pageWorld as? String == "undefined")
-        #expect(try await evaluate("return typeof globalThis.mdvFind;") as? String == "object")
+        #expect(try await evaluate("return typeof globalThis.peepFind;") as? String == "object")
     }
 
     @Test("a query is passed as a value, never run")

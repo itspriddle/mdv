@@ -1,5 +1,5 @@
 import Foundation
-import MdvCore
+import PeepCore
 
 /// The content width new document windows start with (#37, #47), persisted in `UserDefaults`.
 /// Only Settings sets it; each window then keeps its own preset
@@ -11,7 +11,7 @@ final class ContentWidthSettings {
     static let shared = ContentWidthSettings()
 
     /// Posted (object: the settings) after `defaultWidth` changes.
-    static let didChangeNotification = Notification.Name("MdvContentWidthSettingsDidChange")
+    static let didChangeNotification = Notification.Name("PeepContentWidthSettingsDidChange")
 
     /// The `UserDefaults` key: a `ContentWidth` raw value, absent at the default.
     static let key = "ContentWidth"
