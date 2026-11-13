@@ -1,5 +1,6 @@
 #!/usr/bin/env swift
-// Generates the app icon set and the site's icon files from the SVG sources in Branding/.
+// Generates the app icon set, the site's icon files, and its Open Graph image from the SVG
+// sources in Branding/.
 //
 // Usage: swift scripts/generate-app-icon.swift BRANDING_DIR APPICONSET_DIR SITE_PUBLIC_DIR
 //
@@ -34,23 +35,27 @@ func loadImage(_ url: URL) -> NSImage {
 }
 
 func png(of image: NSImage, pixels: Int) -> Data {
+    png(of: image, width: pixels, height: pixels)
+}
+
+func png(of image: NSImage, width: Int, height: Int) -> Data {
     guard
         let rep = NSBitmapImageRep(
-            bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels, bitsPerSample: 8,
+            bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8,
             samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
             bytesPerRow: 0, bitsPerPixel: 0),
         let context = NSGraphicsContext(bitmapImageRep: rep)
     else {
-        fail("cannot create a \(pixels) px bitmap")
+        fail("cannot create a \(width)x\(height) px bitmap")
     }
-    rep.size = NSSize(width: pixels, height: pixels)
+    rep.size = NSSize(width: width, height: height)
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = context
     context.imageInterpolation = .high
-    image.draw(in: NSRect(x: 0, y: 0, width: pixels, height: pixels))
+    image.draw(in: NSRect(x: 0, y: 0, width: width, height: height))
     NSGraphicsContext.restoreGraphicsState()
     guard let data = rep.representation(using: .png, properties: [:]) else {
-        fail("cannot encode a \(pixels) px PNG")
+        fail("cannot encode a \(width)x\(height) px PNG")
     }
     return data
 }
@@ -111,3 +116,7 @@ do {
     fail("cannot copy the SVG sources: \(error.localizedDescription)")
 }
 write(png(of: small, pixels: 32), to: sitePublic.appendingPathComponent("favicon.png"))
+
+// Link previews (og:image in Site/src/layouts/Base.astro) need a raster image at 1200x630.
+let openGraph = loadImage(branding.appendingPathComponent("og-image.svg"))
+write(png(of: openGraph, width: 1200, height: 630), to: sitePublic.appendingPathComponent("og-image.png"))

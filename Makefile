@@ -92,7 +92,7 @@ html-entities: ## Regenerate the HTML named character reference table from the W
 	curl -fsSL "https://html.spec.whatwg.org/entities.json" -o $(ENTITIES_JSON)
 	swift scripts/generate-html-entities.swift $(ENTITIES_JSON) $(ENTITY_TABLE)
 
-app-icon: ## Regenerate the app icon set and the site's icons from Branding/*.svg
+app-icon: ## Regenerate the app icon set and the site's icons and OG image from Branding/*.svg
 	swift scripts/generate-app-icon.swift Branding App/Assets.xcassets/AppIcon.appiconset Site/public
 
 vendor-highlightjs: ## Vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift

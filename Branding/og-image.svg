@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+<title>Peep</title>
+<rect width="1200" height="630" fill="#FFFFFF"/>
+<rect y="606" width="1200" height="24" fill="#FFD43B"/>
+<g transform="translate(98 145) scale(0.6640625)">
+<rect x="50" y="50" width="412" height="412" rx="93" fill="#FFD43B"/>
+<circle cx="206" cy="226" r="48" fill="#FFFFFF" stroke="#16181D" stroke-width="14"/>
+<circle cx="306" cy="226" r="48" fill="#FFFFFF" stroke="#16181D" stroke-width="14"/>
+<circle cx="212" cy="208" r="18" fill="#16181D"/>
+<circle cx="312" cy="208" r="18" fill="#16181D"/>
+<rect x="116" y="236" width="280" height="180" rx="22" fill="#FFFFFF"/>
+<rect x="148" y="274" width="130" height="18" rx="9" fill="#16181D"/>
+<rect x="148" y="314" width="216" height="12" rx="6" fill="#C9CDD6"/>
+<rect x="148" y="340" width="180" height="12" rx="6" fill="#C9CDD6"/>
+<rect x="148" y="366" width="120" height="12" rx="6" fill="#C9CDD6"/>
+</g>
+<g transform="translate(463.8 205.8) scale(1.4)" fill="none" stroke="#16181D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="55" cy="56" r="40"/>
+<path d="M15 16V140"/>
+<path d="M125 56H205A40 40 0 1 0 195.6 81.7"/>
+<path d="M235 56H315A40 40 0 1 0 305.6 81.7"/>
+<circle cx="385" cy="56" r="40"/>
+<path d="M345 16V140"/>
+<circle cx="165" cy="37" r="10.5" fill="#16181D" stroke="none"/>
+<circle cx="275" cy="37" r="10.5" fill="#16181D" stroke="none"/>
+</g>
+</svg>
