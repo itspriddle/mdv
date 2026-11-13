@@ -928,8 +928,7 @@ updates itself to v0.1.1 via Sparkle.
   own settings, not keys of ours. Only Release starts the updater; Debug needs
   `-PeepUpdateFeedURL` (the documented manual check against a local appcast is in
   `App/Updates/SoftwareUpdates.swift`), and tests and cold-open measurements never start it.
-  The public key is a placeholder (`SPARKLE_PUBLIC_ED_KEY`) until the maintainer runs
-  `generate_keys`; Release builds fail until then. One default channel; a beta channel is room
+  The public key is `SPARKLE_PUBLIC_ED_KEY`; Release builds fail if it's not a 32-byte key. One default channel; a beta channel is room
   left in `SparkleUpdater.allowedChannels(for:)` (VISION).
 - Homebrew cask (#84): `brew install --cask itspriddle/brews/peep`. The cask's source is
   `Packaging/homebrew/peep.rb` here, not the tap: `scripts/render-cask X.Y.Z SHA256` fills in
@@ -957,6 +956,21 @@ updates itself to v0.1.1 via Sparkle.
   `com.apple.security.automation.apple-events`: its direct `Peep/odoc` path sends only to its
   own app, which TCC sees as the app sending to itself (tested with a Developer ID, hardened
   runtime build next to a second copy).
+- Release workflow (#83): a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`: `check`
+  (no secrets: tag shape, `check-version`, on `main`, newer than the latest release, not already
+  published) → `build` (`release` environment: throwaway keychain, `package-release`,
+  `release-appcast`) → `publish` (draft, upload, publish; the only `contents: write` job) →
+  `site` and `cask` (`release` environment again, so two approvals per release). Pre-release
+  tags are refused. The appcast is signed in `build` and attached to the release, not
+  assembled by the site from per-release items as first planned: `SURequireSignedFeed` (#81)
+  needs the feed itself signed, and the site must not hold the key. Each release's feed is the
+  previous release's (signature verified) plus the new item; the site build copies the latest
+  published release's `appcast.xml` into `dist/` (none before the first release). A published
+  DMG is never rebuilt or re-signed; recovery is re-running failed jobs or a new patch version
+  (`docs/RELEASING.md`). `deploy-site.yml` keeps its `required` Cloudflare secrets and the
+  release workflow passes them by name: GitHub resolves them in the called job's `site`
+  environment but only if the caller passes them. The tag message's body is the release
+  summary (GitHub Release and Sparkle's alert, Markdown).
 
 ## 1.0
 

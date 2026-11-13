@@ -989,6 +989,15 @@ editor or a browser.
     installer XPC keys are set. `scripts/package-release` (#82) does it, inside out, and checks
     that every Mach-O has the team's Developer ID, the hardened runtime, a secure timestamp,
     and no `get-task-allow`; the DMG is signed, notarized, and stapled (`docs/RELEASING.md`).
+  - **Release chain (#83):** only the maintainer can create `v*` tags (ruleset), and only those
+    tags can use the `release` environment, which needs the maintainer's approval per job. The
+    signing keychain, the notary key, and the Sparkle key exist only inside the approved
+    `build` job (the Sparkle key on its tools' standard input, never an argument or a file);
+    the tap token only inside `cask`. The appcast is signed there, from the stapled DMG, and
+    attached to the GitHub Release; peep.now serves the latest published release's copy and
+    holds no key, so a compromised site or deploy token can't forge an update. Each feed is
+    built from the previous one only after its signature verifies with the same key, and a
+    version already in the feed is never signed again.
   - **Channels:** one default channel for now. Sparkle's `channels` leave room for a beta: beta
     items carry `<sparkle:channel>beta</sparkle:channel>` in the same appcast and are skipped
     unless `SparkleUpdater.allowedChannels(for:)` returns "beta" (empty today, no setting yet).
