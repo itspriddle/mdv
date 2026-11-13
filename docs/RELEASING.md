@@ -128,7 +128,7 @@ only the maintainer create `v*` tags.
 3. Actions > Release: approve the `release` deployment for `build` (Review deployments). When
    the release is published (after notarization, usually several minutes), approve it again for
    `cask`. GitHub's review is for the jobs waiting at that moment, and `cask` only queues after
-   `publish`, so expect a second prompt (to be confirmed on the first run). `deployment: false`
+   `publish`, so there is a second prompt (confirmed on v0.1.0's run). `deployment: false`
    wouldn't avoid it: required reviewers still apply. The second approval is also a last look
    at the published release before Homebrew users get it.
 4. Check: the [release](https://github.com/itspriddle/peep/releases/latest),
