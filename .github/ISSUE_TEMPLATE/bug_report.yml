@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in Peep or the peep command doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. For a security problem, don't open an issue: report it
+        privately (see SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest Markdown file and steps that show the problem help most.
+      placeholder: |
+        1. Save this as test.md: ...
+        2. Run `peep test.md`
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: peep-version
+    attributes:
+      label: Peep version
+      description: The output of `peep --version`, or the version in Peep > About Peep.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      description: Apple menu > About This Mac, or `sw_vers -productVersion`.
+      placeholder: "15.5"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else
+      description: >-
+        Screenshots, the theme and Markdown flavor in use, custom themes or a custom
+        preprocessor, and any `peep:` messages on standard error.

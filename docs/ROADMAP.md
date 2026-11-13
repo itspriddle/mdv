@@ -910,6 +910,17 @@ Ship a first public release, v0.1.0.
 **Exit criteria:** a v0.1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
 updates itself to v0.1.1 via Sparkle.
 
+**Decisions:**
+
+- Acknowledgements (#85): `Acknowledgements/Acknowledgements.json` lists every bundled
+  component with its license file (copied verbatim from upstream, source URL recorded; vendored
+  sources keep theirs in `Vendor/<name>/LICENSE`). `Acknowledgements/` and `Vendor/` ship in the
+  app's resources, and the About panel's credits are built from them in code (`AboutPanel`), not
+  a Credits.html (no HTML import, and the text follows dark mode). `AcknowledgementsTests` fails
+  when a `Vendor/` folder, a `Package.resolved` pin, or a remote `project.yml` package has no
+  entry. Beyond the planned list: LibYAML (inside Yams) and the HTML Standard's entity list
+  (`HTMLEntityTable`, BSD-3-Clause in source code). Sparkle's entry is in ahead of #81.
+
 ## 1.0
 
 A running list of what 1.0 includes, in rough priority order. Each becomes its own milestone
