@@ -308,7 +308,8 @@ lock the build database.
   push to the tap's `master`). `docs/RELEASING.md` has the run book.
 - `Site/` (peep.now, Astro static output with zero client JS, Tailwind; Vite+ `vp` for format,
   lint, and tests; Cloudflare Workers static assets; `deploy-site.yml`): `vp check`, `vp test`,
-  `vp run build` (`astro check`, `astro build`). `public/_headers`' CSP allows nothing inline,
+  `vp run build` (`astro check`, `astro build`). `postinstall` runs `astro sync`, which writes
+  the gitignored `.astro/` types that `astro:content` imports need (`vp check` fails without them). `public/_headers`' CSP allows nothing inline,
   so `astro.config.ts` never inlines stylesheets, pages add no `<script>`, and code blocks use
   Prism classes (token colors in `src/style.css`), not Shiki's inline styles. Doc pages render
   files from the repo's `docs/` in place (`src/content.config.ts` lists each one; never move

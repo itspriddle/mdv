@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "astro sync",
     "dev": "astro dev",
     "build": "astro check --tsconfig tsconfig.app.json && astro build && node scripts/fetch-release.ts dist",
     "preview": "astro build && wrangler dev",
