@@ -945,6 +945,18 @@ updates itself to v0.1.1 via Sparkle.
   `<prefix>/bin/peep` is our link, the menu item says Homebrew installed it instead of
   installing a second `peep` (Apple silicon) or offering to uninstall the cask's link from
   `/usr/local/bin` (Intel) (`HomebrewCask`).
+- Packaging (#82): `scripts/package-release` (`make release`; `docs/RELEASING.md`) archives
+  Release ad hoc and signs every Mach-O itself, inside out (Sparkle's documented order, then the
+  helper and the app), with `--options runtime --timestamp`, rather than
+  `-exportArchive`: one signing pass the script then checks per Mach-O (team, runtime,
+  timestamp, no `get-task-allow` or `application-identifier`), and `codesign --keychain` takes
+  CI's throwaway keychain without Xcode needing it. A UDZO DMG (app plus `/Applications` link,
+  volume "Peep", no background) is signed, notarized with an App Store Connect API key (or a
+  local `notarytool` profile), stapled, mounted, and verified with `codesign` and `spctl`; the
+  packaged `peep` is smoke-tested from it. Universal (arm64 and x86_64). The helper needs no
+  `com.apple.security.automation.apple-events`: its direct `Peep/odoc` path sends only to its
+  own app, which TCC sees as the app sending to itself (tested with a Developer ID, hardened
+  runtime build next to a second copy).
 
 ## 1.0
 
