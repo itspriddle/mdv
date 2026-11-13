@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<title>Peep app icon, small sizes</title>
+<rect x="50" y="50" width="412" height="412" rx="93" fill="#FFD43B"/>
+<g transform="translate(93 181) scale(1.6)" fill="none" stroke="#16181D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+<path d="M7 47H87A40 40 0 1 0 77.6 72.7"/>
+<path d="M117 47H197A40 40 0 1 0 187.6 72.7"/>
+<circle cx="47" cy="28" r="10.5" fill="#16181D" stroke="none"/>
+<circle cx="157" cy="28" r="10.5" fill="#16181D" stroke="none"/>
+</g>
+</svg>
