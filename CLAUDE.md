@@ -306,8 +306,15 @@ lock the build database.
   (`release` environment: package-release, release-appcast) → `publish` (draft, upload,
   publish) → `site` (calls `deploy-site.yml`) and `cask` (`release` environment: render-cask,
   push to the tap's `master`). `docs/RELEASING.md` has the run book.
-- `Site/` (peep.now, Vite+ `vp`, Vue, Cloudflare Workers static assets; `deploy-site.yml`):
-  `vp check`, `vp test`, `vp run build`. The build ends with `scripts/fetch-release.ts`
+- `Site/` (peep.now, Astro static output with zero client JS, Tailwind; Vite+ `vp` for format,
+  lint, and tests; Cloudflare Workers static assets; `deploy-site.yml`): `vp check`, `vp test`,
+  `vp run build` (`astro check`, `astro build`). `public/_headers`' CSP allows nothing inline,
+  so `astro.config.ts` never inlines stylesheets, pages add no `<script>`, and code blocks use
+  Prism classes (token colors in `src/style.css`), not Shiki's inline styles. Doc pages render
+  files from the repo's `docs/` in place (`src/content.config.ts` lists each one; never move
+  them, the app's tests read them); `src/lib/remark-repository-links.ts` points their relative
+  links at GitHub, or at the page for a file in `publishedDocs` (`src/lib/repository.ts`). A
+  doc edit reaches peep.now on the next deploy. The build ends with `scripts/fetch-release.ts`
   (`scripts/release.ts`), which copies the latest published GitHub Release's signed
   `appcast.xml` into `dist/` and writes `dist/_redirects` (`/download` → that release's
   `Peep-X.Y.Z.dmg`, 302); neither exists before the first release (a real 404, never HTML).

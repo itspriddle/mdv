@@ -1,0 +1,64 @@
+---
+import "../style.css";
+import PeepEyes from "../components/PeepEyes.astro";
+import PeepWordmark from "../components/PeepWordmark.astro";
+import { repository } from "../lib/repository.ts";
+
+interface Props {
+    title: string;
+    description: string;
+}
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content={description} />
+        <meta name="color-scheme" content="light dark" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
+        <title>{title}</title>
+    </head>
+    <body class="bg-paper font-sans text-ink dark:bg-ink dark:text-paper">
+        <div class="min-h-svh">
+            <div class="mx-auto max-w-[70rem] px-6">
+                <header class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-5">
+                    <a href="/" aria-label="Peep home" class="inline-flex min-h-11 items-center">
+                        <PeepWordmark class="h-9 w-auto" />
+                    </a>
+                    <nav class="flex flex-wrap items-center gap-x-7 gap-y-1 text-[15px] font-medium">
+                        <a href="/#features" class="inline-flex min-h-11 items-center hover:underline">
+                            Features
+                        </a>
+                        <a href="/themes" class="inline-flex min-h-11 items-center hover:underline">
+                            Themes
+                        </a>
+                        <a href={repository} class="inline-flex min-h-11 items-center hover:underline">
+                            GitHub
+                        </a>
+                    </nav>
+                </header>
+
+                <slot />
+
+                <footer
+                    class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-mist pt-6 pb-10 text-sm text-neutral-500 dark:border-white/10 dark:text-neutral-400"
+                >
+                    <div class="flex items-center gap-3">
+                        <PeepEyes class="h-5.5 w-auto text-ink dark:text-paper" />
+                        <span>peep.now</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-1">
+                        <span>MIT licensed</span>
+                        <a href={repository} class="inline-flex min-h-11 items-center underline">
+                            itspriddle/peep
+                        </a>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </body>
+</html>
