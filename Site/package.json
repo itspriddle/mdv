@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "vue-tsc -b && vp build && node scripts/fetch-appcast.ts dist/appcast.xml",
+    "build": "vue-tsc -b && vp build && node scripts/fetch-release.ts dist",
     "preview": "vp build && wrangler dev",
     "deploy": "wrangler deploy"
   },

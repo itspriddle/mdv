@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { LATEST_RELEASE_URL, isSignedAppcast, latestAppcast } from "./appcast.ts";
+import { LATEST_RELEASE_URL, isSignedAppcast, latestAppcast, redirectsOf } from "./release.ts";
 
 const ASSET_URL = "https://github.com/itspriddle/peep/releases/download/v0.1.0/appcast.xml";
 
@@ -108,5 +108,58 @@ describe("latestAppcast", () => {
             [ASSET_URL]: () => new Response("gone", { status: 502 }),
         });
         await expect(latestAppcast(fetchFn)).rejects.toThrow("HTTP 502");
+    });
+});
+
+describe("latestAppcast asset URLs", () => {
+    it("refuses an appcast that isn't a release download of this repository", async () => {
+        const elsewhere = "https://example.com/appcast.xml";
+        const { fetchFn, requests } = fakeFetch({
+            [LATEST_RELEASE_URL]: release([
+                { name: "appcast.xml", browser_download_url: elsewhere },
+            ]),
+            [elsewhere]: () => new Response(SIGNED),
+        });
+        await expect(latestAppcast(fetchFn)).rejects.toThrow("isn't a https://github.com/");
+        expect(requests.map((request) => request.url)).toEqual([LATEST_RELEASE_URL]);
+    });
+});
+
+describe("redirectsOf", () => {
+    const DMG_URL = "https://github.com/itspriddle/peep/releases/download/v0.1.0/Peep-0.1.0.dmg";
+
+    it("redirects /download to the release's DMG", () => {
+        const redirects = redirectsOf({
+            tag_name: "v0.1.0",
+            assets: [
+                { name: "appcast.xml", browser_download_url: ASSET_URL },
+                { name: "Peep-0.1.0.dmg", browser_download_url: DMG_URL },
+            ],
+        });
+        expect(redirects).toBe(`/download ${DMG_URL} 302\n`);
+    });
+
+    it("fails when the release has no DMG for its version", () => {
+        expect(() =>
+            redirectsOf({
+                tag_name: "v0.1.1",
+                assets: [{ name: "Peep-0.1.0.dmg", browser_download_url: DMG_URL }],
+            }),
+        ).toThrow("release v0.1.1 has no Peep-0.1.1.dmg");
+    });
+
+    it("fails on a tag that isn't vX.Y.Z", () => {
+        expect(() => redirectsOf({ tag_name: "nightly", assets: [] })).toThrow("isn't vX.Y.Z");
+    });
+
+    it("refuses a DMG that isn't a release download of this repository", () => {
+        expect(() =>
+            redirectsOf({
+                tag_name: "v0.1.0",
+                assets: [
+                    { name: "Peep-0.1.0.dmg", browser_download_url: "https://example.com/x.dmg" },
+                ],
+            }),
+        ).toThrow("isn't a https://github.com/");
     });
 });

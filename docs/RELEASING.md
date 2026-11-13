@@ -156,11 +156,15 @@ its own environment first. Third-party actions are pinned by commit SHA.
 ### The appcast
 
 `https://peep.now/appcast.xml` is the signed file attached to the latest published release.
-The site build (`Site/scripts/fetch-appcast.ts`, the last step of `vp run build`) downloads it
+The site build (`Site/scripts/fetch-release.ts`, the last step of `vp run build`) downloads it
 from the GitHub API without a token. It fails the build if a release exists without a signed
 `appcast.xml` (no `sparkle-signatures` comment), and ships none (a real 404,
 `not_found_handling: none`) before the first release. A manual site deploy therefore
 republishes the same signed feed; the site never holds the Sparkle key.
+
+The same step writes `dist/_redirects` with one rule, `/download` → the latest release's
+`Peep-X.Y.Z.dmg` (302), which the page's Download button uses, so every release's site deploy
+moves the link. It fails the build if the release has no DMG for its tag.
 
 `scripts/release-appcast` builds each release's feed from the previous one: it verifies the
 previous feed's signature with the same key, refuses a version that's already in it, runs

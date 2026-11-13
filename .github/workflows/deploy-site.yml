@@ -64,7 +64,7 @@ jobs:
       - name: Build
         run: vp run build
         env:
-          # Only raises the GitHub API rate limit for the appcast lookup (Site/scripts/appcast.ts).
+          # Only raises the GitHub API rate limit for the release lookup (Site/scripts/release.ts).
           GITHUB_TOKEN: ${{ github.token }}
       - name: Deploy
         run: vp exec wrangler deploy
