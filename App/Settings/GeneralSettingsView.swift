@@ -7,8 +7,8 @@ import SwiftUI
 /// Sections: Appearance (System, Light, or Dark; applies to every window at once), Themes (the
 /// default theme, custom theme files that didn't load, and Open Themes
 /// Folder, #35), Windows (outline default), Reading (the zoom and content width new windows
-/// start with; View > Zoom and View > Content Width change one window, #47), and Default
-/// Viewer.
+/// start with; View > Zoom and View > Content Width change one window, #47), Default
+/// Viewer, and Updates (Sparkle's automatic checks and downloads, #81).
 struct GeneralSettingsView: View {
     let model: SettingsModel
 
@@ -89,6 +89,24 @@ struct GeneralSettingsView: View {
                         .accessibilityIdentifier("settings-default-viewer")
                     }
                 }
+            }
+
+            Section {
+                Toggle(
+                    "Automatically check for updates",
+                    isOn: binding(\.automaticallyChecksForUpdates, model.setAutomaticallyChecksForUpdates)
+                )
+                .accessibilityIdentifier("settings-update-checks")
+                Toggle(
+                    "Automatically download and install updates",
+                    isOn: binding(\.automaticallyDownloadsUpdates, model.setAutomaticallyDownloadsUpdates)
+                )
+                .disabled(!model.allowsAutomaticUpdates)
+                .accessibilityIdentifier("settings-update-downloads")
+                note(
+                    model.isUpdaterActive
+                        ? "Peep checks peep.now once a day. App menu > Check for Updates… checks now."
+                        : "This build doesn’t check for updates.")
             }
         }
         .formStyle(.columns)
