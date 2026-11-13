@@ -236,6 +236,11 @@ Signed local builds: copy `Config/Local.xcconfig.example` to `Config/Local.xccon
 | `CLI`              | `peep` command-line tool, embedded in `Peep.app/Contents/Helpers` |
 | `project.yml`      | XcodeGen spec for the app, CLI, and app tests                     |
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately: [SECURITY.md](SECURITY.md).
+
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Third-party notices are in [Acknowledgements](Acknowledgements/Acknowledgements.json)
+and in the app's About panel.

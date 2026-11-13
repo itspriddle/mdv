@@ -1,0 +1,90 @@
+{
+  "components": [
+    {
+      "name": "swift-cmark",
+      "use": "Markdown parsing (cmark-gfm)",
+      "homepage": "https://github.com/swiftlang/swift-cmark",
+      "license": "BSD-2-Clause and MIT",
+      "licenseFile": "Acknowledgements/swift-cmark.LICENSE",
+      "licenseSource": "https://github.com/swiftlang/swift-cmark/blob/08ddb528923cc1a6527e02b7a1aee9e516ca749a/COPYING",
+      "package": "swift-cmark"
+    },
+    {
+      "name": "Yams",
+      "use": "YAML frontmatter",
+      "homepage": "https://github.com/jpsim/Yams",
+      "license": "MIT",
+      "licenseFile": "Acknowledgements/Yams.LICENSE",
+      "licenseSource": "https://github.com/jpsim/Yams/blob/a27b21e0c81c5bf42049b897a62aaf387e80f279/LICENSE",
+      "package": "yams"
+    },
+    {
+      "name": "LibYAML",
+      "use": "YAML parsing, built into Yams",
+      "homepage": "https://github.com/yaml/libyaml",
+      "license": "MIT",
+      "licenseFile": "Acknowledgements/libyaml.LICENSE",
+      "licenseSource": "https://github.com/yaml/libyaml/blob/90a56d4500aa1a1798514c5cb55c3ad4cb095f94/License"
+    },
+    {
+      "name": "Swift Argument Parser",
+      "use": "The peep command line tool",
+      "homepage": "https://github.com/apple/swift-argument-parser",
+      "license": "Apache-2.0 with Runtime Library Exception",
+      "licenseFile": "Acknowledgements/swift-argument-parser.LICENSE",
+      "licenseSource": "https://github.com/apple/swift-argument-parser/blob/6a52f3251125d74daf04fcbd5e6f08a75d074382/LICENSE.txt",
+      "package": "swift-argument-parser"
+    },
+    {
+      "name": "Sparkle",
+      "use": "Software updates",
+      "homepage": "https://sparkle-project.org",
+      "license": "MIT and others",
+      "licenseFile": "Acknowledgements/Sparkle.LICENSE",
+      "licenseSource": "https://github.com/sparkle-project/Sparkle/blob/4b20aee135d5a29ce418fc6fc8d211945c2edeeb/LICENSE",
+      "package": "sparkle"
+    },
+    {
+      "name": "highlight.js",
+      "use": "Syntax highlighting",
+      "homepage": "https://highlightjs.org",
+      "license": "BSD-3-Clause",
+      "licenseFile": "Vendor/highlight.js/LICENSE",
+      "licenseSource": "https://raw.githubusercontent.com/highlightjs/cdn-release/11.12.0/LICENSE",
+      "vendor": "highlight.js"
+    },
+    {
+      "name": "github-markdown-css",
+      "use": "The GitHub theme",
+      "homepage": "https://github.com/sindresorhus/github-markdown-css",
+      "license": "MIT",
+      "licenseFile": "Vendor/github-markdown-css/LICENSE",
+      "licenseSource": "https://raw.githubusercontent.com/sindresorhus/github-markdown-css/v5.9.0/license",
+      "vendor": "github-markdown-css"
+    },
+    {
+      "name": "Octicons",
+      "use": "Alert icons",
+      "homepage": "https://github.com/primer/octicons",
+      "license": "MIT",
+      "licenseFile": "Acknowledgements/octicons.LICENSE",
+      "licenseSource": "https://github.com/primer/octicons/blob/68ec2de8d0ddfcbb7497da01d0b7d98eb5593020/LICENSE"
+    },
+    {
+      "name": "gemoji",
+      "use": "Emoji shortcodes",
+      "homepage": "https://github.com/github/gemoji",
+      "license": "MIT",
+      "licenseFile": "Acknowledgements/gemoji.LICENSE",
+      "licenseSource": "https://github.com/github/gemoji/blob/fadaeaf1f1a9be82b321316a6c5502e43138b2f6/LICENSE"
+    },
+    {
+      "name": "HTML Standard",
+      "use": "Named character references",
+      "homepage": "https://html.spec.whatwg.org",
+      "license": "BSD-3-Clause",
+      "licenseFile": "Acknowledgements/whatwg-html.LICENSE",
+      "licenseSource": "https://github.com/whatwg/html/blob/main/LICENSE"
+    }
+  ]
+}

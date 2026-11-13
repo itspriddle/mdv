@@ -21,6 +21,15 @@ targets:
     platform: macOS
     sources:
       - path: App
+      # Third-party notices (#85), shipped as Contents/Resources/{Acknowledgements,Vendor}/ and
+      # shown in the About panel (`AboutPanel`). The manifest's license paths are relative to
+      # the repository root, which these folders mirror.
+      - path: Acknowledgements
+        type: folder
+        buildPhase: resources
+      - path: Vendor
+        type: folder
+        buildPhase: resources
     info:
       path: App/Info.plist
       properties:

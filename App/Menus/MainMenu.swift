@@ -67,7 +67,7 @@ final class MainMenu {
         return menu(
             appName,
             [
-                [NSMenuItem("About \(appName)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)))]
+                [NSMenuItem("About \(appName)", action: #selector(AppDelegate.showAboutPanel(_:)))]
             ] + groups(for: .app) + [
                 [NSMenuItem("Services", submenu: NSMenu(title: "Services"))],
                 [

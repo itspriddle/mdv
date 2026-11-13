@@ -101,8 +101,19 @@ lock the build database.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make html-entities`,
     `make vendor-highlightjs`); never edit by hand. `Vendor/` holds vendored sources with a
     MANIFEST and license.
+  - `Acknowledgements/`: `Acknowledgements` reads the third-party notices manifest (#85) and
+    reflows license text (`paragraphs(of:)`) for the About panel.
+- `Acknowledgements/` (repo root): `Acknowledgements.json` lists every bundled third-party
+  component (name, use, license, `licenseFile` relative to the repo root, `licenseSource`, and the
+  `vendor` folder or `package` identity it covers) plus the license texts not already in
+  `Vendor/`. Copy a license from upstream (`gh api`), never retype it. `Acknowledgements/` and
+  `Vendor/` ship as folders in the app's Resources; `AcknowledgementsTests` fails when a
+  `Vendor/` folder, a `Package.resolved` pin, or a remote `project.yml` package lacks an entry
+  (a resolved package that isn't shipped goes in its `notShipped`, with the reason).
 - `App/`: the macOS app (module `PeepApp`), kept thin. AppKit lifecycle (`main.swift`,
-  `AppDelegate`), SwiftUI for window content only. Feature folders: `ContentWidth/`, `Copy/`,
+  `AppDelegate`), SwiftUI for window content only. `About/AboutPanel` is App menu > About Peep:
+  the standard panel with credits built in code from the bundled acknowledgements (no
+  Credits.html). Feature folders: `ContentWidth/`, `Copy/`,
   `DefaultViewer/`, `Print/`, `RenderProgress/`, `Themes/`, `Zoom/` (each a small type plus its
   `DocumentWindowController+<Feature>.swift`). `Themes/ThemeSettings` holds the theme registry
   and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
@@ -254,6 +265,9 @@ lock the build database.
   references come from CI's `theme-snapshots` artifact (`recorded/`). Mismatches write
   actual/reference/diff PNGs to `build/theme-snapshots/` (CI uploads it).
 - `project.yml`: XcodeGen spec. Never commit `Peep.xcodeproj`; edit `project.yml` instead.
+- `CONTRIBUTING.md`, `SECURITY.md` (private reports via GitHub security advisories), and
+  `.github/ISSUE_TEMPLATE/` (bug and feature forms; `config.yml` sends security reports to the
+  advisory form): the human-facing versions of this file's rules; keep them in step.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.
 
