@@ -20,6 +20,8 @@ scripts/check-version [vX.Y.Z]  # fail if those versions disagree, or don't matc
 scripts/render-cask X.Y.Z SHA256  # print the Homebrew cask (Packaging/homebrew/peep.rb) for a release
 make release          # scripts/package-release: signed, notarized, stapled build/release/Peep-X.Y.Z.dmg
                       # (+ .sha256); NOTARIZE=0 (--skip-notarize) for a dry run; docs/RELEASING.md
+scripts/release-appcast [--previous F] [--notes F] DMG  # signed appcast.xml next to the DMG
+                      # (SPARKLE_ED_PRIVATE_KEY on stdin to Sparkle's tools; the release workflow)
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
@@ -297,6 +299,17 @@ lock the build database.
   a secure timestamp, makes and signs the DMG, notarizes and staples it, and smoke-tests the
   packaged `peep`. A new nested binary fails its Mach-O check until the script signs it.
   `docs/RELEASING.md` has its environment variables and the release steps.
+- `scripts/release-appcast` (#83): `generate_appcast` over the previous release's
+  `appcast.xml` (its signature verified, items kept) plus the new stapled DMG; refuses a version
+  already in the feed or a key that isn't the app's, then verifies the feed and item signatures.
+- `.github/workflows/release.yml` (#83): a `vX.Y.Z` tag runs `check` (no secrets) → `build`
+  (`release` environment: package-release, release-appcast) → `publish` (draft, upload,
+  publish) → `site` (calls `deploy-site.yml`) and `cask` (`release` environment: render-cask,
+  push to the tap's `master`). `docs/RELEASING.md` has the run book.
+- `Site/` (peep.now, Vite+ `vp`, Vue, Cloudflare Workers static assets; `deploy-site.yml`):
+  `vp check`, `vp test`, `vp run build`. The build ends with `scripts/fetch-appcast.ts`, which
+  copies the latest published GitHub Release's signed `appcast.xml` into `dist/` (none before
+  the first release: a real 404, never HTML); the site never signs anything.
 
 ## Conventions
 
@@ -362,3 +375,6 @@ lock the build database.
 - After an issue lands, post a handoff comment (API changes, gotchas, deviations, deferred items)
   on the next issue or the milestone's tracking issue.
 - When a milestone closes, update its status in `docs/ROADMAP.md`.
+- Releases: `scripts/bump-version` in a PR, merge, then a `vX.Y.Z` tag on `main` (maintainer
+  only) runs `release.yml`; approve its two `release` deployments. Never tag, publish, or
+  push to the tap by hand without the maintainer (`docs/RELEASING.md`).
