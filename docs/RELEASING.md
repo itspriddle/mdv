@@ -6,9 +6,10 @@ maintainer's Mac and in CI.
 
 ## Before the first release
 
-- **Sparkle key pair:** `Config/Shared.xcconfig` must hold the real `SPARKLE_PUBLIC_ED_KEY`
-  (#81's handoff has the `generate_keys` steps). Until then Release builds fail, and
-  `scripts/package-release` stops before building (exit 78).
+- **Sparkle key pair:** `Config/Shared.xcconfig` holds the public `SPARKLE_PUBLIC_ED_KEY`
+  (#81's handoff has the `generate_keys` steps); the private key is the `release`
+  environment's `SPARKLE_ED_PRIVATE_KEY`. If the public key isn't a base64 32-byte key,
+  Release builds fail and `scripts/package-release` stops before building (exit 78).
 - **Developer ID Application certificate** for the team, in the login keychain (local) or the
   `release` environment's `DEVELOPER_ID_P12_BASE64` and `DEVELOPER_ID_P12_PASSWORD` (CI).
 - **Notary credentials:** an App Store Connect API key (Users and Access > Integrations > Team
@@ -67,7 +68,6 @@ Developer ID build); never ship that DMG.
 | `PEEP_SIGNING_IDENTITY` | SHA-1 of the identity, only needed when the team has more than one valid Developer ID Application certificate (a renewal overlap). |
 | `NOTARY_KEY_P8`, `NOTARY_KEY_ID`, `NOTARY_ISSUER_ID` | App Store Connect API key: the `.p8` file's contents (written to a mode 600 temporary file, deleted on exit), its key id, and the issuer id. |
 | `PEEP_NOTARY_PROFILE` | A `notarytool store-credentials` profile, used when `NOTARY_KEY_P8` isn't set. |
-| `PEEP_TEST_SPARKLE_PUBLIC_ED_KEY` | Dry runs before the real Sparkle key exists: a base64 32-byte key passed to `xcodebuild` only. Requires `--skip-notarize`. |
 
 Exit status: 0 packaged; 64 usage; 78 configuration (team, identity, Sparkle key, notary
 credentials, a missing tool); 1 a failed step.

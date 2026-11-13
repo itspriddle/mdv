@@ -21,10 +21,6 @@
 #   NOTARY_KEY_P8, NOTARY_KEY_ID, NOTARY_ISSUER_ID
 #                             App Store Connect API key (the .p8's contents, not a path)
 #   PEEP_NOTARY_PROFILE       or a `xcrun notarytool store-credentials` profile name (local use)
-#   PEEP_TEST_SPARKLE_PUBLIC_ED_KEY
-#                             dry runs before the real key exists: a base64 32-byte key passed to
-#                             xcodebuild instead of Config/Shared.xcconfig's; requires
-#                             --skip-notarize, so a test key is never notarized
 #
 # Exit status: 0 packaged; 64 usage; 78 configuration (team, identity, Sparkle key, notary
 # credentials, missing tools); 1 a step failed (build, signing, notarization, verification, smoke).
@@ -126,18 +122,11 @@ fi
 identity="$(awk '{print $2}' <<< "$identity_line")"
 identity_name="$(sed -E 's/^[^"]*"(.*)"$/\1/' <<< "$identity_line")"
 
-# Sparkle's public key: the build fails on the placeholder too, but say why before building.
+# Sparkle's public key: the build fails on a bad key too, but say why before building.
 sparkle_key="$(sed -nE 's/^SPARKLE_PUBLIC_ED_KEY = (.*)$/\1/p' Config/Shared.xcconfig)"
-sparkle_settings=()
-if [[ -n "${PEEP_TEST_SPARKLE_PUBLIC_ED_KEY:-}" ]]; then
-  [[ "$skip_notarize" -eq 1 ]] || die "PEEP_TEST_SPARKLE_PUBLIC_ED_KEY needs --skip-notarize: a test key is never notarized" 64
-  sparkle_key="$PEEP_TEST_SPARKLE_PUBLIC_ED_KEY"
-  sparkle_settings=("SPARKLE_PUBLIC_ED_KEY=$sparkle_key")
-  log "using PEEP_TEST_SPARKLE_PUBLIC_ED_KEY (dry run only; this DMG must not ship)"
-fi
 key_bytes="$(printf '%s' "$sparkle_key" | base64 -D 2> /dev/null | wc -c | tr -d ' ')"
 if [[ "$key_bytes" != 32 ]]; then
-  die "SPARKLE_PUBLIC_ED_KEY in Config/Shared.xcconfig isn't a base64 Ed25519 public key (still the placeholder?); run Sparkle's generate_keys and set it (docs/RELEASING.md)" 78
+  die "SPARKLE_PUBLIC_ED_KEY in Config/Shared.xcconfig isn't a base64 Ed25519 public key; set it to Sparkle's generate_keys output (docs/RELEASING.md)" 78
 fi
 
 notary_auth=()
@@ -177,8 +166,7 @@ xcodebuild -quiet \
   -destination 'generic/platform=macOS' -derivedDataPath "$DERIVED" \
   -archivePath "$ARCHIVE" archive \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
-  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
-  ${sparkle_settings[@]+"${sparkle_settings[@]}"}
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
 
 archived_app="$ARCHIVE/Products/Applications/Peep.app"
 [[ -d "$archived_app" ]] || die "the archive has no Peep.app at $archived_app"
