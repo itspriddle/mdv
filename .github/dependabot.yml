@@ -1,0 +1,41 @@
+# Dependabot version updates. Security updates are enabled separately in the repo settings.
+# Sparkle is pinned in project.yml (XcodeGen), which Dependabot can't read: bump it by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      swift:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /Site
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      site:
+        update-types: [minor, patch]
