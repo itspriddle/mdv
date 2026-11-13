@@ -73,7 +73,10 @@ extension CustomPreprocessorTests {
             ("huge-output", []), ("crash", []), ("fail", []), ("invalid-utf8", []), ("nul", []),
             ("close-stdout", []), ("trickle", []), ("stderr-flood", []), ("ignore-stdin", []), ("upcase", []),
         ]
-        let preprocessors = try runs.map { try fixtures.preprocessor($0.0, arguments: $0.1) }
+        let pidLog = fixtures.pidFile()
+        let preprocessors = try runs.map {
+            try fixtures.preprocessor($0.0, arguments: $0.1, recordingPIDsTo: pidLog)
+        }
         let input = Data(repeating: UInt8(ascii: "a"), count: 1024 * 1024)
         await withTaskGroup(of: Void.self) { group in
             for _ in 0..<3 {
@@ -89,15 +92,19 @@ extension CustomPreprocessorTests {
             let group = try #require(pids.first)
             #expect(try await PreprocessorFixtures.processesGone(group: group, pids: pids))
         }
-        #expect(try Self.childProcessCount() == 0)
+        // The runner reaps each script: none of this test's runs is still a child (zombies
+        // included). Only its own runs: other suites start children concurrently. A run killed
+        // before `record-pid` wrote its pid goes unchecked, so the count has a floor, not all 39.
+        let started = Set(try await PreprocessorFixtures.pids(in: pidLog))
+        #expect(started.count > preprocessors.count)
+        #expect(try Self.childProcesses().isDisjoint(with: started))
     }
 
-    /// The test process's own live children (zombies included): the runner reaps each script.
-    static func childProcessCount() throws -> Int {
-        var count: Int32 = 0
+    /// The test process's own live children (zombies included).
+    static func childProcesses() throws -> Set<pid_t> {
         var pids = [pid_t](repeating: 0, count: 1024)
-        count = proc_listchildpids(getpid(), &pids, Int32(pids.count * MemoryLayout<pid_t>.size))
+        let count = proc_listchildpids(getpid(), &pids, Int32(pids.count * MemoryLayout<pid_t>.size))
         try #require(count >= 0)
-        return Int(count)
+        return Set(pids.prefix(Int(count)).filter { $0 > 0 })
     }
 }
