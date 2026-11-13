@@ -153,6 +153,16 @@ lock the build database.
     the hook for #71), `PrivilegedRunning` (`AppleScriptPrivilegedRunner`, values passed as
     Apple event parameters), `CommandLineToolLocation` (`~/.local/bin`, `/usr/local/bin`, or
     the UI-test folder; `LoginShellPath`), and `CommandLineToolController` (menu state, alerts).
+  - `Updates/` (#81): Sparkle 2 (app target only). `SoftwareUpdating` (what the menu and
+    Settings use; fakes in tests), `SparkleUpdater` (`SPUStandardUpdaterController`, started from
+    `AppDelegate.applicationDidFinishLaunching`; channels), `InactiveUpdater` (in memory, never
+    checks), and `SoftwareUpdates` (which launch gets which: hosted tests, UI tests, and
+    `PEEP_LAUNCH_TIMING` never get Sparkle; Debug only with `-PeepUpdateFeedURL <url>`, for a
+    local test appcast; Release always). App menu > Check for Updates… is `UpdatesMenu`;
+    Settings > General's rows go through `SettingsModel.updater`, which stores nothing (Sparkle
+    owns the settings). The public key is `SPARKLE_PUBLIC_ED_KEY` in `Config/Shared.xcconfig`
+    (Release fails on the placeholder); Sparkle's `generate_keys`, `sign_update`, and
+    `generate_appcast` are in `build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin`.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor

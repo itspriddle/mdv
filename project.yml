@@ -14,6 +14,13 @@ configFiles:
 packages:
   peep:
     path: .
+  # Updates (#81), app target only: PeepCore and the CLI never link it. Pinned exactly; check
+  # https://github.com/sparkle-project/Sparkle/releases before bumping. Its command line tools
+  # (generate_keys, sign_update, generate_appcast) land in
+  # build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin after `make build`.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.1
 
 targets:
   PeepApp:
@@ -40,6 +47,15 @@ targets:
         NSHumanReadableCopyright: Copyright © 2026 Joshua Priddle. MIT License.
         # AppKit app lifecycle (App/main.swift); no main nib.
         NSPrincipalClass: NSApplication
+        # Sparkle 2 (#81, VISION's security model): an HTTPS feed, EdDSA-signed archives checked
+        # before extraction, and a signed feed (`generate_appcast` signs it). No
+        # SUAllowsInsecureUpdates and no installer XPC keys (not sandboxed). SUEnableAutomaticChecks
+        # is left unset on purpose: Sparkle asks on the second launch whether to check
+        # automatically, and Settings > General changes it later.
+        SUFeedURL: https://peep.now/appcast.xml
+        SUPublicEDKey: $(SPARKLE_PUBLIC_ED_KEY)
+        SUVerifyUpdateBeforeExtraction: true
+        SURequireSignedFeed: true
         CFBundleDocumentTypes:
           - CFBundleTypeName: Markdown Document
             CFBundleTypeRole: Viewer
@@ -101,12 +117,32 @@ targets:
     dependencies:
       - package: peep
         product: PeepCore
+      - package: Sparkle
+        product: Sparkle
       - target: peep-cli
         embed: true
         codeSign: true
         copy:
           destination: wrapper
           subpath: Contents/Helpers
+    # A Release build must carry the real Sparkle public key (#81): the placeholder in
+    # Config/Shared.xcconfig, or anything that isn't a base64 Ed25519 key, fails it. Debug only
+    # warns (its updater is off unless asked for; see App/Updates/SoftwareUpdates.swift).
+    preBuildScripts:
+      - name: Check the Sparkle public key
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          key="${SPARKLE_PUBLIC_ED_KEY:-}"
+          bytes=$(printf '%s' "$key" | /usr/bin/base64 -D 2>/dev/null | /usr/bin/wc -c | /usr/bin/tr -d ' ')
+          if [ "$bytes" != 32 ]; then
+            message="SPARKLE_PUBLIC_ED_KEY in Config/Shared.xcconfig is not an Ed25519 public key (still the placeholder?); set it to generate_keys' output"
+            if [ "$CONFIGURATION" = Release ]; then
+              echo "error: $message"
+              exit 1
+            fi
+            echo "warning: $message"
+          fi
     # Shell completions and the man page (#71), for the Homebrew cask and Install Command Line
     # Tool: Contents/Resources/completions/{_peep,peep.bash,peep.fish} and
     # Contents/Resources/man/man1/peep.1. Completions come from the embedded helper; the man page

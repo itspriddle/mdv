@@ -17,5 +17,11 @@ ENABLE_HARDENED_RUNTIME = YES
 ENABLE_APP_SANDBOX = NO
 CODE_SIGN_STYLE = Automatic
 
+// Sparkle's EdDSA public key (#81), SUPublicEDKey in Info.plist: the base64 key `generate_keys`
+// prints (the private key stays in the maintainer's login keychain and the `release`
+// environment's SPARKLE_ED_PRIVATE_KEY). PLACEHOLDER until the maintainer generates the pair;
+// Release builds fail while it isn't a real key (project.yml, "Check the Sparkle public key").
+SPARKLE_PUBLIC_ED_KEY = PLACEHOLDER_RUN_GENERATE_KEYS
+
 // Optional, gitignored overrides (e.g. DEVELOPMENT_TEAM). See Local.xcconfig.example.
 #include? "Local.xcconfig"
