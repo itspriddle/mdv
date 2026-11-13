@@ -5,8 +5,8 @@ PRODUCT_BUNDLE_IDENTIFIER_BASE = now.peep.Peep
 
 // Set with scripts/bump-version (also PeepInfo.version; scripts/check-version checks they match).
 // CURRENT_PROJECT_VERSION is CFBundleVersion, which Sparkle compares: it only ever increases.
-MARKETING_VERSION = 0.1.0
-CURRENT_PROJECT_VERSION = 1
+MARKETING_VERSION = 0.1.1
+CURRENT_PROJECT_VERSION = 2
 
 MACOSX_DEPLOYMENT_TARGET = 15.0
 SWIFT_VERSION = 6.0

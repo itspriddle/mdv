@@ -972,6 +972,13 @@ updates itself to v0.1.1 via Sparkle.
   environment but only if the caller passes them. The tag message's body is the release
   summary (GitHub Release and Sparkle's alert, Markdown).
 
+**Post-release fixes:**
+
+- 0.1.1: zsh refused 0.1.0's completion script ("doubled rest argument definition"):
+  ArgumentParser 1.8.2 adds a `help` subcommand to every script, which clashes with `FILE...`.
+  `CompletionScript` removes it (anchored; a changed upstream script fails the build), and
+  `CompletionTests` completes in real zsh (zpty) and bash.
+
 ## 1.0
 
 A running list of what 1.0 includes, in rough priority order. Each becomes its own milestone
