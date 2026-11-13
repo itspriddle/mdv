@@ -9,6 +9,13 @@ interface Props {
     description: string;
 }
 const { title, description } = Astro.props;
+
+// Link previews need absolute URLs. public/og-image.png comes from Branding/og-image.svg
+// (`make app-icon`). With build.format "file" the build sees /themes.html; the served URL is
+// /themes (and / for index).
+const servedPath = Astro.url.pathname.replace(/(?:^\/index)?\.html$/, "");
+const pageURL = new URL(servedPath === "" ? "/" : servedPath, Astro.site).href;
+const imageURL = new URL("/og-image.png", Astro.site).href;
 ---
 
 <!doctype html>
@@ -21,6 +28,18 @@ const { title, description } = Astro.props;
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
         <title>{title}</title>
+        <link rel="canonical" href={pageURL} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Peep" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:url" content={pageURL} />
+        <meta property="og:image" content={imageURL} />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="The Peep app icon and wordmark" />
+        <meta name="twitter:card" content="summary_large_image" />
     </head>
     <body class="bg-paper font-sans text-ink dark:bg-ink dark:text-paper">
         <div class="min-h-svh">
