@@ -124,6 +124,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         false
     }
 
+    /// App menu > About Peep: the standard panel with the acknowledgements as credits (#85).
+    @objc func showAboutPanel(_ sender: Any?) {
+        AboutPanel.show()
+    }
+
     /// App menu > Settings… (`SettingsMenu`): shows the one Settings window.
     @objc func showSettings(_ sender: Any?) {
         let controller = settingsWindowController ?? makeSettingsWindowController()

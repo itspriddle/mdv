@@ -56,6 +56,8 @@ let package = Package(
             dependencies: [
                 "PeepCore",
                 .product(name: "cmark-gfm", package: "swift-cmark"),
+                // AcknowledgementsTests reads project.yml's packages.
+                .product(name: "Yams", package: "Yams"),
             ],
             resources: [.copy("Fixtures")]
         ),
