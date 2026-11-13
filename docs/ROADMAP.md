@@ -13,7 +13,7 @@ them when the milestone is broken down.
 | [M4](#m4-flavors-and-preprocessors)     | Flavors and preprocessors      | -         | Done   |
 | [M5](#m5-cli)                           | CLI                            | -         | Done   |
 | [Gate](#gate-choose-the-name)           | Choose the final name          | -         | Done   |
-| [M6](#m6-distribution-and-v010)         | Distribution                   | **0.1.0** |        |
+| [M6](#m6-distribution-and-v010)         | Distribution                   | **0.1.0** | Done   |
 | [1.0](#10)                              | PDF, math, RTL, proofreading…  | 1.0       |        |
 
 ## M0: Foundation
@@ -910,6 +910,19 @@ Ship a first public release, v0.1.0.
 **Exit criteria:** a v0.1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
 updates itself to v0.1.1 via Sparkle.
 
+**Shipped (2026-11-13):** M6 merged in #88; v0.1.0 and v0.1.1 (#89) were released by the
+tag-driven workflow. Verified by hand:
+
+- A local `make release` was notarized (Accepted, no issues), stapled, accepted by `spctl` as
+  Notarized Developer ID, and opened on a second Mac, before any CI release.
+- v0.1.0 downloaded in a browser from the GitHub Release installed on that Mac with only the
+  standard "downloaded from the internet" prompt; Check for Updates… reported up to date.
+- That copy updated itself to v0.1.1 through Sparkle (signed feed, EdDSA-signed DMG).
+- First workflow run: the `site` job received the Cloudflare secrets passed by name from the
+  `site` environment, and `cask` asked for its own approval (two approvals per release).
+- peep.now links the download (`/download`, a `_redirects` rule the site build writes from the
+  latest release, #90) and the Homebrew command.
+
 **Decisions:**
 
 - Acknowledgements (#85): `Acknowledgements/Acknowledgements.json` lists every bundled
@@ -978,6 +991,23 @@ updates itself to v0.1.1 via Sparkle.
   ArgumentParser 1.8.2 adds a `help` subcommand to every script, which clashes with `FILE...`.
   `CompletionScript` removes it (anchored; a changed upstream script fails the build), and
   `CompletionTests` completes in real zsh (zpty) and bash.
+
+**Deferred from M6** (none blocks 1.0 on its own):
+
+- Upstream: report ArgumentParser's injected `help` subcommand (draft in #86's comments);
+  drop `CompletionScript`'s removals once a release fixes it. fish completion has content
+  checks only (no fish on CI).
+- The default-viewer offer appeared on two consecutive launches of a fresh install, and
+  Sparkle's permission prompt came one launch later than expected; consistent with the first
+  launch's settings not persisting. Not reproduced; check whether settings written in a short
+  first session survive quit.
+- The cask was published by the workflow and passes `brew audit --strict`/`brew style`, but
+  `brew install --cask` then `brew uninstall --zap` hasn't been run by hand yet.
+- Immutable releases are off on the repository (RELEASING recommends them).
+- One approval per release would need the cask push moved out of a separate `release` job.
+- No delta updates (`generate_appcast` runs without deltas); no beta channel yet (VISION has
+  the plan).
+- The DMG has no custom background or layout.
 
 ## 1.0
 
