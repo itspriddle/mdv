@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# Writes the signed Sparkle appcast for a release (#83): the previous release's appcast.xml, if
+# any, plus an item for the new DMG, signed (item and feed) with Peep's EdDSA key.
+#
+#   scripts/release-appcast [--previous FILE] [--notes FILE] build/release/Peep-X.Y.Z.dmg
+#
+# Writes appcast.xml next to the DMG. Run it on the stapled DMG (stapling changes its bytes).
+#   --previous FILE   the last release's appcast.xml; its items are kept, and its signature must
+#                     verify with the same key
+#   --notes FILE      Markdown embedded as the new item's release notes (shown in Sparkle's
+#                     update alert; signed with the feed); an empty file adds none
+#
+# Environment:
+#   SPARKLE_ED_PRIVATE_KEY   the private EdDSA key (generate_keys -x output); handed to Sparkle's
+#                            tools on standard input only, and unexported before they run
+#   SPARKLE_BIN              Sparkle's bin folder; default: the SwiftPM artifact under
+#                            build/DerivedData (present after scripts/package-release)
+#
+# The item's enclosure is the GitHub Release asset
+# https://github.com/itspriddle/peep/releases/download/vX.Y.Z/Peep-X.Y.Z.dmg, and its full release
+# notes link is that release's page. Minimum macOS and the build number come from the app.
+#
+# Exit status: 0 written; 64 usage; 78 configuration (no key, missing tool); 1 a failed check
+# (the previous feed's signature, a duplicate version, the new item's signature).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+RELEASES_URL="https://github.com/itspriddle/peep/releases"
+SPARKLE_BIN="${SPARKLE_BIN:-$ROOT/build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin}"
+
+usage() {
+  echo "usage: scripts/release-appcast [--previous FILE] [--notes FILE] Peep-X.Y.Z.dmg" >&2
+  exit 64
+}
+
+die() {
+  printf 'release-appcast: error: %s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+previous=""
+notes=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --previous)
+      [[ $# -ge 2 ]] || usage
+      previous="$2"
+      shift
+      ;;
+    --notes)
+      [[ $# -ge 2 ]] || usage
+      notes="$2"
+      shift
+      ;;
+    -h | --help)
+      sed -n '2,/^set -euo pipefail$/p' "$0" | sed '$d; s/^# \{0,1\}//' >&2
+      exit 0
+      ;;
+    -*) usage ;;
+    *) break ;;
+  esac
+  shift
+done
+[[ $# -eq 1 ]] || usage
+dmg="$1"
+
+dmg_name="$(basename "$dmg")"
+if [[ ! "$dmg_name" =~ ^Peep-((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))\.dmg$ ]]; then
+  die "expected a DMG named Peep-X.Y.Z.dmg: $dmg" 64
+fi
+version="${BASH_REMATCH[1]}"
+[[ -f "$dmg" ]] || die "no such file: $dmg" 64
+[[ -z "$previous" || -f "$previous" ]] || die "no such file: $previous" 64
+[[ -z "$notes" || -f "$notes" ]] || die "no such file: $notes" 64
+
+for tool in generate_appcast sign_update; do
+  [[ -x "$SPARKLE_BIN/$tool" ]] || die "$tool not found in $SPARKLE_BIN (build the app first, or set SPARKLE_BIN)" 78
+done
+command -v xmllint > /dev/null || die "xmllint not found" 78
+
+# The key stays in this shell only: unset from the environment, so no child process inherits
+# it, and piped to each tool's standard input (`--ed-key-file -`), never an argument or a file.
+[[ -n "${SPARKLE_ED_PRIVATE_KEY:-}" ]] || die "SPARKLE_ED_PRIVATE_KEY isn't set" 78
+key="$SPARKLE_ED_PRIVATE_KEY"
+unset SPARKLE_ED_PRIVATE_KEY
+
+sparkle() {
+  local tool="$1"
+  shift
+  printf '%s' "$key" | "$SPARKLE_BIN/$tool" --ed-key-file - "$@"
+}
+
+work="$(mktemp -d "${TMPDIR:-/tmp}/peep-appcast.XXXXXXXX")"
+trap 'rm -rf "$work"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# XPath over Sparkle's namespaced elements, by local name.
+items_xpath="//*[local-name()='item']"
+item_xpath="${items_xpath}[*[local-name()='shortVersionString']='$version']"
+
+count_items() {
+  xmllint --xpath "count($items_xpath)" "$1"
+}
+
+previous_count=0
+if [[ -n "$previous" ]]; then
+  cp "$previous" "$work/previous.xml"
+  sparkle sign_update --verify "$work/previous.xml" > /dev/null \
+    || die "the previous appcast isn't signed with this key: $previous"
+  [[ "$(xmllint --xpath "count($item_xpath)" "$work/previous.xml")" == 0 ]] \
+    || die "the previous appcast already has $version; never re-sign a published version"
+  previous_count="$(count_items "$work/previous.xml")"
+  mv "$work/previous.xml" "$work/appcast.xml"
+fi
+
+cp "$dmg" "$work/$dmg_name"
+notes_args=()
+if [[ -n "$notes" && -s "$notes" ]]; then
+  cp "$notes" "$work/Peep-$version.md"
+  notes_args=(--embed-release-notes)
+fi
+
+# No deltas (they'd need uploading too) and every earlier item kept.
+log="$work/generate_appcast.log"
+if ! sparkle generate_appcast \
+  --download-url-prefix "$RELEASES_URL/download/v$version/" \
+  --full-release-notes-url "$RELEASES_URL/tag/v$version" \
+  --link "https://peep.now/" \
+  --maximum-deltas 0 --maximum-versions 0 \
+  ${notes_args[@]+"${notes_args[@]}"} \
+  "$work" > "$log" 2>&1; then
+  cat "$log" >&2
+  die "generate_appcast failed"
+fi
+cat "$log" >&2
+# generate_appcast only warns when the app's SUPublicEDKey isn't this key's, and then leaves the
+# item unsigned: an update every copy of Peep would refuse.
+if grep -q 'does not match' "$log"; then
+  die "SPARKLE_ED_PRIVATE_KEY doesn't match the app's SUPublicEDKey"
+fi
+
+appcast="$work/appcast.xml"
+[[ -f "$appcast" ]] || die "generate_appcast wrote no appcast.xml"
+
+# Check what Sparkle will check: the feed's signature, then the new item's enclosure.
+sparkle sign_update --verify "$appcast" > /dev/null || die "the new appcast's signature doesn't verify"
+[[ "$(count_items "$appcast")" == $((previous_count + 1)) ]] \
+  || die "expected $((previous_count + 1)) items in the new appcast (earlier items must be kept)"
+[[ "$(xmllint --xpath "count($item_xpath)" "$appcast")" == 1 ]] || die "expected one item for $version"
+
+enclosure="$item_xpath/*[local-name()='enclosure']"
+url="$(xmllint --xpath "string($enclosure/@url)" "$appcast")"
+length="$(xmllint --xpath "string($enclosure/@length)" "$appcast")"
+signature="$(xmllint --xpath "string($enclosure/@*[local-name()='edSignature'])" "$appcast")"
+[[ "$url" == "$RELEASES_URL/download/v$version/$dmg_name" ]] || die "unexpected enclosure URL: $url"
+[[ "$length" == "$(wc -c < "$dmg" | tr -d ' ')" ]] || die "the enclosure's length isn't the DMG's size"
+[[ -n "$signature" ]] || die "the new item has no EdDSA signature"
+sparkle sign_update --verify "$dmg" "$signature" > /dev/null || die "the new item's signature doesn't verify"
+
+out="$(dirname "$dmg")/appcast.xml"
+cp "$appcast" "$out"
+printf '==> %s: %s items, signed\n' "$out" "$(count_items "$out")" >&2
