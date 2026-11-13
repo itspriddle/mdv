@@ -1,0 +1,283 @@
+name: Release
+
+# Pushing a vX.Y.Z tag builds, signs, notarizes, and staples the DMG, signs the appcast,
+# publishes the GitHub Release, redeploys peep.now (which serves that appcast), and updates the
+# Homebrew cask. docs/RELEASING.md has how to cut a release and recover from a failed run.
+#
+# Jobs: check (no secrets) -> build (environment `release`: approval 1) -> publish ->
+# site, cask (environment `release`: approval 2). Only build and cask can read release secrets.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # Everything that can fail without secrets fails here, before anyone is asked to approve.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Check the tag
+        id: tag
+        run: |
+          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::$TAG isn't vX.Y.Z; this workflow doesn't release pre-releases"
+            exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check the version
+        run: scripts/check-version "$TAG"
+      - name: Check the commit is on the default branch
+        run: |
+          status="$(gh api "repos/$REPO/compare/$DEFAULT_BRANCH...$GITHUB_SHA" --jq .status)"
+          if [[ "$status" != behind && "$status" != identical ]]; then
+            echo "::error::$TAG ($GITHUB_SHA) isn't on $DEFAULT_BRANCH ($status)"
+            exit 1
+          fi
+      - name: Check earlier releases and fetch the previous appcast
+        run: |
+          mkdir -p "$RUNNER_TEMP/inputs"
+          if gh release view "$TAG" --repo "$REPO" --json isDraft --jq .isDraft 2> /dev/null | grep -qx false; then
+            echo "::error::$TAG is already published; re-run only the failed jobs of its run (docs/RELEASING.md)"
+            exit 1
+          fi
+          previous="$(gh release list --repo "$REPO" --exclude-drafts --exclude-pre-releases \
+            --limit 1000 --json tagName --jq '.[].tagName' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -n 1 || true)"
+          if [[ -z "$previous" ]]; then
+            echo "First release: the appcast starts empty."
+            exit 0
+          fi
+          if [[ "$(printf '%s\n%s\n' "$previous" "$TAG" | sort -V | tail -n 1)" != "$TAG" ]]; then
+            echo "::error::$TAG isn't newer than the latest release, $previous"
+            exit 1
+          fi
+          gh release download "$previous" --repo "$REPO" --pattern appcast.xml \
+            --output "$RUNNER_TEMP/inputs/previous-appcast.xml"
+          echo "Previous release: $previous"
+      # The tag message's body (after its first line), without a signature, is the release's
+      # summary: on the GitHub Release above the generated notes, and in Sparkle's update alert.
+      - name: Read the tag's summary
+        run: |
+          read -r type sha < <(gh api "repos/$REPO/git/ref/tags/$TAG" --jq '.object.type + " " + .object.sha')
+          if [[ "$type" == tag ]]; then
+            gh api "repos/$REPO/git/tags/$sha" --jq .message \
+              | sed -E '/^-----BEGIN [A-Z ]*SIGNATURE-----$/,$d' \
+              | sed '1d' | sed '/./,$!d' > "$RUNNER_TEMP/inputs/notes.md"
+          else
+            : > "$RUNNER_TEMP/inputs/notes.md"
+          fi
+          echo "Summary:"
+          cat "$RUNNER_TEMP/inputs/notes.md"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-inputs
+          path: ${{ runner.temp }}/inputs
+          if-no-files-found: error
+          retention-days: 7
+
+  build:
+    needs: check
+    runs-on: macos-26
+    timeout-minutes: 120
+    environment: release
+    outputs:
+      sha256: ${{ steps.checksum.outputs.sha256 }}
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+      - name: Install tools
+        run: brew install xcodegen
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-inputs
+          path: ${{ runner.temp }}/inputs
+      - name: Create the signing keychain
+        env:
+          P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/peep-signing.keychain-db"
+          P12_FILE="$RUNNER_TEMP/peep-signing.p12"
+          password="$(head -c 32 /dev/urandom | base64)"
+          echo "::add-mask::$password"
+          security create-keychain -p "$password" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$password" "$KEYCHAIN"
+          (umask 077 && printf '%s' "$P12_BASE64" | base64 --decode > "$P12_FILE")
+          security import "$P12_FILE" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign > /dev/null
+          rm -f "$P12_FILE"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$KEYCHAIN" > /dev/null
+          # On the search list too, so codesign can find the certificate chain.
+          existing=()
+          while IFS= read -r line; do
+            line="${line#"${line%%[![:space:]]*}"}"
+            existing+=("${line//\"/}")
+          done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$KEYCHAIN" "${existing[@]}"
+          echo "PEEP_SIGNING_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+      - name: Package (sign, notarize, staple)
+        env:
+          DEVELOPMENT_TEAM: ${{ vars.APPLE_TEAM_ID }}
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: scripts/package-release
+      # From the stapled DMG: stapling changes its bytes.
+      - name: Sign the appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          inputs="$RUNNER_TEMP/inputs"
+          previous=()
+          if [[ -f "$inputs/previous-appcast.xml" ]]; then
+            previous=(--previous "$inputs/previous-appcast.xml")
+          fi
+          scripts/release-appcast ${previous[@]+"${previous[@]}"} --notes "$inputs/notes.md" \
+            "build/release/Peep-$VERSION.dmg"
+      - name: Checksum
+        id: checksum
+        run: |
+          (cd build/release && shasum -a 256 -c "Peep-$VERSION.dmg.sha256")
+          echo "sha256=$(cut -d' ' -f1 "build/release/Peep-$VERSION.dmg.sha256")" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: |
+            build/release/Peep-${{ needs.check.outputs.version }}.dmg
+            build/release/Peep-${{ needs.check.outputs.version }}.dmg.sha256
+            build/release/appcast.xml
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload the notary log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: notary
+          path: build/release/notary
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Delete the signing keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/peep-signing.keychain-db" 2> /dev/null || true
+          rm -f "$RUNNER_TEMP/peep-signing.p12"
+
+  # Creates the release as a draft, uploads everything, then publishes it: `releases/latest`
+  # (where the site reads the appcast) never shows a release without its assets.
+  publish:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      VERSION: ${{ needs.check.outputs.version }}
+      SHA256: ${{ needs.build.outputs.sha256 }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: release
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-inputs
+          path: inputs
+      - name: Verify the artifact
+        working-directory: release
+        run: |
+          sha256sum -c "Peep-$VERSION.dmg.sha256"
+          [[ "$(cut -d' ' -f1 "Peep-$VERSION.dmg.sha256")" == "$SHA256" ]]
+      - name: Create or update the draft release
+        run: |
+          assets=("release/Peep-$VERSION.dmg" "release/Peep-$VERSION.dmg.sha256" release/appcast.xml)
+          if ! is_draft="$(gh release view "$TAG" --repo "$REPO" --json isDraft --jq .isDraft 2> /dev/null)"; then
+            gh release create "$TAG" --repo "$REPO" --verify-tag --draft --title "Peep $VERSION" \
+              --notes-file inputs/notes.md --generate-notes "${assets[@]}"
+          elif [[ "$is_draft" == true ]]; then
+            gh release upload "$TAG" --repo "$REPO" --clobber "${assets[@]}"
+          else
+            # Published by an earlier attempt of this run: only go on if it has this DMG.
+            mkdir published
+            gh release download "$TAG" --repo "$REPO" --pattern "Peep-$VERSION.dmg" --dir published
+            if [[ "$(sha256sum "published/Peep-$VERSION.dmg" | cut -d' ' -f1)" != "$SHA256" ]]; then
+              echo "::error::$TAG is published with a different DMG; not replacing it"
+              exit 1
+            fi
+          fi
+      - name: Publish
+        run: gh release edit "$TAG" --repo "$REPO" --draft=false --latest
+
+  site:
+    needs: publish
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-site.yml
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+    # The values live in the `site` environment, which deploy-site.yml's job names; a caller
+    # still has to pass each secret by name (docs/RELEASING.md).
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  cask:
+    needs: [check, build, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      SHA256: ${{ needs.build.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: itspriddle/homebrew-brews
+          ref: master
+          path: tap
+          persist-credentials: false
+      - name: Update Casks/peep.rb
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          mkdir -p tap/Casks
+          scripts/render-cask "$VERSION" "$SHA256" > tap/Casks/peep.rb
+          cd tap
+          if [[ -z "$(git status --porcelain -- Casks/peep.rb)" ]]; then
+            echo "Casks/peep.rb is already at $VERSION"
+            exit 0
+          fi
+          git add Casks/peep.rb
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "Updated peep to v$VERSION"
+          git push --quiet "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/itspriddle/homebrew-brews.git" HEAD:master
