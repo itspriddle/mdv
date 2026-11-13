@@ -54,13 +54,14 @@ class DocumentWindowTestCase {
     /// Opens `source` in a document window that follows `zoomSettings`, `contentWidthSettings`,
     /// and `themeSettings` (all in this suite's defaults unless given), in a document that
     /// follows `markdownSettings` and `customPreprocessorSettings` (the in-memory shared stores
-    /// unless given), once the page has loaded.
+    /// unless given), once the page has loaded. The status bar follows `statusBarPreference`
+    /// (this suite's defaults unless given).
     /// `appearance` is set on the window before the page loads (light or dark from the start).
     func open(
         _ source: String = source, name: String = "notes.md", zoomSettings: ZoomSettings? = nil,
         contentWidthSettings: ContentWidthSettings? = nil, themeSettings: ThemeSettings? = nil,
         markdownSettings: MarkdownSettings? = nil, customPreprocessorSettings: CustomPreprocessorSettings? = nil,
-        appearance: NSAppearance.Name? = nil
+        statusBarPreference: StatusBarPreference? = nil, appearance: NSAppearance.Name? = nil
     ) async throws -> (MarkdownDocument, DocumentWindowController) {
         let file = folder.appending(path: name)
         try Data(source.utf8).write(to: file)
@@ -72,6 +73,7 @@ class DocumentWindowTestCase {
             document.customPreprocessorSettings = customPreprocessorSettings
         }
         let controller = DocumentWindowController(
+            statusBarPreference: statusBarPreference ?? StatusBarPreference(defaults: defaults, isPersistent: true),
             zoomSettings: zoomSettings ?? settings(),
             contentWidthSettings: contentWidthSettings ?? ContentWidthSettings(defaults: defaults, isPersistent: true),
             themeSettings: themeSettings ?? self.themeSettings())

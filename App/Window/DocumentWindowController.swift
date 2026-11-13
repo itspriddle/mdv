@@ -47,6 +47,12 @@ final class DocumentWindowController: NSWindowController {
     var outlineWidth: CGFloat?
     let outlinePreference: OutlinePreference
 
+    // MARK: Status bar (`DocumentWindowController+StatusBar.swift`)
+
+    /// The status bar's state, read by `DocumentView`.
+    let statusBar: StatusBarModel
+    let statusBarPreference: StatusBarPreference
+
     // MARK: Zoom and content width (#26, #37, #47: `+Zoom.swift`, `+ContentWidth.swift`)
 
     /// The zoom new windows start at; this window's level is `zoomLevel`.
@@ -77,6 +83,7 @@ final class DocumentWindowController: NSWindowController {
     init(
         coordinator: WebViewCoordinator = WebViewCoordinator(),
         outlinePreference: OutlinePreference = OutlinePreference(),
+        statusBarPreference: StatusBarPreference = StatusBarPreference(),
         zoomSettings: ZoomSettings = .shared,
         contentWidthSettings: ContentWidthSettings = .shared,
         themeSettings: ThemeSettings = .shared,
@@ -85,6 +92,8 @@ final class DocumentWindowController: NSWindowController {
         self.coordinator = coordinator
         self.renderProgress = renderProgress
         self.outlinePreference = outlinePreference
+        self.statusBarPreference = statusBarPreference
+        statusBar = StatusBarModel(isVisible: statusBarPreference.showsStatusBarInNewWindows)
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
@@ -127,7 +136,8 @@ final class DocumentWindowController: NSWindowController {
             let hostingController = NSHostingController(
                 rootView: DocumentView(
                     document: markdownDocument, coordinator: coordinator, remoteImages: remoteImages,
-                    renderProgress: renderProgress, loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) }))
+                    renderProgress: renderProgress, statusBar: statusBar,
+                    loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) }))
             // SwiftUI sets the minimum size; the window (and later restoration) owns the size.
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero

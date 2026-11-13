@@ -98,10 +98,13 @@ public struct RenderedDocument: Sendable, Equatable {
     /// The flavor the body was parsed with (#64): `RenderOptions.flavor`, or the document's
     /// `peep.flavor` when that applied (not pinned).
     public var flavor: Flavor
+    /// The words in the rendered body (`WordCount`): what the reader sees, without frontmatter.
+    public var wordCount: Int
 
     public init(
         html: String, title: String? = nil, headings: [Heading] = [], frontmatter: Frontmatter? = nil,
-        blockedRemoteImages: [RemoteImage] = [], overrides: DocumentOverrides = .none, flavor: Flavor = .gfm
+        blockedRemoteImages: [RemoteImage] = [], overrides: DocumentOverrides = .none, flavor: Flavor = .gfm,
+        wordCount: Int = 0
     ) {
         self.html = html
         self.title = title
@@ -110,6 +113,7 @@ public struct RenderedDocument: Sendable, Equatable {
         self.blockedRemoteImages = blockedRemoteImages
         self.overrides = overrides
         self.flavor = flavor
+        self.wordCount = wordCount
     }
 }
 

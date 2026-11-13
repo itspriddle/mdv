@@ -149,6 +149,8 @@ struct RenderedPage: Equatable, Sendable {
     /// The theme the document's frontmatter names (`peep.theme`, #54), unresolved. Each window
     /// resolves it like a pick, below the reader's own pick (`DocumentWindowController.themeID`).
     let documentThemeID: String?
+    /// The words in the rendered body (`RenderedDocument.wordCount`), for the status bar.
+    let wordCount: Int
 
     init(
         rendered: RenderedDocument, fallbackTitle: String, contentSecurityPolicy: ContentSecurityPolicy = .viewer
@@ -159,6 +161,7 @@ struct RenderedPage: Equatable, Sendable {
         self.headings = rendered.headings
         self.blockedRemoteImages = rendered.blockedRemoteImages
         self.documentThemeID = rendered.overrides.theme
+        self.wordCount = rendered.wordCount
     }
 
     /// The complete HTML page (`HTMLDocument`: the CSP, `theme`, `userStyle`, body). The

@@ -1,13 +1,14 @@
 import SwiftUI
 
 /// The content of a document window. Window chrome that later features add (outline sidebar,
-/// find bar, banners) composes around the web view here; the document is `@Observable`, so
+/// find bar, banners, status bar) composes around the web view here; the document is `@Observable`, so
 /// views can read `document.content` directly.
 struct DocumentView: View {
     let document: MarkdownDocument
     let coordinator: WebViewCoordinator
     let remoteImages: RemoteImageOptIn
     let renderProgress: RenderProgress
+    let statusBar: StatusBarModel
     let loadRemoteImages: () -> Void
 
     var body: some View {
@@ -27,5 +28,11 @@ struct DocumentView: View {
             }
             .safeAreaInset(edge: .top, spacing: 0) { FindBar(find: coordinator.find) }
             .overlay(alignment: .bottomLeading) { LinkStatusView(status: coordinator.linkStatus) }
+            // After the link status overlay, so it floats above the bar rather than over it.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if statusBar.isVisible {
+                    StatusBar(document: document)
+                }
+            }
     }
 }
