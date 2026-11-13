@@ -931,6 +931,20 @@ updates itself to v0.1.1 via Sparkle.
   The public key is a placeholder (`SPARKLE_PUBLIC_ED_KEY`) until the maintainer runs
   `generate_keys`; Release builds fail until then. One default channel; a beta channel is room
   left in `SparkleUpdater.allowedChannels(for:)` (VISION).
+- Homebrew cask (#84): `brew install --cask itspriddle/brews/peep`. The cask's source is
+  `Packaging/homebrew/peep.rb` here, not the tap: `scripts/render-cask X.Y.Z SHA256` fills in
+  the version and the DMG's sha256, and the release workflow (#83) pushes the result to
+  `Casks/peep.rb` in `itspriddle/homebrew-brews` with `HOMEBREW_TAP_TOKEN` (the tap's
+  `bump-formula` workflow only handles `Formula/`). `auto_updates true` (Sparkle updates it;
+  `brew upgrade` skips it without `--greedy`), `depends_on macos: :sequoia` (`brew style`
+  rewrites `">= :sequoia"` to this), and `binary`, `manpage`, and completion stanzas pointing
+  into the bundle. `zap` trashes `~/Library/Application Support/Peep` (custom themes included),
+  the preferences, saved state, caches (Sparkle's too), HTTPStorages, and WebKit data for
+  `now.peep.Peep`; it leaves a link made by Install Command Line Tool… (not Homebrew's to
+  remove). The cask's links are Homebrew's: when `<prefix>/Caskroom/peep` exists and
+  `<prefix>/bin/peep` is our link, the menu item says Homebrew installed it instead of
+  installing a second `peep` (Apple silicon) or offering to uninstall the cask's link from
+  `/usr/local/bin` (Intel) (`HomebrewCask`).
 
 ## 1.0
 

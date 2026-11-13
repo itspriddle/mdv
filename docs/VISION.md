@@ -922,6 +922,10 @@ editor or a browser.
     and is removed with the command when it is ours. Both go in one batch: every path is
     checked before anything changes, and the links needing an administrator share one
     privileged run (the scripts take argument triples or pairs and check them all first).
+  - The Homebrew cask's links (#84) are Homebrew's even though they match that rule: when
+    `<prefix>/Caskroom/peep` exists and `<prefix>/bin/peep` is our link (`/opt/homebrew` or
+    `/usr/local`), the menu only says so, and that folder is never offered for install or
+    uninstall.
   - Links are made atomically: a temporary link beside the target is renamed into place, with
     `RENAME_EXCL` when nothing was there. A replace or removal re-reads the link first and
     stops if its destination changed.
