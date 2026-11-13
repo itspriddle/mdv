@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 156" width="440" height="156" fill="none" stroke="#16181D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+<title>peep</title>
+<circle cx="55" cy="56" r="40"/>
+<path d="M15 16V140"/>
+<path d="M125 56H205A40 40 0 1 0 195.6 81.7"/>
+<path d="M235 56H315A40 40 0 1 0 305.6 81.7"/>
+<circle cx="385" cy="56" r="40"/>
+<path d="M345 16V140"/>
+<circle cx="165" cy="37" r="10.5" fill="#16181D" stroke="none"/>
+<circle cx="275" cy="37" r="10.5" fill="#16181D" stroke="none"/>
+</svg>

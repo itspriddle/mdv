@@ -18,6 +18,7 @@ make lint             # swiftlint --strict + swift format lint --strict (CI runs
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
+make app-icon         # regenerate AppIcon.appiconset and Site/public icons from Branding/*.svg
 make vendor-highlightjs  # re-vendor highlight.js (HLJS_VERSION=x.y.z) as generated Swift
 make vendor-github-markdown-css  # re-vendor the GitHub theme (GHCSS_VERSION=x.y.z) as generated Swift
 swift run peep --html FILE   # render to stdout without Xcode
