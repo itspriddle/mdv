@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Fails if MARKETING_VERSION (Config/Shared.xcconfig) and PeepInfo.version
+# (Sources/PeepCore/PeepInfo.swift) disagree, or, given a release tag, if the tag isn't
+# v<that version>.
+#
+#   scripts/check-version           # run by `make lint`
+#   scripts/check-version v0.1.0    # the release workflow, before building
+#
+# scripts/bump-version sets both.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+XCCONFIG="$ROOT/Config/Shared.xcconfig"
+PEEP_INFO="$ROOT/Sources/PeepCore/PeepInfo.swift"
+
+if [[ $# -gt 1 ]]; then
+  echo "usage: scripts/check-version [vX.Y.Z]" >&2
+  exit 64
+fi
+
+marketing="$(sed -nE 's/^MARKETING_VERSION = (.*)$/\1/p' "$XCCONFIG")"
+info="$(sed -nE 's/^    public static let version = "([^"]*)"$/\1/p' "$PEEP_INFO")"
+
+if [[ -z "$marketing" || -z "$info" ]]; then
+  echo "error: version lines not found in $XCCONFIG or $PEEP_INFO" >&2
+  exit 65
+fi
+
+if [[ "$marketing" != "$info" ]]; then
+  echo "error: MARKETING_VERSION ($marketing) and PeepInfo.version ($info) differ;" \
+    "run scripts/bump-version" >&2
+  exit 1
+fi
+
+if [[ $# -eq 1 && "$1" != "v$marketing" ]]; then
+  echo "error: tag $1 doesn't match version $marketing (expected v$marketing)" >&2
+  exit 1
+fi
+
+echo "version $marketing"

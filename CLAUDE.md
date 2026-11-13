@@ -14,7 +14,9 @@ make test             # core + app unit tests (not UI tests)
 make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
 make record-theme-snapshots  # re-record bundled theme references for this macOS version (#39)
 make build            # app + embedded CLI (signed via Config/Local.xcconfig); SIGN=0 for unsigned
-make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
+make lint             # swiftlint --strict + swift format lint --strict + check-version (CI runs this)
+scripts/bump-version X.Y.Z   # set MARKETING_VERSION and PeepInfo.version, increment CURRENT_PROJECT_VERSION
+scripts/check-version [vX.Y.Z]  # fail if those versions disagree, or don't match the tag
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
@@ -264,7 +266,9 @@ lock the build database.
   or bundle-only, sanitize raw HTML, user scripts are opt-in.
 - Bundle ID `now.peep.Peep` lives in `PRODUCT_BUNDLE_IDENTIFIER_BASE`,
   `PeepCommand.appBundleIdentifier`, and the exported UTI `MarkdownContentTypes` (an app test
-  checks it); keep them in sync. Same for `MARKETING_VERSION` and `PeepInfo.version`.
+  checks it); keep them in sync. Change the version only with
+  `scripts/bump-version` (`MARKETING_VERSION`, `PeepInfo.version`, `CURRENT_PROJECT_VERSION`);
+  `scripts/check-version` (in `make lint`) fails if they disagree.
 - Verify a dependency exists (and its latest version) before adding it.
 
 ## UI tests
