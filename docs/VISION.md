@@ -607,6 +607,10 @@ editor or a browser.
       and parameters; `AppDelegate.handleDirectOpen`). The direct path is also the fallback
       when Launch Services refuses a sandboxed caller (the UI test runner, whose children
       inherit its sandbox; `AppUITests.entitlements` allows its Apple Events to Peep).
+      The direct path needs no `com.apple.security.automation.apple-events` entitlement under
+      the hardened runtime (#82, tested with a Developer ID build): TCC attributes the helper to
+      its enclosing app, and the event only ever goes to that same copy, so it is the app
+      sending to itself.
     - **Trust model:** any local process can already send the app these events, with any
       parameters, so they are presentation-only and validated as untrusted input:
       `AppOpenParameters(event:)` keeps a theme id only if it is UTF-8/UTF-16 text of at most
@@ -982,7 +986,9 @@ editor or a browser.
   - **Code signing:** release packaging signs Sparkle's framework, its XPC services
     (`Downloader.xpc`, `Installer.xpc`), `Autoupdate`, and `Updater.app` with Peep's Developer ID
     and the hardened runtime before notarizing. Peep isn't sandboxed, so none of Sparkle's
-    installer XPC keys are set.
+    installer XPC keys are set. `scripts/package-release` (#82) does it, inside out, and checks
+    that every Mach-O has the team's Developer ID, the hardened runtime, a secure timestamp,
+    and no `get-task-allow`; the DMG is signed, notarized, and stapled (`docs/RELEASING.md`).
   - **Channels:** one default channel for now. Sparkle's `channels` leave room for a beta: beta
     items carry `<sparkle:channel>beta</sparkle:channel>` in the same appcast and are skipped
     unless `SparkleUpdater.allowedChannels(for:)` returns "beta" (empty today, no setting yet).

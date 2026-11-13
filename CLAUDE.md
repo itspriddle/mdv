@@ -18,6 +18,8 @@ make lint             # swiftlint --strict + swift format lint --strict + check-
 scripts/bump-version X.Y.Z   # set MARKETING_VERSION and PeepInfo.version, increment CURRENT_PROJECT_VERSION
 scripts/check-version [vX.Y.Z]  # fail if those versions disagree, or don't match the tag
 scripts/render-cask X.Y.Z SHA256  # print the Homebrew cask (Packaging/homebrew/peep.rb) for a release
+make release          # scripts/package-release: signed, notarized, stapled build/release/Peep-X.Y.Z.dmg
+                      # (+ .sha256); NOTARIZE=0 (--skip-notarize) for a dry run; docs/RELEASING.md
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
@@ -289,6 +291,12 @@ lock the build database.
   advisory form): the human-facing versions of this file's rules; keep them in step.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.
+- `scripts/package-release` (#82, `make release`): builds Release ad hoc, then signs every
+  Mach-O inside out with the Developer ID identity (Sparkle's XPC services, `Autoupdate`,
+  `Updater.app`, the framework, the helper, the app), checks each has the hardened runtime and
+  a secure timestamp, makes and signs the DMG, notarizes and staples it, and smoke-tests the
+  packaged `peep`. A new nested binary fails its Mach-O check until the script signs it.
+  `docs/RELEASING.md` has its environment variables and the release steps.
 
 ## Conventions
 
