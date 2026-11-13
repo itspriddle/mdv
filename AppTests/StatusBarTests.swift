@@ -68,10 +68,10 @@ final class StatusBarTests: DocumentWindowTestCase {
 
     @Test("View > Show Status Bar is Command-/")
     func menuItem() throws {
-        let item = try #require(item("Show Status Bar", in: "View"))
-        #expect(item.keyEquivalent == "/")
-        #expect(item.keyEquivalentModifierMask == [.command])
-        #expect(item.action == #selector(DocumentWindowController.toggleStatusBar(_:)))
+        let menuItem = try #require(item("Show Status Bar", in: "View"))
+        #expect(menuItem.keyEquivalent == "/")
+        #expect(menuItem.keyEquivalentModifierMask == [.command])
+        #expect(menuItem.action == #selector(DocumentWindowController.toggleStatusBar(_:)))
     }
 
     @Test("a UI-test preference never writes the reader's defaults")
