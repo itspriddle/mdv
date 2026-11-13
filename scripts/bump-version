@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Sets the release version everywhere it is written down:
+#
+#   scripts/bump-version 0.2.0
+#
+# - MARKETING_VERSION in Config/Shared.xcconfig (CFBundleShortVersionString)
+# - PeepInfo.version in Sources/PeepCore/PeepInfo.swift (the CLI's --version and man page)
+# - CURRENT_PROJECT_VERSION in Config/Shared.xcconfig, incremented by one (CFBundleVersion;
+#   Sparkle compares it, so it must strictly increase with every release)
+#
+# scripts/check-version verifies the first two agree.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+XCCONFIG="$ROOT/Config/Shared.xcconfig"
+PEEP_INFO="$ROOT/Sources/PeepCore/PeepInfo.swift"
+
+usage() {
+  echo "usage: scripts/bump-version X.Y.Z" >&2
+  exit 64
+}
+
+[[ $# -eq 1 ]] || usage
+version="$1"
+if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "error: not a plain X.Y.Z version: $version" >&2
+  usage
+fi
+
+build="$(sed -nE 's/^CURRENT_PROJECT_VERSION = ([0-9]+)$/\1/p' "$XCCONFIG")"
+if [[ -z "$build" ]] || ! grep -qE '^MARKETING_VERSION = ' "$XCCONFIG" \
+  || ! grep -qE '^    public static let version = "[^"]*"$' "$PEEP_INFO"; then
+  echo "error: version lines not found in $XCCONFIG or $PEEP_INFO" >&2
+  exit 65
+fi
+next_build=$((build + 1))
+
+sed -i '' -E \
+  -e "s/^MARKETING_VERSION = .*/MARKETING_VERSION = $version/" \
+  -e "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $next_build/" \
+  "$XCCONFIG"
+sed -i '' -E "s/^    public static let version = \"[^\"]*\"$/    public static let version = \"$version\"/" "$PEEP_INFO"
+
+echo "version $version (build $next_build)"

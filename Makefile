@@ -65,7 +65,8 @@ test-ui: generate ## Run UI tests (always signed; see CLAUDE.md)
 	rm -rf $(UI_RESULT)
 	$(XCODEBUILD_UI) test -only-testing:AppUITests -resultBundlePath $(UI_RESULT)
 
-lint: ## Lint with SwiftLint and swift-format
+lint: ## Lint with SwiftLint and swift-format, and check the version agrees
+	scripts/check-version
 	swiftlint lint --strict
 	swift format lint --strict --recursive App AppTests AppUITests CLI Sources Tests Package.swift
 
