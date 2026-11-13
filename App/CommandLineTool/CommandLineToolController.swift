@@ -13,17 +13,23 @@ final class CommandLineToolController {
         case repair(CommandLineToolLocation)
         /// A link to this copy.
         case uninstall(CommandLineToolLocation)
+        /// The Homebrew cask's link (#84): Homebrew installs and removes it, so the item only
+        /// says so.
+        case homebrew(CommandLineToolLocation)
 
         var menuTitle: String {
             switch self {
             case .install: "Install Command Line Tool…"
             case .repair: "Repair Command Line Tool…"
             case .uninstall: "Uninstall Command Line Tool…"
+            case .homebrew: "Command Line Tool Installed by Homebrew…"
             }
         }
     }
 
     let locations: [CommandLineToolLocation]
+    /// Where the Homebrew cask may have linked the command (#84).
+    let homebrew: [HomebrewCask]
     private let makeInstaller: (CommandLineToolLocation) -> CommandLineToolInstaller
     private let makeManPageInstaller: (CommandLineToolLocation) -> CommandLineToolInstaller
     private let privileged: any PrivilegedRunning
@@ -31,6 +37,7 @@ final class CommandLineToolController {
 
     init(
         locations: [CommandLineToolLocation] = CommandLineToolLocation.standard,
+        homebrew: [HomebrewCask] = HomebrewCask.standard,
         makeInstaller: @escaping (CommandLineToolLocation) -> CommandLineToolInstaller = {
             CommandLineToolInstaller(folder: $0.folder)
         },
@@ -40,6 +47,7 @@ final class CommandLineToolController {
         privileged: any PrivilegedRunning = AppleScriptPrivilegedRunner()
     ) {
         self.locations = locations
+        self.homebrew = homebrew
         self.makeInstaller = makeInstaller
         self.makeManPageInstaller = makeManPageInstaller
         self.privileged = privileged
@@ -53,10 +61,20 @@ final class CommandLineToolController {
     /// What the item does, read fresh from disk (a few `lstat`s) each time the menu opens.
     /// This is also how a link left dangling by a moved app is detected: the item becomes
     /// Repair; nothing is fixed without asking.
+    ///
+    /// A Homebrew cask's link (#84) is Homebrew's: its folder is left out of the others (on Intel
+    /// it is `/usr/local/bin`), and unless this copy has its own link elsewhere to uninstall, the
+    /// item only says Homebrew installed it, so nothing installs a second `peep` beside it.
     func currentAction() -> Action {
-        let states = locations.map { ($0, makeInstaller($0).state()) }
+        let cask = homebrewLocation()
+        let states = locations.filter { $0.folder.standardized != cask?.folder.standardized }.map {
+            ($0, makeInstaller($0).state())
+        }
         if let installed = states.first(where: { $0.1 == .installed }) {
             return .uninstall(installed.0)
+        }
+        if let cask {
+            return .homebrew(cask)
         }
         if let dangling = states.first(where: { if case .dangling = $0.1 { true } else { false } }) {
             return .repair(dangling.0)
@@ -79,7 +97,30 @@ final class CommandLineToolController {
             await install(preferred: location, isRepair: true)
         case .install(let preferred):
             await install(preferred: preferred, isRepair: false)
+        case .homebrew(let location):
+            showHomebrew(at: location)
         }
+    }
+
+    // MARK: - Homebrew
+
+    /// The folder of the Homebrew cask's link, if the cask is installed and the link is ours
+    /// (to any copy of Peep, or to one that was moved: `brew reinstall` fixes that).
+    func homebrewLocation() -> CommandLineToolLocation? {
+        homebrew.lazy.filter(\.isInstalled).map(\.location).first {
+            let state = makeInstaller($0).state()
+            return state == .installed || state.ourDestination != nil
+        }
+    }
+
+    private func showHomebrew(at location: CommandLineToolLocation) {
+        let alert = NSAlert()
+        alert.messageText = "Homebrew installed the Peep command line tool."
+        alert.informativeText =
+            "\(location.displayPath)/peep comes with Peep’s Homebrew cask, along with `man peep` and shell "
+            + "completions. Homebrew keeps them up to date and removes them with `brew uninstall --cask peep`, "
+            + "so Peep leaves them alone."
+        alert.runModal()
     }
 
     // MARK: - Install
