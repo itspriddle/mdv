@@ -920,6 +920,17 @@ updates itself to v0.1.1 via Sparkle.
   when a `Vendor/` folder, a `Package.resolved` pin, or a remote `project.yml` package has no
   entry. Beyond the planned list: LibYAML (inside Yams) and the HTML Standard's entity list
   (`HTMLEntityTable`, BSD-3-Clause in source code). Sparkle's entry is in ahead of #81.
+- Updates (#81): Sparkle 2.10.1 (exact pin, app target only). Strictest settings Sparkle has:
+  HTTPS feed, `SURequireSignedFeed` (the appcast and release notes are EdDSA-signed by
+  `generate_appcast`), and `SUVerifyUpdateBeforeExtraction`; so key rotation needs a Developer ID
+  signed DMG, which #82 ships anyway. `SUEnableAutomaticChecks` is unset: Sparkle asks on the
+  second launch instead of checking without consent. Settings > General's rows are Sparkle's
+  own settings, not keys of ours. Only Release starts the updater; Debug needs
+  `-PeepUpdateFeedURL` (the documented manual check against a local appcast is in
+  `App/Updates/SoftwareUpdates.swift`), and tests and cold-open measurements never start it.
+  The public key is a placeholder (`SPARKLE_PUBLIC_ED_KEY`) until the maintainer runs
+  `generate_keys`; Release builds fail until then. One default channel; a beta channel is room
+  left in `SparkleUpdater.allowedChannels(for:)` (VISION).
 
 ## 1.0
 
