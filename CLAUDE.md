@@ -97,6 +97,9 @@ lock the build database.
   - `Navigation/`: `LinkPolicy`, the viewer's one navigation policy (link URL to `LinkAction`),
     and `CopyableLink` (what Copy Link copies; never a `peep-doc:` URL).
   - `Outline/`: `DocumentOutline` (heading tree) and `OutlineTracker` (current section).
+  - `Statistics/`: `WordCount` (the words a reader sees: the transformed body, without
+    frontmatter, URLs, image alt, raw HTML, or emoji; ICU word segmentation), computed in the
+    pipeline as `RenderedDocument.wordCount`.
   - `Highlighting/`: highlight.js in JavaScriptCore; `HighlightValidator` re-serializes its output.
   - `AppOpening/`: what the CLI and the app agree on (M5; untrusted on the app's side).
     `AppOpenEvent` builds and reads the Open Documents event and its parameters
@@ -201,6 +204,11 @@ lock the build database.
   - `Outline/`: `OutlineViewController` (the sidebar's `NSOutlineView`) and `OutlinePreference`
     (default visibility). The window fills it after the first page paints (#58), then on each
     display.
+  - `StatusBar/`: the strip along the bottom of the window (`DocumentView`'s bottom inset):
+    `StatusBar` (the items, leading; first `WordCountItem`, from `RenderedPage.wordCount`),
+    `StatusBarModel` (the window's visibility), and `StatusBarPreference` (default visibility,
+    shown). View > Show/Hide Status Bar (⌘/) is `DocumentWindowController+StatusBar.swift`; a new
+    item is a view in `StatusBar`.
   - `RenderProgress/`: `RenderProgress` (#58: the delayed indicator's state, 300 ms by default,
     injectable) and `RenderProgressIndicator` (the overlay: centered over the blank page before
     the first page loads, small in the corner during re-renders). The window feeds it from

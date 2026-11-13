@@ -202,6 +202,8 @@ extension DocumentWindowController: NSMenuItemValidation {
         case #selector(toggleOutline(_:)):
             menuItem.title = isOutlineVisible ? "Hide Outline" : "Show Outline"
             return true
+        case #selector(toggleStatusBar(_:)):
+            return validateStatusBarItem(menuItem)
         case #selector(expandAllOutlineEntries(_:)):
             return isOutlineVisible && outlineController.canExpandAll
         case #selector(collapseAllOutlineEntries(_:)):

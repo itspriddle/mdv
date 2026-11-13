@@ -202,7 +202,8 @@ struct HTMLRendererAPITests {
                 == RenderedDocument(
                     html: "<h1 id=\"title\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#title\"></a>Title</h1>\n",
                     title: "Title",
-                    headings: [Heading(level: 1, text: "Title", slug: "title", sourceLine: 1)]
+                    headings: [Heading(level: 1, text: "Title", slug: "title", sourceLine: 1)],
+                    wordCount: 1
                 ))
     }
 

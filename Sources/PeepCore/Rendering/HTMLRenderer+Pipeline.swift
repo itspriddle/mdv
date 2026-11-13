@@ -13,6 +13,7 @@ extension HTMLRenderer {
     /// 5. AST transforms: the flavor's and `options.builtInPreprocessors`, in `MarkdownTransform`
     ///    order.
     /// 6. HTML: sanitize raw HTML, collect headings and anchors, highlight code, write markup.
+    ///    The word count (`WordCount`) reads the same transformed body.
     public func render(_ markdown: String) -> RenderedDocument {
         let extracted = options.detectsFrontmatter ? Frontmatter.extract(from: markdown) : nil
         let frontmatter = extracted?.frontmatter
@@ -39,7 +40,8 @@ extension HTMLRenderer {
             frontmatter: frontmatter,
             blockedRemoteImages: blockedRemoteImages,
             overrides: overrides,
-            flavor: renderer.options.flavor
+            flavor: renderer.options.flavor,
+            wordCount: WordCount.count(in: document)
         )
     }
 
