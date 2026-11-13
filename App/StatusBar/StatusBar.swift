@@ -1,9 +1,11 @@
 import SwiftUI
 
 /// The strip along the bottom of a document window: quick facts about the document, leading,
-/// and (later) toggles. Toggled with View > Show/Hide Status Bar.
+/// and window toggles, trailing. Toggled with View > Show/Hide Status Bar.
 struct StatusBar: View {
     let document: MarkdownDocument
+    let model: StatusBarModel
+    let toggleOutline: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -11,6 +13,7 @@ struct StatusBar: View {
             HStack(spacing: 12) {
                 WordCountItem(count: document.content?.page.wordCount)
                 Spacer(minLength: 0)
+                OutlineToggleItem(isOutlineVisible: model.isOutlineVisible, toggle: toggleOutline)
             }
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -21,6 +24,24 @@ struct StatusBar: View {
         .background(.bar)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("status-bar")
+    }
+}
+
+/// Shows or hides the outline sidebar, like View > Show/Hide Outline; tinted while it is shown.
+struct OutlineToggleItem: View {
+    let isOutlineVisible: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        let title = isOutlineVisible ? "Hide Outline" : "Show Outline"
+        Button(action: toggle) {
+            Image(systemName: "list.bullet")
+                .foregroundStyle(isOutlineVisible ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+        }
+        .buttonStyle(.borderless)
+        .help(title)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier("outline-toggle")
     }
 }
 

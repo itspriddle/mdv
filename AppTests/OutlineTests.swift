@@ -337,14 +337,32 @@ extension OutlineTests {
         #expect(coder.keys.contains(DocumentWindowController.outlineVisibleStateKey))
     }
 
-    @Test("the window has an outline toolbar button")
-    func toolbarButton() async throws {
+    @Test("the outline toggle moved to the status bar: the window has no toolbar")
+    func noToolbar() async throws {
         defer { close() }
         let (_, controller) = try await open("# One\n")
-        let toolbar = try #require(controller.window?.toolbar)
-        let item = try #require(
-            toolbar.items.first { $0.itemIdentifier == DocumentWindowController.toggleOutlineToolbarItem })
-        #expect(item.action == #selector(DocumentWindowController.toggleOutline(_:)))
+        #expect(controller.window?.toolbar == nil)
+    }
+
+    @Test("the status bar's outline toggle follows the outline's visibility")
+    func statusBarFollowsOutline() async throws {
+        defer { close() }
+        let (_, controller) = try await open("# One\n", outlineVisible: false)
+        #expect(!controller.statusBar.isOutlineVisible)
+
+        controller.toggleOutline(nil)
+        #expect(controller.statusBar.isOutlineVisible)
+
+        // Restoration.
+        controller.isOutlineVisible = false
+        #expect(!controller.statusBar.isOutlineVisible)
+        controller.isOutlineVisible = true
+
+        // Dragging the divider shut collapses the item without `setOutlineVisible`.
+        let item = try #require(controller.outlineSidebarItem)
+        item.isCollapsed = true
+        controller.window?.layoutIfNeeded()
+        try await until("the toggle follows the collapse") { !controller.statusBar.isOutlineVisible }
     }
 
     @Test("View > Show Outline is Command-Control-S")

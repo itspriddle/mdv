@@ -205,10 +205,11 @@ lock the build database.
     (default visibility). The window fills it after the first page paints (#58), then on each
     display.
   - `StatusBar/`: the strip along the bottom of the window (`DocumentView`'s bottom inset):
-    `StatusBar` (the items, leading; first `WordCountItem`, from `RenderedPage.wordCount`),
-    `StatusBarModel` (the window's visibility), and `StatusBarPreference` (default visibility,
-    shown). View > Show/Hide Status Bar (⌘/) is `DocumentWindowController+StatusBar.swift`; a new
-    item is a view in `StatusBar`.
+    `StatusBar` (the items, leading; first `WordCountItem`, from `RenderedPage.wordCount`; then
+    `OutlineToggleItem`, trailing, which replaced the toolbar: windows have none),
+    `StatusBarModel` (the window's visibility, and the outline's for the toggle), and
+    `StatusBarPreference` (default visibility, shown). View > Show/Hide Status Bar (⌘/) is
+    `DocumentWindowController+StatusBar.swift`; a new item is a view in `StatusBar`.
   - `RenderProgress/`: `RenderProgress` (#58: the delayed indicator's state, 300 ms by default,
     injectable) and `RenderProgressIndicator` (the overlay: centered over the blank page before
     the first page loads, small in the corner during re-renders). The window feeds it from

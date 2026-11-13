@@ -2,11 +2,9 @@ import AppKit
 import PeepCore
 
 /// The outline sidebar (#24): a sidebar split item beside the document, toggled from the View
-/// menu and the toolbar, jumping to headings through the scroll bridge and following the
+/// menu and the status bar, jumping to headings through the scroll bridge and following the
 /// reading position that `ScrollPosition.js` reports.
 extension DocumentWindowController {
-    static let toggleOutlineToolbarItem = NSToolbarItem.Identifier("toggleOutline")
-
     /// Whether this window shows the outline. Window restoration (#22) can save and set this;
     /// setting it doesn't change the default for new windows (`OutlinePreference`).
     var isOutlineVisible: Bool {
@@ -14,7 +12,7 @@ extension DocumentWindowController {
         set { setOutlineVisible(newValue, animated: false) }
     }
 
-    /// View > Show/Hide Outline and the toolbar button. The choice becomes the default for new
+    /// View > Show/Hide Outline and the status bar button. The choice becomes the default for new
     /// windows.
     @objc func toggleOutline(_ sender: Any?) {
         let visible = !isOutlineVisible
@@ -24,6 +22,7 @@ extension DocumentWindowController {
 
     func setOutlineVisible(_ visible: Bool, animated: Bool) {
         wantsOutline = visible
+        statusBar.isOutlineVisible = visible
         if let outlineSidebarItem, outlineSidebarItem.isCollapsed == visible {
             // Showing resizes the pane (recording its width); put back the saved one after.
             let width = visible ? outlineWidth : nil
@@ -43,17 +42,11 @@ extension DocumentWindowController {
         window?.invalidateRestorableState()
     }
 
-    /// Called from `init`: the toolbar, and the outline's link to the web view.
+    /// Called from `init`: the outline's link to the web view.
     func installOutline() {
         outlineController.onJump = { [weak self] heading in
             self?.jump(to: heading)
         }
-        let toolbar = NSToolbar(identifier: "DocumentWindow")
-        toolbar.delegate = self
-        toolbar.displayMode = .iconOnly
-        toolbar.allowsUserCustomization = false
-        window?.toolbar = toolbar
-        window?.toolbarStyle = .unified
     }
 
     /// The window's content: the outline sidebar and the document.
@@ -82,7 +75,12 @@ extension DocumentWindowController {
     /// The sidebar was resized (by the reader, or by showing it): remember its width for
     /// window restoration.
     @objc private func outlineSplitViewDidResize(_ notification: Notification) {
-        guard let outlineSidebarItem, !outlineSidebarItem.isCollapsed else {
+        guard let outlineSidebarItem else {
+            return
+        }
+        // Dragging the divider can collapse the sidebar without `setOutlineVisible`.
+        statusBar.isOutlineVisible = !outlineSidebarItem.isCollapsed
+        guard !outlineSidebarItem.isCollapsed else {
             return
         }
         // The pane's width, which is the divider position `applyOutlineWidth` sets. The sidebar
@@ -223,33 +221,5 @@ extension DocumentWindowController: NSMenuItemValidation {
         default:
             return true
         }
-    }
-}
-
-extension DocumentWindowController: NSToolbarDelegate {
-    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [Self.toggleOutlineToolbarItem]
-    }
-
-    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [Self.toggleOutlineToolbarItem]
-    }
-
-    func toolbar(
-        _ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
-        willBeInsertedIntoToolbar flag: Bool
-    ) -> NSToolbarItem? {
-        guard itemIdentifier == Self.toggleOutlineToolbarItem else {
-            return nil
-        }
-        let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.label = "Outline"
-        item.paletteLabel = "Outline"
-        item.toolTip = "Show or hide the outline"
-        item.image = NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: "Outline")
-        item.isBordered = true
-        item.target = self
-        item.action = #selector(toggleOutline(_:))
-        return item
     }
 }

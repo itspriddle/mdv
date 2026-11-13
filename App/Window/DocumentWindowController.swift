@@ -93,7 +93,6 @@ final class DocumentWindowController: NSWindowController {
         self.renderProgress = renderProgress
         self.outlinePreference = outlinePreference
         self.statusBarPreference = statusBarPreference
-        statusBar = StatusBarModel(isVisible: statusBarPreference.showsStatusBarInNewWindows)
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
@@ -101,6 +100,8 @@ final class DocumentWindowController: NSWindowController {
         zoomLevel = zoomSettings.defaultLevel
         contentWidth = contentWidthSettings.defaultWidth
         wantsOutline = outlinePreference.showsOutlineInNewWindows
+        statusBar = StatusBarModel(
+            isVisible: statusBarPreference.showsStatusBarInNewWindows, isOutlineVisible: wantsOutline)
         let window = DocumentWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
@@ -137,7 +138,8 @@ final class DocumentWindowController: NSWindowController {
                 rootView: DocumentView(
                     document: markdownDocument, coordinator: coordinator, remoteImages: remoteImages,
                     renderProgress: renderProgress, statusBar: statusBar,
-                    loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) }))
+                    loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) },
+                    toggleOutline: { [weak self] in self?.toggleOutline(nil) }))
             // SwiftUI sets the minimum size; the window (and later restoration) owns the size.
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero
