@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<title>Peep app icon</title>
+<rect x="50" y="50" width="412" height="412" rx="93" fill="#FFD43B"/>
+<circle cx="206" cy="226" r="48" fill="#FFFFFF" stroke="#16181D" stroke-width="14"/>
+<circle cx="306" cy="226" r="48" fill="#FFFFFF" stroke="#16181D" stroke-width="14"/>
+<circle cx="212" cy="208" r="18" fill="#16181D"/>
+<circle cx="312" cy="208" r="18" fill="#16181D"/>
+<rect x="116" y="236" width="280" height="180" rx="22" fill="#FFFFFF"/>
+<rect x="148" y="274" width="130" height="18" rx="9" fill="#16181D"/>
+<rect x="148" y="314" width="216" height="12" rx="6" fill="#C9CDD6"/>
+<rect x="148" y="340" width="180" height="12" rx="6" fill="#C9CDD6"/>
+<rect x="148" y="366" width="120" height="12" rx="6" fill="#C9CDD6"/>
+</svg>
