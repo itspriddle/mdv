@@ -11,6 +11,25 @@ peep --html README.md > README.html
 > **Status:** early development. Website: [peep.now](https://peep.now). See
 > [docs/VISION.md](docs/VISION.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## Install
+
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install --cask itspriddle/brews/peep
+```
+
+The cask installs Peep.app and puts the `peep` command, its man page, and zsh, bash, and fish
+completions in Homebrew's folders, so there is nothing else to set up. Peep updates itself;
+`brew upgrade` leaves it to do so. `brew uninstall --cask peep` removes the app and those links;
+add `--zap` to also remove its settings, caches, and the Themes folder (your custom themes).
+
+Or download `Peep-X.Y.Z.dmg` from the
+[latest release](https://github.com/itspriddle/peep/releases/latest), open it, and drag Peep to
+Applications. Then see [Command line tool](#command-line-tool) to put `peep` on your `PATH`.
+
+Peep needs macOS 15 or later.
+
 ## Themes
 
 Peep ships GitHub, Document, and Serif themes, and any CSS file in
@@ -167,6 +186,8 @@ copy of Peep you are running (the alert names it, which matters if you have seve
 - When it is installed, the item is Uninstall Command Line Tool…, which removes the link (and
   only the link). You can also delete it yourself: `rm ~/.local/bin/peep` or
   `sudo rm /usr/local/bin/peep`.
+- If you installed Peep with Homebrew, the cask already linked `peep`, and the item is Command
+  Line Tool Installed by Homebrew…, which only says so: Homebrew adds and removes that link.
 
 ### Man page
 
@@ -236,6 +257,11 @@ Signed local builds: copy `Config/Local.xcconfig.example` to `Config/Local.xccon
 | `CLI`              | `peep` command-line tool, embedded in `Peep.app/Contents/Helpers` |
 | `project.yml`      | XcodeGen spec for the app, CLI, and app tests                     |
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately: [SECURITY.md](SECURITY.md).
+
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Third-party notices are in [Acknowledgements](Acknowledgements/Acknowledgements.json)
+and in the app's About panel.

@@ -3,7 +3,8 @@
 // Placeholder identity until the final app name is chosen (see docs/ROADMAP.md).
 PRODUCT_BUNDLE_IDENTIFIER_BASE = now.peep.Peep
 
-// Keep MARKETING_VERSION in sync with PeepInfo.version (automated in M6).
+// Set with scripts/bump-version (also PeepInfo.version; scripts/check-version checks they match).
+// CURRENT_PROJECT_VERSION is CFBundleVersion, which Sparkle compares: it only ever increases.
 MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 
@@ -15,6 +16,13 @@ SWIFT_STRICT_CONCURRENCY = complete
 ENABLE_HARDENED_RUNTIME = YES
 ENABLE_APP_SANDBOX = NO
 CODE_SIGN_STYLE = Automatic
+
+// Sparkle's EdDSA public key (#81), SUPublicEDKey in Info.plist: the base64 key `generate_keys`
+// prints (the private key stays in the maintainer's login keychain and the `release`
+// environment's SPARKLE_ED_PRIVATE_KEY, keychain account `peep`: `generate_keys --account peep -p`
+// prints this key). Release builds fail if it isn't a 32-byte base64 key (project.yml, "Check the
+// Sparkle public key"). Never contains `//`, which xcconfig would read as a comment.
+SPARKLE_PUBLIC_ED_KEY = FHajez4+FQL8C7ZDg/ADS71nM4+wqh2sBqjmKV2AXmg=
 
 // Optional, gitignored overrides (e.g. DEVELOPMENT_TEAM). See Local.xcconfig.example.
 #include? "Local.xcconfig"

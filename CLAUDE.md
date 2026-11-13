@@ -14,7 +14,14 @@ make test             # core + app unit tests (not UI tests)
 make test-ui          # XCTest UI tests; always signed (team or ad hoc), drives the GUI
 make record-theme-snapshots  # re-record bundled theme references for this macOS version (#39)
 make build            # app + embedded CLI (signed via Config/Local.xcconfig); SIGN=0 for unsigned
-make lint             # swiftlint --strict + swift format lint --strict (CI runs this)
+make lint             # swiftlint --strict + swift format lint --strict + check-version (CI runs this)
+scripts/bump-version X.Y.Z   # set MARKETING_VERSION and PeepInfo.version, increment CURRENT_PROJECT_VERSION
+scripts/check-version [vX.Y.Z]  # fail if those versions disagree, or don't match the tag
+scripts/render-cask X.Y.Z SHA256  # print the Homebrew cask (Packaging/homebrew/peep.rb) for a release
+make release          # scripts/package-release: signed, notarized, stapled build/release/Peep-X.Y.Z.dmg
+                      # (+ .sha256); NOTARIZE=0 (--skip-notarize) for a dry run; docs/RELEASING.md
+scripts/release-appcast [--previous F] [--notes F] DMG  # signed appcast.xml next to the DMG
+                      # (SPARKLE_ED_PRIVATE_KEY on stdin to Sparkle's tools; the release workflow)
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
@@ -99,8 +106,19 @@ lock the build database.
   - `Generated/`, `*.generated.swift`: generator output (`make emoji`, `make html-entities`,
     `make vendor-highlightjs`); never edit by hand. `Vendor/` holds vendored sources with a
     MANIFEST and license.
+  - `Acknowledgements/`: `Acknowledgements` reads the third-party notices manifest (#85) and
+    reflows license text (`paragraphs(of:)`) for the About panel.
+- `Acknowledgements/` (repo root): `Acknowledgements.json` lists every bundled third-party
+  component (name, use, license, `licenseFile` relative to the repo root, `licenseSource`, and the
+  `vendor` folder or `package` identity it covers) plus the license texts not already in
+  `Vendor/`. Copy a license from upstream (`gh api`), never retype it. `Acknowledgements/` and
+  `Vendor/` ship as folders in the app's Resources; `AcknowledgementsTests` fails when a
+  `Vendor/` folder, a `Package.resolved` pin, or a remote `project.yml` package lacks an entry
+  (a resolved package that isn't shipped goes in its `notShipped`, with the reason).
 - `App/`: the macOS app (module `PeepApp`), kept thin. AppKit lifecycle (`main.swift`,
-  `AppDelegate`), SwiftUI for window content only. Feature folders: `ContentWidth/`, `Copy/`,
+  `AppDelegate`), SwiftUI for window content only. `About/AboutPanel` is App menu > About Peep:
+  the standard panel with credits built in code from the bundled acknowledgements (no
+  Credits.html). Feature folders: `ContentWidth/`, `Copy/`,
   `DefaultViewer/`, `Print/`, `RenderProgress/`, `Themes/`, `Zoom/` (each a small type plus its
   `DocumentWindowController+<Feature>.swift`). `Themes/ThemeSettings` holds the theme registry
   and the default for new windows; each window's theme is `DocumentWindowController.themeID`.
@@ -140,6 +158,19 @@ lock the build database.
     the hook for #71), `PrivilegedRunning` (`AppleScriptPrivilegedRunner`, values passed as
     Apple event parameters), `CommandLineToolLocation` (`~/.local/bin`, `/usr/local/bin`, or
     the UI-test folder; `LoginShellPath`), and `CommandLineToolController` (menu state, alerts).
+    `HomebrewCask` (#84): a prefix whose `Caskroom/peep` exists and whose `bin/peep` is our
+    link is Homebrew's; the item becomes Command Line Tool Installed by Homebrew… (an alert
+    only), and that folder is never offered for install or uninstall. No prefixes under tests.
+  - `Updates/` (#81): Sparkle 2 (app target only). `SoftwareUpdating` (what the menu and
+    Settings use; fakes in tests), `SparkleUpdater` (`SPUStandardUpdaterController`, started from
+    `AppDelegate.applicationDidFinishLaunching`; channels), `InactiveUpdater` (in memory, never
+    checks), and `SoftwareUpdates` (which launch gets which: hosted tests, UI tests, and
+    `PEEP_LAUNCH_TIMING` never get Sparkle; Debug only with `-PeepUpdateFeedURL <url>`, for a
+    local test appcast; Release always). App menu > Check for Updates… is `UpdatesMenu`;
+    Settings > General's rows go through `SettingsModel.updater`, which stores nothing (Sparkle
+    owns the settings). The public key is `SPARKLE_PUBLIC_ED_KEY` in `Config/Shared.xcconfig`
+    (Release fails on the placeholder); Sparkle's `generate_keys`, `sign_update`, and
+    `generate_appcast` are in `build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin`.
   - `Document/`: `MarkdownDocument` (`NSDocument`, viewer only) owns `DocumentContent` (source
     plus `RenderedPage`, and the remote-images variant). `read(from:ofType:)` reads and decodes
     on main (so open errors stay NSDocument's) and renders off the main actor
@@ -252,8 +283,33 @@ lock the build database.
   references come from CI's `theme-snapshots` artifact (`recorded/`). Mismatches write
   actual/reference/diff PNGs to `build/theme-snapshots/` (CI uploads it).
 - `project.yml`: XcodeGen spec. Never commit `Peep.xcodeproj`; edit `project.yml` instead.
+- `Packaging/homebrew/peep.rb` (#84): the source of the tap's `Casks/peep.rb`
+  (`itspriddle/homebrew-brews`); `scripts/render-cask` fills in `version` and `sha256`. A
+  change to the bundle layout (helper, man page, completions) or to where the app stores files
+  (the `zap` list) updates it. Check it with `brew style` and `brew audit --cask --strict` in a
+  scratch tap (`brew tap-new`, `brew trust`, then untrust and untap).
+- `CONTRIBUTING.md`, `SECURITY.md` (private reports via GitHub security advisories), and
+  `.github/ISSUE_TEMPLATE/` (bug and feature forms; `config.yml` sends security reports to the
+  advisory form): the human-facing versions of this file's rules; keep them in step.
 - `Config/Shared.xcconfig`: shared settings. `Config/Local.xcconfig` (gitignored) holds
   `DEVELOPMENT_TEAM`; never commit it or hard-code the team ID.
+- `scripts/package-release` (#82, `make release`): builds Release ad hoc, then signs every
+  Mach-O inside out with the Developer ID identity (Sparkle's XPC services, `Autoupdate`,
+  `Updater.app`, the framework, the helper, the app), checks each has the hardened runtime and
+  a secure timestamp, makes and signs the DMG, notarizes and staples it, and smoke-tests the
+  packaged `peep`. A new nested binary fails its Mach-O check until the script signs it.
+  `docs/RELEASING.md` has its environment variables and the release steps.
+- `scripts/release-appcast` (#83): `generate_appcast` over the previous release's
+  `appcast.xml` (its signature verified, items kept) plus the new stapled DMG; refuses a version
+  already in the feed or a key that isn't the app's, then verifies the feed and item signatures.
+- `.github/workflows/release.yml` (#83): a `vX.Y.Z` tag runs `check` (no secrets) → `build`
+  (`release` environment: package-release, release-appcast) → `publish` (draft, upload,
+  publish) → `site` (calls `deploy-site.yml`) and `cask` (`release` environment: render-cask,
+  push to the tap's `master`). `docs/RELEASING.md` has the run book.
+- `Site/` (peep.now, Vite+ `vp`, Vue, Cloudflare Workers static assets; `deploy-site.yml`):
+  `vp check`, `vp test`, `vp run build`. The build ends with `scripts/fetch-appcast.ts`, which
+  copies the latest published GitHub Release's signed `appcast.xml` into `dist/` (none before
+  the first release: a real 404, never HTML); the site never signs anything.
 
 ## Conventions
 
@@ -264,7 +320,9 @@ lock the build database.
   or bundle-only, sanitize raw HTML, user scripts are opt-in.
 - Bundle ID `now.peep.Peep` lives in `PRODUCT_BUNDLE_IDENTIFIER_BASE`,
   `PeepCommand.appBundleIdentifier`, and the exported UTI `MarkdownContentTypes` (an app test
-  checks it); keep them in sync. Same for `MARKETING_VERSION` and `PeepInfo.version`.
+  checks it); keep them in sync. Change the version only with
+  `scripts/bump-version` (`MARKETING_VERSION`, `PeepInfo.version`, `CURRENT_PROJECT_VERSION`);
+  `scripts/check-version` (in `make lint`) fails if they disagree.
 - Verify a dependency exists (and its latest version) before adding it.
 
 ## UI tests
@@ -317,3 +375,6 @@ lock the build database.
 - After an issue lands, post a handoff comment (API changes, gotchas, deviations, deferred items)
   on the next issue or the milestone's tracking issue.
 - When a milestone closes, update its status in `docs/ROADMAP.md`.
+- Releases: `scripts/bump-version` in a PR, merge, then a `vX.Y.Z` tag on `main` (maintainer
+  only) runs `release.yml`; approve its two `release` deployments. Never tag, publish, or
+  push to the tap by hand without the maintainer (`docs/RELEASING.md`).

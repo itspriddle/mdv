@@ -607,6 +607,10 @@ editor or a browser.
       and parameters; `AppDelegate.handleDirectOpen`). The direct path is also the fallback
       when Launch Services refuses a sandboxed caller (the UI test runner, whose children
       inherit its sandbox; `AppUITests.entitlements` allows its Apple Events to Peep).
+      The direct path needs no `com.apple.security.automation.apple-events` entitlement under
+      the hardened runtime (#82, tested with a Developer ID build): TCC attributes the helper to
+      its enclosing app, and the event only ever goes to that same copy, so it is the app
+      sending to itself.
     - **Trust model:** any local process can already send the app these events, with any
       parameters, so they are presentation-only and validated as untrusted input:
       `AppOpenParameters(event:)` keeps a theme id only if it is UTF-8/UTF-16 text of at most
@@ -716,6 +720,17 @@ editor or a browser.
 - **Tooling:** XcodeGen (`project.yml`), SwiftLint, swift-format, Swift Testing, XCTest UI
   tests, GitHub Actions.
 - **Distribution:** Developer ID signing, notarization, Sparkle 2, Homebrew cask.
+  - **Updates (#81):** Sparkle 2 (SwiftPM, app target only; PeepCore and the CLI never link
+    it), behind `App/Updates/SoftwareUpdating` so tests use fakes. App menu > Check for
+    Updates… and Settings > General's two rows (check automatically, download and install
+    automatically) read and write Sparkle's own settings; Peep stores none of its own.
+    `SUEnableAutomaticChecks` is unset, so Sparkle asks on the second launch whether to check
+    automatically (once a day) rather than checking without asking. Only Release builds start
+    the updater: hosted unit tests, UI tests, and cold-open measurements never do, and a Debug
+    build does only when launched with `-PeepUpdateFeedURL <url>` (a local appcast, for testing
+    by hand; `SoftwareUpdates`). An update replaces `Peep.app` in place, at the same path, so the
+    command line tool's link (`<X>.app/Contents/Helpers/peep`, #70) and the man page link keep
+    working across updates; a moved app is what Install Command Line Tool's Repair is for.
 
 ## Security model
 
@@ -911,6 +926,10 @@ editor or a browser.
     and is removed with the command when it is ours. Both go in one batch: every path is
     checked before anything changes, and the links needing an administrator share one
     privileged run (the scripts take argument triples or pairs and check them all first).
+  - The Homebrew cask's links (#84) are Homebrew's even though they match that rule: when
+    `<prefix>/Caskroom/peep` exists and `<prefix>/bin/peep` is our link (`/opt/homebrew` or
+    `/usr/local`), the menu only says so, and that folder is never offered for install or
+    uninstall.
   - Links are made atomically: a temporary link beside the target is renamed into place, with
     `RENAME_EXCL` when nothing was there. A replace or removal re-reads the link first and
     stops if its destination changed.
@@ -946,6 +965,44 @@ editor or a browser.
     preprocessor or render setting travels to the app, and the CLI reads none of the app's
     Settings.
 - Hardened runtime, notarized builds, Sparkle updates signed with EdDSA over HTTPS.
+- **Updates (#81)** follow one trust chain, all of it required (Info.plist, set in
+  `project.yml`; `UpdatesTests` checks the built app's keys):
+  - **Feed over HTTPS:** `SUFeedURL` is `https://peep.now/appcast.xml`. There is no
+    `SUAllowsInsecureUpdates`, and no feed can be set from outside (the Debug-only
+    `-PeepUpdateFeedURL` is compiled out of Release and ignored under tests).
+  - **Signed feed:** `SURequireSignedFeed` makes Sparkle reject an appcast or release notes
+    that aren't signed with Peep's EdDSA key (`generate_appcast` signs them), so someone who
+    takes over the web host can't point readers at another download or show them other text.
+  - **Signed archives, checked before extraction:** `SUPublicEDKey` holds the public key and
+    `SUVerifyUpdateBeforeExtraction` makes Sparkle check the archive's EdDSA signature before
+    unpacking it. Sparkle also checks that the new app has the same Developer ID as the running
+    one. Rotating keys means changing one of the two (EdDSA key or Developer ID) in a release
+    shipped as a Developer ID signed DMG, never both at once.
+  - **Keys:** the private key is generated with Sparkle's `generate_keys` into the maintainer's
+    login keychain, exported once into the `release` environment (`SPARKLE_ED_PRIVATE_KEY`) and
+    a password manager, and never committed. Only the public key is in the repository
+    (`SPARKLE_PUBLIC_ED_KEY` in `Config/Shared.xcconfig`); a Release build fails while it is
+    still the placeholder or isn't a 32-byte key.
+  - **Code signing:** release packaging signs Sparkle's framework, its XPC services
+    (`Downloader.xpc`, `Installer.xpc`), `Autoupdate`, and `Updater.app` with Peep's Developer ID
+    and the hardened runtime before notarizing. Peep isn't sandboxed, so none of Sparkle's
+    installer XPC keys are set. `scripts/package-release` (#82) does it, inside out, and checks
+    that every Mach-O has the team's Developer ID, the hardened runtime, a secure timestamp,
+    and no `get-task-allow`; the DMG is signed, notarized, and stapled (`docs/RELEASING.md`).
+  - **Release chain (#83):** only the maintainer can create `v*` tags (ruleset), and only those
+    tags can use the `release` environment, which needs the maintainer's approval per job. The
+    signing keychain, the notary key, and the Sparkle key exist only inside the approved
+    `build` job (the Sparkle key on its tools' standard input, never an argument or a file);
+    the tap token only inside `cask`. The appcast is signed there, from the stapled DMG, and
+    attached to the GitHub Release; peep.now serves the latest published release's copy and
+    holds no key, so a compromised site or deploy token can't forge an update. Each feed is
+    built from the previous one only after its signature verifies with the same key, and a
+    version already in the feed is never signed again.
+  - **Channels:** one default channel for now. Sparkle's `channels` leave room for a beta: beta
+    items carry `<sparkle:channel>beta</sparkle:channel>` in the same appcast and are skipped
+    unless `SparkleUpdater.allowedChannels(for:)` returns "beta" (empty today, no setting yet).
+  - **No network in tests:** no test starts Sparkle; menu and Settings tests use fakes, and the UI
+    test checks that Check for Updates… stays disabled even when given a feed.
 
 ## Success looks like
 

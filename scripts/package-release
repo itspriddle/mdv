@@ -1,0 +1,315 @@
+#!/usr/bin/env bash
+# Builds, signs, notarizes, and staples Peep's release DMG (#82):
+#
+#   scripts/package-release                    # `make release`
+#   scripts/package-release --skip-notarize    # local dry run (`make release NOTARIZE=0`)
+#
+# Outputs (build/release is emptied first):
+#   build/release/Peep-X.Y.Z.dmg          signed (and, unless skipped, notarized and stapled)
+#   build/release/Peep-X.Y.Z.dmg.sha256   `shasum -a 256` line ("<hash>  Peep-X.Y.Z.dmg")
+#   build/release/Peep.xcarchive          the Release archive (dSYMs; the app is re-signed outside it)
+#   build/release/notary/                 notarytool's submission result and log (JSON)
+#
+# X.Y.Z is MARKETING_VERSION (scripts/check-version).
+#
+# Environment:
+#   DEVELOPMENT_TEAM          Team ID; else DEVELOPMENT_TEAM from Config/Local.xcconfig
+#   PEEP_SIGNING_KEYCHAIN     keychain holding the Developer ID identity (CI's throwaway keychain);
+#                             unset: the default search list (the login keychain)
+#   PEEP_SIGNING_IDENTITY     SHA-1 of the identity to use, only when the team has more than one
+#                             valid "Developer ID Application" certificate
+#   NOTARY_KEY_P8, NOTARY_KEY_ID, NOTARY_ISSUER_ID
+#                             App Store Connect API key (the .p8's contents, not a path)
+#   PEEP_NOTARY_PROFILE       or a `xcrun notarytool store-credentials` profile name (local use)
+#
+# Exit status: 0 packaged; 64 usage; 78 configuration (team, identity, Sparkle key, notary
+# credentials, missing tools); 1 a step failed (build, signing, notarization, verification, smoke).
+#
+# The app is built ad hoc and then signed here, inside out, with the Developer ID identity, the
+# hardened runtime, and a secure timestamp (docs/RELEASING.md has why). Secrets are never echoed;
+# don't add `set -x`.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+OUT="build/release"
+ARCHIVE="$OUT/Peep.xcarchive"
+DMG_ROOT="$OUT/dmg-root"
+NOTARY_DIR="$OUT/notary"
+DERIVED="build/DerivedData"
+SPARKLE_RELATIVE="Contents/Frameworks/Sparkle.framework"
+
+usage() {
+  echo "usage: scripts/package-release [--skip-notarize]" >&2
+  exit 64
+}
+
+log() {
+  printf '==> %s\n' "$*" >&2
+}
+
+die() {
+  printf 'package-release: error: %s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+skip_notarize=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-notarize) skip_notarize=1 ;;
+    -h | --help)
+      sed -n '2,/^set -euo pipefail$/p' "$0" | sed '$d; s/^# \{0,1\}//' >&2
+      exit 0
+      ;;
+    *) usage ;;
+  esac
+  shift
+done
+
+# Cleanup: the notary key file and the DMG mount, on any exit.
+notary_key_file=""
+mount_point=""
+cleanup() {
+  if [[ -n "$mount_point" ]]; then
+    hdiutil detach -quiet "$mount_point" 2> /dev/null || hdiutil detach -quiet -force "$mount_point" 2> /dev/null || true
+    rmdir "$mount_point" 2> /dev/null || true
+  fi
+  if [[ -n "$notary_key_file" ]]; then
+    rm -f "$notary_key_file"
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+for tool in xcodebuild xcodegen codesign hdiutil shasum plutil security; do
+  command -v "$tool" > /dev/null || die "$tool not found" 78
+done
+
+# --- Configuration (all checked before anything is built) -------------------------------------
+
+version_line="$(scripts/check-version)" || die "scripts/check-version failed" 78
+version="${version_line#version }"
+dmg_name="Peep-$version.dmg"
+dmg="$OUT/$dmg_name"
+
+team="${DEVELOPMENT_TEAM:-}"
+if [[ -z "$team" && -f Config/Local.xcconfig ]]; then
+  team="$(sed -nE 's/^[[:space:]]*DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*([A-Za-z0-9]+)[[:space:]]*$/\1/p' Config/Local.xcconfig | tail -n 1)"
+fi
+[[ -n "$team" ]] || die "no team: set DEVELOPMENT_TEAM or put it in Config/Local.xcconfig" 78
+[[ "$team" =~ ^[A-Z0-9]{10}$ ]] || die "DEVELOPMENT_TEAM isn't a 10-character Team ID" 78
+
+keychain_args=()
+if [[ -n "${PEEP_SIGNING_KEYCHAIN:-}" ]]; then
+  [[ -f "$PEEP_SIGNING_KEYCHAIN" ]] || die "PEEP_SIGNING_KEYCHAIN: no keychain at $PEEP_SIGNING_KEYCHAIN" 78
+  keychain_args=(--keychain "$PEEP_SIGNING_KEYCHAIN")
+fi
+
+# The identity, by SHA-1, so codesign never has to pick between certificates.
+identities="$(security find-identity -v -p codesigning ${PEEP_SIGNING_KEYCHAIN:+"$PEEP_SIGNING_KEYCHAIN"} \
+  | grep -E "\"Developer ID Application: .*\\($team\\)\"$" || true)"
+if [[ -n "${PEEP_SIGNING_IDENTITY:-}" ]]; then
+  identity_line="$(grep -F " $PEEP_SIGNING_IDENTITY " <<< "$identities" || true)"
+  [[ -n "$identity_line" ]] || die "PEEP_SIGNING_IDENTITY isn't a valid Developer ID Application identity of team $team" 78
+else
+  count="$(grep -c . <<< "$identities" || true)"
+  [[ "$count" -ge 1 ]] || die "no valid \"Developer ID Application\" identity for team $team in ${PEEP_SIGNING_KEYCHAIN:-the keychain search list}" 78
+  [[ "$count" -eq 1 ]] || die "$count Developer ID Application identities for team $team; set PEEP_SIGNING_IDENTITY to one's SHA-1" 78
+  identity_line="$identities"
+fi
+identity="$(awk '{print $2}' <<< "$identity_line")"
+identity_name="$(sed -E 's/^[^"]*"(.*)"$/\1/' <<< "$identity_line")"
+
+# Sparkle's public key: the build fails on a bad key too, but say why before building.
+sparkle_key="$(sed -nE 's/^SPARKLE_PUBLIC_ED_KEY = (.*)$/\1/p' Config/Shared.xcconfig)"
+key_bytes="$(printf '%s' "$sparkle_key" | base64 -D 2> /dev/null | wc -c | tr -d ' ')"
+if [[ "$key_bytes" != 32 ]]; then
+  die "SPARKLE_PUBLIC_ED_KEY in Config/Shared.xcconfig isn't a base64 Ed25519 public key; set it to Sparkle's generate_keys output (docs/RELEASING.md)" 78
+fi
+
+notary_auth=()
+if [[ "$skip_notarize" -eq 0 ]]; then
+  if [[ -n "${NOTARY_KEY_P8:-}" ]]; then
+    [[ -n "${NOTARY_KEY_ID:-}" && -n "${NOTARY_ISSUER_ID:-}" ]] \
+      || die "NOTARY_KEY_P8 needs NOTARY_KEY_ID and NOTARY_ISSUER_ID" 78
+    notary_key_file="$(umask 077 && mktemp "${TMPDIR:-/tmp}/peep-notary.XXXXXXXX")"
+    chmod 600 "$notary_key_file"
+    printf '%s\n' "$NOTARY_KEY_P8" > "$notary_key_file"
+    notary_auth=(--key "$notary_key_file" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID")
+  elif [[ -n "${PEEP_NOTARY_PROFILE:-}" ]]; then
+    notary_auth=(--keychain-profile "$PEEP_NOTARY_PROFILE")
+  else
+    die "no notary credentials: set NOTARY_KEY_P8, NOTARY_KEY_ID, and NOTARY_ISSUER_ID, or PEEP_NOTARY_PROFILE (or pass --skip-notarize)" 78
+  fi
+fi
+
+log "Peep $version, team $team, signing as \"$identity_name\""
+
+# --- Build -------------------------------------------------------------------------------------
+
+rm -rf "$OUT"
+mkdir -p "$OUT" "$NOTARY_DIR"
+
+log "generating the man page and completions (make cli-docs)"
+make cli-docs
+
+log "generating Peep.xcodeproj"
+xcodegen generate --quiet
+
+# Built ad hoc: every Mach-O is signed below with the Developer ID identity, so the build needs no
+# keychain or team. No injected base entitlements (get-task-allow), which notarization refuses.
+log "archiving the Release build"
+xcodebuild -quiet \
+  -project Peep.xcodeproj -scheme Peep -configuration Release \
+  -destination 'generic/platform=macOS' -derivedDataPath "$DERIVED" \
+  -archivePath "$ARCHIVE" archive \
+  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
+
+archived_app="$ARCHIVE/Products/Applications/Peep.app"
+[[ -d "$archived_app" ]] || die "the archive has no Peep.app at $archived_app"
+mkdir -p "$DMG_ROOT"
+ditto "$archived_app" "$DMG_ROOT/Peep.app"
+app="$DMG_ROOT/Peep.app"
+
+built_version="$(plutil -extract CFBundleShortVersionString raw "$app/Contents/Info.plist")"
+[[ "$built_version" == "$version" ]] || die "built CFBundleShortVersionString $built_version, expected $version"
+
+# --- Sign, inside out --------------------------------------------------------------------------
+
+sign() {
+  codesign --force --sign "$identity" --options runtime --timestamp \
+    ${keychain_args[@]+"${keychain_args[@]}"} "$@"
+}
+
+log "signing Sparkle"
+sparkle_version_dir="$app/$SPARKLE_RELATIVE/Versions/B"
+for item in XPCServices/Installer.xpc XPCServices/Downloader.xpc Autoupdate Updater.app; do
+  [[ -e "$sparkle_version_dir/$item" ]] || die "Sparkle's layout changed: no $item (update scripts/package-release)"
+done
+sign "$sparkle_version_dir/XPCServices/Installer.xpc"
+# Sparkle's docs: keep the downloader's (sandbox) entitlements.
+sign --preserve-metadata=entitlements "$sparkle_version_dir/XPCServices/Downloader.xpc"
+sign "$sparkle_version_dir/Autoupdate"
+sign "$sparkle_version_dir/Updater.app"
+sign "$app/$SPARKLE_RELATIVE"
+
+# The helper gets its bundle id as identifier (an ad hoc build names it peep-<hash>) and no
+# entitlements: Xcode's ad hoc signature adds com.apple.application-identifier, which needs a
+# provisioning profile. The app gets exactly App/Peep.entitlements.
+log "signing the peep helper and the app"
+bundle_id_base="$(sed -nE 's/^PRODUCT_BUNDLE_IDENTIFIER_BASE = (.*)$/\1/p' Config/Shared.xcconfig)"
+[[ -n "$bundle_id_base" ]] || die "PRODUCT_BUNDLE_IDENTIFIER_BASE not found in Config/Shared.xcconfig"
+sign --identifier "$bundle_id_base.cli" "$app/Contents/Helpers/peep"
+sign --entitlements App/Peep.entitlements "$app"
+
+# --- Verify signatures -------------------------------------------------------------------------
+
+log "verifying the app's signature"
+codesign --verify --deep --strict --verbose=2 "$app"
+
+# Every Mach-O: Developer ID of our team, hardened runtime, secure timestamp, and no
+# get-task-allow or application-identifier. Anything new in the bundle that the steps above
+# don't sign fails here.
+log "checking every Mach-O in the bundle"
+macho_count=0
+while IFS= read -r -d '' file; do
+  if ! file -b "$file" | grep -q '^Mach-O'; then
+    continue
+  fi
+  macho_count=$((macho_count + 1))
+  details="$(codesign -d --verbose=4 "$file" 2>&1)" || die "not signed: $file"
+  name="${file#"$DMG_ROOT/"}"
+  grep -qE '^CodeDirectory .*flags=0x[0-9a-f]+\([^)]*runtime' <<< "$details" || die "no hardened runtime: $name"
+  grep -q '^Timestamp=' <<< "$details" || die "no secure timestamp: $name"
+  grep -qx "TeamIdentifier=$team" <<< "$details" || die "not signed by team $team: $name"
+  grep -q '^Authority=Developer ID Application: ' <<< "$details" || die "not signed with Developer ID: $name"
+  entitlements="$(codesign -d --entitlements - --xml "$file" 2> /dev/null || true)"
+  for restricted in com.apple.security.get-task-allow com.apple.application-identifier; do
+    if grep -qF "<key>$restricted</key>" <<< "$entitlements"; then
+      die "$restricted entitlement: $name"
+    fi
+  done
+done < <(find "$app" -type f -print0)
+[[ "$macho_count" -gt 0 ]] || die "found no Mach-O files in $app"
+helper_identifier="$(codesign -d --verbose=2 "$app/Contents/Helpers/peep" 2>&1 | sed -n 's/^Identifier=//p')"
+[[ "$helper_identifier" == "$bundle_id_base.cli" ]] || die "the helper's identifier is $helper_identifier"
+log "$macho_count Mach-O files: Developer ID, hardened runtime, secure timestamp"
+
+# --- DMG ---------------------------------------------------------------------------------------
+
+log "creating $dmg"
+ln -s /Applications "$DMG_ROOT/Applications"
+hdiutil create -quiet -volname Peep -srcfolder "$DMG_ROOT" -fs HFS+ -format UDZO -ov "$dmg"
+codesign --force --sign "$identity" --timestamp ${keychain_args[@]+"${keychain_args[@]}"} "$dmg"
+codesign --verify --strict --verbose=2 "$dmg"
+
+# --- Notarize and staple -----------------------------------------------------------------------
+
+if [[ "$skip_notarize" -eq 0 ]]; then
+  log "notarizing (xcrun notarytool submit --wait)"
+  submit_json="$NOTARY_DIR/submit.json"
+  submit_status=0
+  xcrun notarytool submit "$dmg" "${notary_auth[@]}" --wait --output-format json > "$submit_json" || submit_status=$?
+  submission_id="$(plutil -extract id raw "$submit_json" 2> /dev/null || true)"
+  notary_status="$(plutil -extract status raw "$submit_json" 2> /dev/null || true)"
+  if [[ -n "$submission_id" ]]; then
+    xcrun notarytool log "$submission_id" "${notary_auth[@]}" "$NOTARY_DIR/log.json" > /dev/null || true
+  fi
+  if [[ "$submit_status" -ne 0 || "$notary_status" != "Accepted" ]]; then
+    cat "$submit_json" >&2 || true
+    if [[ -f "$NOTARY_DIR/log.json" ]]; then
+      echo "notarytool log:" >&2
+      cat "$NOTARY_DIR/log.json" >&2
+    fi
+    die "notarization ${notary_status:-failed} (submission ${submission_id:-unknown})"
+  fi
+  log "notarized (submission $submission_id); log in $NOTARY_DIR/log.json"
+
+  log "stapling"
+  xcrun stapler staple "$dmg"
+  xcrun stapler validate "$dmg"
+else
+  log "skipping notarization and stapling (--skip-notarize)"
+fi
+
+# --- Verify the package, then smoke-test its CLI -----------------------------------------------
+
+mount_point="$(mktemp -d "${TMPDIR:-/tmp}/peep-release.XXXXXXXX")"
+hdiutil attach -quiet -nobrowse -readonly -noautoopen -mountpoint "$mount_point" "$dmg"
+packaged_app="$mount_point/Peep.app"
+[[ -d "$packaged_app" ]] || die "the DMG has no Peep.app"
+[[ "$(readlink "$mount_point/Applications")" == /Applications ]] || die "the DMG has no /Applications link"
+
+log "verifying the packaged app"
+codesign --verify --deep --strict --verbose=2 "$packaged_app"
+if [[ "$skip_notarize" -eq 0 ]]; then
+  spctl -a -t exec -vv "$packaged_app"
+  spctl -a -t open --context context:primary-signature -vv "$dmg"
+else
+  log "skipping spctl (Gatekeeper rejects un-notarized Developer ID builds)"
+fi
+
+log "smoke-testing the packaged peep helper"
+helper="$packaged_app/Contents/Helpers/peep"
+helper_version="$("$helper" --version)"
+[[ "$helper_version" == "$version" ]] || die "peep --version printed $helper_version, expected $version"
+"$helper" --html README.md | grep -q '<h1' || die "peep --html README.md printed no heading"
+printf '# x\n' | "$helper" --html | grep -qE '<h1[^>]*>.*x</h1>' || die "echo '# x' | peep --html printed no heading"
+
+hdiutil detach -quiet "$mount_point"
+rmdir "$mount_point"
+mount_point=""
+
+# --- Checksum ----------------------------------------------------------------------------------
+
+(cd "$OUT" && shasum -a 256 "$dmg_name" > "$dmg_name.sha256")
+rm -rf "$DMG_ROOT"
+
+log "done: $dmg"
+if [[ "$skip_notarize" -eq 1 ]]; then
+  log "NOT notarized (--skip-notarize): Gatekeeper will refuse it on another Mac"
+fi
+cat "$dmg.sha256"

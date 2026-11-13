@@ -910,6 +910,68 @@ Ship a first public release, v0.1.0.
 **Exit criteria:** a v0.1.0 build downloaded from GitHub installs cleanly, passes Gatekeeper, and
 updates itself to v0.1.1 via Sparkle.
 
+**Decisions:**
+
+- Acknowledgements (#85): `Acknowledgements/Acknowledgements.json` lists every bundled
+  component with its license file (copied verbatim from upstream, source URL recorded; vendored
+  sources keep theirs in `Vendor/<name>/LICENSE`). `Acknowledgements/` and `Vendor/` ship in the
+  app's resources, and the About panel's credits are built from them in code (`AboutPanel`), not
+  a Credits.html (no HTML import, and the text follows dark mode). `AcknowledgementsTests` fails
+  when a `Vendor/` folder, a `Package.resolved` pin, or a remote `project.yml` package has no
+  entry. Beyond the planned list: LibYAML (inside Yams) and the HTML Standard's entity list
+  (`HTMLEntityTable`, BSD-3-Clause in source code). Sparkle's entry is in ahead of #81.
+- Updates (#81): Sparkle 2.10.1 (exact pin, app target only). Strictest settings Sparkle has:
+  HTTPS feed, `SURequireSignedFeed` (the appcast and release notes are EdDSA-signed by
+  `generate_appcast`), and `SUVerifyUpdateBeforeExtraction`; so key rotation needs a Developer ID
+  signed DMG, which #82 ships anyway. `SUEnableAutomaticChecks` is unset: Sparkle asks on the
+  second launch instead of checking without consent. Settings > General's rows are Sparkle's
+  own settings, not keys of ours. Only Release starts the updater; Debug needs
+  `-PeepUpdateFeedURL` (the documented manual check against a local appcast is in
+  `App/Updates/SoftwareUpdates.swift`), and tests and cold-open measurements never start it.
+  The public key is `SPARKLE_PUBLIC_ED_KEY`; Release builds fail if it's not a 32-byte key. One default channel; a beta channel is room
+  left in `SparkleUpdater.allowedChannels(for:)` (VISION).
+- Homebrew cask (#84): `brew install --cask itspriddle/brews/peep`. The cask's source is
+  `Packaging/homebrew/peep.rb` here, not the tap: `scripts/render-cask X.Y.Z SHA256` fills in
+  the version and the DMG's sha256, and the release workflow (#83) pushes the result to
+  `Casks/peep.rb` in `itspriddle/homebrew-brews` with `HOMEBREW_TAP_TOKEN` (the tap's
+  `bump-formula` workflow only handles `Formula/`). `auto_updates true` (Sparkle updates it;
+  `brew upgrade` skips it without `--greedy`), `depends_on macos: :sequoia` (`brew style`
+  rewrites `">= :sequoia"` to this), and `binary`, `manpage`, and completion stanzas pointing
+  into the bundle. `zap` trashes `~/Library/Application Support/Peep` (custom themes included),
+  the preferences, saved state, caches (Sparkle's too), HTTPStorages, and WebKit data for
+  `now.peep.Peep`; it leaves a link made by Install Command Line Tool… (not Homebrew's to
+  remove). The cask's links are Homebrew's: when `<prefix>/Caskroom/peep` exists and
+  `<prefix>/bin/peep` is our link, the menu item says Homebrew installed it instead of
+  installing a second `peep` (Apple silicon) or offering to uninstall the cask's link from
+  `/usr/local/bin` (Intel) (`HomebrewCask`).
+- Packaging (#82): `scripts/package-release` (`make release`; `docs/RELEASING.md`) archives
+  Release ad hoc and signs every Mach-O itself, inside out (Sparkle's documented order, then the
+  helper and the app), with `--options runtime --timestamp`, rather than
+  `-exportArchive`: one signing pass the script then checks per Mach-O (team, runtime,
+  timestamp, no `get-task-allow` or `application-identifier`), and `codesign --keychain` takes
+  CI's throwaway keychain without Xcode needing it. A UDZO DMG (app plus `/Applications` link,
+  volume "Peep", no background) is signed, notarized with an App Store Connect API key (or a
+  local `notarytool` profile), stapled, mounted, and verified with `codesign` and `spctl`; the
+  packaged `peep` is smoke-tested from it. Universal (arm64 and x86_64). The helper needs no
+  `com.apple.security.automation.apple-events`: its direct `Peep/odoc` path sends only to its
+  own app, which TCC sees as the app sending to itself (tested with a Developer ID, hardened
+  runtime build next to a second copy).
+- Release workflow (#83): a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`: `check`
+  (no secrets: tag shape, `check-version`, on `main`, newer than the latest release, not already
+  published) → `build` (`release` environment: throwaway keychain, `package-release`,
+  `release-appcast`) → `publish` (draft, upload, publish; the only `contents: write` job) →
+  `site` and `cask` (`release` environment again, so two approvals per release). Pre-release
+  tags are refused. The appcast is signed in `build` and attached to the release, not
+  assembled by the site from per-release items as first planned: `SURequireSignedFeed` (#81)
+  needs the feed itself signed, and the site must not hold the key. Each release's feed is the
+  previous release's (signature verified) plus the new item; the site build copies the latest
+  published release's `appcast.xml` into `dist/` (none before the first release). A published
+  DMG is never rebuilt or re-signed; recovery is re-running failed jobs or a new patch version
+  (`docs/RELEASING.md`). `deploy-site.yml` keeps its `required` Cloudflare secrets and the
+  release workflow passes them by name: GitHub resolves them in the called job's `site`
+  environment but only if the caller passes them. The tag message's body is the release
+  summary (GitHub Release and Sparkle's alert, Markdown).
+
 ## 1.0
 
 A running list of what 1.0 includes, in rough priority order. Each becomes its own milestone

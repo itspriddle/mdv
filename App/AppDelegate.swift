@@ -17,11 +17,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private(set) var customThemes: CustomThemeLibrary?
     /// App menu > Install Command Line Tool… (#70).
     let commandLineTool = CommandLineToolController()
+    /// Sparkle (#81), or an inactive stand-in where updates are off (`SoftwareUpdates`): App menu
+    /// > Check for Updates… and Settings > General's update rows.
+    let updater: any SoftwareUpdating
     /// The Settings window, created the first time it is shown and reused after.
     private var settingsWindowController: SettingsWindowController?
 
-    init(appearanceSettings: AppearanceSettings = .shared) {
+    init(appearanceSettings: AppearanceSettings = .shared, updater: (any SoftwareUpdating)? = nil) {
         self.appearanceSettings = appearanceSettings
+        self.updater = updater ?? SoftwareUpdates.makeUpdater()
         super.init()
     }
 
@@ -68,6 +72,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         if !Self.isHostingUnitTests {
             defaultViewerOffer.start()
         }
+        // Sparkle schedules its first check itself (and asks about automatic checks on the second
+        // launch); an inactive updater does nothing.
+        updater.start()
         openUITestDocuments(UITestHooks.documentsToOpen[...])
     }
 
@@ -124,6 +131,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         false
     }
 
+    /// App menu > About Peep: the standard panel with the acknowledgements as credits (#85).
+    @objc func showAboutPanel(_ sender: Any?) {
+        AboutPanel.show()
+    }
+
     /// App menu > Settings… (`SettingsMenu`): shows the one Settings window.
     @objc func showSettings(_ sender: Any?) {
         let controller = settingsWindowController ?? makeSettingsWindowController()
@@ -138,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
         return SettingsWindowController(
             model: SettingsModel(
-                appearanceSettings: appearanceSettings, defaultViewerOffer: defaultViewerOffer,
+                appearanceSettings: appearanceSettings, updater: updater, defaultViewerOffer: defaultViewerOffer,
                 openThemesFolder: openThemesFolder))
     }
 
@@ -153,8 +165,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         Task { await commandLineTool.run() }
     }
 
+    /// App menu > Check for Updates… (`UpdatesMenu`, #81).
+    @objc func checkForUpdates(_ sender: Any?) {
+        updater.checkForUpdates()
+    }
+
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
+        case #selector(checkForUpdates(_:)):
+            return updater.canCheckForUpdates
         case #selector(openThemesFolder(_:)):
             return customThemes != nil
         case #selector(chooseAppearance(_:)):

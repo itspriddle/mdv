@@ -23,6 +23,11 @@ CLI_DOCS      := build/cli-docs
 ifeq ($(SIGN),0)
 XCODEBUILD += CODE_SIGNING_ALLOWED=NO
 endif
+# Release DMG (#82): make release, or make release NOTARIZE=0 for a local dry run.
+RELEASE_FLAGS :=
+ifeq ($(NOTARIZE),0)
+RELEASE_FLAGS += --skip-notarize
+endif
 # UI tests always sign: Gatekeeper refuses to run an unsigned UI test runner. SIGN is ignored;
 # sign with the team in Config/Local.xcconfig if present, else ad hoc ("Sign to Run Locally").
 ifneq ($(wildcard Config/Local.xcconfig),)
@@ -33,7 +38,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: help bootstrap generate build test test-core test-app test-ui cli-docs record-theme-snapshots lint format emoji html-entities app-icon vendor-highlightjs vendor-github-markdown-css clean
+.PHONY: help bootstrap generate build test test-core test-app test-ui cli-docs record-theme-snapshots lint format emoji html-entities release app-icon vendor-highlightjs vendor-github-markdown-css clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -65,7 +70,11 @@ test-ui: generate ## Run UI tests (always signed; see CLAUDE.md)
 	rm -rf $(UI_RESULT)
 	$(XCODEBUILD_UI) test -only-testing:AppUITests -resultBundlePath $(UI_RESULT)
 
-lint: ## Lint with SwiftLint and swift-format
+release: ## Package the signed, notarized DMG into build/release (NOTARIZE=0 to skip notarizing)
+	scripts/package-release $(RELEASE_FLAGS)
+
+lint: ## Lint with SwiftLint and swift-format, and check the version agrees
+	scripts/check-version
 	swiftlint lint --strict
 	swift format lint --strict --recursive App AppTests AppUITests CLI Sources Tests Package.swift
 

@@ -17,6 +17,7 @@ import PeepCore
 /// | Frontmatter display | `MarkdownSettings.frontmatterDisplay` | every document, live (#55) |
 /// | Built-in preprocessors | `MarkdownSettings.builtInPreprocessors` | every document, live (#55) |
 /// | Custom preprocessor | `CustomPreprocessorSettings`, via `customPreprocessor` | every document, live (#57) |
+/// | Automatic update checks and downloads | Sparkle's updater, via `updater` (`SoftwareUpdating`) | the app (#81) |
 ///
 /// Every store takes an injectable `UserDefaults` suite and is in memory under UI tests, so
 /// hosted tests build the model over throwaway stores. The model mirrors the stores in
@@ -38,6 +39,9 @@ final class SettingsModel: NSObject {
     @ObservationIgnored let outlinePreference: OutlinePreference
     @ObservationIgnored let markdownSettings: MarkdownSettings
     @ObservationIgnored let defaultViewerOffer: DefaultViewerOfferController
+    /// Sparkle's updater (#81), which owns the update settings; inactive (in memory) by default,
+    /// so a model built without one never touches the reader's settings or the network.
+    @ObservationIgnored let updater: any SoftwareUpdating
     /// Settings > Markdown > Custom preprocessor (#57), with its own model and store.
     @ObservationIgnored let customPreprocessor: CustomPreprocessorModel
     /// Opens the custom themes folder (#35, the same action as View > Theme > Open Themes
@@ -67,6 +71,12 @@ final class SettingsModel: NSObject {
     private(set) var frontmatterDisplay = FrontmatterDisplay.hidden
     /// The built-in preprocessors that are on (a subset of `optionalPreprocessors`).
     private(set) var builtInPreprocessors: Set<MarkdownTransform> = []
+    /// Whether this build checks for updates at all (`SoftwareUpdates`).
+    private(set) var isUpdaterActive = false
+    private(set) var automaticallyChecksForUpdates = false
+    private(set) var automaticallyDownloadsUpdates = false
+    /// Whether the automatic downloads row is enabled (it needs automatic checks).
+    private(set) var allowsAutomaticUpdates = false
 
     init(
         appearanceSettings: AppearanceSettings = .shared,
@@ -76,6 +86,7 @@ final class SettingsModel: NSObject {
         outlinePreference: OutlinePreference = OutlinePreference(),
         markdownSettings: MarkdownSettings = .shared,
         customPreprocessor: CustomPreprocessorModel? = nil,
+        updater: (any SoftwareUpdating)? = nil,
         defaultViewerOffer: DefaultViewerOfferController,
         openThemesFolder: (@MainActor () -> Void)? = nil
     ) {
@@ -87,6 +98,7 @@ final class SettingsModel: NSObject {
         self.outlinePreference = outlinePreference
         self.markdownSettings = markdownSettings
         self.defaultViewerOffer = defaultViewerOffer
+        self.updater = updater ?? InactiveUpdater()
         openThemesFolderAction = openThemesFolder
         super.init()
         refresh()
@@ -126,6 +138,10 @@ final class SettingsModel: NSObject {
         frontmatterDisplay = markdownSettings.frontmatterDisplay
         builtInPreprocessors = markdownSettings.builtInPreprocessors
         customPreprocessor.refresh()
+        isUpdaterActive = updater.isActive
+        automaticallyChecksForUpdates = updater.automaticallyChecksForUpdates
+        automaticallyDownloadsUpdates = updater.automaticallyDownloadsUpdates
+        allowsAutomaticUpdates = updater.allowsAutomaticUpdates
     }
 
     // MARK: Changes
@@ -196,6 +212,18 @@ final class SettingsModel: NSObject {
             enabled.remove(preprocessor)
         }
         markdownSettings.builtInPreprocessors = enabled
+        refresh()
+    }
+
+    /// Sparkle checks for updates once a day (or stops). Sparkle stores it.
+    func setAutomaticallyChecksForUpdates(_ checks: Bool) {
+        updater.automaticallyChecksForUpdates = checks
+        refresh()
+    }
+
+    /// Updates found by automatic checks download and install on their own (or ask first).
+    func setAutomaticallyDownloadsUpdates(_ downloads: Bool) {
+        updater.automaticallyDownloadsUpdates = downloads
         refresh()
     }
 

@@ -6,7 +6,8 @@ import AppKit
 final class MainMenu {
     /// Features that add menu items, in order. Each feature adds one line here.
     static let contributions: [any MenuContribution.Type] = [
-        SettingsMenu.self, CommandLineToolMenu.self, OutlineMenu.self, AppearanceMenu.self, ThemeMenu.self,
+        UpdatesMenu.self, SettingsMenu.self, CommandLineToolMenu.self, OutlineMenu.self, AppearanceMenu.self,
+        ThemeMenu.self,
         ZoomMenu.self, ContentWidthMenu.self,
         PrintMenu.self,
         CopyMenu.self, FindMenu.self,
@@ -67,7 +68,7 @@ final class MainMenu {
         return menu(
             appName,
             [
-                [NSMenuItem("About \(appName)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)))]
+                [NSMenuItem("About \(appName)", action: #selector(AppDelegate.showAboutPanel(_:)))]
             ] + groups(for: .app) + [
                 [NSMenuItem("Services", submenu: NSMenu(title: "Services"))],
                 [
