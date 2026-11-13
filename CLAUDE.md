@@ -17,6 +17,7 @@ make build            # app + embedded CLI (signed via Config/Local.xcconfig); S
 make lint             # swiftlint --strict + swift format lint --strict + check-version (CI runs this)
 scripts/bump-version X.Y.Z   # set MARKETING_VERSION and PeepInfo.version, increment CURRENT_PROJECT_VERSION
 scripts/check-version [vX.Y.Z]  # fail if those versions disagree, or don't match the tag
+scripts/render-cask X.Y.Z SHA256  # print the Homebrew cask (Packaging/homebrew/peep.rb) for a release
 make format           # auto-format; run before committing
 make emoji            # regenerate Generated/EmojiTable.swift from github/gemoji (pinned commit)
 make html-entities    # regenerate Generated/HTMLEntityTable.swift from the WHATWG entity list
@@ -153,6 +154,9 @@ lock the build database.
     the hook for #71), `PrivilegedRunning` (`AppleScriptPrivilegedRunner`, values passed as
     Apple event parameters), `CommandLineToolLocation` (`~/.local/bin`, `/usr/local/bin`, or
     the UI-test folder; `LoginShellPath`), and `CommandLineToolController` (menu state, alerts).
+    `HomebrewCask` (#84): a prefix whose `Caskroom/peep` exists and whose `bin/peep` is our
+    link is Homebrew's; the item becomes Command Line Tool Installed by Homebrew… (an alert
+    only), and that folder is never offered for install or uninstall. No prefixes under tests.
   - `Updates/` (#81): Sparkle 2 (app target only). `SoftwareUpdating` (what the menu and
     Settings use; fakes in tests), `SparkleUpdater` (`SPUStandardUpdaterController`, started from
     `AppDelegate.applicationDidFinishLaunching`; channels), `InactiveUpdater` (in memory, never
@@ -275,6 +279,11 @@ lock the build database.
   references come from CI's `theme-snapshots` artifact (`recorded/`). Mismatches write
   actual/reference/diff PNGs to `build/theme-snapshots/` (CI uploads it).
 - `project.yml`: XcodeGen spec. Never commit `Peep.xcodeproj`; edit `project.yml` instead.
+- `Packaging/homebrew/peep.rb` (#84): the source of the tap's `Casks/peep.rb`
+  (`itspriddle/homebrew-brews`); `scripts/render-cask` fills in `version` and `sha256`. A
+  change to the bundle layout (helper, man page, completions) or to where the app stores files
+  (the `zap` list) updates it. Check it with `brew style` and `brew audit --cask --strict` in a
+  scratch tap (`brew tap-new`, `brew trust`, then untrust and untap).
 - `CONTRIBUTING.md`, `SECURITY.md` (private reports via GitHub security advisories), and
   `.github/ISSUE_TEMPLATE/` (bug and feature forms; `config.yml` sends security reports to the
   advisory form): the human-facing versions of this file's rules; keep them in step.
