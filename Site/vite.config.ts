@@ -1,8 +1,6 @@
-import tailwindcss from "@tailwindcss/vite";
-import vue from "@vitejs/plugin-vue";
-import { defineConfig, lazyPlugins } from "vite-plus";
+import { defineConfig } from "vite-plus";
 
-// https://vite.dev/config/
+// vp's format, lint, and test settings. Astro builds the site (astro.config.ts).
 export default defineConfig({
     fmt: {},
     lint: {
@@ -11,5 +9,4 @@ export default defineConfig({
         options: { typeAware: true, typeCheck: true },
     },
     test: { passWithNoTests: true },
-    plugins: lazyPlugins(() => [vue(), tailwindcss()]),
 });

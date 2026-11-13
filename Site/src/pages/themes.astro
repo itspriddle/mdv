@@ -1,0 +1,23 @@
+---
+import { getEntry, render } from "astro:content";
+import Base from "../layouts/Base.astro";
+
+// docs/THEMES.md, rendered as is (src/content.config.ts). Its first heading is the title.
+const entry = await getEntry("docs", "themes");
+if (entry === undefined) {
+    throw new Error("docs/THEMES.md is missing from the docs collection");
+}
+const { Content, headings } = await render(entry);
+const heading = headings.find((candidate) => candidate.depth === 1)?.text ?? "Themes";
+---
+
+<Base
+    title={`${heading} · Peep`}
+    description="How to write a Peep theme: one plain CSS file in the Themes folder, with light and dark mode, print, and the HTML it styles."
+>
+    <main class="border-t border-mist py-12 dark:border-white/10">
+        <article class="doc prose max-w-[48rem] prose-neutral dark:prose-invert">
+            <Content />
+        </article>
+    </main>
+</Base>

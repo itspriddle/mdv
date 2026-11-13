@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@fontsource-variable/dm-sans";
 @import "@fontsource/dm-mono/latin-400.css";
+@plugin "@tailwindcss/typography";
 
 /* Brand tokens (Branding/ holds the logo sources). Fonts are self-hosted: the CSP allows no
    third-party origins. */
@@ -11,4 +12,76 @@
     --color-paper: #ffffff;
     --color-highlighter: #ffd43b;
     --color-mist: #e7e9ee;
+}
+
+/* Doc pages (src/pages/*.astro over docs/). Inline code gets a tint instead of the typography
+   plugin's backticks; code blocks are always dark, like the home page's terminal. */
+@layer components {
+    .doc {
+        --tw-prose-pre-bg: var(--color-ink);
+        --tw-prose-invert-pre-bg: rgb(0 0 0 / 0.4);
+        --tw-prose-links: var(--color-ink);
+        --tw-prose-invert-links: var(--color-paper);
+    }
+    .doc :where(code):not(:where(pre *))::before,
+    .doc :where(code):not(:where(pre *))::after {
+        content: none;
+    }
+    .doc :where(code):not(:where(pre *)) {
+        border-radius: 0.3em;
+        background: rgb(0 0 0 / 0.06);
+        padding: 0.1em 0.3em;
+        font-weight: 400;
+    }
+    .doc :where(h2, h3, h4) {
+        scroll-margin-top: 1rem;
+    }
+    .doc :where(table) {
+        display: block;
+        overflow-x: auto;
+    }
+    @media (prefers-color-scheme: dark) {
+        .doc :where(code):not(:where(pre *)) {
+            background: rgb(255 255 255 / 0.1);
+        }
+    }
+}
+
+/* Prism token classes (astro.config.ts: Prism, not Shiki, so no inline styles). Tuned for the
+   always-dark code block. */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #8b93a1;
+}
+.token.punctuation {
+    color: #c9ced8;
+}
+.token.tag,
+.token.selector,
+.token.atrule,
+.token.keyword {
+    color: #ff9e7a;
+}
+.token.property,
+.token.attr-name,
+.token.key {
+    color: #8fd3ff;
+}
+.token.string,
+.token.attr-value,
+.token.url {
+    color: #b9e98a;
+}
+.token.number,
+.token.boolean,
+.token.unit,
+.token.hexcode,
+.token.color {
+    color: var(--color-highlighter);
+}
+.token.function,
+.token.important {
+    color: #d8b4fe;
 }
