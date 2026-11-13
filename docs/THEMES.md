@@ -24,9 +24,8 @@ rejects (and why). A [complete example theme](#a-complete-example) is at the end
    .markdown-body h1, .markdown-body h2 { color: #8a3b12; }
    ```
 
-3. Open a Markdown file and choose **View > Theme > My Theme** (or use the theme menu in the
-   window's toolbar). To use it for every new window, pick it under **Settings > General >
-   Default theme**.
+3. Open a Markdown file and choose **View > Theme > My Theme**. To use it for every new window,
+   pick it under **Settings > General > Default theme**.
 4. Edit the file in any editor. Each save updates every window showing the theme, in place,
    keeping your reading position.
 

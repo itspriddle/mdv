@@ -7,8 +7,12 @@ import Observation
 final class StatusBarModel {
     /// Whether the window shows the status bar (restorable).
     var isVisible: Bool
+    /// Whether the window shows the outline, for the outline toggle's on state. The window
+    /// controller keeps it in step with the sidebar (`DocumentWindowController.isOutlineVisible`).
+    var isOutlineVisible: Bool
 
-    init(isVisible: Bool) {
+    init(isVisible: Bool, isOutlineVisible: Bool = false) {
         self.isVisible = isVisible
+        self.isOutlineVisible = isOutlineVisible
     }
 }

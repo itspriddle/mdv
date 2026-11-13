@@ -10,6 +10,7 @@ struct DocumentView: View {
     let renderProgress: RenderProgress
     let statusBar: StatusBarModel
     let loadRemoteImages: () -> Void
+    let toggleOutline: () -> Void
 
     var body: some View {
         MarkdownWebView(coordinator: coordinator)
@@ -31,7 +32,7 @@ struct DocumentView: View {
             // After the link status overlay, so it floats above the bar rather than over it.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if statusBar.isVisible {
-                    StatusBar(document: document)
+                    StatusBar(document: document, model: statusBar, toggleOutline: toggleOutline)
                 }
             }
     }

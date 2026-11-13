@@ -1,7 +1,7 @@
 import XCTest
 
-/// The status bar: the document's word count, hidden and shown with View > Hide/Show Status Bar
-/// (Command-/).
+/// The status bar: the document's word count and the outline toggle, hidden and shown with
+/// View > Hide/Show Status Bar (Command-/).
 @MainActor
 final class StatusBarUITests: XCTestCase {
     private var peep: PeepUITestApp?
@@ -36,5 +36,25 @@ final class StatusBarUITests: XCTestCase {
         peep.app.menuBars.menuBarItems["View"].click()
         peep.app.menuBars.menuBarItems["View"].menuItems["Show Status Bar"].click()
         XCTAssertTrue(count.waitForExistence(timeout: PeepUITestApp.defaultTimeout))
+    }
+
+    func testOutlineToggleButton() throws {
+        let peep = try PeepUITestApp.launch(
+            openingFixture: "outline.md", arguments: ["-StatusBarVisible", "YES", "-OutlineVisible", "NO"])
+        self.peep = peep
+        let window = peep.waitForWindow(titled: "Outline Fixture")
+        peep.waitForRenderedText("Intro paragraph.", in: window)
+        let outline = peep.outline(in: window)
+        XCTAssertFalse(outline.isHittable, "the outline starts hidden")
+
+        let toggle = peep.outlineToggle(in: window)
+        XCTAssertTrue(toggle.waitForExistence(timeout: PeepUITestApp.defaultTimeout))
+        toggle.click()
+        let final = peep.outlineText("Final Section", in: window)
+        XCTAssertTrue(final.waitForExistence(timeout: PeepUITestApp.defaultTimeout))
+
+        toggle.click()
+        let hidden = expectation(for: NSPredicate(format: "isHittable == false"), evaluatedWith: final)
+        wait(for: [hidden], timeout: PeepUITestApp.defaultTimeout)
     }
 }
