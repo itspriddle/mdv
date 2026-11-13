@@ -49,6 +49,15 @@ struct PreprocessorFixtures: ~Copyable {
         return CustomPreprocessor(configuration: configuration)
     }
 
+    /// A preprocessor running fixture `name` through `record-pid`, which appends the run's pid
+    /// to `pidLog` before becoming the fixture.
+    func preprocessor(
+        _ name: String, arguments: [String] = [], recordingPIDsTo pidLog: String,
+        limits: PreprocessorLimits = shortLimits
+    ) throws -> CustomPreprocessor {
+        try preprocessor("record-pid", arguments: [pidLog, try script(name)] + arguments, limits: limits)
+    }
+
     /// A fresh path in the folder for a script to write pids to.
     func pidFile() -> String {
         folder.appending(path: "pids-\(UUID().uuidString)").path(percentEncoded: false)
