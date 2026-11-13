@@ -4,6 +4,11 @@ import PeepWordmark from "./components/PeepWordmark.vue";
 
 const repository = "https://github.com/itspriddle/peep";
 
+// /download redirects to the latest release's DMG (scripts/release.ts writes the rule).
+const download = "/download";
+const releaseNotes = `${repository}/releases/latest`;
+const homebrew = "brew install --cask itspriddle/brews/peep";
+
 const features = [
     {
         title: "Native and fast",
@@ -83,19 +88,33 @@ const commands = [
                         </p>
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
                             <a
-                                :href="repository"
+                                :href="download"
                                 class="inline-flex min-h-12 items-center rounded-xl bg-highlighter px-5.5 font-semibold text-ink hover:brightness-95"
+                            >
+                                Download for macOS
+                            </a>
+                            <a
+                                :href="repository"
+                                class="inline-flex min-h-12 items-center rounded-xl border border-neutral-300 px-5.5 font-semibold hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
                             >
                                 View on GitHub
                             </a>
-                            <span
-                                class="inline-flex min-h-9 items-center rounded-full border border-neutral-300 px-3.5 text-sm text-neutral-600 dark:border-white/20 dark:text-neutral-300"
+                        </div>
+                        <div class="flex max-w-[34rem] flex-col gap-2">
+                            <p class="text-sm text-neutral-600 dark:text-neutral-300">
+                                Or install with Homebrew:
+                            </p>
+                            <div
+                                class="overflow-x-auto rounded-xl bg-ink px-4.5 py-3 font-mono text-sm text-neutral-100 dark:bg-black/40 dark:ring-1 dark:ring-white/10"
                             >
-                                v0.1.0 coming soon
-                            </span>
+                                <span class="text-highlighter select-none">$ </span
+                                ><span class="whitespace-nowrap">{{ homebrew }}</span>
+                            </div>
                         </div>
                         <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                            macOS 15 or later. MIT licensed. No accounts, no cloud.
+                            macOS 15 or later. Updates itself.
+                            <a :href="releaseNotes" class="underline">Release notes</a>. MIT
+                            licensed. No accounts, no cloud.
                         </p>
                     </div>
 

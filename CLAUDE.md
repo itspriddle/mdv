@@ -307,9 +307,11 @@ lock the build database.
   publish) → `site` (calls `deploy-site.yml`) and `cask` (`release` environment: render-cask,
   push to the tap's `master`). `docs/RELEASING.md` has the run book.
 - `Site/` (peep.now, Vite+ `vp`, Vue, Cloudflare Workers static assets; `deploy-site.yml`):
-  `vp check`, `vp test`, `vp run build`. The build ends with `scripts/fetch-appcast.ts`, which
-  copies the latest published GitHub Release's signed `appcast.xml` into `dist/` (none before
-  the first release: a real 404, never HTML); the site never signs anything.
+  `vp check`, `vp test`, `vp run build`. The build ends with `scripts/fetch-release.ts`
+  (`scripts/release.ts`), which copies the latest published GitHub Release's signed
+  `appcast.xml` into `dist/` and writes `dist/_redirects` (`/download` → that release's
+  `Peep-X.Y.Z.dmg`, 302); neither exists before the first release (a real 404, never HTML).
+  The site never signs anything.
 
 ## Conventions
 
