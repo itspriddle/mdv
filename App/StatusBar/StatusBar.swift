@@ -2,14 +2,22 @@ import SwiftUI
 
 /// The strip along the bottom of a document window: quick facts about the document, leading,
 /// and window toggles, trailing. Toggled with View > Show/Hide Status Bar.
+///
+/// Painted with the window's theme background (`WindowChrome`), under a border in the theme's
+/// border color, so it blends with the page; its text and controls use the scheme that contrasts
+/// with that background.
 struct StatusBar: View {
     let document: MarkdownDocument
     let model: StatusBarModel
+    let chrome: WindowChrome
     let toggleOutline: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
+        let colors = chrome.colors(in: colorScheme)
         VStack(spacing: 0) {
-            Divider()
+            ChromeBorder(chrome: chrome)
             HStack(spacing: 12) {
                 WordCountItem(count: document.content?.page.wordCount)
                 Spacer(minLength: 0)
@@ -20,8 +28,9 @@ struct StatusBar: View {
             .lineLimit(1)
             .padding(.horizontal, 10)
             .frame(height: 22)
+            .environment(\.colorScheme, colors.contentScheme)
         }
-        .background(.bar)
+        .background(Color(colors.background))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("status-bar")
     }

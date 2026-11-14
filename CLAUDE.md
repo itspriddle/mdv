@@ -218,7 +218,12 @@ lock the build database.
   - `Window/`: `DocumentWindowController` (one per window, in the responder chain; feature
     actions go in `DocumentWindowController+<Feature>.swift`, menu validation in the one
     `validateMenuItem` switch in `+Outline.swift`), `DocumentWindow` (restorable state),
-    `DocumentView` (SwiftUI root: find bar, file status and remote image bars, link status).
+    `DocumentView` (SwiftUI root: find bar, file status and remote image bars, link status),
+    `WindowChrome` (the theme colors of the titlebar border and status bar; the titlebar is
+    transparent over the theme-colored window background, `applyWindowChrome()` also fills the
+    outline sidebar and its edge, and forces the window's appearance only when the theme
+    background's darkness doesn't match the system's). Dynamic theme `NSColor`s are named by
+    their colors: same-named dynamic colors are equal, and AppKit ignores an equal color.
   - `WebView/`: `WebViewCoordinator` owns the `DocumentWebView` (drops, context menu trimming):
     `prepareForFirstLoad()` (a blank page while the first render runs), `load`, `updateContent`,
     and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,

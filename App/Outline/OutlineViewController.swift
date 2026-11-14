@@ -25,6 +25,8 @@ final class OutlineViewController: NSViewController {
     let outlineView = OutlineTableView()
     private let scrollView = NSScrollView()
     private let emptyLabel = NSTextField(labelWithString: "No Headings")
+    /// The view, which draws the sidebar's theme fill and edge (`applyWindowChrome()`).
+    let chromeView = SidebarChromeView()
     private var rootItems: [OutlineItem] = []
     private var itemsByID: [String: OutlineItem] = [:]
     /// Whether `show(_:)` has been called: until then there is no outline to call empty.
@@ -66,7 +68,7 @@ final class OutlineViewController: NSViewController {
         emptyLabel.alignment = .center
         emptyLabel.setAccessibilityIdentifier("document-outline-empty")
 
-        let view = NSView()
+        let view = chromeView
         for subview in [scrollView, emptyLabel] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(subview)
@@ -362,39 +364,5 @@ final class OutlineItem: NSObject {
             textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
         ])
         return cell
-    }
-}
-
-/// The outline's `NSOutlineView`: Return or Enter activates the selected row, and losing
-/// keyboard focus is reported, so browsing with the keyboard ends.
-@MainActor
-final class OutlineTableView: NSOutlineView {
-    var onActivate: (() -> Void)?
-    var onResignFocus: (() -> Void)?
-
-    override func keyDown(with event: NSEvent) {
-        switch event.charactersIgnoringModifiers {
-        case "\r", "\u{3}":
-            onActivate?()
-        default:
-            super.keyDown(with: event)
-        }
-    }
-
-    override func resignFirstResponder() -> Bool {
-        let resigned = super.resignFirstResponder()
-        if resigned {
-            onResignFocus?()
-        }
-        return resigned
-    }
-
-    /// Whether the event being handled is a click on `row`'s disclosure triangle.
-    func isClickOnDisclosureTriangle(row: Int) -> Bool {
-        guard let event = window?.currentEvent, event.type == .leftMouseUp || event.type == .leftMouseDown else {
-            return false
-        }
-        let point = convert(event.locationInWindow, from: nil)
-        return frameOfOutlineCell(atRow: row).contains(point)
     }
 }

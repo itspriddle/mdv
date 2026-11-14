@@ -9,6 +9,7 @@ struct DocumentView: View {
     let remoteImages: RemoteImageOptIn
     let renderProgress: RenderProgress
     let statusBar: StatusBarModel
+    let chrome: WindowChrome
     let loadRemoteImages: () -> Void
     let toggleOutline: () -> Void
 
@@ -28,11 +29,14 @@ struct DocumentView: View {
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) { FindBar(find: coordinator.find) }
+            // Outermost, so it sits right under the titlebar (or the tab bar).
+            .safeAreaInset(edge: .top, spacing: 0) { ChromeBorder(chrome: chrome) }
             .overlay(alignment: .bottomLeading) { LinkStatusView(status: coordinator.linkStatus) }
             // After the link status overlay, so it floats above the bar rather than over it.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if statusBar.isVisible {
-                    StatusBar(document: document, model: statusBar, toggleOutline: toggleOutline)
+                    StatusBar(
+                        document: document, model: statusBar, chrome: chrome, toggleOutline: toggleOutline)
                 }
             }
     }

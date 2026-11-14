@@ -34,6 +34,29 @@ struct ThemeTests {
         }
     }
 
+    @Test("mixes colors per component, clamping the fraction")
+    func mixed() {
+        let black = ThemeColor(0), white = ThemeColor(0xFF_FF_FF)
+        #expect(black.mixed(with: white, fraction: 0) == black)
+        #expect(black.mixed(with: white, fraction: 1) == white)
+        #expect(black.mixed(with: white, fraction: 0.5) == ThemeColor(0x80_80_80))
+        #expect(ThemeColor(0x10_20_30).mixed(with: ThemeColor(0x30_20_10), fraction: 0.5) == ThemeColor(0x20_20_20))
+        #expect(black.mixed(with: white, fraction: -1) == black)
+        #expect(black.mixed(with: white, fraction: 2) == white)
+    }
+
+    @Test("the chrome border is darker on light backgrounds and lighter on dark ones")
+    func chromeBorder() {
+        func luminance(_ color: ThemeColor) -> Int { Int(color.red) + Int(color.green) + Int(color.blue) }
+        #expect(ThemeColor(0xFF_FF_FF).chromeBorder == ThemeColor(0xE0_E0_E0))
+        #expect(ThemeColor(0).chromeBorder == ThemeColor(0x26_26_26))
+        for theme in ThemeRegistry.bundled.themes {
+            let border = theme.background.chromeBorder
+            #expect(luminance(border.light) < luminance(theme.background.light), "\(theme.id) light")
+            #expect(luminance(border.dark) > luminance(theme.background.dark), "\(theme.id) dark")
+        }
+    }
+
     @Test("the page background is generated from the background the app paints before first load")
     func background() throws {
         let css = Theme.github.css
