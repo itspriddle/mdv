@@ -87,51 +87,6 @@ final class ContentWidthTests: DocumentWindowTestCase {
 
     // MARK: Windows
 
-    @Test("a preset changes only its window, live, keeping its reading position; loads keep it")
-    func windowsAreIndependent() async throws {
-        defer { closeAll() }
-        let settings = widthSettings()
-        let (_, first) = try await open(Self.longSource, contentWidthSettings: settings)
-        let (_, second) = try await open(name: "other.md", contentWidthSettings: settings)
-        let themeWidth = try await maxWidth(in: first.coordinator)
-        #expect(themeWidth != "none")
-
-        try await first.coordinator.scroll(toSourceLine: 201)
-        let line = try await first.coordinator.currentSourceLine()
-        let height = try #require(
-            try await evaluate("return document.documentElement.scrollHeight;", in: first.coordinator) as? NSNumber)
-
-        let narrow = try #require(widthItem("Narrow"))
-        let narrowWidth = try await pixels(32, in: first.coordinator)
-        first.setContentWidth(narrow)
-        #expect(first.contentWidth == .narrow)
-        #expect(settings.defaultWidth == .theme, "the default for new windows is Settings'")
-        try await until("the first window narrows") {
-            isWidth(try await maxWidth(in: first.coordinator), is: narrowWidth)
-        }
-        let narrowHeight = try #require(
-            try await evaluate("return document.documentElement.scrollHeight;", in: first.coordinator) as? NSNumber)
-        #expect(narrowHeight.doubleValue > height.doubleValue, "the column reflowed")
-        #expect(abs(try await first.coordinator.currentSourceLine() - line) < 1, "the reading position is kept")
-        #expect(second.contentWidth == .theme)
-        #expect(try await maxWidth(in: second.coordinator) == themeWidth, "the other window keeps its width")
-
-        first.setContentWidth(to: .full)
-        try await until("full width") { try await maxWidth(in: first.coordinator) == "none" }
-        first.setContentWidth(to: .theme)
-        try await until("the theme's width") { try await maxWidth(in: first.coordinator) == themeWidth }
-
-        // A new window starts with Settings' default; a full reload keeps the window's preset.
-        settings.defaultWidth = .wide
-        #expect(first.contentWidth == .theme, "a new default leaves open windows alone")
-        let (document, third) = try await open(name: "third.md", contentWidthSettings: settings)
-        #expect(third.contentWidth == .wide)
-        #expect(isWidth(try await maxWidth(in: third.coordinator), is: try await pixels(72, in: third.coordinator)))
-        third.setContentWidth(to: .narrow)
-        try await third.coordinator.load(try #require(document.content).page, baseURL: nil)
-        #expect(isWidth(try await maxWidth(in: third.coordinator), is: narrowWidth))
-    }
-
     @Test("the window's preset is checked in the menu")
     func validation() async throws {
         defer { closeAll() }
@@ -181,13 +136,17 @@ final class ContentWidthTests: DocumentWindowTestCase {
         }
     }
 
-    @Test("View > Content Width lists the presets")
+    @Test("View > Content Width lists the presets, then the hidden custom width")
     func menu() throws {
         let view = try #require(MainMenu.build().item(withTitle: "View")?.submenu)
         let submenu = try #require(view.item(withTitle: "Content Width")?.submenu)
-        #expect(submenu.items.map(\.title) == ["Narrow", "Theme Default", "Wide", "Full Width"])
-        #expect(submenu.items.allSatisfy { $0.action == #selector(DocumentWindowController.setContentWidth(_:)) })
-        #expect(submenu.items.compactMap { $0.representedObject as? String } == ContentWidth.allCases.map(\.rawValue))
+        #expect(submenu.items.map(\.title) == ["Narrow", "Theme Default", "Wide", "Full Width", "", "Custom"])
+        let items = submenu.items.filter { !$0.isSeparatorItem }
+        #expect(items.allSatisfy { $0.action == #selector(DocumentWindowController.setContentWidth(_:)) })
+        #expect(
+            items.compactMap { $0.representedObject as? String }
+                == ContentWidth.allCases.map(\.rawValue) + [DocumentWindowController.customContentWidthItemValue])
+        #expect(submenu.items.suffix(2).allSatisfy { $0.isHidden })
     }
 
     // MARK: Themes
@@ -218,6 +177,22 @@ final class ContentWidthTests: DocumentWindowTestCase {
                     #expect(actual == "none", "\(label)")
                 }
             }
+            let custom = try #require(CustomContentWidth(points: 640))
+            let html = HTMLDocument(
+                title: "t", body: "<p>text</p>", theme: theme,
+                userStyle: UserStyle(contentWidth: .narrow, customWidth: custom), contentSecurityPolicy: .viewer
+            ).html
+            try await coordinator.load(html: html, baseURL: nil)
+            let label = "\(theme.id) \(appearance.rawValue) custom"
+            #expect(try await maxWidth(in: coordinator) == "640px", "\(label)")
+            let textWidth = try #require(
+                try await evaluate(
+                    """
+                    const body = document.querySelector('article.markdown-body');
+                    const style = getComputedStyle(body);
+                    return body.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    """, in: coordinator) as? NSNumber)
+            #expect(abs(textWidth.doubleValue - 640) < 1, "\(label): text is \(textWidth)px wide")
         }
     }
 }

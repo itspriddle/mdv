@@ -13,6 +13,7 @@ import PeepCore
 /// | Pin new windows | `WindowPinPreference` | new windows |
 /// | Zoom | `ZoomSettings.defaultLevel` | new windows (#47) |
 /// | Content width | `ContentWidthSettings.defaultWidth` | new windows (#47) |
+/// | Custom content width | `ContentWidthSettings.isCustomWidthEnabled`, `customWidthPoints` | every window, live |
 /// | Default Markdown viewer | `DefaultViewer` (Launch Services) | system-wide |
 /// | Default flavor | `MarkdownSettings.defaultFlavorID` | every document, live (#55) |
 /// | Frontmatter display | `MarkdownSettings.frontmatterDisplay` | every document, live (#55) |
@@ -62,6 +63,10 @@ final class SettingsModel: NSObject {
     private(set) var zoomLevel = PageZoom.actualSize
     /// The content width new windows start with.
     private(set) var contentWidth = ContentWidth.default
+    /// Whether the custom width overrides every window's content width.
+    private(set) var isCustomWidthEnabled = false
+    /// The custom width in px (kept while it is off).
+    private(set) var customWidthPoints = CustomContentWidth.defaultPoints
     private(set) var showsOutlineInNewWindows = false
     private(set) var pinsNewWindows = false
     private(set) var isDefaultViewer = false
@@ -136,6 +141,8 @@ final class SettingsModel: NSObject {
         themeFailures = themeSettings.customThemeFailures.map(\.message)
         zoomLevel = Self.nearestZoomLevel(to: zoomSettings.defaultLevel)
         contentWidth = contentWidthSettings.defaultWidth
+        isCustomWidthEnabled = contentWidthSettings.isCustomWidthEnabled
+        customWidthPoints = contentWidthSettings.customWidthPoints
         showsOutlineInNewWindows = outlinePreference.showsOutlineInNewWindows
         pinsNewWindows = pinPreference.pinsNewWindows
         isDefaultViewer = defaultViewerOffer.viewer.isDefault
@@ -184,6 +191,18 @@ final class SettingsModel: NSObject {
     /// New windows open with `width`. Open windows keep theirs.
     func setContentWidth(_ width: ContentWidth) {
         contentWidthSettings.defaultWidth = width
+        refresh()
+    }
+
+    /// Every window uses the custom width (or goes back to its own preset), live.
+    func setCustomWidthEnabled(_ enabled: Bool) {
+        contentWidthSettings.isCustomWidthEnabled = enabled
+        refresh()
+    }
+
+    /// Sets the custom width, clamped to `CustomContentWidth.range`; windows follow it while it is on.
+    func setCustomWidthPoints(_ points: Int) {
+        contentWidthSettings.customWidthPoints = points
         refresh()
     }
 

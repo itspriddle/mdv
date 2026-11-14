@@ -311,6 +311,9 @@ and give only `background` in the header (it's used in both appearances).
 
 **View > Content Width** lets the reader pick Narrow, Theme Default, Wide, or Full Width for
 a window (**Settings** picks it for new windows). "Theme Default" is whatever your theme sets.
+**Settings** can also set a custom width in px for every window; while it's on, it replaces
+the window's choice, and it measures the text: Peep also sets `.markdown-body`'s `box-sizing`
+to `content-box`, so your padding is outside it.
 
 - Limit width on `.markdown-body` and you need to do nothing: for the other choices Peep sets
   `.markdown-body`'s `max-width` itself, above your theme.
@@ -318,7 +321,7 @@ a window (**Settings** picks it for new windows). "Theme Default" is whatever yo
   `--peep-content-width`: `max-width: var(--peep-content-width, 44em);` (the second value is your
   default). It's the
   only variable Peep sets, and only while the reader has picked something other than Theme
-  Default; its values are `32em`, `72em`, or `none`.
+  Default; its values are `32em`, `72em`, `none`, or the custom width in `px`.
 - Writing `.markdown-body { max-width: var(--peep-content-width, 44em) }` anyway makes the
   intent clear; the bundled themes do.
 - Don't mark `max-width` `!important`; that would beat the reader's choice.

@@ -176,8 +176,8 @@ struct ThemeGuideTests {
         #expect(guide.contains("at most \(CustomTheme.maximumNameLength) characters"))
         #expect(guide.contains("`\(UserStyle.contentWidthProperty)`"))
         let widths = ContentWidth.allCases.compactMap(\.cssValue).map { "`\($0)`" }
-        let last = try #require(widths.last)
-        #expect(guide.contains(widths.dropLast().joined(separator: ", ") + ", or " + last))
+        #expect(guide.contains(widths.joined(separator: ", ") + ", or the custom width in `px`"))
+        #expect(guide.contains("`box-sizing`\nto `content-box`"))
         for theme in ThemeRegistry.bundled.themes {
             #expect(guide.contains("`\(theme.id)`"))
         }

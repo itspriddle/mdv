@@ -75,6 +75,26 @@ final class SettingsTests: DocumentWindowTestCase {
         #expect(reread.pinsNewWindows)
     }
 
+    @Test("the custom width mirrors its store, writes through, and clamps")
+    func customWidth() {
+        let width = ContentWidthSettings(defaults: defaults, isPersistent: true)
+        let model = model(contentWidthSettings: width)
+        #expect(!model.isCustomWidthEnabled)
+        #expect(model.customWidthPoints == CustomContentWidth.defaultPoints)
+
+        model.setCustomWidthPoints(700)
+        model.setCustomWidthEnabled(true)
+        #expect(width.customWidth == CustomContentWidth(points: 700))
+        #expect(model.isCustomWidthEnabled)
+        #expect(model.customWidthPoints == 700)
+
+        model.setCustomWidthPoints(1)
+        #expect(model.customWidthPoints == CustomContentWidth.range.lowerBound, "the field shows the clamped value")
+
+        width.isCustomWidthEnabled = false
+        #expect(!model.isCustomWidthEnabled, "follows changes to the store")
+    }
+
     @Test("an unregistered theme id is ignored; a deleted default shows the registry default")
     func unknownTheme() {
         let themes = themeSettings()
