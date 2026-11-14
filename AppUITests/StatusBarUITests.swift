@@ -1,7 +1,7 @@
 import XCTest
 
-/// The status bar: the document's word count and the outline toggle, hidden and shown with
-/// View > Hide/Show Status Bar (Command-/).
+/// The status bar: the document's word count and the pin and outline toggles, hidden and shown
+/// with View > Hide/Show Status Bar (Command-/).
 @MainActor
 final class StatusBarUITests: XCTestCase {
     private var peep: PeepUITestApp?
@@ -56,5 +56,26 @@ final class StatusBarUITests: XCTestCase {
         toggle.click()
         let hidden = expectation(for: NSPredicate(format: "isHittable == false"), evaluatedWith: final)
         wait(for: [hidden], timeout: PeepUITestApp.defaultTimeout)
+    }
+
+    func testPinToggleAndMenu() throws {
+        let peep = try PeepUITestApp.launch(
+            openingFixture: "smoke.md", arguments: ["-StatusBarVisible", "YES", "-PinNewWindows", "NO"])
+        self.peep = peep
+        let window = peep.waitForWindow(titled: "Smoke Test Fixture")
+        peep.waitForRenderedText("The quick brown fox renders in Peep.", in: window)
+
+        let toggle = peep.pinToggle(in: window)
+        XCTAssertTrue(toggle.waitForExistence(timeout: PeepUITestApp.defaultTimeout))
+        XCTAssertEqual(toggle.value as? String, "off")
+        toggle.click()
+        let pinned = expectation(for: NSPredicate(format: "value == 'on'"), evaluatedWith: toggle)
+        wait(for: [pinned], timeout: PeepUITestApp.defaultTimeout)
+
+        // Window > Unpin Window.
+        peep.app.menuBars.menuBarItems["Window"].click()
+        peep.app.menuBars.menuBarItems["Window"].menuItems["Unpin Window"].click()
+        let unpinned = expectation(for: NSPredicate(format: "value == 'off'"), evaluatedWith: toggle)
+        wait(for: [unpinned], timeout: PeepUITestApp.defaultTimeout)
     }
 }

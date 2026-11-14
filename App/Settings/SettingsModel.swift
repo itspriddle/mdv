@@ -10,6 +10,7 @@ import PeepCore
 /// | Default theme | `ThemeSettings.defaultThemeID` | new windows |
 /// | (Open Themes Folder) | `CustomThemeLibrary.openFolder()` (#35) | Finder |
 /// | Show outline in new windows | `OutlinePreference` | new windows |
+/// | Pin new windows | `WindowPinPreference` | new windows |
 /// | Zoom | `ZoomSettings.defaultLevel` | new windows (#47) |
 /// | Content width | `ContentWidthSettings.defaultWidth` | new windows (#47) |
 /// | Default Markdown viewer | `DefaultViewer` (Launch Services) | system-wide |
@@ -37,6 +38,7 @@ final class SettingsModel: NSObject {
     @ObservationIgnored let zoomSettings: ZoomSettings
     @ObservationIgnored let contentWidthSettings: ContentWidthSettings
     @ObservationIgnored let outlinePreference: OutlinePreference
+    @ObservationIgnored let pinPreference: WindowPinPreference
     @ObservationIgnored let markdownSettings: MarkdownSettings
     @ObservationIgnored let defaultViewerOffer: DefaultViewerOfferController
     /// Sparkle's updater (#81), which owns the update settings; inactive (in memory) by default,
@@ -61,6 +63,7 @@ final class SettingsModel: NSObject {
     /// The content width new windows start with.
     private(set) var contentWidth = ContentWidth.default
     private(set) var showsOutlineInNewWindows = false
+    private(set) var pinsNewWindows = false
     private(set) var isDefaultViewer = false
     /// Whether "Make Default" is waiting on Launch Services (and the button disabled).
     private(set) var isMakingDefaultViewer = false
@@ -84,6 +87,7 @@ final class SettingsModel: NSObject {
         zoomSettings: ZoomSettings = .shared,
         contentWidthSettings: ContentWidthSettings = .shared,
         outlinePreference: OutlinePreference = OutlinePreference(),
+        pinPreference: WindowPinPreference = WindowPinPreference(),
         markdownSettings: MarkdownSettings = .shared,
         customPreprocessor: CustomPreprocessorModel? = nil,
         updater: (any SoftwareUpdating)? = nil,
@@ -96,6 +100,7 @@ final class SettingsModel: NSObject {
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.outlinePreference = outlinePreference
+        self.pinPreference = pinPreference
         self.markdownSettings = markdownSettings
         self.defaultViewerOffer = defaultViewerOffer
         self.updater = updater ?? InactiveUpdater()
@@ -132,6 +137,7 @@ final class SettingsModel: NSObject {
         zoomLevel = Self.nearestZoomLevel(to: zoomSettings.defaultLevel)
         contentWidth = contentWidthSettings.defaultWidth
         showsOutlineInNewWindows = outlinePreference.showsOutlineInNewWindows
+        pinsNewWindows = pinPreference.pinsNewWindows
         isDefaultViewer = defaultViewerOffer.viewer.isDefault
         flavors = markdownSettings.registry.flavors
         defaultFlavorID = markdownSettings.defaultFlavorID
@@ -184,6 +190,12 @@ final class SettingsModel: NSObject {
     /// New windows show (or hide) the outline. Open windows keep theirs.
     func setShowsOutlineInNewWindows(_ shows: Bool) {
         outlinePreference.showsOutlineInNewWindows = shows
+        refresh()
+    }
+
+    /// New windows open pinned (or not). Open windows keep theirs.
+    func setPinsNewWindows(_ pins: Bool) {
+        pinPreference.pinsNewWindows = pins
         refresh()
     }
 

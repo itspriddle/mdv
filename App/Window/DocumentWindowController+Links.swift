@@ -98,6 +98,7 @@ extension DocumentWindowController {
         }
         if !alreadyOpen, let window, let newWindow = document.windowControllers.first?.window, newWindow !== window {
             window.addTabbedWindow(newWindow, ordered: .above)
+            (newWindow.windowController as? DocumentWindowController)?.adoptTabGroupPin()
         }
         document.showWindows()
     }

@@ -53,6 +53,11 @@ final class DocumentWindowController: NSWindowController {
     let statusBar: StatusBarModel
     let statusBarPreference: StatusBarPreference
 
+    // MARK: Pin (`DocumentWindowController+Pin.swift`)
+
+    /// Whether new windows open pinned; this window's pin is `isPinned`.
+    let pinPreference: WindowPinPreference
+
     // MARK: Zoom and content width (#26, #37, #47: `+Zoom.swift`, `+ContentWidth.swift`)
 
     /// The zoom new windows start at; this window's level is `zoomLevel`.
@@ -88,6 +93,7 @@ final class DocumentWindowController: NSWindowController {
         coordinator: WebViewCoordinator = WebViewCoordinator(),
         outlinePreference: OutlinePreference = OutlinePreference(),
         statusBarPreference: StatusBarPreference = StatusBarPreference(),
+        pinPreference: WindowPinPreference = WindowPinPreference(),
         zoomSettings: ZoomSettings = .shared,
         contentWidthSettings: ContentWidthSettings = .shared,
         themeSettings: ThemeSettings = .shared,
@@ -97,6 +103,7 @@ final class DocumentWindowController: NSWindowController {
         self.renderProgress = renderProgress
         self.outlinePreference = outlinePreference
         self.statusBarPreference = statusBarPreference
+        self.pinPreference = pinPreference
         self.zoomSettings = zoomSettings
         self.contentWidthSettings = contentWidthSettings
         self.themeSettings = themeSettings
@@ -122,6 +129,7 @@ final class DocumentWindowController: NSWindowController {
         installZoom()
         installContentWidth()
         installTheme()
+        installPin()
     }
 
     @available(*, unavailable)
@@ -143,7 +151,8 @@ final class DocumentWindowController: NSWindowController {
                     document: markdownDocument, coordinator: coordinator, remoteImages: remoteImages,
                     renderProgress: renderProgress, statusBar: statusBar, chrome: chrome,
                     loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) },
-                    toggleOutline: { [weak self] in self?.toggleOutline(nil) }))
+                    toggleOutline: { [weak self] in self?.toggleOutline(nil) },
+                    togglePinned: { [weak self] in self?.togglePinned(nil) }))
             // SwiftUI sets the minimum size; the window (and later restoration) owns the size.
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero

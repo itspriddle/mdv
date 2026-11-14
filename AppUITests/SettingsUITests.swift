@@ -33,6 +33,7 @@ final class SettingsUITests: XCTestCase {
         XCTAssertTrue(settings.popUpButtons["settings-zoom"].exists)
         XCTAssertTrue(settings.popUpButtons["settings-content-width"].exists)
         XCTAssertTrue(settings.checkBoxes["settings-outline"].exists)
+        XCTAssertTrue(settings.checkBoxes["settings-pin-new-windows"].exists)
         peep.chooseSetting("Serif", in: "settings-default-theme")
         XCTAssertEqual(settings.popUpButtons["settings-default-theme"].value as? String, "Serif")
 

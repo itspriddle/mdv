@@ -10,4 +10,10 @@ extension PeepUITestApp {
     func outlineToggle(in window: XCUIElement? = nil) -> XCUIElement {
         (window ?? frontWindow).buttons["outline-toggle"].firstMatch
     }
+
+    /// The pin toggle in `window`'s status bar (`PinToggleItem` in the app); its value is "on"
+    /// while the window is pinned.
+    func pinToggle(in window: XCUIElement? = nil) -> XCUIElement {
+        (window ?? frontWindow).buttons["pin-toggle"].firstMatch
+    }
 }
