@@ -221,9 +221,10 @@ lock the build database.
     `DocumentView` (SwiftUI root: find bar, file status and remote image bars, link status),
     `WindowChrome` (the theme colors of the titlebar border and status bar; the titlebar is
     transparent over the theme-colored window background, `applyWindowChrome()` also fills the
-    outline sidebar and its edge, and forces the window's appearance only when the theme
-    background's darkness doesn't match the system's). Dynamic theme `NSColor`s are named by
-    their colors: same-named dynamic colors are equal, and AppKit ignores an equal color.
+    outline sidebar and its edge; it never changes the window's appearance, and when the theme
+    background's darkness doesn't match it, forces only the titlebar container and sidebar).
+    Dynamic theme `NSColor`s are named by their colors: same-named dynamic colors are equal, and
+    AppKit ignores an equal color.
   - `WebView/`: `WebViewCoordinator` owns the `DocumentWebView` (drops, context menu trimming):
     `prepareForFirstLoad()` (a blank page while the first render runs), `load`, `updateContent`,
     and the async bridge (`readingPosition()`, `scroll(toSourceLine:)`,

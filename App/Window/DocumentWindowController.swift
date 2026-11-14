@@ -78,11 +78,8 @@ final class DocumentWindowController: NSWindowController {
     var documentThemeID: String?
     /// The theme colors of the titlebar border and status bar, read by `DocumentView`.
     let chrome = WindowChrome()
-    /// Set while the window's appearance is forced to match a theme background that doesn't
-    /// match the system's (`applyWindowChrome()`).
-    var forcedAppearance: ForcedWindowAppearance?
-    /// Follows the app's appearance (`applyWindowChrome()`).
-    var appAppearanceObservation: NSKeyValueObservation?
+    /// Follows the window's appearance (`applyWindowChrome()`).
+    var windowAppearanceObservation: NSKeyValueObservation?
     /// Settings' default theme when the window opened: what it shows with neither a pick nor a
     /// document theme. A later change to the default applies to new windows only.
     let newWindowThemeID: String
@@ -151,8 +148,6 @@ final class DocumentWindowController: NSWindowController {
             hostingController.sizingOptions = [.minSize]
             hostingController.view.frame.size = window?.contentLayoutRect.size ?? .zero
             window?.contentViewController = makeSplitViewController(content: hostingController)
-            // The new content view takes the system appearance if the window's is forced.
-            applyWindowChrome()
             if markdownDocument.content == nil {
                 // Still rendering (#32): start the web view now, so the page loads fast after.
                 coordinator.prepareForFirstLoad()

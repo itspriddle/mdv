@@ -72,30 +72,50 @@ final class WindowChromeTests: DocumentWindowTestCase {
                 == NSColor(Theme.serif.background.dark).usingColorSpace(.sRGB))
     }
 
-    @Test("a dark background in Light mode forces a dark titlebar and keeps the page light")
+    @Test("a dark background in Light mode gets a dark titlebar and sidebar, and the page stays light")
     func mismatchedBackground() async throws {
         defer { closeAll() }
         let settings = themeSettings(registry: ThemeRegistry.bundled.adding([Self.midnight]))
         let (_, controller) = try await open(themeSettings: settings, appearance: .aqua)
         let window = try #require(controller.window)
-        #expect(controller.forcedAppearance == nil)
+        let titlebar = try #require(controller.titlebarContainer)
+        #expect(titlebar.appearance == nil)
 
         controller.setTheme(id: Self.midnight.id)
-        #expect(window.appearance?.name == .darkAqua)
-        #expect(window.contentView?.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua)
+        #expect(window.appearance?.name == .aqua, "the window's own appearance is never changed")
+        #expect(titlebar.appearance?.name == .darkAqua)
+        #expect(controller.outlineController.view.appearance?.name == .darkAqua, "the sidebar is chrome")
         #expect(
             controller.coordinator.webView.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua)
         #expect(
-            window.backgroundColor.usingColorSpace(.sRGB)
-                == NSColor(Self.midnight.background.light).usingColorSpace(.sRGB))
+            resolved(controller.outlineController.chromeView.backgroundColor, in: .darkAqua)
+                == NSColor(Self.midnight.background.light).usingColorSpace(.sRGB),
+            "the sidebar keeps the light-appearance background under its dark appearance")
 
-        #expect(controller.outlineController.view.appearance?.name == .darkAqua, "the sidebar is chrome")
-
-        controller.setTheme(id: Theme.github.id)
-        #expect(window.appearance?.name == .aqua, "the window's own appearance comes back")
-        #expect(window.contentView?.appearance == nil)
+        // The window's appearance changes (the app's, or set on the window): the chrome follows.
+        window.appearance = NSAppearance(named: .darkAqua)
+        #expect(titlebar.appearance == nil, "dark background, dark window: nothing to force")
         #expect(controller.outlineController.view.appearance == nil)
-        #expect(controller.forcedAppearance == nil)
+        // Views take a new window appearance on AppKit's next pass, not synchronously.
+        try await until("the page follows the window") {
+            controller.coordinator.webView.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        }
+
+        window.appearance = NSAppearance(named: .aqua)
+        controller.setTheme(id: Theme.github.id)
+        #expect(titlebar.appearance == nil)
+        #expect(controller.outlineController.view.appearance == nil)
+    }
+
+    @Test("a window opened dark with a dark-background default theme shows the page dark")
+    func darkWindowForDarkDefault() async throws {
+        defer { closeAll() }
+        let settings = themeSettings(registry: ThemeRegistry.bundled.adding([Self.midnight]))
+        settings.defaultThemeID = Self.midnight.id
+        let (_, controller) = try await open(themeSettings: settings, appearance: .darkAqua)
+        #expect(
+            controller.coordinator.webView.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua)
+        #expect(controller.titlebarContainer?.appearance == nil)
     }
 
     @Test("status bar colors follow the system appearance; its contents contrast with the background")

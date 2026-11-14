@@ -34,7 +34,8 @@ extension DocumentWindowController {
         // (`DocumentView`) instead of the system separator.
         window?.titlebarAppearsTransparent = true
         window?.titlebarSeparatorStyle = .none
-        appAppearanceObservation = NSApplication.shared.observe(\.effectiveAppearance) { [weak self] _, _ in
+        // The app's appearance (Settings, the system), or one set on the window itself.
+        windowAppearanceObservation = window?.observe(\.effectiveAppearance) { [weak self] _, _ in
             MainActor.assumeIsolated {
                 self?.applyWindowChrome()
             }
@@ -90,48 +91,42 @@ extension DocumentWindowController {
         coordinator.show(theme)
     }
 
-    /// Paints the titlebar and outline sidebar with the theme's background in the system
-    /// appearance (the sidebar's edge in its border color), and keeps the
-    /// titlebar's title and buttons legible on it.
+    /// Paints the titlebar and outline sidebar with the theme's background in the window's
+    /// appearance (the sidebar's edge in its border color), and keeps the titlebar's title and
+    /// buttons legible on it. Runs again whenever the window's appearance changes.
     ///
-    /// When the background's darkness matches the appearance (always, for the bundled themes), the
-    /// window keeps the appearance it had and its background follows appearance changes by
-    /// itself. When it doesn't (a custom theme with one dark background, in Light mode), the
-    /// window's appearance is forced to the background's, the content view is pinned to the
-    /// system's (so the page's `prefers-color-scheme`, the outline, and the bars still follow
-    /// it), and the background is the one color. The window's earlier appearance is restored
-    /// once they match again.
+    /// The window's own appearance is never changed, so the page's `prefers-color-scheme` always
+    /// follows it. When the background's darkness doesn't match that appearance (a custom theme
+    /// with one dark background, in Light mode; never a bundled theme), only the chrome is drawn
+    /// in the background's appearance: the titlebar container (title, buttons, tab bar) and the
+    /// sidebar, whose colors are then the one background rather than dynamic ones (which would
+    /// resolve against the forced appearance).
     func applyWindowChrome() {
         guard let window else {
             return
         }
-        let system =
-            forcedAppearance.map { $0.previous ?? NSApplication.shared.effectiveAppearance }
-            ?? window.effectiveAppearance
-        let systemIsDark = system.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let background = systemIsDark ? chrome.background.dark : chrome.background.light
-        if background.isDark == systemIsDark {
-            if let forcedAppearance {
-                window.appearance = forcedAppearance.previous
-                self.forcedAppearance = nil
-            }
-            window.contentView?.appearance = nil
+        let isDark = window.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let background = isDark ? chrome.background.dark : chrome.background.light
+        window.backgroundColor = .themeBackground(chrome.background)
+        if background.isDark == isDark {
+            titlebarContainer?.appearance = nil
             outlineController.view.appearance = nil
-            window.backgroundColor = .themeBackground(chrome.background)
             outlineController.chromeView.backgroundColor = .themeBackground(chrome.background)
             outlineController.chromeView.borderColor = .themeBorder(chrome.background)
         } else {
-            if forcedAppearance == nil {
-                forcedAppearance = ForcedWindowAppearance(previous: window.appearance)
-            }
-            window.appearance = NSAppearance(named: background.isDark ? .darkAqua : .aqua)
-            window.contentView?.appearance = NSAppearance(named: systemIsDark ? .darkAqua : .aqua)
-            window.backgroundColor = NSColor(background)
-            // The sidebar is chrome too: drawn in the background's appearance, like the titlebar.
-            outlineController.view.appearance = window.appearance
+            let appearance = NSAppearance(named: background.isDark ? .darkAqua : .aqua)
+            titlebarContainer?.appearance = appearance
+            outlineController.view.appearance = appearance
             outlineController.chromeView.backgroundColor = NSColor(background)
             outlineController.chromeView.borderColor = NSColor(background.chromeBorder)
         }
+    }
+
+    /// The view holding the titlebar (title, window buttons, and tab bar): the window buttons'
+    /// grandparent. Nil if AppKit ever lays the titlebar out differently; the title then just
+    /// keeps the window's appearance.
+    var titlebarContainer: NSView? {
+        window?.standardWindowButton(.closeButton)?.superview?.superview
     }
 
     // MARK: Actions
@@ -196,9 +191,4 @@ extension DocumentWindowController {
     nonisolated static func isPlausibleThemeID(_ id: String) -> Bool {
         !id.isEmpty && id.count <= 256
     }
-}
-
-/// A window appearance `applyWindowChrome()` replaced, to put back once it no longer forces one.
-struct ForcedWindowAppearance {
-    let previous: NSAppearance?
 }
