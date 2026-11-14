@@ -72,6 +72,12 @@ public struct ThemeBackground: Sendable, Equatable {
         self.light = light
         self.dark = dark
     }
+
+    /// The border between the window's chrome (titlebar, status bar) and the page, for each
+    /// appearance (`ThemeColor.chromeBorder`).
+    public var chromeBorder: ThemeBackground {
+        ThemeBackground(light: light.chromeBorder, dark: dark.chromeBorder)
+    }
 }
 
 /// An opaque sRGB color.
@@ -108,5 +114,22 @@ public struct ThemeColor: Sendable, Equatable {
         }
         let luminance = 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
         return luminance < 0.179
+    }
+
+    /// A thin border drawn on this background: a little darker on a light background, a little
+    /// lighter on a dark one, so the app's chrome blends with any theme (the titlebar and
+    /// status bar are painted with the background itself).
+    public var chromeBorder: ThemeColor {
+        isDark ? mixed(with: ThemeColor(0xFF_FF_FF), fraction: 0.15) : mixed(with: ThemeColor(0), fraction: 0.12)
+    }
+
+    /// This color moved `fraction` (clamped to 0...1) of the way toward `other`, per sRGB
+    /// component, rounded.
+    public func mixed(with other: ThemeColor, fraction: Double) -> ThemeColor {
+        let amount = min(max(fraction, 0), 1)
+        func mix(_ start: UInt8, _ end: UInt8) -> UInt8 {
+            UInt8((Double(start) + (Double(end) - Double(start)) * amount).rounded())
+        }
+        return ThemeColor(red: mix(red, other.red), green: mix(green, other.green), blue: mix(blue, other.blue))
     }
 }

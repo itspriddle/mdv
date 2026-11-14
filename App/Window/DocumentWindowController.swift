@@ -76,6 +76,10 @@ final class DocumentWindowController: NSWindowController {
     var pickedThemeID: String?
     /// The theme the document's frontmatter names (`peep.theme`, #54), from its latest render.
     var documentThemeID: String?
+    /// The theme colors of the titlebar border and status bar, read by `DocumentView`.
+    let chrome = WindowChrome()
+    /// Follows the window's appearance (`applyWindowChrome()`).
+    var windowAppearanceObservation: NSKeyValueObservation?
     /// Settings' default theme when the window opened: what it shows with neither a pick nor a
     /// document theme. A later change to the default applies to new windows only.
     let newWindowThemeID: String
@@ -137,7 +141,7 @@ final class DocumentWindowController: NSWindowController {
             let hostingController = NSHostingController(
                 rootView: DocumentView(
                     document: markdownDocument, coordinator: coordinator, remoteImages: remoteImages,
-                    renderProgress: renderProgress, statusBar: statusBar,
+                    renderProgress: renderProgress, statusBar: statusBar, chrome: chrome,
                     loadRemoteImages: { [weak self] in self?.loadRemoteImages(nil) },
                     toggleOutline: { [weak self] in self?.toggleOutline(nil) }))
             // SwiftUI sets the minimum size; the window (and later restoration) owns the size.
