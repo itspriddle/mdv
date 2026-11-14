@@ -28,6 +28,7 @@ final class SettingsTests: DocumentWindowTestCase {
             zoomSettings: zoomSettings ?? settings(),
             contentWidthSettings: contentWidthSettings ?? ContentWidthSettings(defaults: defaults, isPersistent: true),
             outlinePreference: OutlinePreference(defaults: defaults, isPersistent: true),
+            pinPreference: WindowPinPreference(defaults: defaults, isPersistent: true),
             markdownSettings: markdownSettings ?? MarkdownSettings(defaults: defaults, isPersistent: true),
             defaultViewerOffer: DefaultViewerOfferController(viewer: viewer), openThemesFolder: openThemesFolder)
     }
@@ -43,6 +44,7 @@ final class SettingsTests: DocumentWindowTestCase {
         #expect(model.zoomLevel == 1)
         #expect(model.contentWidth == .theme)
         #expect(!model.showsOutlineInNewWindows)
+        #expect(!model.pinsNewWindows)
         #expect(!model.isDefaultViewer)
     }
 
@@ -54,12 +56,14 @@ final class SettingsTests: DocumentWindowTestCase {
         model.setZoomLevel(1.25)
         model.setContentWidth(.wide)
         model.setShowsOutlineInNewWindows(true)
+        model.setPinsNewWindows(true)
 
         #expect(defaults.string(forKey: AppearanceSettings.key) == "dark")
         #expect(defaults.string(forKey: ThemeSettings.defaultThemeKey) == "serif")
         #expect(defaults.double(forKey: ZoomSettings.key) == 1.25)
         #expect(defaults.string(forKey: ContentWidthSettings.key) == "wide")
         #expect(defaults.bool(forKey: OutlinePreference.key))
+        #expect(defaults.bool(forKey: WindowPinPreference.key))
 
         // A fresh model over the same defaults (a relaunch) reads them back.
         let reread = self.model()
@@ -68,6 +72,7 @@ final class SettingsTests: DocumentWindowTestCase {
         #expect(reread.zoomLevel == 1.25)
         #expect(reread.contentWidth == .wide)
         #expect(reread.showsOutlineInNewWindows)
+        #expect(reread.pinsNewWindows)
     }
 
     @Test("an unregistered theme id is ignored; a deleted default shows the registry default")

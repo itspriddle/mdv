@@ -12,6 +12,7 @@ final class MainMenu {
         ZoomMenu.self, ContentWidthMenu.self,
         PrintMenu.self,
         CopyMenu.self, FindMenu.self,
+        WindowPinMenu.self,
     ]
 
     /// The top-level menus features can add to.

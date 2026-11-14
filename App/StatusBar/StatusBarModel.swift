@@ -10,9 +10,13 @@ final class StatusBarModel {
     /// Whether the window shows the outline, for the outline toggle's on state. The window
     /// controller keeps it in step with the sidebar (`DocumentWindowController.isOutlineVisible`).
     var isOutlineVisible: Bool
+    /// Whether the window is pinned, for the pin toggle's on state. Owned by
+    /// `DocumentWindowController.isPinned`, which also sets the window's level.
+    var isPinned: Bool
 
-    init(isVisible: Bool, isOutlineVisible: Bool = false) {
+    init(isVisible: Bool, isOutlineVisible: Bool = false, isPinned: Bool = false) {
         self.isVisible = isVisible
         self.isOutlineVisible = isOutlineVisible
+        self.isPinned = isPinned
     }
 }

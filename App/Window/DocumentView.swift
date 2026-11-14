@@ -12,6 +12,7 @@ struct DocumentView: View {
     let chrome: WindowChrome
     let loadRemoteImages: () -> Void
     let toggleOutline: () -> Void
+    let togglePinned: () -> Void
 
     var body: some View {
         MarkdownWebView(coordinator: coordinator)
@@ -36,7 +37,8 @@ struct DocumentView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if statusBar.isVisible {
                     StatusBar(
-                        document: document, model: statusBar, chrome: chrome, toggleOutline: toggleOutline)
+                        document: document, model: statusBar, chrome: chrome, toggleOutline: toggleOutline,
+                        togglePinned: togglePinned)
                 }
             }
     }

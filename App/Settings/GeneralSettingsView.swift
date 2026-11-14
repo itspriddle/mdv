@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Sections: Appearance (System, Light, or Dark; applies to every window at once), Themes (the
 /// default theme, custom theme files that didn't load, and Open Themes
-/// Folder, #35), Windows (outline default), Reading (the zoom and content width new windows
+/// Folder, #35), Windows (outline and pin defaults), Reading (the zoom and content width new windows
 /// start with; View > Zoom and View > Content Width change one window, #47), Default
 /// Viewer, and Updates (Sparkle's automatic checks and downloads, #81).
 struct GeneralSettingsView: View {
@@ -58,6 +58,12 @@ struct GeneralSettingsView: View {
                     isOn: binding(\.showsOutlineInNewWindows, model.setShowsOutlineInNewWindows)
                 )
                 .accessibilityIdentifier("settings-outline")
+                Toggle(
+                    "Keep new windows on top of other apps",
+                    isOn: binding(\.pinsNewWindows, model.setPinsNewWindows)
+                )
+                .accessibilityIdentifier("settings-pin-new-windows")
+                note("The status bar’s pin button or Window > Pin Window changes one window.")
             }
 
             Section {

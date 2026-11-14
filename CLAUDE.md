@@ -206,10 +206,15 @@ lock the build database.
     display.
   - `StatusBar/`: the strip along the bottom of the window (`DocumentView`'s bottom inset):
     `StatusBar` (the items, leading; first `WordCountItem`, from `RenderedPage.wordCount`; then
-    `OutlineToggleItem`, trailing, which replaced the toolbar: windows have none),
-    `StatusBarModel` (the window's visibility, and the outline's for the toggle), and
+    `PinToggleItem` and `OutlineToggleItem`, trailing, which replaced the toolbar: windows have
+    none), `StatusBarModel` (the window's visibility, and the outline's and pin for the toggles), and
     `StatusBarPreference` (default visibility, shown). View > Show/Hide Status Bar (⌘/) is
     `DocumentWindowController+StatusBar.swift`; a new item is a view in `StatusBar`.
+  - `WindowPin/`: `WindowPinPreference` (Settings > General's "Keep new windows on top"; the
+    window's pin never changes it). The window side is `DocumentWindowController+Pin.swift`:
+    `isPinned` sets the `.floating` level, a pin belongs to the whole tab group (a tab joining a
+    pinned group adopts it on becoming key, `adoptTabGroupPin()`), restored per window. Window >
+    Pin Window (⌥⌘P) is `WindowPinMenu`.
   - `RenderProgress/`: `RenderProgress` (#58: the delayed indicator's state, 300 ms by default,
     injectable) and `RenderProgressIndicator` (the overlay: centered over the blank page before
     the first page loads, small in the corner during re-renders). The window feeds it from

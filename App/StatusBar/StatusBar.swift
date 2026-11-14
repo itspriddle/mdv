@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The strip along the bottom of a document window: quick facts about the document, leading,
-/// and window toggles, trailing. Toggled with View > Show/Hide Status Bar.
+/// and window toggles (pin, outline), trailing. Toggled with View > Show/Hide Status Bar.
 ///
 /// Painted with the window's theme background (`WindowChrome`), under a border in the theme's
 /// border color, so it blends with the page; its text and controls use the scheme that contrasts
@@ -11,6 +11,7 @@ struct StatusBar: View {
     let model: StatusBarModel
     let chrome: WindowChrome
     let toggleOutline: () -> Void
+    let togglePinned: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -21,6 +22,7 @@ struct StatusBar: View {
             HStack(spacing: 12) {
                 WordCountItem(count: document.content?.page.wordCount)
                 Spacer(minLength: 0)
+                PinToggleItem(isPinned: model.isPinned, toggle: togglePinned)
                 OutlineToggleItem(isOutlineVisible: model.isOutlineVisible, toggle: toggleOutline)
             }
             .font(.callout)
@@ -51,6 +53,26 @@ struct OutlineToggleItem: View {
         .help(title)
         .accessibilityLabel(title)
         .accessibilityIdentifier("outline-toggle")
+    }
+}
+
+/// Pins or unpins the window (and its tabs), like Window > Pin/Unpin Window; filled and tinted
+/// while pinned.
+struct PinToggleItem: View {
+    let isPinned: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        let title = isPinned ? "Unpin Window" : "Pin Window"
+        Button(action: toggle) {
+            Image(systemName: isPinned ? "pin.fill" : "pin")
+                .foregroundStyle(isPinned ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+        }
+        .buttonStyle(.borderless)
+        .help(title)
+        .accessibilityLabel(title)
+        .accessibilityValue(isPinned ? "on" : "off")
+        .accessibilityIdentifier("pin-toggle")
     }
 }
 
