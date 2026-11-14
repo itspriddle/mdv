@@ -317,6 +317,12 @@ editor or a browser.
   padding, and code at their size. #37 made width global because it's a reading preference,
   not a property of the document; #47 reversed that (and zoom with it): changing it re-laid out
   every open window at once. The preference lives on as Settings' default for new windows.
+  Settings > General also has a custom width (off by default): one px value (320–3000,
+  `CustomContentWidth`) for every window that, while on, wins over each window's preset (the
+  window keeps its preset for when it goes off), applied live the same way. View > Content Width
+  then shows a checked "Custom: 800px" item and disables the presets. Unlike the presets it is
+  the width of the text: the layer adds `box-sizing: content-box`, so a theme's padding is
+  outside it. Screen only, like the presets.
 - **Theme picker (#34):** each window has its own theme, picked from View > Theme (bundled themes, then custom ones in their own section), checked in
   the menu, and kept by window restoration (an unknown id shows the default). A pick changes
   that window only; the theme for new windows is Settings' (#36). A switch is an in-place swap, not a reload: an app script replaces the

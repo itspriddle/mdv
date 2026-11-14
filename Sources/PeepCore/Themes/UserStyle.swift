@@ -39,6 +39,36 @@ public enum ContentWidth: String, Sendable, CaseIterable {
     }
 }
 
+/// A width the reader types in Settings, in CSS px, that overrides every window's preset while
+/// it is on. It is the width of the text: the user layer sets `box-sizing: content-box`, so a
+/// theme's padding is outside it. Only an in-range `Int` reaches the CSS.
+public struct CustomContentWidth: Sendable, Equatable {
+    /// The widths Settings accepts.
+    public static let range = 320...3000
+    /// The width Settings starts with.
+    public static let defaultPoints = 800
+
+    public let points: Int
+
+    /// Nil outside `range`.
+    public init?(points: Int) {
+        guard Self.range.contains(points) else {
+            return nil
+        }
+        self.points = points
+    }
+
+    /// The `max-width` value.
+    public var cssValue: String {
+        "\(points)px"
+    }
+
+    /// The menu title, e.g. "Custom: 800px".
+    public var displayName: String {
+        "Custom: \(points)px"
+    }
+}
+
 /// The reader's style controls: the `peep-user` cascade layer (`ThemeLayer.user`), above the
 /// theme, so they win over any theme's ordinary rules without specificity games, and below the
 /// base layer's protected (`!important`) rules.
@@ -52,9 +82,12 @@ public struct UserStyle: Sendable, Equatable {
     public static let contentWidthProperty = "--peep-content-width"
 
     public var contentWidth: ContentWidth
+    /// Settings' custom width; when set, it wins over `contentWidth`.
+    public var customWidth: CustomContentWidth?
 
-    public init(contentWidth: ContentWidth = .default) {
+    public init(contentWidth: ContentWidth = .default, customWidth: CustomContentWidth? = nil) {
         self.contentWidth = contentWidth
+        self.customWidth = customWidth
     }
 
     /// Nothing changed: every value is the theme's.
@@ -62,6 +95,14 @@ public struct UserStyle: Sendable, Equatable {
 
     /// The layer's rules, unwrapped. Empty when everything is the theme's.
     public var css: String {
+        if let customWidth {
+            return """
+                @media screen {
+                  :root { \(Self.contentWidthProperty): \(customWidth.cssValue); }
+                  .markdown-body { max-width: var(\(Self.contentWidthProperty)); box-sizing: content-box; }
+                }
+                """
+        }
         guard let width = contentWidth.cssValue else {
             return ""
         }

@@ -77,4 +77,45 @@ final class ContentWidthUITests: XCTestCase {
         XCTAssertEqual(firstParagraph.frame.width, firstFrame.width, accuracy: 1, "the other window keeps its zoom")
         XCTAssertEqual(firstParagraph.frame.height, firstFrame.height, accuracy: 1)
     }
+
+    /// Settings' custom width overrides the window's preset, shows in View > Content Width, and
+    /// turning it off puts the preset back.
+    func testCustomWidthOverridesThePreset() throws {
+        let peep = try PeepUITestApp.launch(openingFixture: "content-width.md")
+        self.peep = peep
+        peep.waitForWindow(titled: "Content Width Fixture")
+        let paragraph = peep.waitForRenderedText("Long paragraph start")
+        choose("Full Width", in: peep)
+        let fullWidth = paragraph.frame.width
+        waitForWidth(of: paragraph, "Full Width is wider than the custom width") { $0 > 400 }
+
+        let settings = peep.openSettings()
+        let field = settings.textFields["settings-custom-width-points"]
+        XCTAssertTrue(field.waitForExistence(timeout: PeepUITestApp.defaultTimeout))
+        XCTAssertFalse(field.isEnabled, "the field is off until the custom width is")
+        settings.checkBoxes["settings-custom-width"].click()
+        XCTAssertTrue(field.isEnabled)
+        XCTAssertFalse(settings.popUpButtons["settings-content-width"].isEnabled, "the preset picker is overridden")
+        field.doubleClick()
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText("400\r")
+        settings.typeKey("w", modifierFlags: .command)
+
+        waitForWidth(of: paragraph, "the column is 400px of text") { $0 > 380 && $0 <= 401 }
+
+        let view = peep.app.menuBars.menuBarItems["View"]
+        view.click()
+        let submenu = view.menuItems["Content Width"]
+        submenu.hover()
+        let custom = submenu.menuItems["Custom: 400px"]
+        XCTAssertTrue(custom.waitForExistence(timeout: PeepUITestApp.defaultTimeout))
+        XCTAssertFalse(submenu.menuItems["Narrow"].isEnabled, "presets are disabled while it is on")
+        peep.app.typeKey(.escape, modifierFlags: [])
+        peep.app.typeKey(.escape, modifierFlags: [])
+
+        let reopened = peep.openSettings()
+        reopened.checkBoxes["settings-custom-width"].click()
+        reopened.typeKey("w", modifierFlags: .command)
+        waitForWidth(of: paragraph, "the window's preset is back") { abs($0 - fullWidth) < 2 }
+    }
 }

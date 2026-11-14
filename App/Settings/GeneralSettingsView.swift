@@ -7,7 +7,8 @@ import SwiftUI
 /// Sections: Appearance (System, Light, or Dark; applies to every window at once), Themes (the
 /// default theme, custom theme files that didn't load, and Open Themes
 /// Folder, #35), Windows (outline and pin defaults), Reading (the zoom and content width new windows
-/// start with; View > Zoom and View > Content Width change one window, #47), Default
+/// start with; View > Zoom and View > Content Width change one window, #47; a custom width in
+/// px that, while on, every window uses instead), Default
 /// Viewer, and Updates (Sparkle's automatic checks and downloads, #81).
 struct GeneralSettingsView: View {
     let model: SettingsModel
@@ -78,8 +79,31 @@ struct GeneralSettingsView: View {
                         Text(width.displayName).tag(width)
                     }
                 }
+                .disabled(model.isCustomWidthEnabled)
                 .accessibilityIdentifier("settings-content-width")
-                note("New windows open at this zoom and width. The View menu changes one window.")
+                Toggle(
+                    "Use a custom content width",
+                    isOn: binding(\.isCustomWidthEnabled, model.setCustomWidthEnabled)
+                )
+                .accessibilityIdentifier("settings-custom-width")
+                LabeledContent("Custom width:") {
+                    HStack(spacing: 4) {
+                        TextField(
+                            "Custom width", value: binding(\.customWidthPoints, model.setCustomWidthPoints),
+                            format: .number.grouping(.never)
+                        )
+                        .labelsHidden()
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 64)
+                        .accessibilityIdentifier("settings-custom-width-points")
+                        Text("px")
+                    }
+                }
+                .disabled(!model.isCustomWidthEnabled)
+                note(
+                    "New windows open at this zoom and width. The View menu changes one window. "
+                        + "A custom width (\(CustomContentWidth.range.lowerBound)–"
+                        + "\(CustomContentWidth.range.upperBound) px of text) applies to every window.")
             }
 
             Section {

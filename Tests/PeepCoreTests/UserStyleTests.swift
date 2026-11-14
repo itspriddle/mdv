@@ -47,6 +47,33 @@ struct UserStyleTests {
         #expect(ContentWidth(rawValue: "") == nil)
     }
 
+    @Test("a custom width accepts only its range")
+    func customRange() {
+        for points in [0, -1, 319, 3001, Int.max] {
+            #expect(CustomContentWidth(points: points) == nil, "\(points)")
+        }
+        #expect(CustomContentWidth(points: 320)?.cssValue == "320px")
+        #expect(CustomContentWidth(points: 3000)?.cssValue == "3000px")
+        #expect(CustomContentWidth(points: 800)?.displayName == "Custom: 800px")
+        #expect(CustomContentWidth(points: CustomContentWidth.defaultPoints) != nil)
+    }
+
+    @Test("a custom width beats every preset and sizes the text, not the padding")
+    func customWins() throws {
+        let custom = try #require(CustomContentWidth(points: 800))
+        let expected = """
+            @media screen {
+              :root { --peep-content-width: 800px; }
+              .markdown-body { max-width: var(--peep-content-width); box-sizing: content-box; }
+            }
+            """
+        for width in ContentWidth.allCases {
+            #expect(UserStyle(contentWidth: width, customWidth: custom).css == expected)
+            #expect(UserStyle(contentWidth: width, customWidth: nil).css == UserStyle(contentWidth: width).css)
+        }
+        #expect(UserStyle(customWidth: custom) != UserStyle.themeDefaults)
+    }
+
     @Test("the page has a user layer element after the theme's")
     func inDocument() throws {
         let html = HTMLDocument(
