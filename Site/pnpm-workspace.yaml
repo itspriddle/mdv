@@ -6,6 +6,7 @@ catalog:
   vite-plus: 1.6.0
 overrides:
   vite@*: "catalog:"
+  postcss-selector-parser@<6.1.5: ^6.1.6
 peerDependencyRules:
   allowAny:
     - vite
